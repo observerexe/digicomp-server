@@ -3,7 +3,7 @@ import { Throttle } from '@nestjs/throttler';
 import { Role } from '../users/user.entity';
 import { UsersService } from '../users/users.service';
 import { AuthService } from './auth.service';
-import { CreateUserDto, LoginDto } from './dto';
+import { CreateUserDto, LoginDto, RefreshDto } from './dto';
 import { JwtAuthGuard, Roles, RolesGuard } from './roles';
 
 @Controller()
@@ -23,6 +23,24 @@ export class AuthController {
   @Post('auth/login')
   login(@Body() dto: LoginDto) {
     return this.auth.login(dto);
+  }
+
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
+  @Post('auth/refresh')
+  refresh(@Body() dto: RefreshDto) {
+    return this.auth.refresh(dto.refreshToken);
+  }
+
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
+  @Post('auth/logout')
+  logout(@Body() dto: RefreshDto) {
+    return this.auth.logout(dto.refreshToken);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('auth/logout-all')
+  logoutAll(@Req() req: { user: { id: string } }) {
+    return this.auth.logoutAll(req.user.id);
   }
 
   @UseGuards(JwtAuthGuard)

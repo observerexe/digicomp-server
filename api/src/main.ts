@@ -8,6 +8,18 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
   );
+  const origins = (process.env.CORS_ORIGINS ?? '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+  if (origins.length) {
+    app.enableCors({
+      origin: origins,
+      methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+      allowedHeaders: ['Authorization', 'Content-Type'],
+      maxAge: 600,
+    });
+  }
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();

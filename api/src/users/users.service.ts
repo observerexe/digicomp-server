@@ -8,6 +8,7 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import * as argon2 from 'argon2';
 import { DataSource, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
+import { SessionsService } from '../sessions/sessions.service';
 import { ListUsersQuery, UpdateProfileDto, UpdateUserDto } from './dto';
 import { toBasicView, toExtendedView, toProfile } from './profile';
 import { Role, User } from './user.entity';
@@ -28,6 +29,7 @@ export class UsersService {
     @InjectRepository(User) private repo: Repository<User>,
     @InjectDataSource() private ds: DataSource,
     private audit: AuditService,
+    private sessions: SessionsService,
   ) {}
 
   async me(id: string) {
@@ -138,6 +140,7 @@ export class UsersService {
         meta.active = { from: u.active, to: nextActive };
         u.active = nextActive;
         fields.push('active');
+        if (!nextActive) await this.sessions.revokeAllForUser(u.id, m);
       }
 
       if (fields.length) {
@@ -165,6 +168,7 @@ export class UsersService {
     }
     u.passwordHash = await argon2.hash(next);
     await this.repo.save(u);
+    await this.sessions.revokeAllForUser(id);
     await this.audit.log({
       actorId: id,
       action: 'user.password_changed',
@@ -179,6 +183,7 @@ export class UsersService {
     if (!u) throw new NotFoundException('User not found');
     u.passwordHash = await argon2.hash(next);
     await this.repo.save(u);
+    await this.sessions.revokeAllForUser(id);
     await this.audit.log({
       actorId: actor.id,
       action: 'user.password_reset',

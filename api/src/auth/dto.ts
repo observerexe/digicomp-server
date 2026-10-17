@@ -39,3 +39,10 @@ export class CreateUserDto {
   @MaxLength(200)
   specialty?: string;
 }
+
+export class RefreshDto {
+  @IsString()
+  @MinLength(20)
+  @MaxLength(200)
+  refreshToken: string;
+}

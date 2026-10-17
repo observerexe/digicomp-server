@@ -7,6 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as argon2 from 'argon2';
 import { Repository } from 'typeorm';
+import { SessionsService } from '../sessions/sessions.service';
 import { Role, User } from '../users/user.entity';
 import { toProfile } from '../users/profile';
 import { CreateUserDto, LoginDto } from './dto';
@@ -16,6 +17,7 @@ export class AuthService {
   constructor(
     @InjectRepository(User) private users: Repository<User>,
     private jwt: JwtService,
+    private sessions: SessionsService,
   ) {}
 
   async setupFirstAdmin(dto: CreateUserDto) {
@@ -51,11 +53,34 @@ export class AuthService {
     const ok = user && (await argon2.verify(user.passwordHash, dto.password));
     if (!user || !ok || !user.active)
       throw new UnauthorizedException('Invalid credentials');
-    const accessToken = await this.jwt.signAsync({
-      sub: user.id,
-      role: user.role,
-    });
-    return { accessToken, user: this.publicUser(user) };
+    const accessToken = await this.signAccess(user);
+    const refreshToken = await this.sessions.issue(user.id);
+    return { accessToken, refreshToken, user: this.publicUser(user) };
+  }
+
+  async refresh(token: string) {
+    const { userId, token: refreshToken } = await this.sessions.rotate(token);
+    const user = await this.users.findOneBy({ id: userId });
+    if (!user || !user.active) {
+      await this.sessions.revokeAllForUser(userId);
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+    const accessToken = await this.signAccess(user);
+    return { accessToken, refreshToken, user: this.publicUser(user) };
+  }
+
+  async logout(token: string) {
+    await this.sessions.revokeByToken(token);
+    return { ok: true };
+  }
+
+  async logoutAll(userId: string) {
+    await this.sessions.revokeAllForUser(userId);
+    return { ok: true };
+  }
+
+  private signAccess(user: User) {
+    return this.jwt.signAsync({ sub: user.id, role: user.role });
   }
 
   publicUser(u: User) {
