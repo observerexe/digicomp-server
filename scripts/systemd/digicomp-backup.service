@@ -1,0 +1,6 @@
+[Unit]
+Description=DigiComp backup
+
+[Service]
+Type=oneshot
+ExecStart=%h/server/scripts/backup.sh
