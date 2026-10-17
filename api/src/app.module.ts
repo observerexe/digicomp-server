@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { databaseOptions } from './database';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { HealthController } from './health/health.controller';
@@ -19,10 +20,10 @@ import { UsersModule } from './users/users.module';
 @Module({
   imports: [
     TypeOrmModule.forRoot({
-      type: 'postgres',
-      url: process.env.DATABASE_URL,
+      ...databaseOptions,
       autoLoadEntities: true,
-      synchronize: true,
+      synchronize: false,
+      migrationsRun: true,
     }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     UsersModule,
