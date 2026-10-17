@@ -7,13 +7,13 @@ import { PointsService } from './points.service';
 export class PointsController {
   constructor(private points: PointsService) {}
 
-  @Roles('admin', 'member')
+  @Roles('admin', 'coordinator', 'member')
   @Get('me')
   mine(@Req() req: { user: { id: string } }) {
     return this.points.mine(req.user.id);
   }
 
-  @Roles('admin', 'member')
+  @Roles('admin', 'coordinator', 'member')
   @Get('leaderboard')
   leaderboard() {
     return this.points.leaderboard();

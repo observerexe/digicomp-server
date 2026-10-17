@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as argon2 from 'argon2';
 import { Repository } from 'typeorm';
 import { Role, User } from '../users/user.entity';
+import { toProfile } from '../users/profile';
 import { CreateUserDto, LoginDto } from './dto';
 
 @Injectable()
@@ -34,6 +35,8 @@ export class AuthService {
       this.users.create({
         email: dto.email.toLowerCase(),
         name: dto.name,
+        position: dto.position ?? '',
+        specialty: dto.specialty ?? '',
         passwordHash: await argon2.hash(dto.password),
         role,
       }),
@@ -46,7 +49,8 @@ export class AuthService {
       where: { email: dto.email.toLowerCase() },
     });
     const ok = user && (await argon2.verify(user.passwordHash, dto.password));
-    if (!user || !ok) throw new UnauthorizedException('Invalid credentials');
+    if (!user || !ok || !user.active)
+      throw new UnauthorizedException('Invalid credentials');
     const accessToken = await this.jwt.signAsync({
       sub: user.id,
       role: user.role,
@@ -55,6 +59,6 @@ export class AuthService {
   }
 
   publicUser(u: User) {
-    return { id: u.id, email: u.email, name: u.name, role: u.role };
+    return toProfile(u);
   }
 }

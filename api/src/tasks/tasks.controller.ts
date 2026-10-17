@@ -18,7 +18,7 @@ import { TasksService } from './tasks.service';
 export class TasksController {
   constructor(private tasks: TasksService) {}
 
-  @Roles('admin', 'member')
+  @Roles('admin', 'coordinator', 'member')
   @Get()
   list() {
     return this.tasks.list();
@@ -26,14 +26,11 @@ export class TasksController {
 
   @Roles('admin')
   @Post()
-  create(
-    @Body() dto: CreateTaskDto,
-    @Req() req: { user: { id: string } },
-  ) {
+  create(@Body() dto: CreateTaskDto, @Req() req: { user: { id: string } }) {
     return this.tasks.create(dto, req.user.id);
   }
 
-  @Roles('admin', 'member')
+  @Roles('admin', 'coordinator', 'member')
   @Patch(':id/status')
   setStatus(
     @Param('id', ParseUUIDPipe) id: string,
