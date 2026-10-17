@@ -21,6 +21,14 @@ export class AuditService {
     return repo.save(repo.create(entry));
   }
 
+  history(entity: string, entityId: string, limit = 100) {
+    return this.repo.find({
+      where: { entity, entityId },
+      order: { createdAt: 'DESC' },
+      take: limit,
+    });
+  }
+
   list(limit = 100) {
     return this.repo.find({ order: { createdAt: 'DESC' }, take: limit });
   }

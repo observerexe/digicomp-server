@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { DocumentsModule } from './documents/documents.module';
 import { FilesModule } from './files/files.module';
 import { InventoryModule } from './inventory/inventory.module';
+import { ProjectsModule } from './projects/projects.module';
 import { PlacesModule } from './places/places.module';
 import { PointsModule } from './points/points.module';
 import { TasksModule } from './tasks/tasks.module';
@@ -32,6 +33,7 @@ import { UsersModule } from './users/users.module';
     FilesModule,
     DocumentsModule,
     InventoryModule,
+    ProjectsModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
