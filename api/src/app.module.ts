@@ -6,6 +6,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
+import { DocumentsModule } from './documents/documents.module';
+import { FilesModule } from './files/files.module';
 import { PlacesModule } from './places/places.module';
 import { PointsModule } from './points/points.module';
 import { TasksModule } from './tasks/tasks.module';
@@ -26,6 +28,8 @@ import { UsersModule } from './users/users.module';
     PointsModule,
     TasksModule,
     PlacesModule,
+    FilesModule,
+    DocumentsModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

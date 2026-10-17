@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -8,6 +9,12 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import * as argon2 from 'argon2';
 import { DataSource, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
+import {
+  AVATAR_EXTENSIONS,
+  UploadedFileLike,
+  validateUpload,
+} from '../files/file-validation';
+import { StorageService } from '../files/storage.service';
 import { SessionsService } from '../sessions/sessions.service';
 import { ListUsersQuery, UpdateProfileDto, UpdateUserDto } from './dto';
 import { toBasicView, toExtendedView, toProfile } from './profile';
@@ -30,6 +37,7 @@ export class UsersService {
     @InjectDataSource() private ds: DataSource,
     private audit: AuditService,
     private sessions: SessionsService,
+    private storage: StorageService,
   ) {}
 
   async me(id: string) {
@@ -191,6 +199,52 @@ export class UsersService {
       entityId: id,
     });
     return { ok: true };
+  }
+
+  async setAvatar(
+    id: string,
+    file: UploadedFileLike | undefined,
+    actor: Actor,
+  ) {
+    if (actor.id !== id && actor.role !== Role.Admin) {
+      throw new ForbiddenException('Not allowed');
+    }
+    const u = await this.repo.findOneBy({ id });
+    if (!u) throw new NotFoundException('User not found');
+    const info = validateUpload(file, AVATAR_EXTENSIONS);
+    for (const ext of ['png', 'jpg', 'webp']) {
+      await this.storage.remove(`avatars/${id}.${ext}`);
+    }
+    await this.storage.save(`avatars/${id}.${info.ext}`, file!.buffer, true);
+    u.avatarUrl = `/files/avatars/${id}`;
+    await this.repo.save(u);
+    await this.audit.log({
+      actorId: actor.id,
+      action: 'user.avatar_changed',
+      entity: 'user',
+      entityId: id,
+    });
+    return { avatarUrl: u.avatarUrl };
+  }
+
+  async removeAvatar(id: string, actor: Actor) {
+    if (actor.id !== id && actor.role !== Role.Admin) {
+      throw new ForbiddenException('Not allowed');
+    }
+    const u = await this.repo.findOneBy({ id });
+    if (!u) throw new NotFoundException('User not found');
+    for (const ext of ['png', 'jpg', 'webp']) {
+      await this.storage.remove(`avatars/${id}.${ext}`);
+    }
+    u.avatarUrl = null;
+    await this.repo.save(u);
+    await this.audit.log({
+      actorId: actor.id,
+      action: 'user.avatar_removed',
+      entity: 'user',
+      entityId: id,
+    });
+    return { avatarUrl: null };
   }
 
   private applyProfileFields(u: User, dto: UpdateProfileDto) {

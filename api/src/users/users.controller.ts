@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -8,8 +9,12 @@ import {
   Post,
   Query,
   Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { UploadedFileLike } from '../files/file-validation';
 import { JwtAuthGuard, Roles, RolesGuard } from '../auth/roles';
 import {
   ChangePasswordDto,
@@ -53,6 +58,27 @@ export class UsersController {
   @Get(':id')
   get(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
     return this.users.get(id, req.user);
+  }
+
+  @Roles('admin', 'coordinator', 'member')
+  @Post(':id/avatar')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 2 * 1024 * 1024, files: 1 },
+    }),
+  )
+  setAvatar(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file: UploadedFileLike | undefined,
+    @Req() req: Req,
+  ) {
+    return this.users.setAvatar(id, file, req.user);
+  }
+
+  @Roles('admin', 'coordinator', 'member')
+  @Delete(':id/avatar')
+  removeAvatar(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
+    return this.users.removeAvatar(id, req.user);
   }
 
   @Roles('admin')
