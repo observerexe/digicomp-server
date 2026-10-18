@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AppThrottlerGuard } from './common/app-throttler.guard';
 import { databaseOptions } from './database';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -25,7 +26,7 @@ import { UsersModule } from './users/users.module';
       synchronize: false,
       migrationsRun: true,
     }),
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 300 }]),
     UsersModule,
     AuthModule,
     AuditModule,
@@ -38,6 +39,6 @@ import { UsersModule } from './users/users.module';
     ProjectsModule,
   ],
   controllers: [AppController, HealthController],
-  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [AppService, { provide: APP_GUARD, useClass: AppThrottlerGuard }],
 })
 export class AppModule {}

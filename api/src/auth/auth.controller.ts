@@ -19,7 +19,7 @@ export class AuthController {
     return this.auth.setupFirstAdmin(dto);
   }
 
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('auth/login')
   login(@Body() dto: LoginDto) {
     return this.auth.login(dto);
