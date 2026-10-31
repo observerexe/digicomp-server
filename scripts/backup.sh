@@ -12,7 +12,15 @@ docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB"'
 docker compose run --rm --no-deps -T --user "$(id -u):$(id -g)" -v "$DEST":/backup --entrypoint tar api czf "/backup/files-$STAMP.tgz" -C /data/files .
 [ -s "$DEST/files-$STAMP.tgz" ] || { echo "Порожній архів файлів" >&2; exit 1; }
 
+if docker ps --format '{{.Names}}' | grep -qx homeassistant; then
+  docker exec homeassistant tar czf - -C /config . > "$DEST/ha-$STAMP.tgz"
+  [ -s "$DEST/ha-$STAMP.tgz" ] || { echo "Порожній архів Home Assistant" >&2; rm -f "$DEST/ha-$STAMP.tgz"; exit 1; }
+fi
+
+chmod 600 "$DEST"/*-"$STAMP".* 2>/dev/null || true
+
 ls -1t "$DEST"/db-*.dump 2>/dev/null | tail -n +"$((KEEP + 1))" | xargs -r rm --
+ls -1t "$DEST"/ha-*.tgz 2>/dev/null | tail -n +"$((KEEP + 1))" | xargs -r rm --
 ls -1t "$DEST"/files-*.tgz 2>/dev/null | tail -n +"$((KEEP + 1))" | xargs -r rm --
 
 echo "Готово: $DEST/db-$STAMP.dump і $DEST/files-$STAMP.tgz"

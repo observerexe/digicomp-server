@@ -44,6 +44,14 @@ const MESSAGE_CODES: Record<string, string> = {
   'Only admin or coordinator can change members': 'PROJECT_MEMBERS_FORBIDDEN',
   'No rights to edit this project': 'PROJECT_EDIT_FORBIDDEN',
   'Unknown or inactive member': 'UNKNOWN_MEMBER',
+  'Smart home is not configured': 'SMART_NOT_CONFIGURED',
+  'Smart home is unavailable': 'SMART_UNAVAILABLE',
+  'Smart home rejected the access token': 'SMART_AUTH_FAILED',
+  'Unknown Home Assistant entity': 'UNKNOWN_HA_ENTITY',
+  'Entity kind does not match': 'ENTITY_KIND_MISMATCH',
+  'Entity already added': 'SMART_ENTITY_EXISTS',
+  'Device is not available': 'DEVICE_UNAVAILABLE',
+  'Brightness requires on=true': 'BRIGHTNESS_REQUIRES_ON',
 };
 
 const STATUS_CODES: Record<number, string> = {

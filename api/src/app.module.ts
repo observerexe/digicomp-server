@@ -15,6 +15,7 @@ import { InventoryModule } from './inventory/inventory.module';
 import { ProjectsModule } from './projects/projects.module';
 import { PlacesModule } from './places/places.module';
 import { PointsModule } from './points/points.module';
+import { SmartModule } from './smart/smart.module';
 import { TasksModule } from './tasks/tasks.module';
 import { UsersModule } from './users/users.module';
 
@@ -37,6 +38,7 @@ import { UsersModule } from './users/users.module';
     DocumentsModule,
     InventoryModule,
     ProjectsModule,
+    SmartModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService, { provide: APP_GUARD, useClass: AppThrottlerGuard }],

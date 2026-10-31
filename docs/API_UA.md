@@ -54,6 +54,10 @@
 | `UNKNOWN_PLACE`, `UNKNOWN_MEMBER`, `UNKNOWN_ASSIGNEE` | 400 | Посилання на неіснуючий або неактивний об'єкт |
 | `TASK_ALREADY_COMPLETED`, `NOT_YOUR_TASK`, `ADMIN_ONLY_CONFIRM` | 409/403 | Правила завдань |
 | `SETUP_ALREADY_COMPLETED` | 409 | Першого адміна вже створено |
+| `SMART_NOT_CONFIGURED`, `SMART_UNAVAILABLE`, `SMART_AUTH_FAILED` | 503 | Home Assistant не налаштований, не відповідає за 5 секунд або відхилив токен |
+| `UNKNOWN_HA_ENTITY`, `ENTITY_KIND_MISMATCH`, `SMART_ENTITY_EXISTS` | 400/409 | Додавання пристрою в дозволений список: такого пристрою немає в HA, не збігається тип, або він уже доданий |
+| `DEVICE_UNAVAILABLE` | 409 | Пристрій у HA недоступний (вимкнений чи без зв'язку) |
+| `BRIGHTNESS_REQUIRES_ON` | 400 | Яскравість можна задавати лише разом із `on: true` |
 
 ## Ендпоінти
 
@@ -173,6 +177,20 @@
 | GET | `/projects/:id/files/:fileId/download` | admin, coordinator, member |
 | DELETE | `/projects/:id/files/:fileId` | admin, coordinator |
 
+### Розумний будинок (Home Assistant)
+
+| Метод | Шлях | Хто має доступ |
+|---|---|---|
+| GET | `/smart/entities` | admin, coordinator, member |
+| POST | `/smart/lights/:id/state` | admin, coordinator |
+| POST | `/smart/scenes/:id/activate` | admin, coordinator |
+| GET | `/smart/status` | admin |
+| GET | `/smart/discover` | admin |
+| GET | `/smart/allowlist` | admin |
+| POST | `/smart/allowlist` | admin |
+| PATCH | `/smart/allowlist/:id` | admin |
+| DELETE | `/smart/allowlist/:id` | admin |
+
 ### Аудит
 
 | Метод | Шлях | Хто має доступ |
@@ -195,6 +213,8 @@
 **Склад.** `POST /inventory/items`: `code`, `title`, `category`, `unit` (за замовчуванням `шт`), `quantity` (початковий залишок), `minQuantity`, `location`, `notes`. Кількість напряму не змінюється: лише `POST /inventory/items/:id/movements` з `delta` (від'ємне чи додатне, до 3 знаків), `note` (обов'язково), `projectId`, `idempotencyKey`. Member може лише видавати (`delta` менше нуля). Для одиниць `шт`, `pcs`, `уп` кількість лише ціла. У позиції є `lowStock` і `documentsCount`, у `GET /inventory/items/:id` ще й список прив'язаних документів. `GET /inventory/items?lowStock=true` показує позиції з низьким залишком.
 
 **Проєкти.** `POST /projects` (admin, coordinator): `title`, `description`, `status`, `progress` (0–100), `accomplishments`, `sources` (масив рядків), `memberIds`. `PATCH /projects/:id`: ті самі поля. Admin і coordinator редагують усе, member лише проєкти, де він учасник, і не може змінювати `memberIds`. У `GET /projects/:id` є `canEdit`. `GET /projects/:id/history`: журнал змін.
+
+**Розумний будинок.** `GET /smart/entities` повертає `{ items: [] }`; у кожного елемента є `id`, `kind` (`light`, `sensor`, `scene`), `label`, `room`, `available`. Для світла додатково `on` і `brightness` (відсотки), для датчика `value`, `unit`, `deviceClass`. `POST /smart/lights/:id/state`: `{ "on": true, "brightness": 1-100 }`, повертає новий стан. `POST /smart/scenes/:id/activate` без тіла. Ідентифікатор `:id` це `id` елемента зі списку, а не назва пристрою в HA. Керувати можна лише світлом і сценами, розетки та вимикачі додати в список неможливо. Налаштування див. `docs/SMART_UA.md`.
 
 **Завдання й бали (без змін).** `POST /tasks` (admin): `title`, `description`, `points`, `dueDate`, `assigneeIds`. `PATCH /tasks/:id/status`: `status` (`todo`, `in_progress`, `review`, `done`). Подробиці дивіться в `BACKEND_INTEGRATION.md`.
 
