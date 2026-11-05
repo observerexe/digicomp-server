@@ -1,0 +1,16 @@
+{
+  "name": "DigiComp HUB",
+  "short_name": "DigiComp",
+  "description": "Станції, склад, документи й проєкти лабораторії DigiComp",
+  "lang": "uk",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#edf1ed",
+  "theme_color": "#0b4a38",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

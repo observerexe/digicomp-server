@@ -46,3 +46,11 @@ export class RefreshDto {
   @MaxLength(200)
   refreshToken: string;
 }
+
+export class OptionalRefreshDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(20)
+  @MaxLength(200)
+  refreshToken?: string;
+}

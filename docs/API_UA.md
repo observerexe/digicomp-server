@@ -8,6 +8,7 @@
 - Базова адреса: `http://127.0.0.1:3000` (локально). Усі дати в ISO 8601, UTC.
 - Статуси успіху: `POST /auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/logout-all` повертають 200; `POST`, що створюють об'єкт (`/users`, `/places`, `/documents`, `/projects` тощо), повертають 201; `GET`, `PATCH`, `DELETE` повертають 200.
 - Авторизація: заголовок `Authorization: Bearer <accessToken>`. Токен доступу живе 1 годину.
+- Вебклієнт: якщо запит містить заголовок `X-DC-Client: web`, `POST /auth/login` і `/auth/refresh` ставлять HttpOnly-cookie замість повернення токенів у тілі, а `/auth/refresh` і `/auth/logout` беруть refresh-токен із cookie. Запити, що змінюють дані, за cookie-входу мають нести цей самий заголовок (інакше 403 `CSRF`). Деталі: `docs/WEB_UA.md`.
 - Оновлення сеансу: `POST /auth/refresh` з `{"refreshToken":"..."}`. Кожен refresh-токен одноразовий: у відповіді приходить новий, старий перестає діяти. Токен живе 30 днів. Повторне використання старого токена закриває всі сеанси цього входу.
 - Вихід: `POST /auth/logout` з refresh-токеном (цей пристрій) або `POST /auth/logout-all`.
 - Ролі: `admin`, `coordinator`, `member`, `guest`. `guest` не має доступу до жодного захищеного ендпоінта. `coordinator` має права `member` плюс керує місцями, допусками, документами, складом і проєктами.

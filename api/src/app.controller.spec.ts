@@ -1,22 +1,20 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
 
 describe('AppController', () => {
-  let appController: AppController;
+  const controller = new AppController();
 
-  beforeEach(async () => {
-    const app: TestingModule = await Test.createTestingModule({
-      controllers: [AppController],
-      providers: [AppService],
-    }).compile();
-
-    appController = app.get<AppController>(AppController);
+  afterEach(() => {
+    delete process.env.PUBLIC_ORIGIN;
   });
 
-  describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+  it('повертає null, якщо публічну адресу не задано', () => {
+    expect(controller.config()).toEqual({ publicOrigin: null });
+  });
+
+  it('обрізає зайвий слеш у публічній адресі', () => {
+    process.env.PUBLIC_ORIGIN = 'https://digicomp.example/';
+    expect(controller.config()).toEqual({
+      publicOrigin: 'https://digicomp.example',
     });
   });
 });

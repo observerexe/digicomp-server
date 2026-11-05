@@ -1,0 +1,5 @@
+Шрифти, що входять до складу інтерфейсу (підмножини Latin + Cyrillic):
+
+Lora (Cyreal) - SIL Open Font License 1.1 - https://openfontlicense.org
+Carlito (Lukasz Dziedzic / Google, на основі Lato) - SIL Open Font License 1.1
+DejaVu Sans Mono (Bitstream / Tavmjong Bah) - вільна ліцензія DejaVu (дозволяє поширення)
