@@ -22,13 +22,9 @@ import { Action } from '../auth/policy';
 import type { UploadedFileLike } from '../files/file-validation';
 import { CreateProjectDto, ListProjectsQuery, UpdateProjectDto } from './dto';
 import { ProjectsService } from './projects.service';
+import { contentDisposition } from '../files/content-disposition';
 
 type Req = { user: { id: string; role: string } };
-
-function contentDisposition(name: string) {
-  const ascii = name.replace(/[^\x20-\x7e]/g, '_').replace(/["\\]/g, '_');
-  return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(name)}`;
-}
 
 @Controller('projects')
 @UseGuards(JwtAuthGuard, PolicyGuard)

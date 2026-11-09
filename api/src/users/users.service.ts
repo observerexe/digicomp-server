@@ -118,7 +118,15 @@ export class UsersService {
     if (!u || (!extended && !u.active)) {
       throw new NotFoundException('User not found');
     }
-    return extended ? toExtendedView(u) : toBasicView(u);
+    // Public profile shows the member's points (docs/PLAN.md, «Профіль»).
+    const [{ total }] = await this.repo.query<{ total: number }[]>(
+      'SELECT COALESCE(SUM(amount),0)::int AS total FROM points_ledger WHERE user_id = $1',
+      [u.id],
+    );
+    return {
+      ...(extended ? toExtendedView(u) : toBasicView(u)),
+      pointsTotal: total,
+    };
   }
 
   async updateProfile(actor: Actor, dto: UpdateProfileDto) {

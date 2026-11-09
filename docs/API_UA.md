@@ -1,7 +1,7 @@
 # API DigiComp HUB — довідник для фронтенду
 
-Цей файл описує все, що вміє бекенд станом на етап 1 з `docs/PLAN.md`. Нові зміни додаються сюди ж.
-Історичний контракт `/auth`, `/tasks`, `/points` не змінювався: відповіді лише отримали додаткові поля.
+Цей файл описує все, що вміє бекенд станом на етап 2 з `docs/PLAN.md`. Нові зміни додаються сюди ж.
+Контракт `/auth` не змінювався. `/tasks` перероблено на етапі 2: `PATCH /tasks/:id/status` і `assigneeIds` прибрано, замість них окремі дії (див. «ТЗ»). Старий фронт ТЗ через новий API не працюватиме.
 
 ## Загальні правила
 
@@ -15,7 +15,7 @@
 - Права дивіться в `permissions` у відповіді `GET /auth/me`: це список дій (`users.create`, `documents.manage`, `smart.control` тощо), які роль може виконувати. Обмеження, що залежать від цілі (модератор діє лише над `member`, не нараховує бали собі, не приймає власне ТЗ), перевіряє сервер. Остаточно права завжди перевіряє сервер.
 - Модератор не діє над іншим модератором чи адміном і над собою через `/users/:id` (403 `TARGET_ROLE_FORBIDDEN` або `SELF_ACTION_FORBIDDEN`). Свій профіль кожен змінює через `/users/me`.
 - Блокування користувача (`active:false`) діє одразу: його токени перестають працювати.
-- Списки повертають `{ "items": [], "total": 0, "page": 1, "limit": 50 }` (`page`, `limit` у query; `limit` до 100–200). Винятки: `/places` повертає масив, `/auth/*` і `/tasks`, `/points` мають свій формат.
+- Списки повертають `{ "items": [], "total": 0, "page": 1, "limit": 50 }` (`page`, `limit` у query; `limit` до 100–200). Винятки: `/places`, `/tasks`, `/discipline/me` повертають масив, `/auth/*` і `/points` мають свій формат.
 - Файли: `multipart/form-data`, поле `file`. Дозволено pdf, png, jpg, webp, docx, xlsx, pptx, txt, md, csv. Документи й матеріали проєктів до 20 МБ, аватари до 2 МБ (png, jpg, webp). Тип перевіряється за вмістом.
 - Картинки й файли віддаються лише з `Authorization`, тому `<img src>` і прості посилання не працюють: завантажуйте через `fetch` і показуйте як blob.
 - Ідемпотентність: у `POST /places/:id/sessions` і `POST /inventory/items/:id/movements` можна передати `idempotencyKey` (8–64 символи). Повторна відправка з тим самим ключем поверне той самий результат без дубля. Генеруйте новий ключ для кожної дії користувача.
@@ -57,8 +57,19 @@
 | `DELTA_ZERO`, `NOTE_REQUIRED` | 400 | Нульовий рух або порожній коментар |
 | `FILE_REQUIRED`, `FILE_TYPE_NOT_ALLOWED`, `FILE_CONTENT_MISMATCH` | 400 | Проблеми з завантаженим файлом |
 | `PROJECT_EDIT_FORBIDDEN`, `PROJECT_MEMBERS_FORBIDDEN` | 403 | Немає прав редагувати проєкт чи склад учасників |
-| `UNKNOWN_PLACE`, `UNKNOWN_MEMBER`, `UNKNOWN_ASSIGNEE` | 400 | Посилання на неіснуючий або неактивний об'єкт |
-| `TASK_ALREADY_COMPLETED`, `NOT_YOUR_TASK` | 409/403 | Правила завдань. Прийняти (`done`) може admin або moderator, якщо він не виконавець |
+| `UNKNOWN_PLACE`, `UNKNOWN_MEMBER` | 400/404 | Посилання на неіснуючий або неактивний об'єкт. Для балів і дисципліни `UNKNOWN_MEMBER` приходить з 404 |
+| `TASK_ALREADY_COMPLETED` | 409 | ТЗ уже виконано: жодних змін і переходів |
+| `TASK_FULL` | 409 | Досягнуто ліміту виконавців (`maxAssignees`) |
+| `TASK_ALREADY_TAKEN` | 409 | Ви вже серед виконавців |
+| `TASK_ALREADY_STARTED` | 409 | Роботу почато, приєднатись уже не можна |
+| `TASK_INVALID_TRANSITION` | 409 | Дія не підходить до поточного статусу (наприклад, здати ТЗ «в черзі») |
+| `TASK_HAS_ASSIGNEES` | 409 | Видалити можна лише вільне ТЗ без виконавців |
+| `MAX_ASSIGNEES_TOO_LOW` | 409 | Ліміт виконавців менший за кількість тих, хто вже взяв ТЗ |
+| `NOT_PARTICIPANT` | 403 | Дію (почати, здати, відмовитись, додати файл) може виконати лише виконавець ТЗ |
+| `NOT_OWNER` | 403 | Модератор знімає лише записи, які видав сам |
+| `ALREADY_REVOKED` | 409 | Запис уже знято |
+| `ENTRY_NOT_REVOCABLE` | 409 | Через `/points/:id/revoke` знімається лише ручне нарахування. Бали за ТЗ остаточні, штраф знімається через `/discipline` |
+| `FINE_AMOUNT_REQUIRED`, `AMOUNT_ONLY_FOR_FINE` | 400 | `amount` обов'язковий для штрафу і заборонений для попередження чи догани |
 | `SETUP_ALREADY_COMPLETED` | 409 | Першого адміна вже створено |
 | `SMART_NOT_CONFIGURED`, `SMART_UNAVAILABLE`, `SMART_AUTH_FAILED` | 503 | Home Assistant не налаштований, не відповідає за 5 секунд або відхилив токен |
 | `UNKNOWN_HA_ENTITY`, `ENTITY_KIND_MISMATCH`, `SMART_ENTITY_EXISTS` | 400/409 | Додавання пристрою в дозволений список: такого пристрою немає в HA, не збігається тип, або він уже доданий |
@@ -98,20 +109,44 @@
 | PATCH | `/users/:id` | admin; moderator лише над `member` і лише деякі поля (див. нижче) |
 | POST | `/users/:id/reset-password` | admin |
 
-### Завдання
+### ТЗ (дошка завдань)
 
 | Метод | Шлях | Хто має доступ |
 |---|---|---|
 | GET | `/tasks` | admin, moderator, member |
+| GET | `/tasks/:id` | admin, moderator, member |
 | POST | `/tasks` | admin, moderator |
-| PATCH | `/tasks/:id/status` | admin, moderator, member |
+| PATCH | `/tasks/:id` | admin, moderator |
+| DELETE | `/tasks/:id` | admin, moderator (лише вільне без виконавців) |
+| POST | `/tasks/:id/take` | admin, moderator, member |
+| POST | `/tasks/:id/leave` | виконавець |
+| POST | `/tasks/:id/start` | виконавець |
+| POST | `/tasks/:id/submit` | виконавець |
+| POST | `/tasks/:id/return` | admin; moderator, якщо він не виконавець |
+| POST | `/tasks/:id/accept` | admin; moderator, якщо він не виконавець |
+| POST | `/tasks/:id/comments` | admin, moderator, member |
+| POST | `/tasks/:id/files` | admin, moderator; member, якщо він виконавець |
+| GET | `/tasks/:id/files/:fileId/download` | admin, moderator, member |
+| DELETE | `/tasks/:id/files/:fileId` | автор файлу, admin, moderator |
 
-### Бали
+### Бали і рейтинг
 
 | Метод | Шлях | Хто має доступ |
 |---|---|---|
 | GET | `/points/me` | admin, moderator, member |
 | GET | `/points/leaderboard` | admin, moderator, member |
+| GET | `/points/users/:userId` | admin, moderator |
+| POST | `/points/award` | admin; moderator, не собі |
+| POST | `/points/:entryId/revoke` | admin; moderator лише своє нарахування |
+
+### Дисципліна
+
+| Метод | Шлях | Хто має доступ |
+|---|---|---|
+| GET | `/discipline/me` | admin, moderator, member (лише свої записи) |
+| GET | `/discipline` | admin, moderator |
+| POST | `/discipline` | admin; moderator, не собі |
+| POST | `/discipline/:id/revoke` | admin; moderator лише свій запис |
 
 ### Місця (QR-паспорти)
 
@@ -231,7 +266,52 @@
 
 **Розумний будинок.** `GET /smart/entities` повертає `{ items: [] }`; у кожного елемента є `id`, `kind` (`light`, `sensor`, `scene`), `label`, `room`, `available`. Для світла додатково `on` і `brightness` (відсотки), для датчика `value`, `unit`, `deviceClass`. `POST /smart/lights/:id/state`: `{ "on": true, "brightness": 1-100 }`, повертає новий стан. `POST /smart/scenes/:id/activate` без тіла. Ідентифікатор `:id` це `id` елемента зі списку, а не назва пристрою в HA. Керувати можна лише світлом і сценами, розетки та вимикачі додати в список неможливо. Налаштування див. `docs/SMART_UA.md`.
 
-**Завдання й бали.** `POST /tasks` (admin, moderator): `title`, `description`, `points`, `dueDate`, `assigneeIds`. `PATCH /tasks/:id/status`: `status` (`todo`, `in_progress`, `review`, `done`). Виконавець змінює статус свого завдання, крім `done`. Admin і moderator змінюють будь-яке; `done` (нарахування балів) ставлять admin і moderator, moderator не для завдання, де він виконавець. Повна переробка ТЗ — етап 2. Подробиці дивіться в `BACKEND_INTEGRATION.md`.
+**ТЗ.** Статуси і переходи:
+
+    todo (Вільне) → queued (В черзі) → in_progress (В роботі) → review (На перевірці) → done (Виконано)
+                                              ↑──────── return (повернення з коментарем) ────────┘
+
+- `POST /tasks` (admin, moderator): `title`, `description`, `points` (0–1000), `maxAssignees` (1–20, за замовчуванням 1), `dueDate`. Виконавців не призначають: учасники беруть ТЗ самі.
+- `take`: узяти ТЗ можна у статусах `todo` і `queued`, поки не досягнуто `maxAssignees`. Перший, хто взяв, переводить ТЗ з `todo` в `queued`.
+- `start`: будь-який виконавець, `queued → in_progress`. Після цього приєднатись не можна (`TASK_ALREADY_STARTED`).
+- `leave`: виконавець відмовляється в `queued` чи `in_progress`. Якщо пішов останній, ТЗ знову стає `todo`.
+- `submit`: виконавець, `in_progress → review`.
+- `return`: `{ "body": "що виправити" }`, `review → in_progress`. Коментар обов'язковий і зберігається з `kind: "return"`.
+- `accept`: `review → done`. Бали діляться порівну між виконавцями, остача йде по одному балу тим, хто взяв ТЗ раніше (10 на трьох: 4, 3, 3). Нульові частки не записуються. Повторне прийняття неможливе.
+- `PATCH /tasks/:id`: `title`, `description`, `points`, `maxAssignees`, `dueDate` (`null` прибирає дедлайн). Не для виконаного ТЗ.
+- `DELETE /tasks/:id`: лише вільне ТЗ без виконавців.
+- Усі переходи повертають оновлене ТЗ.
+- `GET /tasks?status=queued&mine=true`: масив ТЗ, нові спершу.
+  - Поля ТЗ: `id`, `title`, `description`, `status`, `points`, `maxAssignees`, `dueDate`, `createdById`, `createdAt`, `updatedAt`, `completedAt`.
+  - `assignees`: `[{ id, name, avatarUrl, takenAt }]` у порядку взяття.
+- `GET /tasks/:id` додатково повертає `comments` (`[{ id, kind, body, author: { id, name, avatarUrl }, createdAt }]`) і `files`.
+- `POST /tasks/:id/comments`: `{ "body": "..." }` (до 2000 символів).
+- `POST /tasks/:id/files`: multipart, ті самі типи файлів, що й для документів, до 20 МБ.
+- Усі дії з ТЗ пишуться в аудит (`task.*`).
+
+**Бали.**
+- Книга обліку лише доповнюється: записи не змінюються і не видаляються. Зняття додає компенсаційний запис.
+- `GET /points/me` і `GET /points/users/:userId` повертають `{ balance, history }`:
+  - `history` — до 100 останніх записів;
+  - поля запису: `id`, `kind` (`task`, `manual`, `fine`, `reversal`), `amount`, `reason`, `taskId`, `taskTitle`, `reversesId`, `createdBy: { id, name } | null`, `revoked`, `createdAt`.
+- `POST /points/award`: `{ userId, amount: 1–1000, reason }`. Ручне нарахування за побутові задачі. Модератор не нараховує собі. Заблокованим і невідомим користувачам не можна (404 `UNKNOWN_MEMBER`).
+- `POST /points/:entryId/revoke`: `{ reason }`. Знімає лише ручне нарахування. Admin знімає будь-яке, moderator лише своє.
+- `GET /points/leaderboard?period=month|all` (за замовчуванням `all`):
+  - відповідь — масив `{ id, name, avatarUrl, position, total, rank }`; однакова сума дає однакове місце;
+  - заблокованих у рейтингу немає;
+  - `month` — поточний календарний місяць за київським часом;
+  - зняті записи та їхні компенсації не враховуються в жодному періоді.
+- `GET /users/:id` має поле `pointsTotal`.
+
+**Дисципліна.**
+- `POST /discipline`: `{ userId, type: "warning" | "fine" | "reprimand", reason, amount? }`.
+  - `amount` (1–1000) лише для штрафу: штраф одразу знімає стільки балів.
+  - Модератор може видати запис будь-кому, крім себе, зокрема іншому модератору чи адміну.
+- `POST /discipline/:id/revoke`: `{ reason }`. Admin знімає будь-який запис, moderator лише свій. Знятий штраф повертає бали. Запис не видаляється, а позначається `revoked`.
+- Поля запису: `id`, `type`, `reason`, `amount`, `user`, `issuedBy`, `createdAt`, `revoked`, `revokedAt`, `revokedBy`, `revokeReason`. Посилання на людей мають вигляд `{ id, name, avatarUrl }`.
+- `GET /discipline/me`: власні записи, разом зі знятими. Чужих записів учасник не бачить.
+- `GET /discipline?userId=&state=active|revoked|all&page=&limit=`: таблиця для панелі керування (admin, moderator).
+- Видача і зняття пишуться в аудит (`discipline.issued`, `discipline.revoked`, `points.awarded`, `points.revoked`).
 
 ## Що ще не реалізовано
 

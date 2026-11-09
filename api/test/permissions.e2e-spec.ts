@@ -388,11 +388,96 @@ describe('Матриця прав (e2e)', () => {
   });
 
   describe('Бали, штрафи, догани, попередження', () => {
-    it.todo('етап 2: admin так, moderator так (не собі), member ні');
+    const award = (who: TestUser, to: TestUser) =>
+      as(app, who)
+        .post('/points/award')
+        .send({ userId: to.id, amount: 5, reason: 'чергування' });
+    const warn = (who: TestUser, to: TestUser) =>
+      as(app, who)
+        .post('/discipline')
+        .send({ userId: to.id, type: 'warning', reason: 'запізнення' });
+
+    it('admin так (навіть модератору)', async () => {
+      expect((await award(admin, member)).status).toBe(201);
+      expect((await warn(admin, mod)).status).toBe(201);
+    });
+    it('moderator так, і іншому модератору', async () => {
+      expect((await award(mod, member)).status).toBe(201);
+      expect((await award(mod, mod2)).status).toBe(201);
+      expect((await warn(mod, mod2)).status).toBe(201);
+      expect((await warn(mod, admin)).status).toBe(201);
+    });
+    it('moderator не собі', async () => {
+      denied(await award(mod, mod), 'SELF_ACTION_FORBIDDEN');
+      denied(await warn(mod, mod), 'SELF_ACTION_FORBIDDEN');
+    });
+    it('member ні', async () => {
+      denied(await award(member, member2));
+      denied(await warn(member, member2));
+    });
+    it('пишеться в аудит', async () => {
+      const r = await warn(mod, member);
+      expect(await audit('discipline.issued', member.id)).toMatchObject({
+        actorId: mod.id,
+        meta: { recordId: r.body.id },
+      });
+    });
   });
 
   describe('Зняти такий запис', () => {
-    it.todo('етап 2: admin так, moderator лише свій з причиною, member ні');
+    const issue = async (who: TestUser) =>
+      (
+        await as(app, who)
+          .post('/discipline')
+          .send({ userId: member.id, type: 'reprimand', reason: 'r' })
+      ).body as { id: string };
+    const revoke = (who: TestUser, id: string, reason = 'помилка') =>
+      as(app, who).post(`/discipline/${id}/revoke`).send({ reason });
+
+    it('admin знімає будь-який', async () => {
+      const r = await issue(mod);
+      allowed(await revoke(admin, r.id));
+    });
+    it('moderator лише свій', async () => {
+      const own = await issue(mod);
+      allowed(await revoke(mod, own.id));
+      const other = await issue(mod2);
+      denied(await revoke(mod, other.id), 'NOT_OWNER');
+    });
+    it('без причини не можна', async () => {
+      const r = await issue(mod);
+      const res = await revoke(mod, r.id, '   ');
+      expect(res.status).toBe(400);
+      expect(res.body.errorCode).toBe('VALIDATION_ERROR');
+    });
+    it('member ні', async () => {
+      const r = await issue(mod);
+      denied(await revoke(member, r.id));
+    });
+    it('нарахування балів: moderator лише своє', async () => {
+      const own = await as(app, mod)
+        .post('/points/award')
+        .send({ userId: member.id, amount: 3, reason: 'x' });
+      const other = await as(app, mod2)
+        .post('/points/award')
+        .send({ userId: member.id, amount: 3, reason: 'x' });
+      denied(
+        await as(app, mod)
+          .post(`/points/${other.body.id}/revoke`)
+          .send({ reason: 'r' }),
+        'NOT_OWNER',
+      );
+      allowed(
+        await as(app, mod)
+          .post(`/points/${own.body.id}/revoke`)
+          .send({ reason: 'r' }),
+      );
+      denied(
+        await as(app, member)
+          .post(`/points/${other.body.id}/revoke`)
+          .send({ reason: 'r' }),
+      );
+    });
   });
 
   describe('Створити ТЗ, проєкт', () => {
@@ -417,46 +502,69 @@ describe('Матриця прав (e2e)', () => {
   });
 
   describe("Взяти ТЗ і здати на рев'ю", () => {
-    it('member-виконавець так, сторонній member ні', async () => {
-      const t = await as(app, admin)
-        .post('/tasks')
-        .send({ title: 'ТЗ', points: 10, assigneeIds: [member.id] });
-      allowed(
-        await as(app, member)
-          .patch(`/tasks/${t.body.id}/status`)
-          .send({ status: 'review' }),
+    const newTask = async (max = 3) =>
+      (
+        await as(app, admin)
+          .post('/tasks')
+          .send({ title: 'ТЗ', points: 10, maxAssignees: max })
+      ).body.id as string;
+
+    it('admin, moderator, member самі беруть вільне ТЗ', async () => {
+      const id = await newTask();
+      for (const u of [admin, mod, member]) {
+        allowed(await as(app, u).post(`/tasks/${id}/take`));
+      }
+    });
+    it('виконавець здає, сторонній ні', async () => {
+      const id = await newTask();
+      await as(app, member).post(`/tasks/${id}/take`);
+      denied(
+        await as(app, member2).post(`/tasks/${id}/start`),
+        'NOT_PARTICIPANT',
+      );
+      allowed(await as(app, member).post(`/tasks/${id}/start`));
+      denied(
+        await as(app, member2).post(`/tasks/${id}/submit`),
+        'NOT_PARTICIPANT',
       );
       denied(
-        await as(app, member2)
-          .patch(`/tasks/${t.body.id}/status`)
-          .send({ status: 'in_progress' }),
-        'NOT_YOUR_TASK',
+        await as(app, admin).post(`/tasks/${id}/submit`),
+        'NOT_PARTICIPANT',
       );
+      allowed(await as(app, member).post(`/tasks/${id}/submit`));
     });
-    it.todo('етап 2: учасник сам бере вільне ТЗ (admin, moderator, member)');
   });
 
   describe('Прийняти ТЗ (нарахування балів)', () => {
-    const makeTask = (assignee: TestUser) =>
-      as(app, admin)
-        .post('/tasks')
-        .send({ title: 'ТЗ', points: 10, assigneeIds: [assignee.id] });
+    /** Task in review with the given assignee. */
+    const inReview = async (assignee: TestUser) => {
+      const id = (
+        await as(app, admin).post('/tasks').send({ title: 'ТЗ', points: 10 })
+      ).body.id as string;
+      for (const step of ['take', 'start', 'submit']) {
+        allowed(await as(app, assignee).post(`/tasks/${id}/${step}`));
+      }
+      return id;
+    };
     const accept = (who: TestUser, id: string) =>
-      as(app, who).patch(`/tasks/${id}/status`).send({ status: 'done' });
+      as(app, who).post(`/tasks/${id}/accept`);
 
     it('admin так', async () => {
-      const t = await makeTask(member);
-      allowed(await accept(admin, t.body.id));
+      allowed(await accept(admin, await inReview(member)));
     });
     it('moderator так, не своє', async () => {
-      const t = await makeTask(member);
-      allowed(await accept(mod, t.body.id));
-      const own = await makeTask(mod);
-      denied(await accept(mod, own.body.id), 'SELF_ACTION_FORBIDDEN');
+      allowed(await accept(mod, await inReview(member)));
+      denied(await accept(mod, await inReview(mod)), 'SELF_ACTION_FORBIDDEN');
+    });
+    it('moderator не повертає своє на допрацювання', async () => {
+      const id = await inReview(mod);
+      denied(
+        await as(app, mod).post(`/tasks/${id}/return`).send({ body: 'ні' }),
+        'SELF_ACTION_FORBIDDEN',
+      );
     });
     it('member ні (навіть своє)', async () => {
-      const t = await makeTask(member);
-      denied(await accept(member, t.body.id));
+      denied(await accept(member, await inReview(member)));
     });
   });
 

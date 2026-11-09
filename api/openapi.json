@@ -491,6 +491,7 @@
             "description": ""
           }
         },
+        "summary": "Own balance and history.",
         "tags": [
           "Points"
         ]
@@ -499,19 +500,124 @@
     "/points/leaderboard": {
       "get": {
         "operationId": "PointsController_leaderboard",
+        "parameters": [
+          {
+            "name": "period",
+            "required": false,
+            "in": "query",
+            "description": "`month` — current calendar month (Europe/Kyiv), `all` — all time.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "month",
+                "all"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "`period=month|all` (default all). Blocked members are not listed.",
+        "tags": [
+          "Points"
+        ]
+      }
+    },
+    "/points/users/{userId}": {
+      "get": {
+        "operationId": "PointsController_ofUser",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Another member's balance and history (staff).",
+        "tags": [
+          "Points"
+        ]
+      }
+    },
+    "/points/award": {
+      "post": {
+        "operationId": "PointsController_award",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AwardPointsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PointsEntry"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Manual award; a moderator cannot award to self.",
+        "tags": [
+          "Points"
+        ]
+      }
+    },
+    "/points/{entryId}/revoke": {
+      "post": {
+        "operationId": "PointsController_revoke",
+        "parameters": [
+          {
+            "name": "entryId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/PointsEntry"
                 }
               }
             }
           }
         },
+        "summary": "Revoke a manual award with a reason.",
         "tags": [
           "Points"
         ]
@@ -520,12 +626,42 @@
     "/tasks": {
       "get": {
         "operationId": "TasksController_list",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "todo",
+                "queued",
+                "in_progress",
+                "review",
+                "done"
+              ]
+            }
+          },
+          {
+            "name": "mine",
+            "required": false,
+            "in": "query",
+            "description": "Only tasks where the current user is an assignee.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
           }
         },
+        "summary": "Board: all tasks, filter by status or `mine=true`.",
         "tags": [
           "Tasks"
         ]
@@ -553,9 +689,31 @@
         ]
       }
     },
-    "/tasks/{id}/status": {
+    "/tasks/{id}": {
+      "get": {
+        "operationId": "TasksController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Task with assignees, comments and files.",
+        "tags": [
+          "Tasks"
+        ]
+      },
       "patch": {
-        "operationId": "TasksController_setStatus",
+        "operationId": "TasksController_update",
         "parameters": [
           {
             "name": "id",
@@ -571,7 +729,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateStatusDto"
+                "$ref": "#/components/schemas/UpdateTaskDto"
               }
             }
           }
@@ -583,6 +741,426 @@
         },
         "tags": [
           "Tasks"
+        ]
+      },
+      "delete": {
+        "operationId": "TasksController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Only a free task without assignees.",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/tasks/{id}/take": {
+      "post": {
+        "operationId": "TasksController_take",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/tasks/{id}/leave": {
+      "post": {
+        "operationId": "TasksController_leave",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/tasks/{id}/start": {
+      "post": {
+        "operationId": "TasksController_start",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/tasks/{id}/submit": {
+      "post": {
+        "operationId": "TasksController_submit",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/tasks/{id}/return": {
+      "post": {
+        "operationId": "TasksController_returnForRework",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Back to work from review; `body` is the moderator's comment.",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/tasks/{id}/accept": {
+      "post": {
+        "operationId": "TasksController_accept",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Accept the task: points are split equally between assignees.",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/tasks/{id}/comments": {
+      "post": {
+        "operationId": "TasksController_addComment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/tasks/{id}/files": {
+      "post": {
+        "operationId": "TasksController_addFile",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/tasks/{id}/files/{fileId}/download": {
+      "get": {
+        "operationId": "TasksController_download",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fileId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/tasks/{id}/files/{fileId}": {
+      "delete": {
+        "operationId": "TasksController_removeFile",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fileId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "The uploader or staff.",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/discipline/me": {
+      "get": {
+        "operationId": "DisciplineController_mine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Own warnings, fines and reprimands; nobody else's.",
+        "tags": [
+          "Discipline"
+        ]
+      }
+    },
+    "/discipline": {
+      "get": {
+        "operationId": "DisciplineController_list",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "required": false,
+            "in": "query",
+            "description": "`active` — not revoked, `revoked`, `all` (default).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "revoked",
+                "all"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 6,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 3,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Discipline table for the control panel (staff).",
+        "tags": [
+          "Discipline"
+        ]
+      },
+      "post": {
+        "operationId": "DisciplineController_issue",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueDisciplineDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Warning, fine (takes points) or reprimand; a moderator not to self.",
+        "tags": [
+          "Discipline"
+        ]
+      }
+    },
+    "/discipline/{id}/revoke": {
+      "post": {
+        "operationId": "DisciplineController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Revoke with a reason; a revoked fine returns the points.",
+        "tags": [
+          "Discipline"
         ]
       }
     },
@@ -2075,12 +2653,50 @@
           }
         }
       },
+      "AwardPointsDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "userId",
+          "amount",
+          "reason"
+        ]
+      },
+      "PointsEntry": {
+        "type": "object",
+        "properties": {}
+      },
+      "RevokeDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
       "CreateTaskDto": {
         "type": "object",
         "properties": {
           "title": {
             "type": "string",
-            "minLength": 1,
             "maxLength": 200
           },
           "description": {
@@ -2092,16 +2708,14 @@
             "minimum": 0,
             "maximum": 1000
           },
+          "maxAssignees": {
+            "type": "number",
+            "description": "How many members may take the task. Default 1.",
+            "minimum": 1,
+            "maximum": 20
+          },
           "dueDate": {
             "type": "string"
-          },
-          "assigneeIds": {
-            "maxItems": 20,
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            }
           }
         },
         "required": [
@@ -2109,21 +2723,77 @@
           "points"
         ]
       },
-      "UpdateStatusDto": {
+      "UpdateTaskDto": {
         "type": "object",
         "properties": {
-          "status": {
+          "title": {
             "type": "string",
-            "enum": [
-              "todo",
-              "in_progress",
-              "review",
-              "done"
-            ]
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 5000
+          },
+          "points": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "maxAssignees": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "dueDate": {
+            "type": "string",
+            "nullable": true,
+            "description": "ISO date or null to clear the deadline."
+          }
+        }
+      },
+      "CommentDto": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string",
+            "maxLength": 2000
           }
         },
         "required": [
-          "status"
+          "body"
+        ]
+      },
+      "IssueDisciplineDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "warning",
+              "fine",
+              "reprimand"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "amount": {
+            "type": "number",
+            "description": "Points taken by a fine; required for `fine`, not allowed otherwise.",
+            "minimum": 1,
+            "maximum": 1000
+          }
+        },
+        "required": [
+          "userId",
+          "type",
+          "reason"
         ]
       },
       "CreatePlaceDto": {

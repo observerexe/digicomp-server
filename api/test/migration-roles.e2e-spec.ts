@@ -47,16 +47,29 @@ describe('Міграція ролей (e2e)', () => {
     return rows[0].id;
   }
 
-  it('остання міграція — міграція ролей', async () => {
-    const [last] = await ds.query<{ name: string }[]>(
-      `SELECT name FROM migrations ORDER BY id DESC LIMIT 1`,
+  /** Rolls back newer migrations and then the roles migration itself. */
+  async function undoThrough(name: string) {
+    for (;;) {
+      const [last] = await ds.query<{ name: string }[]>(
+        `SELECT name FROM migrations ORDER BY id DESC LIMIT 1`,
+      );
+      if (!last) throw new Error(`Migration ${name} is not applied`);
+      await ds.undoLastMigration({ transaction: 'all' });
+      if (last.name === name) return;
+    }
+  }
+
+  it('міграцію ролей застосовано', async () => {
+    const rows = await ds.query<unknown[]>(
+      `SELECT 1 FROM migrations WHERE name = $1`,
+      [MIGRATION],
     );
-    expect(last.name).toBe(MIGRATION);
+    expect(rows).toHaveLength(1);
   });
 
   it('up: дані не губляться, гості стають заблокованими member', async () => {
     await resetDb(app);
-    await ds.undoLastMigration({ transaction: 'all' });
+    await undoThrough(MIGRATION);
     expect(await enumValues()).toEqual([
       'admin',
       'coordinator',
@@ -126,7 +139,7 @@ describe('Міграція ролей (e2e)', () => {
   });
 
   it('down: moderator повертається в coordinator', async () => {
-    await ds.undoLastMigration({ transaction: 'all' });
+    await undoThrough(MIGRATION);
     expect(await userRow('coord@t')).toMatchObject({ role: 'coordinator' });
     expect(await userRow('guest@t')).toMatchObject({
       role: 'member',

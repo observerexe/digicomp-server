@@ -28,17 +28,13 @@ import {
   UpdateDocDto,
 } from './dto';
 import { DocumentsService } from './documents.service';
+import { contentDisposition } from '../files/content-disposition';
 
 type Req = { user: { id: string; role: string } };
 
 const UPLOAD = FileInterceptor('file', {
   limits: { fileSize: 20 * 1024 * 1024, files: 1 },
 });
-
-function contentDisposition(name: string) {
-  const ascii = name.replace(/[^\x20-\x7e]/g, '_').replace(/["\\]/g, '_');
-  return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(name)}`;
-}
 
 @Controller('documents')
 @UseGuards(JwtAuthGuard, PolicyGuard)

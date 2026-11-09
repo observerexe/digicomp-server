@@ -56,14 +56,22 @@ export enum Action {
   // Points and discipline
   PointsRead = 'points.read',
   PointsAward = 'points.award',
+  PointsRevoke = 'points.revoke',
+  PointsReadAll = 'points.read_all',
+  DisciplineReadOwn = 'discipline.read_own',
+  DisciplineReadAll = 'discipline.read_all',
   DisciplineIssue = 'discipline.issue',
   DisciplineRevoke = 'discipline.revoke',
 
   // Tasks and projects
   TasksRead = 'tasks.read',
   TasksCreate = 'tasks.create',
+  TasksManage = 'tasks.manage',
   TasksTake = 'tasks.take',
+  TasksWork = 'tasks.work',
   TasksAccept = 'tasks.accept',
+  TasksComment = 'tasks.comment',
+  TasksAttach = 'tasks.attach',
   ProjectsRead = 'projects.read',
   ProjectsCreate = 'projects.create',
   ProjectsManage = 'projects.manage',
@@ -130,13 +138,21 @@ export const ROLES: Record<Action, readonly Role[]> = {
 
   [Action.PointsRead]: ALL,
   [Action.PointsAward]: STAFF,
+  [Action.PointsRevoke]: STAFF,
+  [Action.PointsReadAll]: STAFF,
+  [Action.DisciplineReadOwn]: ALL,
+  [Action.DisciplineReadAll]: STAFF,
   [Action.DisciplineIssue]: STAFF,
   [Action.DisciplineRevoke]: STAFF,
 
   [Action.TasksRead]: ALL,
   [Action.TasksCreate]: STAFF,
+  [Action.TasksManage]: STAFF,
   [Action.TasksTake]: ALL,
+  [Action.TasksWork]: ALL,
   [Action.TasksAccept]: STAFF,
+  [Action.TasksComment]: ALL,
+  [Action.TasksAttach]: ALL,
   [Action.ProjectsRead]: ALL,
   [Action.ProjectsCreate]: STAFF,
   [Action.ProjectsManage]: STAFF,
@@ -193,6 +209,12 @@ const notSelfForModerator: Refine = (actor, { target }) => {
   return target.id === actor.id ? Deny.Self : true;
 };
 
+/** Revoking a record: admin any, moderator only the one they issued. */
+const ownRecordForModerator: Refine = (actor, { ownerId }) =>
+  actor.role === A || (ownerId != null && ownerId === actor.id)
+    ? true
+    : Deny.NotOwner;
+
 /** Layer 2: context rules. Missing entry = no extra rule. */
 const REFINE: Partial<Record<Action, Refine>> = {
   [Action.UsersBlock]: moderatorOverMember,
@@ -201,13 +223,17 @@ const REFINE: Partial<Record<Action, Refine>> = {
 
   [Action.PointsAward]: notSelfForModerator,
   [Action.DisciplineIssue]: notSelfForModerator,
-  [Action.DisciplineRevoke]: (actor, { ownerId }) =>
-    actor.role === A || (ownerId != null && ownerId === actor.id)
-      ? true
-      : Deny.NotOwner,
+  [Action.DisciplineRevoke]: ownRecordForModerator,
+  [Action.PointsRevoke]: ownRecordForModerator,
 
   [Action.TasksAccept]: (actor, { participant }) =>
     actor.role === A || !participant ? true : Deny.Self,
+  // Start, leave, submit for review: only the task's assignees.
+  [Action.TasksWork]: (_actor, { participant }) =>
+    participant ? true : Deny.NotParticipant,
+  // Files: assignees and staff.
+  [Action.TasksAttach]: (actor, { participant }) =>
+    actor.role !== U || participant ? true : Deny.NotParticipant,
   [Action.ProjectsUpdate]: (actor, { participant }) =>
     actor.role !== U || participant ? true : Deny.NotParticipant,
 
