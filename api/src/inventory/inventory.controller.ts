@@ -1,3 +1,11 @@
+import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
+import {
+  InventoryItemDetailDto,
+  InventoryItemDto,
+  InventoryItemListDto,
+  InventoryMovementDto,
+  InventoryMovementListDto,
+} from './responses.dto';
 import {
   Body,
   Controller,
@@ -32,24 +40,28 @@ export class InventoryController {
   constructor(private inv: InventoryService) {}
 
   @Can(Action.InventoryRead)
+  @ApiOkResponse({ type: InventoryItemListDto })
   @Get('items')
   list(@Query() q: ListItemsQuery, @Req() req: Req) {
     return this.inv.list(q, req.user);
   }
 
   @Can(Action.InventoryRead)
+  @ApiOkResponse({ type: InventoryItemDetailDto })
   @Get('items/:id')
-  get(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
+  get(@Param('id') id: string, @Req() req: Req) {
     return this.inv.get(id, req.user);
   }
 
   @Can(Action.InventoryManage)
+  @ApiCreatedResponse({ type: InventoryItemDto })
   @Post('items')
   create(@Body() dto: CreateItemDto, @Req() req: Req) {
     return this.inv.create(dto, req.user);
   }
 
   @Can(Action.InventoryManage)
+  @ApiOkResponse({ type: InventoryItemDto })
   @Patch('items/:id')
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -60,6 +72,7 @@ export class InventoryController {
   }
 
   @Can(Action.InventoryTake)
+  @ApiCreatedResponse({ type: InventoryMovementDto })
   @Post('items/:id/movements')
   move(
     @Param('id', ParseUUIDPipe) id: string,
@@ -70,6 +83,7 @@ export class InventoryController {
   }
 
   @Can(Action.InventoryRead)
+  @ApiOkResponse({ type: InventoryMovementListDto })
   @Get('movements')
   movements(@Query() q: ListMovementsQuery) {
     return this.inv.listMovements(q);

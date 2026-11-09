@@ -4,6 +4,9 @@ import { AppShell } from './layout/AppShell';
 import { AboutPage } from './pages/AboutPage';
 import { LoginPage } from './pages/LoginPage';
 import { MorePage } from './pages/MorePage';
+import { InventoryPage } from './pages/inventory/InventoryPage';
+import { ItemFormPage } from './pages/inventory/ItemFormPage';
+import { ItemPage } from './pages/inventory/ItemPage';
 import { ProjectFormPage } from './pages/projects/ProjectFormPage';
 import { ProjectPage } from './pages/projects/ProjectPage';
 import { ProjectsPage } from './pages/projects/ProjectsPage';
@@ -26,7 +29,6 @@ import {
   DocsPage,
   ForbiddenPage,
   HomePage,
-  InventoryPage,
   NotFoundPage,
   PanelPage,
 } from './pages/sections';
@@ -86,6 +88,23 @@ export const routes: RouteObject[] = [
       { path: 'projects/:id/edit', element: <ProjectFormPage /> },
       { path: 'projects/:id', element: <ProjectPage /> },
       { path: 'inventory', element: <InventoryPage /> },
+      {
+        path: 'inventory/new',
+        element: (
+          <RequirePermission action="inventory.manage" fallback={<ForbiddenPage />}>
+            <ItemFormPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'inventory/:code/edit',
+        element: (
+          <RequirePermission action="inventory.manage" fallback={<ForbiddenPage />}>
+            <ItemFormPage />
+          </RequirePermission>
+        ),
+      },
+      { path: 'inventory/:code', element: <ItemPage /> },
       { path: 'docs', element: <DocsPage /> },
       { path: 'rating', element: <RatingPage /> },
       {

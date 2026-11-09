@@ -35,3 +35,6 @@ export type TaskDetail = S['TaskDetailDto'];
 export type DisciplineType = S['DisciplineType'];
 export type ProjectDetail = S['ProjectDetailDto'];
 export type ProjectHistory = S['ProjectHistoryDto'];
+export type InventoryItem = S['InventoryItemDto'];
+export type InventoryItemDetail = S['InventoryItemDetailDto'];
+export type InventoryMovement = S['InventoryMovementDto'];

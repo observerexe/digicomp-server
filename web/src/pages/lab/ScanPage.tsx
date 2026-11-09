@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { PageHeader } from '../../components/ui';
-import { parseScan } from '../../lib/scan';
+import { parseScan, targetPath } from '../../lib/scan';
 import s from './lab.module.css';
 
 type Detector = { detect: (src: HTMLVideoElement) => Promise<{ rawValue: string }[]> };
@@ -55,7 +55,7 @@ export function ScanPage() {
         setForeign(true);
         return false;
       }
-      void navigate(`/lab/${encodeURIComponent(target.code)}`);
+      void navigate(targetPath(target));
       return true;
     };
     (async () => {
@@ -94,7 +94,7 @@ export function ScanPage() {
   const onManual = (e: FormEvent) => {
     e.preventDefault();
     const target = parseScan(code, location.origin);
-    if (target) void navigate(`/lab/${encodeURIComponent(target.code)}`);
+    if (target) void navigate(targetPath(target));
     else setForeign(true);
   };
 
@@ -107,7 +107,7 @@ export function ScanPage() {
           <span className={s.frame} aria-hidden="true" />
         </div>
       )}
-      <p className="hint">{error ?? 'Наведіть камеру на QR-наліпку обладнання.'}</p>
+      <p className="hint">{error ?? 'Наведіть камеру на QR-наліпку обладнання чи позиції складу.'}</p>
       {foreign && <p role="alert" className={s.warn}>Цей код не з DigiComp HUB. Перевірте наліпку.</p>}
       <form className={s.manual} onSubmit={onManual} noValidate>
         <div className="field">

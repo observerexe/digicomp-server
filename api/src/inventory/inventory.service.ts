@@ -26,6 +26,15 @@ import {
 } from './dto';
 import { InventoryItem, InventoryMovement } from './inventory.entities';
 import { csvCell } from '../common/csv';
+import type { Plain } from '../common/responses.dto';
+import { isUUID } from 'class-validator';
+import type {
+  InventoryItemDetailDto,
+  InventoryItemDto,
+  InventoryItemListDto,
+  InventoryMovementDto,
+  InventoryMovementListDto,
+} from './responses.dto';
 
 type Actor = { id: string; role: string };
 
@@ -43,7 +52,10 @@ function escapeLike(s: string) {
   return s.replace(/[\\%_]/g, (c) => '\\' + c);
 }
 
-function itemView(i: InventoryItem, documentsCount = 0) {
+function itemView(
+  i: InventoryItem,
+  documentsCount = 0,
+): Plain<InventoryItemDto> {
   return {
     id: i.id,
     code: i.code,
@@ -62,7 +74,7 @@ function itemView(i: InventoryItem, documentsCount = 0) {
   };
 }
 
-function movementView(m: InventoryMovement) {
+function movementView(m: InventoryMovement): InventoryMovementDto {
   return {
     id: m.id,
     itemId: m.itemId,
@@ -94,7 +106,7 @@ export class InventoryService {
     private audit: AuditService,
   ) {}
 
-  async list(q: ListItemsQuery, actor: Actor) {
+  async list(q: ListItemsQuery, actor: Actor): Promise<InventoryItemListDto> {
     const page = Math.max(1, Number(q.page ?? 1));
     const limit = Math.min(200, Math.max(1, Number(q.limit ?? 100)));
     const qb = this.items.createQueryBuilder('i');
@@ -125,12 +137,17 @@ export class InventoryService {
     };
   }
 
-  async get(id: string, actor: Actor) {
-    const i = await this.items.findOneBy({ id });
+  /** By id or by the QR code printed on the sticker. */
+  async get(idOrCode: string, actor: Actor): Promise<InventoryItemDetailDto> {
+    const i = await this.items.findOneBy(
+      isUUID(idOrCode, 'all')
+        ? { id: idOrCode }
+        : { code: idOrCode.toUpperCase() },
+    );
     if (!i) throw new NotFoundException('Item not found');
     const qb = this.docs
       .createQueryBuilder('d')
-      .where('d.inventoryItemId = :id AND d.archivedAt IS NULL', { id });
+      .where('d.inventoryItemId = :id AND d.archivedAt IS NULL', { id: i.id });
     if (!can(actor, Action.DocumentsManage)) {
       qb.andWhere('d.accessScope = :s', { s: AccessScope.Members });
     }
@@ -310,7 +327,9 @@ export class InventoryService {
     });
   }
 
-  async listMovements(q: ListMovementsQuery) {
+  async listMovements(
+    q: ListMovementsQuery,
+  ): Promise<InventoryMovementListDto> {
     const page = Math.max(1, Number(q.page ?? 1));
     const limit = Math.min(200, Math.max(1, Number(q.limit ?? 50)));
     const where: FindOptionsWhere<InventoryMovement> = {};

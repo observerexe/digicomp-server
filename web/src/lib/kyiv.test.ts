@@ -29,6 +29,9 @@ describe('Розбір QR', () => {
     expect(parseScan('https://hub.example.ts.net/lab/CNC-1', origin)).toEqual({ kind: 'place', code: 'CNC-1' });
     expect(parseScan(placeUrl(origin, 'cam-2'), origin)).toEqual({ kind: 'place', code: 'CAM-2' });
   });
+  it('наліпка складу', () => {
+    expect(parseScan('https://hub.example.ts.net/inventory/pl-3', origin)).toEqual({ kind: 'item', code: 'PL-3' });
+  });
   it('просто код', () => {
     expect(parseScan('  cnc-1 ', origin)).toEqual({ kind: 'place', code: 'CNC-1' });
   });

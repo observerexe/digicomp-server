@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { api, unwrap } from '../../api/client';
 import { Icon } from '../../components/Icon';
 import { QrCode } from '../../components/QrCode';
 import { ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
-import { placeUrl } from '../../lib/scan';
+import { itemUrl, placeUrl } from '../../lib/scan';
 import { keys } from './queries';
 import s from './lab.module.css';
 
@@ -15,8 +15,21 @@ import s from './lab.module.css';
  * camera opens the equipment page; the in-app scanner reads it too.
  */
 export function StickersPage() {
+  const [params, setParams] = useSearchParams();
+  const kind = params.get('kind') === 'items' ? 'items' : 'places';
   const places = useQuery({ queryKey: keys.places, queryFn: () => unwrap(api.GET('/api/places')) });
-  const items = (places.data ?? []).filter((p) => p.status !== 'archived');
+  const stock = useQuery({
+    queryKey: ['inventory', 'items'],
+    enabled: kind === 'items',
+    queryFn: () => unwrap(api.GET('/api/inventory/items', { params: { query: { limit: '100' } } })),
+  });
+  const source = kind === 'items' ? stock : places;
+  const items =
+    kind === 'items'
+      ? (stock.data?.items ?? []).map((i) => ({ id: i.id, code: i.code, title: i.title, url: itemUrl(location.origin, i.code) }))
+      : (places.data ?? [])
+          .filter((p) => p.status !== 'archived')
+          .map((p) => ({ id: p.id, code: p.code, title: p.title, url: placeUrl(location.origin, p.code) }));
   const [off, setOff] = useState<Set<string>>(new Set());
   const chosen = items.filter((p) => !off.has(p.id));
   const toggle = (id: string) =>
@@ -40,12 +53,20 @@ export function StickersPage() {
           </button>
         </PageHeader>
         <p className="hint">
-          Друкуйте на A4 у масштабі 100%. Наліпка — 6 × 6 см. Камера телефона відкриє сторінку обладнання навіть без застосунку.
+          Друкуйте на A4 у масштабі 100%. Наліпка — 6 × 6 см. Камера телефона відкриє потрібну сторінку навіть без застосунку.
         </p>
-        {places.isPending ? (
+        <div className={s.kinds} role="group" aria-label="Що друкувати">
+          <button type="button" aria-pressed={kind === 'places'} onClick={() => setParams({}, { replace: true })}>
+            Обладнання
+          </button>
+          <button type="button" aria-pressed={kind === 'items'} onClick={() => setParams({ kind: 'items' }, { replace: true })}>
+            Склад
+          </button>
+        </div>
+        {source.isPending ? (
           <Skeleton height={120} />
-        ) : places.isError ? (
-          <ErrorMessage text={errorOf(places.error)} />
+        ) : source.isError ? (
+          <ErrorMessage text={errorOf(source.error)} />
         ) : (
           <fieldset className={s.pick}>
             <legend className="visually-hidden">Що друкувати</legend>
@@ -61,7 +82,7 @@ export function StickersPage() {
       <ul className={s.sheet} aria-label="Наліпки">
         {chosen.map((p) => (
           <li key={p.id} className={s.sticker}>
-            <QrCode value={placeUrl(location.origin, p.code)} label={`QR-код ${p.title}`} size={150} />
+            <QrCode value={p.url} label={`QR-код ${p.title}`} size={150} />
             <span className={s.stickerTitle}>{p.title}</span>
             <span className={s.code}>{p.code}</span>
           </li>

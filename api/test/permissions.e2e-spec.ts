@@ -724,6 +724,15 @@ describe('Матриця прав (e2e)', () => {
       expect((await move(-1)).status).toBe(201);
       expect((await move(2)).status).toBe(201);
     });
+    it('позиція відкривається за кодом з наліпки (без різниці в регістрі)', async () => {
+      const byCode = await as(app, member)
+        .get('/api/inventory/items/item-1')
+        .expect(200);
+      expect(byCode.body).toMatchObject({ id: itemId, code: 'ITEM-1' });
+      expect(byCode.body.documents).toEqual([]);
+      await as(app, member).get('/api/inventory/items/NOPE-9').expect(404);
+      await as(app, member).get(`/api/inventory/items/${itemId}`).expect(200);
+    });
   });
 
   describe('Сеанс роботи з обладнанням', () => {

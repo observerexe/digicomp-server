@@ -2122,6 +2122,60 @@ export interface components {
             /** Format: uuid */
             inventoryItemId?: string | null;
         };
+        InventoryItemDto: {
+            createdById: string | null;
+            id: string;
+            /** @description QR code of the item, upper case. */
+            code: string;
+            title: string;
+            category: string;
+            quantity: number;
+            /** @description шт, уп and pcs take whole numbers only. */
+            unit: string;
+            minQuantity: number;
+            /** @description quantity ≤ minQuantity (when a minimum is set). */
+            lowStock: boolean;
+            location: string;
+            notes: string;
+            documentsCount: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        InventoryItemListDto: {
+            items: components["schemas"]["InventoryItemDto"][];
+            total: number;
+            page: number;
+            limit: number;
+        };
+        ItemDocRefDto: {
+            id: string;
+            title: string;
+            category: string;
+        };
+        InventoryItemDetailDto: {
+            createdById: string | null;
+            documents: components["schemas"]["ItemDocRefDto"][];
+            id: string;
+            /** @description QR code of the item, upper case. */
+            code: string;
+            title: string;
+            category: string;
+            quantity: number;
+            /** @description шт, уп and pcs take whole numbers only. */
+            unit: string;
+            minQuantity: number;
+            /** @description quantity ≤ minQuantity (when a minimum is set). */
+            lowStock: boolean;
+            location: string;
+            notes: string;
+            documentsCount: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
         CreateItemDto: {
             code: string;
             title: string;
@@ -2146,6 +2200,35 @@ export interface components {
             /** Format: uuid */
             projectId?: string;
             idempotencyKey?: string;
+        };
+        MovementItemDto: {
+            id: string;
+            code: string;
+            title: string;
+            unit: string;
+        };
+        MovementActorDto: {
+            id: string;
+            name?: string;
+        };
+        InventoryMovementDto: {
+            item?: components["schemas"]["MovementItemDto"];
+            projectId: string | null;
+            id: string;
+            itemId: string;
+            /** @description Negative — taken, positive — restocked. */
+            delta: number;
+            quantityAfter: number;
+            note: string;
+            actor: components["schemas"]["MovementActorDto"];
+            /** Format: date-time */
+            createdAt: string;
+        };
+        InventoryMovementListDto: {
+            items: components["schemas"]["InventoryMovementDto"][];
+            total: number;
+            page: number;
+            limit: number;
         };
         /** @enum {string} */
         ProjectStage: "idea" | "planning" | "execution" | "review" | "done";
@@ -4129,7 +4212,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["InventoryItemListDto"];
+                };
             };
         };
     };
@@ -4150,7 +4235,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["InventoryItemDto"];
+                };
             };
         };
     };
@@ -4169,7 +4256,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["InventoryItemDetailDto"];
+                };
             };
         };
     };
@@ -4192,7 +4281,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["InventoryItemDto"];
+                };
             };
         };
     };
@@ -4215,7 +4306,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["InventoryMovementDto"];
+                };
             };
         };
     };
@@ -4238,7 +4331,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["InventoryMovementListDto"];
+                };
             };
         };
     };

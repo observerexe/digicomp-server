@@ -2890,7 +2890,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryItemListDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2912,7 +2919,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryItemDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2935,7 +2949,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryItemDetailDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2966,7 +2987,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryItemDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2999,7 +3027,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryMovementDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -3057,7 +3092,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryMovementListDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -6031,6 +6073,196 @@
           }
         }
       },
+      "InventoryItemDto": {
+        "type": "object",
+        "properties": {
+          "createdById": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "description": "QR code of the item, upper case."
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string",
+            "description": "шт, уп and pcs take whole numbers only."
+          },
+          "minQuantity": {
+            "type": "number"
+          },
+          "lowStock": {
+            "type": "boolean",
+            "description": "quantity ≤ minQuantity (when a minimum is set)."
+          },
+          "location": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "documentsCount": {
+            "type": "number"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "createdById",
+          "id",
+          "code",
+          "title",
+          "category",
+          "quantity",
+          "unit",
+          "minQuantity",
+          "lowStock",
+          "location",
+          "notes",
+          "documentsCount",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "InventoryItemListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryItemDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit"
+        ]
+      },
+      "ItemDocRefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "category"
+        ]
+      },
+      "InventoryItemDetailDto": {
+        "type": "object",
+        "properties": {
+          "createdById": {
+            "type": "string",
+            "nullable": true
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ItemDocRefDto"
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "description": "QR code of the item, upper case."
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string",
+            "description": "шт, уп and pcs take whole numbers only."
+          },
+          "minQuantity": {
+            "type": "number"
+          },
+          "lowStock": {
+            "type": "boolean",
+            "description": "quantity ≤ minQuantity (when a minimum is set)."
+          },
+          "location": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "documentsCount": {
+            "type": "number"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "createdById",
+          "documents",
+          "id",
+          "code",
+          "title",
+          "category",
+          "quantity",
+          "unit",
+          "minQuantity",
+          "lowStock",
+          "location",
+          "notes",
+          "documentsCount",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
       "CreateItemDto": {
         "type": "object",
         "properties": {
@@ -6137,6 +6369,114 @@
         "required": [
           "delta",
           "note"
+        ]
+      },
+      "MovementItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "title",
+          "unit"
+        ]
+      },
+      "MovementActorDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "InventoryMovementDto": {
+        "type": "object",
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/MovementItemDto"
+          },
+          "projectId": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": "string"
+          },
+          "delta": {
+            "type": "number",
+            "description": "Negative — taken, positive — restocked."
+          },
+          "quantityAfter": {
+            "type": "number"
+          },
+          "note": {
+            "type": "string"
+          },
+          "actor": {
+            "$ref": "#/components/schemas/MovementActorDto"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "projectId",
+          "id",
+          "itemId",
+          "delta",
+          "quantityAfter",
+          "note",
+          "actor",
+          "createdAt"
+        ]
+      },
+      "InventoryMovementListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryMovementDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit"
         ]
       },
       "ProjectStage": {

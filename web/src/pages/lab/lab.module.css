@@ -628,3 +628,24 @@
 .manual input {
   width: 100%;
 }
+.kinds {
+  display: inline-flex;
+  margin-top: 12px;
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--c-surface2);
+}
+.kinds button {
+  min-height: 40px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--c-text2);
+  font-weight: 500;
+  cursor: pointer;
+}
+.kinds button[aria-pressed='true'] {
+  background: var(--c-surface);
+  color: var(--c-text);
+}

@@ -3,9 +3,15 @@
  * (https://<host>/lab/CNC-1) so a plain phone camera opens the app too;
  * a bare code ("CNC-1") is accepted as well. Links to other sites are ignored.
  */
-export type ScanTarget = { kind: 'place'; code: string };
+export type ScanTarget = { kind: 'place' | 'item'; code: string };
+
+/** App path of a scanned target. */
+export function targetPath(t: ScanTarget): string {
+  return `${t.kind === 'place' ? '/lab' : '/inventory'}/${encodeURIComponent(t.code)}`;
+}
 
 const CODE = /^[A-Za-z0-9_-]{3,60}$/; // same rule as the API (CreatePlaceDto)
+const ITEM_CODE = /^[A-Za-z0-9_-]{2,60}$/; // CreateItemDto
 
 export function parseScan(text: string, origin: string): ScanTarget | null {
   const raw = text.trim();
@@ -18,10 +24,11 @@ export function parseScan(text: string, origin: string): ScanTarget | null {
       return null;
     }
     if (url.origin !== origin) return null;
-    const m = /^\/lab\/([^/]+)\/?$/.exec(url.pathname);
+    const m = /^\/(lab|inventory)\/([^/]+)\/?$/.exec(url.pathname);
     if (!m) return null;
-    const code = decodeURIComponent(m[1]!);
-    return CODE.test(code) ? { kind: 'place', code: code.toUpperCase() } : null;
+    const code = decodeURIComponent(m[2]!);
+    const kind = m[1] === 'lab' ? 'place' : 'item';
+    return (kind === 'place' ? CODE : ITEM_CODE).test(code) ? { kind, code: code.toUpperCase() } : null;
   }
   return CODE.test(raw) ? { kind: 'place', code: raw.toUpperCase() } : null;
 }
@@ -29,4 +36,8 @@ export function parseScan(text: string, origin: string): ScanTarget | null {
 /** URL printed on a sticker. */
 export function placeUrl(origin: string, code: string): string {
   return `${origin}/lab/${encodeURIComponent(code)}`;
+}
+
+export function itemUrl(origin: string, code: string): string {
+  return `${origin}/inventory/${encodeURIComponent(code)}`;
 }
