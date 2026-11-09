@@ -209,3 +209,14 @@
     max-width: none;
   }
 }
+.badge {
+  margin-left: auto;
+  min-width: 22px;
+  padding: 0 7px;
+  border-radius: var(--radius-pill);
+  background: var(--c-warning);
+  color: var(--c-surface);
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+}

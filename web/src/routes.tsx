@@ -4,6 +4,7 @@ import { AppShell } from './layout/AppShell';
 import { AboutPage } from './pages/AboutPage';
 import { LoginPage } from './pages/LoginPage';
 import { MorePage } from './pages/MorePage';
+import { PanelPage } from './pages/panel/PanelPage';
 import { DocFormPage } from './pages/docs/DocFormPage';
 import { DocPage } from './pages/docs/DocPage';
 import { DocsPage } from './pages/docs/DocsPage';
@@ -32,7 +33,6 @@ import {
   ForbiddenPage,
   HomePage,
   NotFoundPage,
-  PanelPage,
 } from './pages/sections';
 import { TeamPage } from './pages/team/TeamPage';
 import { UserPage } from './pages/team/UserPage';

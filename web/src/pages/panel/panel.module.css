@@ -1,0 +1,48 @@
+.caption {
+  margin: 16px 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--c-text3);
+}
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+.tile {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  color: inherit;
+  text-decoration: none;
+}
+.tile:hover {
+  border-color: var(--c-primary);
+}
+.hot {
+  border-color: var(--c-warning);
+  background: var(--c-warning-soft);
+}
+.count {
+  font-family: var(--font-heading);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 40px;
+}
+.title {
+  font-weight: 700;
+}
+.note {
+  color: var(--c-text2);
+  font-size: 14px;
+}

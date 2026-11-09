@@ -6,6 +6,7 @@ import { Icon } from '../components/Icon';
 import { ROLE_LABEL } from '../lib/labels';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { ActiveSessionBar } from '../pages/lab/ActiveSessionBar';
+import { useReviewCount } from '../pages/panel/PanelPage';
 import { SIDEBAR, STAFF, TABS, visible } from './nav';
 import s from './AppShell.module.css';
 
@@ -13,6 +14,7 @@ import s from './AppShell.module.css';
 export function AppShell() {
   const { user, can } = useAuth();
   const staff = visible(STAFF, can);
+  const review = useReviewCount(can('tasks.accept'));
 
   return (
     <div className={s.shell}>
@@ -39,6 +41,11 @@ export function AppShell() {
               <NavLink key={i.to} to={i.to} className={s.sideLink}>
                 <Icon name={i.icon} size={20} />
                 {i.label}
+                {i.to === '/panel' && !!review.data && (
+                  <span className={s.badge} aria-label={`${review.data} ТЗ на перевірці`}>
+                    {review.data}
+                  </span>
+                )}
               </NavLink>
             ))}
           </nav>

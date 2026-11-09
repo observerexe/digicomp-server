@@ -26,7 +26,6 @@ export function HomePage() {
   const first = user?.name.split(/\s+/)[0] ?? '';
   return <Section title={`Добрий день, ${first}`} note="Тут будуть ваш активний сеанс, ТЗ, бали й найближчі бронювання." />;
 }
-export const PanelPage = () => <Section title="Панель керування" note="Учасники, бали, дисципліна, ТЗ на перевірці, допуски, обладнання." />;
 
 export function ForbiddenPage() {
   return (
