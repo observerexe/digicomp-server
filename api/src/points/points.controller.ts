@@ -1,19 +1,20 @@
 import { Controller, Get, Req, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard, Roles, RolesGuard } from '../auth/roles';
+import { JwtAuthGuard, Can, PolicyGuard } from '../auth/roles';
+import { Action } from '../auth/policy';
 import { PointsService } from './points.service';
 
 @Controller('points')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PolicyGuard)
 export class PointsController {
   constructor(private points: PointsService) {}
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.PointsRead)
   @Get('me')
   mine(@Req() req: { user: { id: string } }) {
     return this.points.mine(req.user.id);
   }
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.PointsRead)
   @Get('leaderboard')
   leaderboard() {
     return this.points.leaderboard();

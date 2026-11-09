@@ -15,7 +15,8 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { UploadedFileLike } from '../files/file-validation';
-import { JwtAuthGuard, Roles, RolesGuard } from '../auth/roles';
+import { JwtAuthGuard, Can, PolicyGuard } from '../auth/roles';
+import { Action } from '../auth/policy';
 import {
   ChangePasswordDto,
   ListUsersQuery,
@@ -28,23 +29,23 @@ import { UsersService } from './users.service';
 type Req = { user: { id: string; role: string } };
 
 @Controller('users')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PolicyGuard)
 export class UsersController {
   constructor(private users: UsersService) {}
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.UsersRead)
   @Get()
   list(@Query() q: ListUsersQuery, @Req() req: Req) {
     return this.users.list(q, req.user);
   }
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.ProfileEditOwnBio)
   @Patch('me')
   updateMe(@Body() dto: UpdateProfileDto, @Req() req: Req) {
-    return this.users.updateProfile(req.user.id, dto);
+    return this.users.updateProfile(req.user, dto);
   }
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.ProfileChangePassword)
   @Patch('me/password')
   changePassword(@Body() dto: ChangePasswordDto, @Req() req: Req) {
     return this.users.changePassword(
@@ -54,13 +55,13 @@ export class UsersController {
     );
   }
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.UsersRead)
   @Get(':id')
   get(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
     return this.users.get(id, req.user);
   }
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.ProfileEditOwnAvatar)
   @Post(':id/avatar')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -75,13 +76,13 @@ export class UsersController {
     return this.users.setAvatar(id, file, req.user);
   }
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.ProfileEditOwnAvatar)
   @Delete(':id/avatar')
   removeAvatar(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
     return this.users.removeAvatar(id, req.user);
   }
 
-  @Roles('admin')
+  @Can(Action.UsersManage)
   @Patch(':id')
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -91,7 +92,7 @@ export class UsersController {
     return this.users.update(id, dto, req.user);
   }
 
-  @Roles('admin')
+  @Can(Action.UsersResetPassword)
   @Post(':id/reset-password')
   resetPassword(
     @Param('id', ParseUUIDPipe) id: string,

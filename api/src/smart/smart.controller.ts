@@ -12,7 +12,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { JwtAuthGuard, Roles, RolesGuard } from '../auth/roles';
+import { JwtAuthGuard, Can, PolicyGuard } from '../auth/roles';
+import { Action } from '../auth/policy';
 import {
   CreateSmartEntityDto,
   LightStateDto,
@@ -23,17 +24,17 @@ import { SmartService } from './smart.service';
 type Req = { user: { id: string; role: string } };
 
 @Controller('smart')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PolicyGuard)
 export class SmartController {
   constructor(private smart: SmartService) {}
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.SmartRead)
   @Get('entities')
   list() {
     return this.smart.list();
   }
 
-  @Roles('admin', 'coordinator')
+  @Can(Action.SmartControl)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   @HttpCode(200)
   @Post('lights/:id/state')
@@ -45,7 +46,7 @@ export class SmartController {
     return this.smart.setLight(id, dto, req.user);
   }
 
-  @Roles('admin', 'coordinator')
+  @Can(Action.SmartControl)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   @HttpCode(200)
   @Post('scenes/:id/activate')
@@ -53,31 +54,31 @@ export class SmartController {
     return this.smart.activateScene(id, req.user);
   }
 
-  @Roles('admin')
+  @Can(Action.SmartAllowlist)
   @Get('status')
   status() {
     return this.smart.status();
   }
 
-  @Roles('admin')
+  @Can(Action.SmartAllowlist)
   @Get('allowlist')
   allowlist() {
     return this.smart.listAll();
   }
 
-  @Roles('admin')
+  @Can(Action.SmartAllowlist)
   @Get('discover')
   discover() {
     return this.smart.discover();
   }
 
-  @Roles('admin')
+  @Can(Action.SmartAllowlist)
   @Post('allowlist')
   add(@Body() dto: CreateSmartEntityDto, @Req() req: Req) {
     return this.smart.add(dto, req.user);
   }
 
-  @Roles('admin')
+  @Can(Action.SmartAllowlist)
   @Patch('allowlist/:id')
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -87,7 +88,7 @@ export class SmartController {
     return this.smart.update(id, dto, req.user);
   }
 
-  @Roles('admin')
+  @Can(Action.SmartAllowlist)
   @Delete('allowlist/:id')
   remove(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
     return this.smart.remove(id, req.user);

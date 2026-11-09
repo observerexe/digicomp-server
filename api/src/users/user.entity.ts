@@ -7,9 +7,8 @@ import {
 
 export enum Role {
   Admin = 'admin',
-  Coordinator = 'coordinator',
+  Moderator = 'moderator',
   Member = 'member',
-  Guest = 'guest',
 }
 
 @Entity('users')

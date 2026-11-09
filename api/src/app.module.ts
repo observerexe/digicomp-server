@@ -9,6 +9,7 @@ import { AppService } from './app.service';
 import { HealthController } from './health/health.controller';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
+import { DocsModule } from './docs/docs.module';
 import { DocumentsModule } from './documents/documents.module';
 import { FilesModule } from './files/files.module';
 import { InventoryModule } from './inventory/inventory.module';
@@ -39,6 +40,7 @@ import { UsersModule } from './users/users.module';
     InventoryModule,
     ProjectsModule,
     SmartModule,
+    DocsModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService, { provide: APP_GUARD, useClass: AppThrottlerGuard }],

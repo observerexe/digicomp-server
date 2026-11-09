@@ -2,3 +2,4 @@
 node_modules
 api/.e2e-files
 api/dist
+*.tsbuildinfo

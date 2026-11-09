@@ -13,7 +13,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
-import { JwtAuthGuard, Roles, RolesGuard } from '../auth/roles';
+import { JwtAuthGuard, Can, PolicyGuard } from '../auth/roles';
+import { Action } from '../auth/policy';
 import {
   CreateItemDto,
   ListItemsQuery,
@@ -26,29 +27,29 @@ import { InventoryService } from './inventory.service';
 type Req = { user: { id: string; role: string } };
 
 @Controller('inventory')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PolicyGuard)
 export class InventoryController {
   constructor(private inv: InventoryService) {}
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.InventoryRead)
   @Get('items')
   list(@Query() q: ListItemsQuery, @Req() req: Req) {
     return this.inv.list(q, req.user);
   }
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.InventoryRead)
   @Get('items/:id')
   get(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
     return this.inv.get(id, req.user);
   }
 
-  @Roles('admin', 'coordinator')
+  @Can(Action.InventoryManage)
   @Post('items')
   create(@Body() dto: CreateItemDto, @Req() req: Req) {
     return this.inv.create(dto, req.user);
   }
 
-  @Roles('admin', 'coordinator')
+  @Can(Action.InventoryManage)
   @Patch('items/:id')
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -58,7 +59,7 @@ export class InventoryController {
     return this.inv.update(id, dto, req.user);
   }
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.InventoryTake)
   @Post('items/:id/movements')
   move(
     @Param('id', ParseUUIDPipe) id: string,
@@ -68,13 +69,13 @@ export class InventoryController {
     return this.inv.move(id, dto, req.user);
   }
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.InventoryRead)
   @Get('movements')
   movements(@Query() q: ListMovementsQuery) {
     return this.inv.listMovements(q);
   }
 
-  @Roles('admin', 'coordinator')
+  @Can(Action.InventoryManage)
   @Get('export')
   async export(@Res({ passthrough: true }) res: Response) {
     const csv = await this.inv.exportCsv();

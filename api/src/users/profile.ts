@@ -1,31 +1,5 @@
-import { Role, User } from './user.entity';
-
-const MEMBER_PERMISSIONS = [
-  'users.read',
-  'tasks.read',
-  'tasks.update_own_status',
-  'points.read',
-];
-
-export function permissionsFor(role: Role): string[] {
-  switch (role) {
-    case Role.Admin:
-      return [
-        ...MEMBER_PERMISSIONS,
-        'users.read_extended',
-        'users.manage',
-        'tasks.create',
-        'tasks.confirm',
-        'audit.read',
-      ];
-    case Role.Coordinator:
-      return [...MEMBER_PERMISSIONS, 'users.read_extended'];
-    case Role.Member:
-      return MEMBER_PERMISSIONS;
-    default:
-      return [];
-  }
-}
+import { permissionsFor } from '../auth/policy';
+import { User } from './user.entity';
 
 export function toProfile(u: User) {
   return {

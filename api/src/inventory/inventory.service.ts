@@ -15,6 +15,7 @@ import {
   Repository,
 } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
+import { Action, can } from '../auth/policy';
 import { AccessScope, Doc } from '../documents/doc.entity';
 import {
   CreateItemDto,
@@ -35,10 +36,6 @@ function isIntegerUnit(unit: string) {
 
 function round3(n: number) {
   return Math.round(n * 1000) / 1000;
-}
-
-function supervisor(role: string) {
-  return role === 'admin' || role === 'coordinator';
 }
 
 function escapeLike(s: string) {
@@ -140,7 +137,7 @@ export class InventoryService {
     const qb = this.docs
       .createQueryBuilder('d')
       .where('d.inventoryItemId = :id AND d.archivedAt IS NULL', { id });
-    if (!supervisor(actor.role)) {
+    if (!can(actor, Action.DocumentsManage)) {
       qb.andWhere('d.accessScope = :s', { s: AccessScope.Members });
     }
     const docs = await qb.orderBy('d.title', 'ASC').getMany();
@@ -264,10 +261,8 @@ export class InventoryService {
     if (dto.delta === 0) {
       throw new BadRequestException('Delta must not be zero');
     }
-    if (dto.delta > 0 && !supervisor(actor.role)) {
-      throw new ForbiddenException(
-        'Only admin or coordinator can receive stock',
-      );
+    if (dto.delta > 0 && !can(actor, Action.InventoryRestock)) {
+      throw new ForbiddenException('Not allowed to receive stock');
     }
     const note = dto.note.trim();
     if (!note) throw new BadRequestException('Note is required');
@@ -382,7 +377,7 @@ export class InventoryService {
       .where('d.inventoryItemId IN (:...ids) AND d.archivedAt IS NULL', {
         ids,
       });
-    if (!supervisor(actor.role)) {
+    if (!can(actor, Action.DocumentsManage)) {
       qb.andWhere('d.accessScope = :s', { s: AccessScope.Members });
     }
     const raw = await qb

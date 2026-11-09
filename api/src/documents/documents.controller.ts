@@ -17,7 +17,8 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
-import { JwtAuthGuard, Roles, RolesGuard } from '../auth/roles';
+import { JwtAuthGuard, Can, PolicyGuard } from '../auth/roles';
+import { Action } from '../auth/policy';
 import type { UploadedFileLike } from '../files/file-validation';
 import {
   AddVersionDto,
@@ -40,29 +41,29 @@ function contentDisposition(name: string) {
 }
 
 @Controller('documents')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PolicyGuard)
 export class DocumentsController {
   constructor(private docs: DocumentsService) {}
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.DocumentsRead)
   @Get()
   list(@Query() q: ListDocsQuery, @Req() req: Req) {
     return this.docs.list(q, req.user);
   }
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.DocumentsRead)
   @Get(':id')
   get(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
     return this.docs.get(id, req.user);
   }
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.DocumentsRead)
   @Get(':id/versions')
   versions(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
     return this.docs.listVersions(id, req.user);
   }
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.DocumentsRead)
   @Get(':id/download')
   async download(
     @Param('id', ParseUUIDPipe) id: string,
@@ -81,7 +82,7 @@ export class DocumentsController {
     return new StreamableFile(stream);
   }
 
-  @Roles('admin', 'coordinator')
+  @Can(Action.DocumentsManage)
   @Post()
   @UseInterceptors(UPLOAD)
   create(
@@ -92,7 +93,7 @@ export class DocumentsController {
     return this.docs.create(dto, file, req.user);
   }
 
-  @Roles('admin', 'coordinator')
+  @Can(Action.DocumentsManage)
   @Post(':id/files')
   @UseInterceptors(UPLOAD)
   addVersion(
@@ -104,7 +105,7 @@ export class DocumentsController {
     return this.docs.addVersion(id, dto, file, req.user);
   }
 
-  @Roles('admin', 'coordinator')
+  @Can(Action.DocumentsManage)
   @Patch(':id')
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -114,7 +115,7 @@ export class DocumentsController {
     return this.docs.update(id, dto, req.user);
   }
 
-  @Roles('admin')
+  @Can(Action.DocumentsManage)
   @Delete(':id')
   archive(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
     return this.docs.archive(id, req.user);

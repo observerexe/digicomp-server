@@ -9,28 +9,29 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard, Roles, RolesGuard } from '../auth/roles';
+import { JwtAuthGuard, Can, PolicyGuard } from '../auth/roles';
+import { Action } from '../auth/policy';
 import { CreateTaskDto, UpdateStatusDto } from './dto';
 import { TasksService } from './tasks.service';
 
 @Controller('tasks')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PolicyGuard)
 export class TasksController {
   constructor(private tasks: TasksService) {}
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.TasksRead)
   @Get()
   list() {
     return this.tasks.list();
   }
 
-  @Roles('admin')
+  @Can(Action.TasksCreate)
   @Post()
   create(@Body() dto: CreateTaskDto, @Req() req: { user: { id: string } }) {
     return this.tasks.create(dto, req.user.id);
   }
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.TasksTake)
   @Patch(':id/status')
   setStatus(
     @Param('id', ParseUUIDPipe) id: string,

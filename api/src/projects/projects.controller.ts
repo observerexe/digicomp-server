@@ -17,7 +17,8 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
-import { JwtAuthGuard, Roles, RolesGuard } from '../auth/roles';
+import { JwtAuthGuard, Can, PolicyGuard } from '../auth/roles';
+import { Action } from '../auth/policy';
 import type { UploadedFileLike } from '../files/file-validation';
 import { CreateProjectDto, ListProjectsQuery, UpdateProjectDto } from './dto';
 import { ProjectsService } from './projects.service';
@@ -30,35 +31,35 @@ function contentDisposition(name: string) {
 }
 
 @Controller('projects')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PolicyGuard)
 export class ProjectsController {
   constructor(private projects: ProjectsService) {}
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.ProjectsRead)
   @Get()
   list(@Query() q: ListProjectsQuery) {
     return this.projects.list(q);
   }
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.ProjectsRead)
   @Get(':id')
   get(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
     return this.projects.get(id, req.user);
   }
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.ProjectsRead)
   @Get(':id/history')
   history(@Param('id', ParseUUIDPipe) id: string) {
     return this.projects.history(id);
   }
 
-  @Roles('admin', 'coordinator')
+  @Can(Action.ProjectsCreate)
   @Post()
   create(@Body() dto: CreateProjectDto, @Req() req: Req) {
     return this.projects.create(dto, req.user);
   }
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.ProjectsUpdate)
   @Patch(':id')
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -68,13 +69,13 @@ export class ProjectsController {
     return this.projects.update(id, dto, req.user);
   }
 
-  @Roles('admin')
+  @Can(Action.ProjectsManage)
   @Delete(':id')
   archive(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
     return this.projects.archive(id, req.user);
   }
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.ProjectsUpdate)
   @Post(':id/files')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -89,7 +90,7 @@ export class ProjectsController {
     return this.projects.addFile(id, file, req.user);
   }
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.ProjectsRead)
   @Get(':id/files/:fileId/download')
   async download(
     @Param('id', ParseUUIDPipe) id: string,
@@ -107,7 +108,7 @@ export class ProjectsController {
     return new StreamableFile(stream);
   }
 
-  @Roles('admin', 'coordinator')
+  @Can(Action.ProjectsManage)
   @Delete(':id/files/:fileId')
   removeFile(
     @Param('id', ParseUUIDPipe) id: string,

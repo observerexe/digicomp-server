@@ -7,6 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as argon2 from 'argon2';
 import { Repository } from 'typeorm';
+import { AuditService } from '../audit/audit.service';
 import { SessionsService } from '../sessions/sessions.service';
 import { Role, User } from '../users/user.entity';
 import { toProfile } from '../users/profile';
@@ -18,6 +19,7 @@ export class AuthService {
     @InjectRepository(User) private users: Repository<User>,
     private jwt: JwtService,
     private sessions: SessionsService,
+    private audit: AuditService,
   ) {}
 
   async setupFirstAdmin(dto: CreateUserDto) {
@@ -28,7 +30,7 @@ export class AuthService {
     return this.create(dto, Role.Admin);
   }
 
-  async create(dto: CreateUserDto, role: Role) {
+  async create(dto: CreateUserDto, role: Role, actorId?: string) {
     const exists = await this.users.findOne({
       where: { email: dto.email.toLowerCase() },
     });
@@ -43,6 +45,13 @@ export class AuthService {
         role,
       }),
     );
+    await this.audit.log({
+      actorId: actorId ?? user.id,
+      action: 'user.created',
+      entity: 'user',
+      entityId: user.id,
+      meta: { role, setup: actorId === undefined },
+    });
     return this.publicUser(user);
   }
 

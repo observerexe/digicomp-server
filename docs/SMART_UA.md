@@ -6,9 +6,9 @@ HA не відкривається в інтернет (Funnel веде лише
 
 ## Що вміє API
 
-- `GET /smart/entities` (admin, coordinator, member): стан дозволених пристроїв (світло, датчики, сцени).
-- `POST /smart/lights/:id/state` (admin, coordinator): `{ "on": true, "brightness": 1-100 }`.
-- `POST /smart/scenes/:id/activate` (admin, coordinator).
+- `GET /smart/entities` (admin, moderator, member): стан дозволених пристроїв (світло, датчики, сцени).
+- `POST /smart/lights/:id/state` (admin, moderator): `{ "on": true, "brightness": 1-100 }`.
+- `POST /smart/scenes/:id/activate` (admin, moderator).
 - `GET /smart/status`, `GET /smart/discover`, `GET/POST/PATCH/DELETE /smart/allowlist` (admin): керування списком дозволених пристроїв.
 
 Дозволені лише три типи: `light`, `sensor`, `scene`. Розетки, вимикачі й будь-що інше (`switch.*`) додати неможливо,

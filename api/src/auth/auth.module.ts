@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { AuditModule } from '../audit/audit.module';
 import { SessionsModule } from '../sessions/sessions.module';
 import { UsersModule } from '../users/users.module';
 import { AuthController } from './auth.controller';
@@ -11,6 +12,7 @@ import { JwtStrategy } from './jwt.strategy';
   imports: [
     UsersModule,
     SessionsModule,
+    AuditModule,
     PassportModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET,

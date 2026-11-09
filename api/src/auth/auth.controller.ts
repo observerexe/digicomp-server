@@ -22,7 +22,8 @@ import {
   setAuthCookies,
 } from './cookies';
 import { CreateUserDto, LoginDto, OptionalRefreshDto } from './dto';
-import { JwtAuthGuard, Roles, RolesGuard } from './roles';
+import { JwtAuthGuard, Can, PolicyGuard } from './roles';
+import { Action } from './policy';
 
 @Controller()
 export class AuthController {
@@ -103,10 +104,10 @@ export class AuthController {
     return this.users.me(req.user.id);
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @UseGuards(JwtAuthGuard, PolicyGuard)
+  @Can(Action.UsersCreate)
   @Post('users')
-  createUser(@Body() dto: CreateUserDto) {
-    return this.auth.create(dto, Role.Member);
+  createUser(@Body() dto: CreateUserDto, @Req() req: { user: { id: string } }) {
+    return this.auth.create(dto, Role.Member, req.user.id);
   }
 }

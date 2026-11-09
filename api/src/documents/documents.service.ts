@@ -7,6 +7,7 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { createHash, randomUUID } from 'crypto';
 import { DataSource, In, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
+import { Action, can } from '../auth/policy';
 import {
   DOCUMENT_EXTENSIONS,
   UploadedFileLike,
@@ -23,10 +24,6 @@ import {
 import { AccessScope, Doc, DocVersion } from './doc.entity';
 
 type Actor = { id: string; role: string };
-
-function supervisor(role: string) {
-  return role === 'admin' || role === 'coordinator';
-}
 
 function escapeLike(s: string) {
   return s.replace(/[\\%_]/g, (c) => '\\' + c);
@@ -82,10 +79,10 @@ export class DocumentsService {
     const page = Math.max(1, Number(q.page ?? 1));
     const limit = Math.min(100, Math.max(1, Number(q.limit ?? 50)));
     const qb = this.docs.createQueryBuilder('d');
-    if (!supervisor(actor.role)) {
+    if (!can(actor, Action.DocumentsManage)) {
       qb.andWhere('d.accessScope = :scope', { scope: AccessScope.Members });
     }
-    if (actor.role === 'admin' && q.archived === 'true') {
+    if (can(actor, Action.DocumentsManage) && q.archived === 'true') {
       qb.andWhere('d.archivedAt IS NOT NULL');
     } else {
       qb.andWhere('d.archivedAt IS NULL');
@@ -320,8 +317,9 @@ export class DocumentsService {
     const d = await this.docs.findOneBy({ id });
     if (
       !d ||
-      (d.archivedAt && actor.role !== 'admin') ||
-      (!supervisor(actor.role) && d.accessScope !== AccessScope.Members)
+      (d.archivedAt && !can(actor, Action.DocumentsManage)) ||
+      (!can(actor, Action.DocumentsManage) &&
+        d.accessScope !== AccessScope.Members)
     ) {
       throw new NotFoundException('Document not found');
     }

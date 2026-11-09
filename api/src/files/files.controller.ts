@@ -9,16 +9,17 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
-import { JwtAuthGuard, Roles, RolesGuard } from '../auth/roles';
+import { JwtAuthGuard, Can, PolicyGuard } from '../auth/roles';
+import { Action } from '../auth/policy';
 import { mimeForExtension } from './file-validation';
 import { StorageService } from './storage.service';
 
 @Controller('files')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PolicyGuard)
 export class FilesController {
   constructor(private storage: StorageService) {}
 
-  @Roles('admin', 'coordinator', 'member')
+  @Can(Action.UsersRead)
   @Get('avatars/:userId')
   async avatar(
     @Param('userId', ParseUUIDPipe) userId: string,

@@ -17,10 +17,11 @@ import {
   Repository,
 } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
+import { Action, assertCan, can } from '../auth/policy';
 import { EndSessionDto, ListSessionsQuery, StartSessionDto } from './dto';
 import { PlaceAuthorization } from './place-authorization.entity';
 import { Place, PlaceStatus } from './place.entity';
-import { authIsValid, isSupervisor, PlacesService } from './places.service';
+import { authIsValid, PlacesService } from './places.service';
 import { WorkSession } from './work-session.entity';
 
 type Actor = { id: string; role: string };
@@ -79,14 +80,17 @@ export class WorkSessionsService {
         if (!dto.safetyConfirmed) {
           throw new BadRequestException('Safety confirmation required');
         }
-        if (place.needsAuthorization && !isSupervisor(actor.role)) {
+        if (
+          place.needsAuthorization &&
+          !can(actor, Action.SessionsStart, { authorized: false })
+        ) {
           const auth = await m.findOneBy(PlaceAuthorization, {
             userId: actor.id,
             placeId: place.id,
           });
-          if (!authIsValid(auth)) {
-            throw new ForbiddenException('Not authorized for this place');
-          }
+          assertCan(actor, Action.SessionsStart, {
+            authorized: authIsValid(auth),
+          });
         }
         const mine = await m.findOneBy(WorkSession, {
           userId: actor.id,
@@ -149,7 +153,7 @@ export class WorkSessionsService {
       if (s.endedAt) throw new ConflictException('Session already ended');
       const own = s.userId === actor.id;
       if (!own) {
-        if (!isSupervisor(actor.role)) {
+        if (!can(actor, Action.SessionsEndOther)) {
           throw new ForbiddenException('Not your session');
         }
         if (!dto.reason?.trim()) {
@@ -186,7 +190,7 @@ export class WorkSessionsService {
     const page = Math.max(1, Number(q.page ?? 1));
     const limit = Math.min(100, Math.max(1, Number(q.limit ?? 50)));
     const where: FindOptionsWhere<WorkSession> = {};
-    if (isSupervisor(actor.role)) {
+    if (can(actor, Action.SessionsReadAll)) {
       if (q.userId) where.userId = q.userId;
     } else {
       where.userId = actor.id;

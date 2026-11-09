@@ -9,6 +9,7 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import * as argon2 from 'argon2';
 import { DataSource, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
+import { Action, assertCan, can } from '../auth/policy';
 import {
   AVATAR_EXTENSIONS,
   UploadedFileLike,
@@ -22,8 +23,38 @@ import { Role, User } from './user.entity';
 
 export type Actor = { id: string; role: string };
 
-function isExtended(role: string) {
-  return role === Role.Admin || role === Role.Coordinator;
+type ProfileField = 'name' | 'position' | 'specialty' | 'bio';
+
+/** Which action allows changing a field of your own profile. */
+const OWN_FIELD_ACTION: Record<ProfileField, Action> = {
+  name: Action.ProfileEditOwnName,
+  position: Action.ProfileEditOwnRoleInfo,
+  specialty: Action.ProfileEditOwnRoleInfo,
+  bio: Action.ProfileEditOwnBio,
+};
+
+/** Which action allows changing a field of another user. */
+const OTHER_FIELD_ACTION: Record<ProfileField | 'email', Action> = {
+  name: Action.UsersEditName,
+  email: Action.UsersEditEmail,
+  position: Action.UsersEditRoleInfo,
+  specialty: Action.UsersEditRoleInfo,
+  bio: Action.UsersModerateContent,
+};
+
+function fieldForbidden(field: string) {
+  return new ForbiddenException({
+    message: `Field is not allowed: ${field}`,
+    errorCode: 'FIELD_NOT_ALLOWED',
+    field,
+  });
+}
+
+/** Which action allows a role change. */
+function roleChangeAction(from: Role, to: Role): Action {
+  if (from === Role.Admin || to === Role.Admin) return Action.UsersGrantAdmin;
+  if (from === Role.Member && to === Role.Moderator) return Action.UsersPromote;
+  return Action.UsersManageModerator;
 }
 
 function escapeLike(s: string) {
@@ -47,7 +78,7 @@ export class UsersService {
   }
 
   async list(q: ListUsersQuery, actor: Actor) {
-    const extended = isExtended(actor.role);
+    const extended = can(actor, Action.UsersReadExtended);
     const page = Math.max(1, Number(q.page ?? 1));
     const limit = Math.min(100, Math.max(1, Number(q.limit ?? 50)));
     const qb = this.repo.createQueryBuilder('u');
@@ -82,7 +113,7 @@ export class UsersService {
   }
 
   async get(id: string, actor: Actor) {
-    const extended = isExtended(actor.role);
+    const extended = can(actor, Action.UsersReadExtended);
     const u = await this.repo.findOneBy({ id });
     if (!u || (!extended && !u.active)) {
       throw new NotFoundException('User not found');
@@ -90,9 +121,16 @@ export class UsersService {
     return extended ? toExtendedView(u) : toBasicView(u);
   }
 
-  async updateProfile(id: string, dto: UpdateProfileDto) {
+  async updateProfile(actor: Actor, dto: UpdateProfileDto) {
+    const id = actor.id;
     const u = await this.repo.findOneBy({ id });
     if (!u) throw new NotFoundException('User not found');
+    for (const k of Object.keys(OWN_FIELD_ACTION) as ProfileField[]) {
+      const v = dto[k];
+      if (v !== undefined && v !== u[k] && !can(actor, OWN_FIELD_ACTION[k])) {
+        throw fieldForbidden(k);
+      }
+    }
     const fields = this.applyProfileFields(u, dto);
     if (fields.length) {
       await this.repo.save(u);
@@ -111,12 +149,30 @@ export class UsersService {
     return this.ds.transaction(async (m) => {
       const u = await m.findOne(User, { where: { id } });
       if (!u) throw new NotFoundException('User not found');
+      const target = { id: u.id, role: u.role };
+
+      for (const k of ['name', 'position', 'specialty', 'bio'] as const) {
+        const v = dto[k];
+        if (v !== undefined && v !== u[k]) {
+          assertCan(actor, OTHER_FIELD_ACTION[k], { target });
+        }
+      }
+      const emailNext = dto.email?.toLowerCase();
+      if (emailNext !== undefined && emailNext !== u.email) {
+        assertCan(actor, OTHER_FIELD_ACTION.email, { target });
+      }
+      if (dto.active !== undefined && dto.active !== u.active) {
+        assertCan(actor, Action.UsersBlock, { target });
+      }
+      if (dto.role !== undefined && dto.role !== u.role) {
+        assertCan(actor, roleChangeAction(u.role, dto.role), { target });
+      }
 
       const meta: Record<string, unknown> = {};
       const fields = this.applyProfileFields(u, dto);
 
-      if (dto.email !== undefined) {
-        const email = dto.email.toLowerCase();
+      if (emailNext !== undefined) {
+        const email = emailNext;
         if (email !== u.email) {
           const taken = await m.findOne(User, { where: { email } });
           if (taken) throw new ConflictException('Email already used');
@@ -206,9 +262,7 @@ export class UsersService {
     file: UploadedFileLike | undefined,
     actor: Actor,
   ) {
-    if (actor.id !== id && actor.role !== Role.Admin) {
-      throw new ForbiddenException('Not allowed');
-    }
+    if (actor.id !== id) throw new ForbiddenException('Not allowed');
     const u = await this.repo.findOneBy({ id });
     if (!u) throw new NotFoundException('User not found');
     const info = validateUpload(file, AVATAR_EXTENSIONS);
@@ -228,7 +282,7 @@ export class UsersService {
   }
 
   async removeAvatar(id: string, actor: Actor) {
-    if (actor.id !== id && actor.role !== Role.Admin) {
+    if (actor.id !== id && !can(actor, Action.UsersModerateContent)) {
       throw new ForbiddenException('Not allowed');
     }
     const u = await this.repo.findOneBy({ id });

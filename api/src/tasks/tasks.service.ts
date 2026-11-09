@@ -8,6 +8,7 @@ import {
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
+import { Action, assertCan, can } from '../auth/policy';
 import { PointsEntry } from '../points/points-entry.entity';
 import { User } from '../users/user.entity';
 import { CreateTaskDto, UpdateStatusDto } from './dto';
@@ -46,7 +47,9 @@ export class TasksService {
 
   async create(dto: CreateTaskDto, actorId: string) {
     const ids = dto.assigneeIds ?? [];
-    const assignees = ids.length ? await this.users.findBy({ id: In(ids) }) : [];
+    const assignees = ids.length
+      ? await this.users.findBy({ id: In(ids) })
+      : [];
     if (assignees.length !== new Set(ids).size) {
       throw new BadRequestException('Unknown assignee');
     }
@@ -83,13 +86,12 @@ export class TasksService {
     if (task.status === TaskStatus.Done) {
       throw new ConflictException('Task already completed');
     }
-    if (actor.role !== 'admin') {
-      if (!task.assignees.some((a) => a.id === actor.id)) {
-        throw new ForbiddenException('Not your task');
-      }
-      if (dto.status === TaskStatus.Done) {
-        throw new ForbiddenException('Only admin can confirm completion');
-      }
+    const assignee = task.assignees.some((a) => a.id === actor.id);
+    if (!assignee && !can(actor, Action.TasksAccept)) {
+      throw new ForbiddenException('Not your task');
+    }
+    if (dto.status === TaskStatus.Done) {
+      assertCan(actor, Action.TasksAccept, { participant: assignee });
     }
 
     return this.ds.transaction(async (m) => {

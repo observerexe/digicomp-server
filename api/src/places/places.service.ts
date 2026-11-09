@@ -7,6 +7,7 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { isUUID } from 'class-validator';
 import { DataSource, EntityManager, In, IsNull, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
+import { Action, can } from '../auth/policy';
 import { User } from '../users/user.entity';
 import {
   CreatePlaceDto,
@@ -20,10 +21,6 @@ import { Place, PlaceStatus } from './place.entity';
 import { WorkSession } from './work-session.entity';
 
 type Actor = { id: string; role: string };
-
-export function isSupervisor(role: string) {
-  return role === 'admin' || role === 'coordinator';
-}
 
 export function authIsValid(a: PlaceAuthorization | null | undefined) {
   return !!a && (!a.expiresAt || a.expiresAt.getTime() > Date.now());
@@ -56,7 +53,7 @@ export class PlacesService {
 
   async list(q: ListPlacesQuery, actor: Actor) {
     const qb = this.places.createQueryBuilder('p');
-    if (!isSupervisor(actor.role)) {
+    if (!can(actor, Action.PlacesManage)) {
       qb.andWhere('p.status <> :arch', { arch: PlaceStatus.Archived });
     }
     if (q.status) qb.andWhere('p.status = :status', { status: q.status });
@@ -74,7 +71,10 @@ export class PlacesService {
 
   async get(idOrCode: string, actor: Actor) {
     const place = await this.resolve(idOrCode);
-    if (place.status === PlaceStatus.Archived && !isSupervisor(actor.role)) {
+    if (
+      place.status === PlaceStatus.Archived &&
+      !can(actor, Action.PlacesManage)
+    ) {
       throw new NotFoundException('Place not found');
     }
     return (await this.decorate([place], actor))[0];
@@ -139,7 +139,7 @@ export class PlacesService {
 
   async listAuthorizations(q: ListAuthorizationsQuery, actor: Actor) {
     const where: { userId?: string; placeId?: string } = {};
-    if (isSupervisor(actor.role)) {
+    if (can(actor, Action.PlacesAuthorize)) {
       if (q.userId) where.userId = q.userId;
     } else {
       where.userId = actor.id;

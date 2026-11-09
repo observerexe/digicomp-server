@@ -1,4 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { DocsService } from './docs/docs.controller';
+import { buildOpenApi } from './docs/openapi';
 import { AllExceptionsFilter } from './common/http-exception.filter';
 import { apiNoStore, csrfGuard, securityHeaders } from './common/web';
 
@@ -32,4 +34,6 @@ export function setupApp(app: INestApplication) {
       maxAge: 600,
     });
   }
+  // Served by DocsController at /docs (admin only).
+  app.get(DocsService).document = buildOpenApi(app);
 }

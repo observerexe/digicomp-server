@@ -8,6 +8,7 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { createHash, randomUUID } from 'crypto';
 import { DataSource, EntityManager, In, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
+import { Action, can } from '../auth/policy';
 import {
   DOCUMENT_EXTENSIONS,
   UploadedFileLike,
@@ -19,10 +20,6 @@ import { CreateProjectDto, ListProjectsQuery, UpdateProjectDto } from './dto';
 import { Project, ProjectFile, ProjectMember } from './project.entities';
 
 type Actor = { id: string; role: string };
-
-function supervisor(role: string) {
-  return role === 'admin' || role === 'coordinator';
-}
 
 function escapeLike(s: string) {
   return s.replace(/[\\%_]/g, (c) => '\\' + c);
@@ -169,10 +166,8 @@ export class ProjectsService {
   }
 
   async update(id: string, dto: UpdateProjectDto, actor: Actor) {
-    if (dto.memberIds !== undefined && !supervisor(actor.role)) {
-      throw new ForbiddenException(
-        'Only admin or coordinator can change members',
-      );
+    if (dto.memberIds !== undefined && !can(actor, Action.ProjectsManage)) {
+      throw new ForbiddenException('Not allowed to change members');
     }
     const memberIds =
       dto.memberIds !== undefined
@@ -351,9 +346,13 @@ export class ProjectsService {
   }
 
   private async canEdit(id: string, actor: Actor, m?: EntityManager) {
-    if (supervisor(actor.role)) return true;
+    if (can(actor, Action.ProjectsUpdate, { participant: false })) return true;
     const repo = m ? m.getRepository(ProjectMember) : this.members;
-    return repo.existsBy({ projectId: id, userId: actor.id });
+    const participant = await repo.existsBy({
+      projectId: id,
+      userId: actor.id,
+    });
+    return can(actor, Action.ProjectsUpdate, { participant });
   }
 
   private async validMembers(ids: string[] | undefined) {
