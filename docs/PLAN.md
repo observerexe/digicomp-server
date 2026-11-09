@@ -290,7 +290,7 @@ React + TypeScript + Vite, PWA (встановлюється на телефон
 3. Переглядати зміни, попросити запустити тести і лінтер.
 4. Попросити зробити коміт і позначити пункти чек-листа в `docs/PLAN.md`.
 
-На сервер Claude Code не пускаємо: розгортання робите ви самі через SSH за командами, які він підготує.
+Claude Code заходить на сервер (`ssh digicomp@digicomp`) лише в таких межах: читати можна, кожну зміну ви підтверджуєте окремо, без `sudo`. Те, що потребує root (агент панелі, `tailscale serve`), робите ви самі.
 
 Джерела: [Claude Code для VS Code](https://code.claude.com/docs/en/vscode-extension), [про Linux і десктопний застосунок](https://neurohive.io/en/guides/claude-code-getting-started-guide/).
 
