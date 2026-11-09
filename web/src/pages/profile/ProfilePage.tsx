@@ -215,7 +215,7 @@ function MineCard({ user }: { user: Me }) {
           empty="Ви ще не в жодному проєкті."
           items={(projects.data?.items ?? []).map((p) => ({
             key: p.id,
-            to: '/projects',
+            to: `/projects/${p.id}`,
             title: p.title,
             sub: [PROJECT_STAGE_LABEL[p.stage], p.deadline && `дедлайн ${formatDate(p.deadline)}`].filter(Boolean).join(' · '),
           }))}

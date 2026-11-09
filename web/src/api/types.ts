@@ -33,3 +33,5 @@ export type FaultStatus = S['FaultStatus'];
 export type Doc = S['DocDto'];
 export type TaskDetail = S['TaskDetailDto'];
 export type DisciplineType = S['DisciplineType'];
+export type ProjectDetail = S['ProjectDetailDto'];
+export type ProjectHistory = S['ProjectHistoryDto'];

@@ -23,8 +23,14 @@ import {
   ProjectMember,
   ProjectStage,
 } from './project.entities';
-import type { Plain } from '../common/responses.dto';
-import type { ProjectDto, ProjectListDto } from './responses.dto';
+import type { OkDto, Plain } from '../common/responses.dto';
+import type {
+  ProjectDetailDto,
+  ProjectDto,
+  ProjectFileDto,
+  ProjectHistoryDto,
+  ProjectListDto,
+} from './responses.dto';
 
 type Actor = { id: string; role: string };
 
@@ -65,7 +71,7 @@ function projectView(p: Project): Plain<ProjectDto> {
   };
 }
 
-function fileView(f: ProjectFile) {
+function fileView(f: ProjectFile): ProjectFileDto {
   return {
     id: f.id,
     fileName: f.fileName,
@@ -128,7 +134,7 @@ export class ProjectsService {
     return { items, total, page, limit };
   }
 
-  async get(id: string, actor: Actor) {
+  async get(id: string, actor: Actor): Promise<ProjectDetailDto> {
     const p = await this.find(id);
     const [mem, files, canEdit] = await Promise.all([
       this.members.find({
@@ -149,7 +155,7 @@ export class ProjectsService {
     };
   }
 
-  async create(dto: CreateProjectDto, actor: Actor) {
+  async create(dto: CreateProjectDto, actor: Actor): Promise<ProjectDetailDto> {
     checkDates(dto.startDate ?? null, dto.deadline ?? null);
     const memberIds = await this.validMembers(dto.memberIds);
     const id = await this.ds.transaction(async (m) => {
@@ -184,7 +190,11 @@ export class ProjectsService {
     return this.get(id, actor);
   }
 
-  async update(id: string, dto: UpdateProjectDto, actor: Actor) {
+  async update(
+    id: string,
+    dto: UpdateProjectDto,
+    actor: Actor,
+  ): Promise<ProjectDetailDto> {
     if (dto.memberIds !== undefined && !can(actor, Action.ProjectsManage)) {
       throw new ForbiddenException('Not allowed to change members');
     }
@@ -262,7 +272,7 @@ export class ProjectsService {
     return this.get(id, actor);
   }
 
-  async archive(id: string, actor: Actor) {
+  async archive(id: string, actor: Actor): Promise<OkDto> {
     const p = await this.find(id);
     p.archivedAt = new Date();
     await this.projects.save(p);
@@ -325,7 +335,7 @@ export class ProjectsService {
     return { file: f, stream };
   }
 
-  async removeFile(id: string, fileId: string, actor: Actor) {
+  async removeFile(id: string, fileId: string, actor: Actor): Promise<OkDto> {
     await this.find(id);
     const f = await this.files.findOneBy({ id: fileId, projectId: id });
     if (!f) throw new NotFoundException('File not found');
@@ -341,7 +351,7 @@ export class ProjectsService {
     return { ok: true };
   }
 
-  async history(id: string) {
+  async history(id: string): Promise<ProjectHistoryDto[]> {
     await this.find(id);
     const rows = await this.audit.history('project', id);
     const ids = [

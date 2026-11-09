@@ -4,6 +4,9 @@ import { AppShell } from './layout/AppShell';
 import { AboutPage } from './pages/AboutPage';
 import { LoginPage } from './pages/LoginPage';
 import { MorePage } from './pages/MorePage';
+import { ProjectFormPage } from './pages/projects/ProjectFormPage';
+import { ProjectPage } from './pages/projects/ProjectPage';
+import { ProjectsPage } from './pages/projects/ProjectsPage';
 import { DisciplinePage } from './pages/points/DisciplinePage';
 import { PointsPage } from './pages/points/PointsPage';
 import { RatingPage } from './pages/points/RatingPage';
@@ -26,7 +29,6 @@ import {
   InventoryPage,
   NotFoundPage,
   PanelPage,
-  ProjectsPage,
 } from './pages/sections';
 import { TeamPage } from './pages/team/TeamPage';
 import { UserPage } from './pages/team/UserPage';
@@ -73,6 +75,16 @@ export const routes: RouteObject[] = [
       { path: 'lab/:code', element: <EquipmentPage /> },
       { path: 'scan', element: <ScanPage /> },
       { path: 'projects', element: <ProjectsPage /> },
+      {
+        path: 'projects/new',
+        element: (
+          <RequirePermission action="projects.create" fallback={<ForbiddenPage />}>
+            <ProjectFormPage />
+          </RequirePermission>
+        ),
+      },
+      { path: 'projects/:id/edit', element: <ProjectFormPage /> },
+      { path: 'projects/:id', element: <ProjectPage /> },
       { path: 'inventory', element: <InventoryPage /> },
       { path: 'docs', element: <DocsPage /> },
       { path: 'rating', element: <RatingPage /> },

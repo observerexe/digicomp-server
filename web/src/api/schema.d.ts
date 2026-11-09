@@ -2187,6 +2187,60 @@ export interface components {
             page: number;
             limit: number;
         };
+        ProjectFileDto: {
+            id: string;
+            fileName: string;
+            mimeType: string;
+            size: number;
+            uploadedById: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        ProjectDetailDto: {
+            stage: components["schemas"]["ProjectStage"];
+            /**
+             * Format: date
+             * @description YYYY-MM-DD
+             */
+            startDate: string | null;
+            /**
+             * Format: date
+             * @description YYYY-MM-DD
+             */
+            deadline: string | null;
+            sources: string[];
+            createdById: string | null;
+            members: components["schemas"]["ProjectMemberDto"][];
+            /** @description Newest first; GET /projects/:id/files/:fileId/download */
+            files: components["schemas"]["ProjectFileDto"][];
+            /** @description The caller may change this project (staff or a member of it). */
+            canEdit: boolean;
+            id: string;
+            title: string;
+            description: string;
+            /** @description 0–100 */
+            progress: number;
+            accomplishments: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        HistoryActorDto: {
+            name: string | null;
+            id: string;
+        };
+        ProjectHistoryDto: {
+            actor: components["schemas"]["HistoryActorDto"] | null;
+            /** @description Changed fields and values, as written to the audit log. */
+            meta: {
+                [key: string]: unknown;
+            } | null;
+            id: string;
+            action: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
         CreateProjectDto: {
             title: string;
             description?: string;
@@ -4247,7 +4301,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ProjectDetailDto"];
+                };
             };
         };
     };
@@ -4266,7 +4322,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ProjectDetailDto"];
+                };
             };
         };
     };
@@ -4285,7 +4343,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
             };
         };
     };
@@ -4308,7 +4368,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ProjectDetailDto"];
+                };
             };
         };
     };
@@ -4327,7 +4389,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ProjectHistoryDto"][];
+                };
             };
         };
     };
@@ -4346,7 +4410,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ProjectFileDto"];
+                };
             };
         };
     };
@@ -4386,7 +4452,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
             };
         };
     };

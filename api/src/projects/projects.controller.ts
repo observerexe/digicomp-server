@@ -1,5 +1,11 @@
-import { ApiOkResponse } from '@nestjs/swagger';
-import { ProjectListDto } from './responses.dto';
+import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
+import { OkDto } from '../common/responses.dto';
+import {
+  ProjectDetailDto,
+  ProjectFileDto,
+  ProjectHistoryDto,
+  ProjectListDto,
+} from './responses.dto';
 import {
   Body,
   Controller,
@@ -40,24 +46,28 @@ export class ProjectsController {
     return this.projects.list(q);
   }
 
+  @ApiOkResponse({ type: ProjectDetailDto })
   @Can(Action.ProjectsRead)
   @Get(':id')
   get(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
     return this.projects.get(id, req.user);
   }
 
+  @ApiOkResponse({ type: [ProjectHistoryDto] })
   @Can(Action.ProjectsRead)
   @Get(':id/history')
   history(@Param('id', ParseUUIDPipe) id: string) {
     return this.projects.history(id);
   }
 
+  @ApiCreatedResponse({ type: ProjectDetailDto })
   @Can(Action.ProjectsCreate)
   @Post()
   create(@Body() dto: CreateProjectDto, @Req() req: Req) {
     return this.projects.create(dto, req.user);
   }
 
+  @ApiOkResponse({ type: ProjectDetailDto })
   @Can(Action.ProjectsUpdate)
   @Patch(':id')
   update(
@@ -68,12 +78,14 @@ export class ProjectsController {
     return this.projects.update(id, dto, req.user);
   }
 
+  @ApiOkResponse({ type: OkDto })
   @Can(Action.ProjectsManage)
   @Delete(':id')
   archive(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
     return this.projects.archive(id, req.user);
   }
 
+  @ApiCreatedResponse({ type: ProjectFileDto })
   @Can(Action.ProjectsUpdate)
   @Post(':id/files')
   @UseInterceptors(
@@ -107,6 +119,7 @@ export class ProjectsController {
     return new StreamableFile(stream);
   }
 
+  @ApiOkResponse({ type: OkDto })
   @Can(Action.ProjectsManage)
   @Delete(':id/files/:fileId')
   removeFile(

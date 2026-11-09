@@ -1,0 +1,125 @@
+/* Kanban board: tabs on a phone, columns with drag and drop on a computer. */
+.hintPhone {
+  margin: -8px 0 12px;
+}
+.hintDesk {
+  display: none;
+  margin: -8px 0 16px;
+}
+/* Phone: one column per tab. */
+.tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-bottom: 12px;
+}
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+.tab {
+  flex: none;
+  min-height: var(--size-touch-min);
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  color: var(--c-text);
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+}
+.tab[aria-selected='true'] {
+  border-color: var(--c-primary);
+  background: var(--c-primary);
+  color: var(--c-on-primary);
+}
+.count {
+  min-width: 22px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--c-surface2);
+  color: var(--c-text2);
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+}
+.count:empty {
+  display: none;
+}
+.tab[aria-selected='true'] .count {
+  background: rgb(255 255 255 / 0.22);
+  color: var(--c-on-primary);
+}
+.board {
+  display: grid;
+}
+.column {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.columnActive {
+  display: flex;
+}
+.columnTitle {
+  display: none;
+}
+.empty {
+  margin: 0;
+  padding: 16px;
+  border: 1px dashed var(--c-border);
+  border-radius: var(--radius-card);
+  color: var(--c-text3);
+  font-size: 14px;
+  text-align: center;
+}
+/* Computer: all columns side by side, drag and drop. */
+@media (min-width: 900px) {
+  .hintPhone,
+  .tabs {
+    display: none;
+  }
+  .hintDesk {
+    display: block;
+  }
+  .board {
+    grid-template-columns: repeat(5, minmax(200px, 1fr));
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+  .column {
+    display: flex;
+    padding: 10px;
+    border-radius: var(--radius-card);
+    background: var(--c-surface2);
+    border: 2px solid transparent;
+    transition: border-color var(--motion-fast), background var(--motion-fast);
+  }
+  .column[data-droppable] {
+    border-color: var(--c-border);
+    border-style: dashed;
+  }
+  .columnOver {
+    border-color: var(--c-primary) !important;
+    border-style: solid !important;
+    background: var(--c-primary-soft);
+  }
+  .columnTitle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 2px 4px 4px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .empty {
+    border: 0;
+    padding: 12px 4px;
+  }
+}

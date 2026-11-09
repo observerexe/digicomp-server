@@ -3166,7 +3166,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDetailDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -3189,7 +3196,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDetailDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -3220,7 +3234,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDetailDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -3241,7 +3262,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -3264,7 +3292,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectHistoryDto"
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -3287,7 +3325,14 @@
         ],
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectFileDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -3349,7 +3394,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -6224,6 +6276,183 @@
           "total",
           "page",
           "limit"
+        ]
+      },
+      "ProjectFileDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "number"
+          },
+          "uploadedById": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "fileName",
+          "mimeType",
+          "size",
+          "uploadedById",
+          "createdAt"
+        ]
+      },
+      "ProjectDetailDto": {
+        "type": "object",
+        "properties": {
+          "stage": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProjectStage"
+              }
+            ]
+          },
+          "startDate": {
+            "type": "string",
+            "nullable": true,
+            "description": "YYYY-MM-DD",
+            "format": "date"
+          },
+          "deadline": {
+            "type": "string",
+            "nullable": true,
+            "description": "YYYY-MM-DD",
+            "format": "date"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdById": {
+            "type": "string",
+            "nullable": true
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectMemberDto"
+            }
+          },
+          "files": {
+            "description": "Newest first; GET /projects/:id/files/:fileId/download",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectFileDto"
+            }
+          },
+          "canEdit": {
+            "type": "boolean",
+            "description": "The caller may change this project (staff or a member of it)."
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "progress": {
+            "type": "number",
+            "description": "0–100"
+          },
+          "accomplishments": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stage",
+          "startDate",
+          "deadline",
+          "sources",
+          "createdById",
+          "members",
+          "files",
+          "canEdit",
+          "id",
+          "title",
+          "description",
+          "progress",
+          "accomplishments",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "HistoryActorDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "id"
+        ]
+      },
+      "ProjectHistoryDto": {
+        "type": "object",
+        "properties": {
+          "actor": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HistoryActorDto"
+              }
+            ]
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true,
+            "description": "Changed fields and values, as written to the audit log."
+          },
+          "id": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "actor",
+          "meta",
+          "id",
+          "action",
+          "createdAt"
         ]
       },
       "CreateProjectDto": {

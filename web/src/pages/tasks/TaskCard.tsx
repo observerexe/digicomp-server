@@ -1,8 +1,9 @@
-import { useState, type DragEvent, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import type { Me, Task } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
 import { Avatar } from '../../components/Avatar';
+import type { DragProps } from '../../components/Board';
 import { formatDate, formatTime, plural } from '../../lib/format';
 import { kyivParts } from '../../lib/kyiv';
 import { actionLabel, actionsFor, dueState, splitPoints, type ActionKind } from './logic';
@@ -28,9 +29,7 @@ export function TaskCard(props: {
   me: Me;
   busy: boolean;
   onAction: (kind: ActionKind, body?: string) => void;
-  draggable: boolean;
-  onDragStart: () => void;
-  onDragEnd: () => void;
+  drag: DragProps;
   returning: boolean;
   setReturning: (v: boolean) => void;
 }) {
@@ -52,13 +51,9 @@ export function TaskCard(props: {
   return (
     <article
       className={`${s.card} ${t.status === 'review' ? s.cardReview : ''}`}
-      draggable={props.draggable}
-      onDragStart={(e: DragEvent) => {
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', t.id);
-        props.onDragStart();
-      }}
-      onDragEnd={props.onDragEnd}
+      draggable={props.drag.draggable}
+      onDragStart={props.drag.onDragStart}
+      onDragEnd={props.drag.onDragEnd}
       aria-busy={props.busy}
     >
       <Link to={`/tasks/${t.id}`} className={s.cardTitle}>
