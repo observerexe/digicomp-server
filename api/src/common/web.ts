@@ -61,11 +61,3 @@ export function apiNoStore(_req: Request, res: Response, next: NextFunction) {
   res.setHeader('Cache-Control', 'no-store');
   next();
 }
-
-export function staticHeaders(res: Response, filePath: string) {
-  if (/\.(woff2?|png|svg|ico)$/.test(filePath)) {
-    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-  } else {
-    res.setHeader('Cache-Control', 'no-cache');
-  }
-}

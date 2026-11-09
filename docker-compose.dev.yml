@@ -1,0 +1,10 @@
+# Лише для локальної розробки, на сервері не використовується.
+# Запуск: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+services:
+  db:
+    ports:
+      # База доступна з машини розробника, щоб запускати e2e-тести.
+      - "127.0.0.1:5433:5432"
+    volumes:
+      # При першому створенні тому додає окрему базу digicomp_test для e2e-тестів.
+      - ./scripts/dev/create-test-db.sql:/docker-entrypoint-initdb.d/10-create-test-db.sql:ro
