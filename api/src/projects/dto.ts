@@ -1,5 +1,9 @@
 import {
   ArrayMaxSize,
+  IsDateString,
+  IsEnum,
+  Matches,
+  ValidateIf,
   IsArray,
   IsInt,
   IsNumberString,
@@ -11,6 +15,7 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
+import { ProjectStage } from './project.entities';
 
 export class ListProjectsQuery {
   @IsOptional()
@@ -19,9 +24,8 @@ export class ListProjectsQuery {
   search?: string;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(60)
-  status?: string;
+  @IsEnum(ProjectStage)
+  stage?: ProjectStage;
 
   @IsOptional()
   @IsUUID()
@@ -50,10 +54,22 @@ export class CreateProjectDto {
   description?: string;
 
   @IsOptional()
-  @IsString()
-  @MinLength(1)
-  @MaxLength(60)
-  status?: string;
+  @IsEnum(ProjectStage)
+  stage?: ProjectStage;
+
+  /** Calendar date YYYY-MM-DD; null clears it. */
+  @IsOptional()
+  @ValidateIf((_o, v) => v !== null)
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  startDate?: string | null;
+
+  /** Calendar date YYYY-MM-DD, not before startDate; null clears it. */
+  @IsOptional()
+  @ValidateIf((_o, v) => v !== null)
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  deadline?: string | null;
 
   @IsOptional()
   @IsInt()
@@ -93,10 +109,22 @@ export class UpdateProjectDto {
   description?: string;
 
   @IsOptional()
-  @IsString()
-  @MinLength(1)
-  @MaxLength(60)
-  status?: string;
+  @IsEnum(ProjectStage)
+  stage?: ProjectStage;
+
+  /** Calendar date YYYY-MM-DD; null clears it. */
+  @IsOptional()
+  @ValidateIf((_o, v) => v !== null)
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  startDate?: string | null;
+
+  /** Calendar date YYYY-MM-DD, not before startDate; null clears it. */
+  @IsOptional()
+  @ValidateIf((_o, v) => v !== null)
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  deadline?: string | null;
 
   @IsOptional()
   @IsInt()

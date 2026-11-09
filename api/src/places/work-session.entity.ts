@@ -63,6 +63,10 @@ export class WorkSession {
   @Column({ name: 'end_reason', type: 'varchar', length: 500, default: '' })
   endReason: string;
 
+  /** Closed by the server after the time limit (forgotten session). */
+  @Column({ name: 'auto_closed', type: 'boolean', default: false })
+  autoClosed: boolean;
+
   @Column({
     name: 'idempotency_key',
     type: 'varchar',

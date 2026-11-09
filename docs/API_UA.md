@@ -1,6 +1,6 @@
 # API DigiComp HUB — довідник для фронтенду
 
-Цей файл описує все, що вміє бекенд станом на етап 2 з `docs/PLAN.md`. Нові зміни додаються сюди ж.
+Цей файл описує все, що вміє бекенд станом на етап 3 з `docs/PLAN.md`. Нові зміни додаються сюди ж.
 Контракт `/auth` не змінювався. `/tasks` перероблено на етапі 2: `PATCH /tasks/:id/status` і `assigneeIds` прибрано, замість них окремі дії (див. «ТЗ»). Старий фронт ТЗ через новий API не працюватиме.
 
 ## Загальні правила
@@ -46,12 +46,21 @@
 | `SAFETY_CONFIRMATION_REQUIRED` | 400 | Не підтверджено техніку безпеки |
 | `SESSION_ALREADY_ENDED` | 409 | Сеанс уже завершено |
 | `NOT_YOUR_SESSION` | 403 | Чужий сеанс може завершити лише admin або moderator |
+| `PLACE_BOOKED` | 409 | Зараз іде чуже бронювання цього обладнання. Почати сеанс може лише власник слоту (або admin) |
+| `BOOKING_OVERLAP` | 409 | Час перетинається з іншим бронюванням цього обладнання |
+| `BOOKING_IN_PAST`, `BOOKING_TOO_LONG`, `BOOKING_TOO_FAR` | 400 | Бронювання в минулому, довше 12 годин або далі ніж на 60 днів |
+| `BOOKING_CANCELLED`, `BOOKING_ENDED` | 409 | Бронювання вже скасоване або вже минуло |
+| `INVALID_PERIOD` | 400 | Кінець періоду раніше початку (або календар довший за 62 дні) |
+| `EXPORT_TOO_LARGE` | 400 | Понад 5000 сеансів у вивантаженні: звузьте період |
+| `FAULT_CLOSED` | 409 | Звіт про несправність уже закрито |
+| `FAULT_PHOTO_LIMIT` | 409 | До звіту вже додано 3 фото |
+| `PROJECT_DATES_INVALID` | 400 | Дедлайн проєкту раніше дати початку |
 | `FORBIDDEN` | 403 | Роль не має права на цю дію (за матрицею) |
 | `TARGET_ROLE_FORBIDDEN` | 403 | Модератор намагається діяти над модератором чи адміном |
 | `SELF_ACTION_FORBIDDEN` | 403 | Дія над собою заборонена: модератор через `/users/:id`, нарахування балів собі, прийняття власного ТЗ |
 | `FIELD_NOT_ALLOWED` | 403 | У `PATCH /users/me` змінено поле, яке роль не може змінювати собі; у тілі є `field` |
 | `NOT_ALLOWED` | 403 | Завантажити аватар можна лише собі; видалити чужий може лише admin |
-| `REASON_REQUIRED` | 400 | Для завершення чужого сеансу потрібна причина |
+| `REASON_REQUIRED` | 400 | Для завершення чужого сеансу чи скасування чужого бронювання потрібна причина |
 | `INSUFFICIENT_STOCK` | 409 | Недостатньо залишку на складі |
 | `INTEGER_REQUIRED` | 400/409 | Для цієї одиниці кількість має бути цілою |
 | `DELTA_ZERO`, `NOTE_REQUIRED` | 400 | Нульовий рух або порожній коментар |
@@ -164,6 +173,30 @@
 |---|---|---|
 | GET | `/work-sessions` | admin, moderator, member |
 | PATCH | `/work-sessions/:id/end` | admin, moderator, member |
+| GET | `/work-sessions/export.csv` | admin, moderator |
+| GET | `/work-sessions/report` | admin, moderator |
+
+### Бронювання
+
+| Метод | Шлях | Хто має доступ |
+|---|---|---|
+| GET | `/places/:id/bookings` | admin, moderator, member |
+| GET | `/bookings/me` | admin, moderator, member |
+| POST | `/bookings` | admin, moderator; member, якщо має допуск (коли він потрібен) |
+| POST | `/bookings/:id/cancel` | своє — усі; чуже — admin, moderator (з причиною) |
+
+### Несправності
+
+| Метод | Шлях | Хто має доступ |
+|---|---|---|
+| GET | `/faults` | admin, moderator, member |
+| GET | `/faults/:id` | admin, moderator, member |
+| POST | `/faults` | admin, moderator, member |
+| POST | `/faults/:id/photos` | автор звіту, admin, moderator |
+| GET | `/faults/:id/photos/:photoId` | admin, moderator, member |
+| POST | `/faults/:id/in-progress` | admin, moderator |
+| POST | `/faults/:id/maintenance` | admin, moderator |
+| POST | `/faults/:id/close` | admin, moderator |
 
 ### Допуски
 
@@ -254,7 +287,33 @@
 
 **Місця.** `POST /places`: `code` (латиниця, цифри, `_`, `-`, 3–60), `title`, `category`, `location`, `description`, `needsAuthorization` (за замовчуванням true), `exclusive` (за замовчуванням true). `status`: `active`, `maintenance`, `archived`. У шляху `:id` можна передавати uuid або код (наприклад `SOLDER-01`): так працюють QR-посилання. У відповіді: `inUse`, `activeSessions`, `myAuthorization`.
 
-**Сеанси.** `POST /places/:id/sessions`: `safetyConfirmed: true` (обов'язково), `note`, `idempotencyKey`. Час початку ставить сервер, користувач береться з токена. `PATCH /work-sessions/:id/end`: `note`, `equipmentState`, `reason` (обов'язкова, якщо завершує не власник). `GET /work-sessions`: `placeId`, `userId`, `active`, `from`, `to`; member бачить лише свої. Admin і moderator можуть починати сеанс без допуску.
+**Сеанси.** `POST /places/:id/sessions`: `safetyConfirmed: true` (обов'язково), `note`, `idempotencyKey`. Час початку ставить сервер, користувач береться з токена. `PATCH /work-sessions/:id/end`: `note`, `equipmentState`, `reason` (обов'язкова, якщо завершує не власник). `GET /work-sessions`: `placeId`, `userId`, `active`, `from`, `to`; member бачить лише свої. Admin і moderator можуть починати сеанс без допуску. Якщо зараз іде чуже бронювання, сеанс почати не можна (409 `PLACE_BOOKED`); admin може.
+
+**Автозакриття.** Сервер раз на 10 хвилин закриває сеанси, що тривають довше 12 годин (`SESSION_AUTO_CLOSE_HOURS`). Кінець ставиться як «початок + 12 год», у сеансі `autoClosed: true`, `endReason: "закрито автоматично"`, в аудиті `session.auto_closed` без автора.
+
+**Вивантаження журналу** (admin, moderator). Параметри: `from`, `to` (ISO, період `[from, to)`), `placeId`, `userId`. Без періоду береться поточний місяць за київським часом. Не більше 5000 сеансів за раз.
+- `GET /work-sessions/export.csv` — CSV для Excel (UTF-8 з BOM). Колонки: обладнання, код, особа, початок, кінець (київський час), тривалість год:хв, хвилин, примітка («закрито автоматично», «завершив …: причина», «триває»).
+- `GET /work-sessions/report` — HTML-сторінка A4 для друку: таблиця, підсумки за обладнанням і за особами. Друкувати чи зберегти PDF можна з браузера (Ctrl+P). Сторінка має власний CSP без скриптів. Відкривається звичайним посиланням через cookie-вхід, тож фронт може відкрити її в новій вкладці.
+
+**Бронювання.**
+- `POST /bookings`: `{ placeId, startsAt, endsAt, note? }`.
+  - Не в минулому (допуск 5 хвилин), не довше 12 годин, не далі ніж на 60 днів вперед, лише для обладнання в стані `active`.
+  - Member бронює лише обладнання, на яке має допуск. Якщо допуск обмежений у часі, він має діяти до кінця бронювання.
+  - Перетини неможливі навіть за одночасних запитів: це гарантує сама база. Суміжні слоти (кінець одного = початок іншого) дозволені.
+- `GET /places/:id/bookings?from=&to=`: календар. Можна передати id або QR-код обладнання. За замовчуванням від учора на 15 днів, максимум 62 дні. Повертає лише активні бронювання.
+- `GET /bookings/me`: мої поточні й майбутні бронювання.
+- `POST /bookings/:id/cancel`: `{ reason? }`. Своє бронювання скасовує кожен. Чуже скасовують admin і moderator, `reason` обов'язкова, в аудит пишеться `booking.cancelled` з `forced: true`.
+- Поля бронювання: `id`, `startsAt`, `endsAt`, `note`, `createdAt`, `cancelled`, `cancelledAt`, `cancelledById`, `cancelReason`, `user: { id, name, avatarUrl }`, `place: { id, code, title }`.
+
+**Несправності.**
+- `POST /faults`: `{ placeId, description }`. Статуси: `open → in_progress → closed`.
+- `POST /faults/:id/photos`: multipart, поле `file`, png/jpg/webp до 5 МБ, не більше 3 фото. Додає автор звіту або admin/moderator, лише поки звіт не закрито.
+- `GET /faults/:id/photos/:photoId`: показ фото.
+- `POST /faults/:id/in-progress`: звіт «в роботі», обладнання не зупиняється.
+- `POST /faults/:id/maintenance`: одна дія — звіт «в роботі», а обладнання переходить на обслуговування (`maintenance`). На обладнанні на обслуговуванні не можна почати сеанс чи забронювати його.
+- `POST /faults/:id/close`: `{ resolution, reactivatePlace? }`. З `reactivatePlace: true` обладнання з обслуговування одразу повертається в роботу.
+- `GET /faults?placeId=&status=&page=&limit=`: список, у кожного звіту `photosCount`. `GET /faults/:id` додатково повертає `photos`.
+- Поля звіту: `id`, `description`, `status`, `resolution`, `place: { id, code, title, status }`, `reporter`, `closedBy`, `closedAt`, `createdAt`, `updatedAt`.
 
 **Допуски.** `POST /place-authorizations`: `userId`, `placeId`, `expiresAt` (необов'язково), `note`. Повторна видача оновлює термін.
 
@@ -262,7 +321,11 @@
 
 **Склад.** `POST /inventory/items`: `code`, `title`, `category`, `unit` (за замовчуванням `шт`), `quantity` (початковий залишок), `minQuantity`, `location`, `notes`. Кількість напряму не змінюється: лише `POST /inventory/items/:id/movements` з `delta` (від'ємне чи додатне, до 3 знаків), `note` (обов'язково), `projectId`, `idempotencyKey`. Брати (`delta` менше нуля) і поповнювати (`delta` більше нуля) можуть усі ролі. Для одиниць `шт`, `pcs`, `уп` кількість лише ціла. У позиції є `lowStock` і `documentsCount`, у `GET /inventory/items/:id` ще й список прив'язаних документів. `GET /inventory/items?lowStock=true` показує позиції з низьким залишком.
 
-**Проєкти.** `POST /projects` (admin, moderator): `title`, `description`, `status`, `progress` (0–100), `accomplishments`, `sources` (масив рядків), `memberIds`. `PATCH /projects/:id`: ті самі поля. Admin і moderator редагують усе, member лише проєкти, де він учасник, і не може змінювати `memberIds`. У `GET /projects/:id` є `canEdit`. `GET /projects/:id/history`: журнал змін.
+**Проєкти.** `POST /projects` (admin, moderator): `title`, `description`, `stage`, `startDate`, `deadline`, `progress` (0–100), `accomplishments`, `sources` (масив рядків), `memberIds`.
+- `stage` — фіксований етап: `idea` (Ідея), `planning` (Планування, за замовчуванням), `execution` (Виконання), `review` (Перевірка), `done` (Завершено). Архів — окрема дія `DELETE /projects/:id`. Вільне поле `status` прибрано на етапі 3.
+- `startDate`, `deadline` — дати `YYYY-MM-DD` або `null`. Дедлайн не може бути раніше початку (`PROJECT_DATES_INVALID`).
+- `GET /projects?stage=execution` фільтрує за етапом.
+- `PATCH /projects/:id`: ті самі поля. Admin і moderator редагують усе, member лише проєкти, де він учасник, і не може змінювати `memberIds`. У `GET /projects/:id` є `canEdit`. `GET /projects/:id/history`: журнал змін.
 
 **Розумний будинок.** `GET /smart/entities` повертає `{ items: [] }`; у кожного елемента є `id`, `kind` (`light`, `sensor`, `scene`), `label`, `room`, `available`. Для світла додатково `on` і `brightness` (відсотки), для датчика `value`, `unit`, `deviceClass`. `POST /smart/lights/:id/state`: `{ "on": true, "brightness": 1-100 }`, повертає новий стан. `POST /smart/scenes/:id/activate` без тіла. Ідентифікатор `:id` це `id` елемента зі списку, а не назва пристрою в HA. Керувати можна лише світлом і сценами, розетки та вимикачі додати в список неможливо. Налаштування див. `docs/SMART_UA.md`.
 

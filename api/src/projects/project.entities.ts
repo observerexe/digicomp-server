@@ -12,6 +12,15 @@ import {
 } from 'typeorm';
 import { User } from '../users/user.entity';
 
+/** Fixed project stages; archive is a separate action (archived_at). */
+export enum ProjectStage {
+  Idea = 'idea',
+  Planning = 'planning',
+  Execution = 'execution',
+  Review = 'review',
+  Done = 'done',
+}
+
 @Entity('projects')
 @Check('"progress" >= 0 AND "progress" <= 100')
 export class Project {
@@ -24,8 +33,14 @@ export class Project {
   @Column({ type: 'text', default: '' })
   description: string;
 
-  @Column({ type: 'varchar', length: 60, default: 'Планується' })
-  status: string;
+  @Column({ type: 'enum', enum: ProjectStage, default: ProjectStage.Planning })
+  stage: ProjectStage;
+
+  @Column({ name: 'start_date', type: 'date', nullable: true })
+  startDate: string | null;
+
+  @Column({ type: 'date', nullable: true })
+  deadline: string | null;
 
   @Column({ type: 'int', default: 0 })
   progress: number;

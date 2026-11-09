@@ -189,3 +189,22 @@ export class ListAuthorizationsQuery {
   @IsUUID()
   placeId?: string;
 }
+
+/** Equipment log export: period [from, to), default — current month (Kyiv). */
+export class ExportSessionsQuery {
+  @IsOptional()
+  @IsUUID()
+  placeId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  userId?: string;
+
+  @IsOptional()
+  @IsDateString()
+  from?: string;
+
+  @IsOptional()
+  @IsDateString()
+  to?: string;
+}

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { Booking } from '../bookings/booking.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditModule } from '../audit/audit.module';
 import { UsersModule } from '../users/users.module';
@@ -15,7 +16,7 @@ import { WorkSessionsService } from './work-sessions.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Place, PlaceAuthorization, WorkSession]),
+    TypeOrmModule.forFeature([Place, PlaceAuthorization, WorkSession, Booking]),
     UsersModule,
     AuditModule,
   ],
@@ -25,5 +26,6 @@ import { WorkSessionsService } from './work-sessions.service';
     AuthorizationsController,
   ],
   providers: [PlacesService, WorkSessionsService],
+  exports: [PlacesService],
 })
 export class PlacesModule {}

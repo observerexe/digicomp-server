@@ -17,12 +17,24 @@ import {
 import { StorageService } from '../files/storage.service';
 import { User } from '../users/user.entity';
 import { CreateProjectDto, ListProjectsQuery, UpdateProjectDto } from './dto';
-import { Project, ProjectFile, ProjectMember } from './project.entities';
+import {
+  Project,
+  ProjectFile,
+  ProjectMember,
+  ProjectStage,
+} from './project.entities';
 
 type Actor = { id: string; role: string };
 
 function escapeLike(s: string) {
   return s.replace(/[\\%_]/g, (c) => '\\' + c);
+}
+
+/** Deadline cannot be earlier than the start date (YYYY-MM-DD compare). */
+function checkDates(startDate: string | null, deadline: string | null) {
+  if (startDate && deadline && deadline < startDate) {
+    throw new BadRequestException('Deadline is before start date');
+  }
 }
 
 function memberView(u: User) {
@@ -39,7 +51,9 @@ function projectView(p: Project) {
     id: p.id,
     title: p.title,
     description: p.description,
-    status: p.status,
+    stage: p.stage,
+    startDate: p.startDate,
+    deadline: p.deadline,
     progress: p.progress,
     accomplishments: p.accomplishments,
     sources: p.sources,
@@ -79,7 +93,7 @@ export class ProjectsService {
     const qb = this.projects
       .createQueryBuilder('p')
       .where('p.archivedAt IS NULL');
-    if (q.status) qb.andWhere('p.status = :st', { st: q.status });
+    if (q.stage) qb.andWhere('p.stage = :st', { st: q.stage });
     if (q.memberId) {
       qb.andWhere(
         'p.id IN (SELECT pm.project_id FROM project_members pm WHERE pm.user_id = :mid)',
@@ -134,6 +148,7 @@ export class ProjectsService {
   }
 
   async create(dto: CreateProjectDto, actor: Actor) {
+    checkDates(dto.startDate ?? null, dto.deadline ?? null);
     const memberIds = await this.validMembers(dto.memberIds);
     const id = await this.ds.transaction(async (m) => {
       const p = await m.save(
@@ -141,7 +156,9 @@ export class ProjectsService {
         m.create(Project, {
           title: dto.title,
           description: dto.description ?? '',
-          status: dto.status ?? 'Планується',
+          stage: dto.stage ?? ProjectStage.Planning,
+          startDate: dto.startDate ?? null,
+          deadline: dto.deadline ?? null,
           progress: dto.progress ?? 0,
           accomplishments: dto.accomplishments ?? '',
           sources: dto.sources ?? [],
@@ -182,18 +199,24 @@ export class ProjectsService {
       if (!(await this.canEdit(id, actor, m))) {
         throw new ForbiddenException('No rights to edit this project');
       }
+      checkDates(
+        dto.startDate !== undefined ? dto.startDate : p.startDate,
+        dto.deadline !== undefined ? dto.deadline : p.deadline,
+      );
       const meta: Record<string, unknown> = {};
       const fields: string[] = [];
       for (const k of [
         'title',
         'description',
-        'status',
+        'stage',
+        'startDate',
+        'deadline',
         'progress',
         'accomplishments',
       ] as const) {
         const v = dto[k];
         if (v !== undefined && v !== p[k]) {
-          if (k === 'status' || k === 'progress') {
+          if (k !== 'title' && k !== 'description' && k !== 'accomplishments') {
             meta[k] = { from: p[k], to: v };
           }
           (p as unknown as Record<string, unknown>)[k] = v;

@@ -10,8 +10,10 @@ import { HealthController } from './health/health.controller';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { DocsModule } from './docs/docs.module';
+import { BookingsModule } from './bookings/bookings.module';
 import { DisciplineModule } from './discipline/discipline.module';
 import { DocumentsModule } from './documents/documents.module';
+import { FaultsModule } from './faults/faults.module';
 import { FilesModule } from './files/files.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { ProjectsModule } from './projects/projects.module';
@@ -37,6 +39,8 @@ import { UsersModule } from './users/users.module';
     TasksModule,
     DisciplineModule,
     PlacesModule,
+    BookingsModule,
+    FaultsModule,
     FilesModule,
     DocumentsModule,
     InventoryModule,

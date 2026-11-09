@@ -25,6 +25,7 @@ import {
   UpdateItemDto,
 } from './dto';
 import { InventoryItem, InventoryMovement } from './inventory.entities';
+import { csvCell } from '../common/csv';
 
 type Actor = { id: string; role: string };
 
@@ -80,13 +81,6 @@ function movementView(m: InventoryMovement) {
     actor: m.actor ? { id: m.actor.id, name: m.actor.name } : { id: m.actorId },
     createdAt: m.createdAt,
   };
-}
-
-function csvCell(v: unknown) {
-  let s = String(v ?? '');
-  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
-  if (/[",;\n\r]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
-  return s;
 }
 
 @Injectable()

@@ -9,13 +9,17 @@ import {
   Post,
   Query,
   Req,
+  Res,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { JwtAuthGuard, Can, PolicyGuard } from '../auth/roles';
 import { Action } from '../auth/policy';
 import {
   CreatePlaceDto,
   EndSessionDto,
+  ExportSessionsQuery,
   GrantAuthorizationDto,
   ListAuthorizationsQuery,
   ListPlacesQuery,
@@ -24,6 +28,7 @@ import {
   UpdatePlaceDto,
 } from './dto';
 import { PlacesService } from './places.service';
+import { REPORT_CSP } from './session-log';
 import { WorkSessionsService } from './work-sessions.service';
 
 type Req = { user: { id: string; role: string } };
@@ -84,6 +89,36 @@ export class WorkSessionsController {
   @Get()
   list(@Query() q: ListSessionsQuery, @Req() req: Req) {
     return this.sessions.list(q, req.user);
+  }
+
+  /** Equipment log as CSV (Excel), period [from, to), default current month. */
+  @Can(Action.SessionsExport)
+  @Get('export.csv')
+  async exportCsv(
+    @Query() q: ExportSessionsQuery,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const csv = await this.sessions.exportCsv(q);
+    res.set({
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': 'attachment; filename="equipment-log.csv"',
+    });
+    return new StreamableFile(Buffer.from(csv, 'utf8'));
+  }
+
+  /** Print-ready A4 page of the log (print or save as PDF in the browser). */
+  @Can(Action.SessionsExport)
+  @Get('report')
+  async report(
+    @Query() q: ExportSessionsQuery,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const html = await this.sessions.reportHtml(q);
+    res.set({
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Security-Policy': REPORT_CSP,
+    });
+    return new StreamableFile(Buffer.from(html, 'utf8'));
   }
 
   @Can(Action.SessionsStart)

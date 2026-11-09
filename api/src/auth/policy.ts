@@ -92,9 +92,14 @@ export enum Action {
   SessionsStart = 'sessions.start',
   SessionsReadAll = 'sessions.read_all',
   SessionsEndOther = 'sessions.end_other',
+  SessionsExport = 'sessions.export',
+  SessionsIgnoreBooking = 'sessions.ignore_booking',
   BookingsCreate = 'bookings.create',
+  BookingsCancel = 'bookings.cancel',
   BookingsCancelAny = 'bookings.cancel_any',
+  FaultsRead = 'faults.read',
   FaultsCreate = 'faults.create',
+  FaultsAttach = 'faults.attach',
   FaultsClose = 'faults.close',
 
   // Smart lab
@@ -171,9 +176,14 @@ export const ROLES: Record<Action, readonly Role[]> = {
   [Action.SessionsStart]: ALL,
   [Action.SessionsReadAll]: STAFF,
   [Action.SessionsEndOther]: STAFF,
+  [Action.SessionsExport]: STAFF,
+  [Action.SessionsIgnoreBooking]: ADMIN,
   [Action.BookingsCreate]: ALL,
+  [Action.BookingsCancel]: ALL,
   [Action.BookingsCancelAny]: STAFF,
+  [Action.FaultsRead]: ALL,
   [Action.FaultsCreate]: ALL,
+  [Action.FaultsAttach]: ALL,
   [Action.FaultsClose]: STAFF,
 
   [Action.SmartRead]: ALL,
@@ -215,6 +225,16 @@ const ownRecordForModerator: Refine = (actor, { ownerId }) =>
     ? true
     : Deny.NotOwner;
 
+/** Member needs a valid authorization for the place (when it is required). */
+const needsAuthorization: Refine = (actor, { authorized }) =>
+  actor.role !== U || authorized ? true : Deny.NotAuthorizedForPlace;
+
+/** Member acts only on their own record, staff on any. */
+const ownRecordForMember: Refine = (actor, { ownerId }) =>
+  actor.role !== U || (ownerId != null && ownerId === actor.id)
+    ? true
+    : Deny.NotOwner;
+
 /** Layer 2: context rules. Missing entry = no extra rule. */
 const REFINE: Partial<Record<Action, Refine>> = {
   [Action.UsersBlock]: moderatorOverMember,
@@ -237,8 +257,13 @@ const REFINE: Partial<Record<Action, Refine>> = {
   [Action.ProjectsUpdate]: (actor, { participant }) =>
     actor.role !== U || participant ? true : Deny.NotParticipant,
 
-  [Action.SessionsStart]: (actor, { authorized }) =>
-    actor.role !== U || authorized ? true : Deny.NotAuthorizedForPlace,
+  [Action.SessionsStart]: needsAuthorization,
+  // A member books only equipment they may work with.
+  [Action.BookingsCreate]: needsAuthorization,
+  // Own booking; staff cancel any (with a reason, checked in the service).
+  [Action.BookingsCancel]: ownRecordForMember,
+  // Photos of a fault report: its author or staff.
+  [Action.FaultsAttach]: ownRecordForMember,
 };
 
 export function roleAllowed(role: string, action: Action): boolean {

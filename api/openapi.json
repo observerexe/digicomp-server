@@ -1398,6 +1398,106 @@
         ]
       }
     },
+    "/work-sessions/export.csv": {
+      "get": {
+        "operationId": "WorkSessionsController_exportCsv",
+        "parameters": [
+          {
+            "name": "placeId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Equipment log as CSV (Excel), period [from, to), default current month.",
+        "tags": [
+          "WorkSessions"
+        ]
+      }
+    },
+    "/work-sessions/report": {
+      "get": {
+        "operationId": "WorkSessionsController_report",
+        "parameters": [
+          {
+            "name": "placeId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Print-ready A4 page of the log (print or save as PDF in the browser).",
+        "tags": [
+          "WorkSessions"
+        ]
+      }
+    },
     "/work-sessions/{id}/end": {
       "patch": {
         "operationId": "WorkSessionsController_end",
@@ -1506,6 +1606,353 @@
         },
         "tags": [
           "Authorizations"
+        ]
+      }
+    },
+    "/bookings": {
+      "post": {
+        "operationId": "BookingsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Book a slot; overlapping slots of one place are rejected.",
+        "tags": [
+          "Bookings"
+        ]
+      }
+    },
+    "/bookings/me": {
+      "get": {
+        "operationId": "BookingsController_mine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Bookings"
+        ]
+      }
+    },
+    "/bookings/{id}/cancel": {
+      "post": {
+        "operationId": "BookingsController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelBookingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Bookings"
+        ]
+      }
+    },
+    "/places/{id}/bookings": {
+      "get": {
+        "operationId": "PlaceBookingsController_list",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Calendar of a place (id or QR code).",
+        "tags": [
+          "PlaceBookings"
+        ]
+      }
+    },
+    "/faults": {
+      "get": {
+        "operationId": "FaultsController_list",
+        "parameters": [
+          {
+            "name": "placeId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "open",
+                "in_progress",
+                "closed"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 6,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 3,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Faults"
+        ]
+      },
+      "post": {
+        "operationId": "FaultsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFaultDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Faults"
+        ]
+      }
+    },
+    "/faults/{id}": {
+      "get": {
+        "operationId": "FaultsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Faults"
+        ]
+      }
+    },
+    "/faults/{id}/photos": {
+      "post": {
+        "operationId": "FaultsController_addPhoto",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Photo (png, jpg, webp up to 5 MB, max 3): the reporter or staff.",
+        "tags": [
+          "Faults"
+        ]
+      }
+    },
+    "/faults/{id}/photos/{photoId}": {
+      "get": {
+        "operationId": "FaultsController_photo",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "photoId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Faults"
+        ]
+      }
+    },
+    "/faults/{id}/in-progress": {
+      "post": {
+        "operationId": "FaultsController_inProgress",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Faults"
+        ]
+      }
+    },
+    "/faults/{id}/maintenance": {
+      "post": {
+        "operationId": "FaultsController_maintenance",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Report in progress + equipment on maintenance, in one action.",
+        "tags": [
+          "Faults"
+        ]
+      }
+    },
+    "/faults/{id}/close": {
+      "post": {
+        "operationId": "FaultsController_close",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseFaultDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Faults"
         ]
       }
     },
@@ -2031,12 +2478,18 @@
             }
           },
           {
-            "name": "status",
+            "name": "stage",
             "required": false,
             "in": "query",
             "schema": {
-              "maxLength": 60,
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "idea",
+                "planning",
+                "execution",
+                "review",
+                "done"
+              ]
             }
           },
           {
@@ -2932,6 +3385,73 @@
           "placeId"
         ]
       },
+      "CreateBookingDto": {
+        "type": "object",
+        "properties": {
+          "placeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startsAt": {
+            "type": "string"
+          },
+          "endsAt": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "placeId",
+          "startsAt",
+          "endsAt"
+        ]
+      },
+      "CancelBookingDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Required when cancelling someone else's booking.",
+            "maxLength": 500
+          }
+        }
+      },
+      "CreateFaultDto": {
+        "type": "object",
+        "properties": {
+          "placeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "placeId",
+          "description"
+        ]
+      },
+      "CloseFaultDto": {
+        "type": "object",
+        "properties": {
+          "resolution": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "reactivatePlace": {
+            "type": "boolean",
+            "description": "Return the equipment from maintenance to work."
+          }
+        },
+        "required": [
+          "resolution"
+        ]
+      },
       "CreateDocDto": {
         "type": "object",
         "properties": {
@@ -3135,10 +3655,27 @@
             "type": "string",
             "maxLength": 5000
           },
-          "status": {
+          "stage": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 60
+            "enum": [
+              "idea",
+              "planning",
+              "execution",
+              "review",
+              "done"
+            ]
+          },
+          "startDate": {
+            "type": "string",
+            "nullable": true,
+            "description": "Calendar date YYYY-MM-DD; null clears it.",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "deadline": {
+            "type": "string",
+            "nullable": true,
+            "description": "Calendar date YYYY-MM-DD, not before startDate; null clears it.",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
           },
           "progress": {
             "type": "number",
@@ -3182,10 +3719,27 @@
             "type": "string",
             "maxLength": 5000
           },
-          "status": {
+          "stage": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 60
+            "enum": [
+              "idea",
+              "planning",
+              "execution",
+              "review",
+              "done"
+            ]
+          },
+          "startDate": {
+            "type": "string",
+            "nullable": true,
+            "description": "Calendar date YYYY-MM-DD; null clears it.",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "deadline": {
+            "type": "string",
+            "nullable": true,
+            "description": "Calendar date YYYY-MM-DD, not before startDate; null clears it.",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
           },
           "progress": {
             "type": "number",

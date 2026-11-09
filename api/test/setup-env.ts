@@ -28,3 +28,4 @@ process.env.DATABASE_URL =
 process.env.JWT_SECRET ??= 'e2e-test-secret-not-for-production';
 process.env.STORAGE_DIR ??= join(__dirname, '..', '.e2e-files');
 delete process.env.HA_TOKEN;
+process.env.SESSION_AUTO_CLOSE_DISABLED = 'true';

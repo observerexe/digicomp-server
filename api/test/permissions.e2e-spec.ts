@@ -577,7 +577,9 @@ describe('Матриця прав (e2e)', () => {
       projectId = p.body.id;
     });
     const update = (who: TestUser) =>
-      as(app, who).patch(`/projects/${projectId}`).send({ progress: 50 });
+      as(app, who)
+        .patch(`/projects/${projectId}`)
+        .send({ stage: 'execution', progress: 50 });
 
     it('admin так', async () => {
       allowed(await update(admin));
@@ -757,11 +759,128 @@ describe('Матриця прав (e2e)', () => {
   });
 
   describe('Бронювання', () => {
-    it.todo('етап 3: admin і moderator скасовують будь-яке, member — своє');
+    let placeId: string;
+    beforeEach(async () => {
+      const p = await as(app, admin).post('/places').send({
+        code: 'CAM-1',
+        title: 'Камера',
+        category: 'Відео',
+        needsAuthorization: false,
+      });
+      placeId = p.body.id;
+    });
+    let slot = 0;
+    const book = async (who: TestUser) => {
+      // Each booking gets its own hour, so they never overlap.
+      const start = Date.now() + (24 + slot++) * 3600_000;
+      const res = await as(app, who)
+        .post('/bookings')
+        .send({
+          placeId,
+          startsAt: new Date(start).toISOString(),
+          endsAt: new Date(start + 3600_000).toISOString(),
+        });
+      expect(res.status).toBe(201);
+      return res.body.id as string;
+    };
+    const cancel = (who: TestUser, id: string, reason?: string) =>
+      as(app, who)
+        .post(`/bookings/${id}/cancel`)
+        .send(reason ? { reason } : {});
+
+    it('admin скасовує будь-яке (з причиною)', async () => {
+      const id = await book(member);
+      allowed(await cancel(admin, id, 'ремонт'));
+    });
+    it('moderator скасовує будь-яке, чуже лише з причиною', async () => {
+      const id = await book(member);
+      const res = await cancel(mod, id);
+      expect(res.status).toBe(400);
+      expect(res.body.errorCode).toBe('REASON_REQUIRED');
+      allowed(await cancel(mod, id, 'захід'));
+      expect(await audit('booking.cancelled', id)).toMatchObject({
+        actorId: mod.id,
+        meta: { forced: true, userId: member.id },
+      });
+    });
+    it('member — своє так, чуже ні', async () => {
+      allowed(await cancel(member, await book(member)));
+      denied(await cancel(member, await book(member2)), 'NOT_OWNER');
+    });
+    it('member бронює лише з допуском', async () => {
+      const p = await as(app, admin).post('/places').send({
+        code: 'LASER-B',
+        title: 'Лазер',
+        category: 'Верстати',
+        needsAuthorization: true,
+      });
+      const start = Date.now() + 48 * 3600_000;
+      const body = {
+        placeId: p.body.id,
+        startsAt: new Date(start).toISOString(),
+        endsAt: new Date(start + 3600_000).toISOString(),
+      };
+      denied(
+        await as(app, member).post('/bookings').send(body),
+        'NOT_AUTHORIZED_FOR_PLACE',
+      );
+      expect((await as(app, mod).post('/bookings').send(body)).status).toBe(
+        201,
+      );
+    });
   });
 
   describe('Звіт про несправність', () => {
-    it.todo('етап 3: усі створюють, admin і moderator закривають');
+    let placeId: string;
+    beforeEach(async () => {
+      const p = await as(app, admin).post('/places').send({
+        code: 'PRN-1',
+        title: 'Принтер',
+        category: 'Друк',
+      });
+      placeId = p.body.id;
+    });
+    const report = async (who: TestUser) => {
+      const res = await as(app, who)
+        .post('/faults')
+        .send({ placeId, description: 'Не вмикається' });
+      expect(res.status).toBe(201);
+      return res.body.id as string;
+    };
+    const close = (who: TestUser, id: string) =>
+      as(app, who).post(`/faults/${id}/close`).send({ resolution: 'Замінили' });
+
+    it('усі створюють', async () => {
+      for (const u of [admin, mod, member]) await report(u);
+    });
+    it('admin і moderator закривають', async () => {
+      allowed(await close(admin, await report(member)));
+      allowed(await close(mod, await report(member)));
+    });
+    it('member не закриває і не ставить на обслуговування', async () => {
+      const id = await report(member);
+      denied(await close(member, id));
+      denied(await as(app, member).post(`/faults/${id}/maintenance`));
+    });
+    it('фото: автор так, інший member ні', async () => {
+      const id = await report(member);
+      const up = (who: TestUser) =>
+        as(app, who)
+          .post(`/faults/${id}/photos`)
+          .attach('file', PNG_1PX, 'f.png');
+      expect((await up(member)).status).toBe(201);
+      denied(await up(member2), 'NOT_OWNER');
+      expect((await up(mod)).status).toBe(201);
+    });
+  });
+
+  describe('Вивантаження журналу', () => {
+    it('admin і moderator так, member ні', async () => {
+      allowed(await as(app, admin).get('/work-sessions/export.csv'));
+      allowed(await as(app, mod).get('/work-sessions/report'));
+      denied(await as(app, member).get('/work-sessions/export.csv'));
+      denied(await as(app, member).get('/work-sessions/report'));
+    });
   });
 
   describe('Розумні пристрої: керувати / список дозволених', () => {
