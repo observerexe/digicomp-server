@@ -38,3 +38,5 @@ export type ProjectHistory = S['ProjectHistoryDto'];
 export type InventoryItem = S['InventoryItemDto'];
 export type InventoryItemDetail = S['InventoryItemDetailDto'];
 export type InventoryMovement = S['InventoryMovementDto'];
+export type DocVersion = S['DocVersionDto'];
+export type AccessScope = S['AccessScope'];

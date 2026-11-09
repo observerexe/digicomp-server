@@ -45,3 +45,15 @@ export class DocListDto {
   page: number;
   limit: number;
 }
+
+export class DocVersionDto {
+  id: string;
+  version: number;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  sha256: string;
+  changeNote: string;
+  uploadedById: string;
+  createdAt: Date;
+}

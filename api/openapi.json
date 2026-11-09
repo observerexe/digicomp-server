@@ -2648,7 +2648,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/DocDto"
                 }
               }
             }
@@ -2678,7 +2678,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/DocDto"
                 }
               }
             }
@@ -2716,7 +2716,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/DocDto"
                 }
               }
             }
@@ -2740,7 +2740,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2763,7 +2770,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DocVersionDto"
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2790,6 +2807,18 @@
             "schema": {
               "maxLength": 6,
               "type": "string"
+            }
+          },
+          {
+            "name": "inline",
+            "required": false,
+            "in": "query",
+            "description": "`1` — show a PDF in the app instead of downloading (other types ignore it).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
             }
           }
         ],
@@ -2828,7 +2857,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocVersionDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -5988,6 +6024,50 @@
           "total",
           "page",
           "limit"
+        ]
+      },
+      "DocVersionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "number"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "number"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "changeNote": {
+            "type": "string"
+          },
+          "uploadedById": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "fileName",
+          "mimeType",
+          "size",
+          "sha256",
+          "changeNote",
+          "uploadedById",
+          "createdAt"
         ]
       },
       "CreateDocDto": {

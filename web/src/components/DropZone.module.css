@@ -1,0 +1,49 @@
+.zone {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 20px 16px;
+  border: 2px dashed var(--c-border);
+  border-radius: var(--radius-card);
+  background: var(--c-surface2);
+  text-align: center;
+  transition: border-color var(--motion-fast), background var(--motion-fast);
+}
+.over {
+  border-color: var(--c-primary);
+  background: var(--c-primary-soft);
+}
+.input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.input:focus-visible + * + :global(.btn),
+.input:focus-visible ~ :global(.btn) {
+  outline: 3px solid var(--c-primary);
+  outline-offset: 2px;
+}
+.text,
+.file {
+  margin: 0;
+}
+.file {
+  font-weight: 500;
+  word-break: break-word;
+}
+.size {
+  color: var(--c-text2);
+  font-weight: 400;
+}
+.desk {
+  display: none;
+}
+@media (min-width: 900px) and (pointer: fine) {
+  .desk {
+    display: inline;
+  }
+}
+.zone :global(.hint) {
+  margin: 0;
+}

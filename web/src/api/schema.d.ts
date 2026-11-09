@@ -2097,6 +2097,18 @@ export interface components {
             page: number;
             limit: number;
         };
+        DocVersionDto: {
+            id: string;
+            version: number;
+            fileName: string;
+            mimeType: string;
+            size: number;
+            sha256: string;
+            changeNote: string;
+            uploadedById: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
         CreateDocDto: {
             title: string;
             category: string;
@@ -4060,7 +4072,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["DocDto"];
                 };
             };
         };
@@ -4081,7 +4093,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["DocDto"];
                 };
             };
         };
@@ -4101,7 +4113,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
             };
         };
     };
@@ -4125,7 +4139,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["DocDto"];
                 };
             };
         };
@@ -4145,7 +4159,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DocVersionDto"][];
+                };
             };
         };
     };
@@ -4153,6 +4169,8 @@ export interface operations {
         parameters: {
             query?: {
                 version?: string;
+                /** @description `1` — show a PDF in the app instead of downloading (other types ignore it). */
+                inline?: "1";
             };
             header?: never;
             path: {
@@ -4189,7 +4207,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DocVersionDto"];
+                };
             };
         };
     };

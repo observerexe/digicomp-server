@@ -663,6 +663,39 @@ describe('Матриця прав (e2e)', () => {
       expect((await place(mod)).status).toBe(201);
       expect((await item(mod)).status).toBe(201);
     });
+    it('PDF відкривається на місці лише з ?inline=1; інші типи — лише завантаження', async () => {
+      const pdf = await as(app, mod)
+        .post('/api/documents')
+        .field('title', 'Паспорт')
+        .field('category', 'Паспорти')
+        .attach('file', Buffer.from('%PDF-1.4\n%%EOF\n'), 'pass.pdf');
+      expect(pdf.status).toBe(201);
+      const view = await as(app, member)
+        .get(`/api/documents/${pdf.body.id}/download?inline=1`)
+        .expect(200);
+      expect(view.headers['content-type']).toBe('application/pdf');
+      expect(view.headers['content-disposition']).toMatch(/^inline;/);
+      expect(view.headers['content-security-policy']).toBe(
+        "default-src 'none'; frame-ancestors 'self'",
+      );
+      expect(view.headers['x-frame-options']).toBe('SAMEORIGIN');
+
+      const plain = await as(app, member)
+        .get(`/api/documents/${pdf.body.id}/download`)
+        .expect(200);
+      expect(plain.headers['content-disposition']).toMatch(/^attachment;/);
+      expect(plain.headers['x-frame-options']).toBe('DENY');
+
+      const txt = await doc(mod);
+      const t = await as(app, member)
+        .get(`/api/documents/${txt.body.id}/download?inline=1`)
+        .expect(200);
+      expect(t.headers['content-disposition']).toMatch(/^attachment;/);
+      expect(t.headers['x-frame-options']).toBe('DENY');
+      expect(t.headers['content-security-policy']).toContain(
+        "frame-ancestors 'none'",
+      );
+    });
     it('member лише перегляд', async () => {
       denied(await doc(member));
       denied(await place(member));

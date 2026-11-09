@@ -8,20 +8,25 @@ const weekday = new Intl.DateTimeFormat('uk-UA', { weekday: 'short', timeZone: T
 const year = new Intl.DateTimeFormat('uk-UA', { year: 'numeric', timeZone: TZ });
 const monthName = new Intl.DateTimeFormat('uk-UA', { month: 'long', timeZone: TZ });
 
-/** "2 жовт." this year, "2 жовт. 2025 р." for other years. */
+const valid = (d: Date) => !Number.isNaN(d.getTime());
+
+/** "2 жовт." this year, "2 жовт. 2025 р." for other years; "—" for a bad value. */
 export function formatDate(value: string | Date, now = new Date()): string {
   const d = new Date(value);
+  if (!valid(d)) return '—';
   return year.format(d) === year.format(now) ? dayMonth.format(d) : dayMonthYear.format(d);
 }
 
 /** "вт, 10 лист., 14:00" */
 export function formatDateTime(value: string | Date, now = new Date()): string {
   const d = new Date(value);
+  if (!valid(d)) return '—';
   return `${weekday.format(d)}, ${formatDate(d, now)}, ${time.format(d)}`;
 }
 
 export function formatTime(value: string | Date | number): string {
-  return time.format(new Date(value));
+  const d = new Date(value);
+  return valid(d) ? time.format(d) : '—';
 }
 
 /** Month name for "місце в листопаді"-style captions: "листопад". */

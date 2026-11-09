@@ -116,4 +116,8 @@ export class DownloadQuery {
   @IsNumberString({ no_symbols: true })
   @MaxLength(6)
   version?: string;
+  /** `1` — show a PDF in the app instead of downloading (other types ignore it). */
+  @IsOptional()
+  @IsIn(['1'])
+  inline?: string;
 }

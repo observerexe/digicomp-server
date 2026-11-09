@@ -4,6 +4,9 @@ import { AppShell } from './layout/AppShell';
 import { AboutPage } from './pages/AboutPage';
 import { LoginPage } from './pages/LoginPage';
 import { MorePage } from './pages/MorePage';
+import { DocFormPage } from './pages/docs/DocFormPage';
+import { DocPage } from './pages/docs/DocPage';
+import { DocsPage } from './pages/docs/DocsPage';
 import { InventoryPage } from './pages/inventory/InventoryPage';
 import { ItemFormPage } from './pages/inventory/ItemFormPage';
 import { ItemPage } from './pages/inventory/ItemPage';
@@ -26,7 +29,6 @@ import { PasswordPage } from './pages/profile/PasswordPage';
 import { ProfilePage } from './pages/profile/ProfilePage';
 import { TwoFactorPage } from './pages/profile/TwoFactorPage';
 import {
-  DocsPage,
   ForbiddenPage,
   HomePage,
   NotFoundPage,
@@ -106,6 +108,23 @@ export const routes: RouteObject[] = [
       },
       { path: 'inventory/:code', element: <ItemPage /> },
       { path: 'docs', element: <DocsPage /> },
+      {
+        path: 'docs/new',
+        element: (
+          <RequirePermission action="documents.manage" fallback={<ForbiddenPage />}>
+            <DocFormPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'docs/:id/edit',
+        element: (
+          <RequirePermission action="documents.manage" fallback={<ForbiddenPage />}>
+            <DocFormPage />
+          </RequirePermission>
+        ),
+      },
+      { path: 'docs/:id', element: <DocPage /> },
       { path: 'rating', element: <RatingPage /> },
       {
         path: 'points',

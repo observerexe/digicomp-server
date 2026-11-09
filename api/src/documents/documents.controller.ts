@@ -1,5 +1,6 @@
-import { ApiOkResponse } from '@nestjs/swagger';
-import { DocListDto } from './responses.dto';
+import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
+import { OkDto } from '../common/responses.dto';
+import { DocDto, DocListDto, DocVersionDto } from './responses.dto';
 import {
   Body,
   Controller,
@@ -30,7 +31,11 @@ import {
   UpdateDocDto,
 } from './dto';
 import { DocumentsService } from './documents.service';
-import { contentDisposition } from '../files/content-disposition';
+import {
+  contentDisposition,
+  inlineDisposition,
+  PDF_PREVIEW_HEADERS,
+} from '../files/content-disposition';
 
 type Req = { user: { id: string; role: string } };
 
@@ -51,12 +56,14 @@ export class DocumentsController {
   }
 
   @Can(Action.DocumentsRead)
+  @ApiOkResponse({ type: DocDto })
   @Get(':id')
   get(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
     return this.docs.get(id, req.user);
   }
 
   @Can(Action.DocumentsRead)
+  @ApiOkResponse({ type: [DocVersionDto] })
   @Get(':id/versions')
   versions(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
     return this.docs.listVersions(id, req.user);
@@ -71,9 +78,13 @@ export class DocumentsController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const { ver, stream } = await this.docs.download(id, q.version, req.user);
+    const preview = q.inline === '1' && ver.mimeType === 'application/pdf';
     res.set({
       'Content-Type': ver.mimeType,
-      'Content-Disposition': contentDisposition(ver.fileName),
+      'Content-Disposition': preview
+        ? inlineDisposition(ver.fileName)
+        : contentDisposition(ver.fileName),
+      ...(preview ? PDF_PREVIEW_HEADERS : {}),
       'Content-Length': String(ver.size),
       'X-Content-Type-Options': 'nosniff',
       'Cache-Control': 'private, no-store',
@@ -82,6 +93,7 @@ export class DocumentsController {
   }
 
   @Can(Action.DocumentsManage)
+  @ApiCreatedResponse({ type: DocDto })
   @Post()
   @UseInterceptors(UPLOAD)
   create(
@@ -93,6 +105,7 @@ export class DocumentsController {
   }
 
   @Can(Action.DocumentsManage)
+  @ApiCreatedResponse({ type: DocVersionDto })
   @Post(':id/files')
   @UseInterceptors(UPLOAD)
   addVersion(
@@ -105,6 +118,7 @@ export class DocumentsController {
   }
 
   @Can(Action.DocumentsManage)
+  @ApiOkResponse({ type: DocDto })
   @Patch(':id')
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -115,6 +129,7 @@ export class DocumentsController {
   }
 
   @Can(Action.DocumentsManage)
+  @ApiOkResponse({ type: OkDto })
   @Delete(':id')
   archive(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
     return this.docs.archive(id, req.user);

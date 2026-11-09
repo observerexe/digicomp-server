@@ -22,8 +22,8 @@ import {
   UpdateDocDto,
 } from './dto';
 import { AccessScope, Doc, DocVersion } from './doc.entity';
-import type { Plain } from '../common/responses.dto';
-import type { DocDto, DocListDto } from './responses.dto';
+import type { OkDto, Plain } from '../common/responses.dto';
+import type { DocDto, DocListDto, DocVersionDto } from './responses.dto';
 
 type Actor = { id: string; role: string };
 
@@ -31,7 +31,7 @@ function escapeLike(s: string) {
   return s.replace(/[\\%_]/g, (c) => '\\' + c);
 }
 
-function versionView(v: DocVersion) {
+function versionView(v: DocVersion): DocVersionDto {
   return {
     id: v.id,
     version: v.version,
@@ -122,7 +122,7 @@ export class DocumentsService {
     return { items, total, page, limit };
   }
 
-  async get(id: string, actor: Actor) {
+  async get(id: string, actor: Actor): Promise<DocDto> {
     const d = await this.accessible(id, actor);
     const vers = await this.versions.find({
       where: { docId: id },
@@ -131,7 +131,7 @@ export class DocumentsService {
     return docView(d, vers[0], vers.length);
   }
 
-  async listVersions(id: string, actor: Actor) {
+  async listVersions(id: string, actor: Actor): Promise<DocVersionDto[]> {
     await this.accessible(id, actor);
     const vers = await this.versions.find({
       where: { docId: id },
@@ -253,7 +253,7 @@ export class DocumentsService {
     }
   }
 
-  async update(id: string, dto: UpdateDocDto, actor: Actor) {
+  async update(id: string, dto: UpdateDocDto, actor: Actor): Promise<DocDto> {
     const d = await this.accessible(id, actor);
     if (dto.placeId) await this.requirePlace(dto.placeId);
     const changed: string[] = [];
@@ -284,7 +284,7 @@ export class DocumentsService {
     return this.get(id, actor);
   }
 
-  async archive(id: string, actor: Actor) {
+  async archive(id: string, actor: Actor): Promise<OkDto> {
     const d = await this.accessible(id, actor);
     d.archivedAt = new Date();
     await this.docs.save(d);

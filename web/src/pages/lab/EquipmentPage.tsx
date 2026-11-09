@@ -321,14 +321,14 @@ function PlaceDocs({ placeId }: { placeId: string }) {
       <ul className={s.rows}>
         {docs.map((d) => (
           <li key={d.id}>
-            <a className={s.linkRow} href={`/api/documents/${d.id}/download`} target="_blank" rel="noopener">
+            <Link className={s.linkRow} to={`/docs/${d.id}`}>
               <span className={s.rowTitle}>{d.title}</span>
               <span className={s.rowSub}>
                 {[d.fileName?.split('.').pop()?.toUpperCase(), `версія ${d.version}`, d.size !== null && formatSize(d.size), `оновлено ${formatDate(d.updatedAt)}`]
                   .filter(Boolean)
                   .join(' · ')}
               </span>
-            </a>
+            </Link>
           </li>
         ))}
       </ul>

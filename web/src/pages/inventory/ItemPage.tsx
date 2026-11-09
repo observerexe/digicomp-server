@@ -218,9 +218,7 @@ function ItemView({ item }: { item: InventoryItemDetail }) {
               <ul className={s.moves}>
                 {item.documents.map((d) => (
                   <li key={d.id}>
-                    <a href={`/api/documents/${d.id}/download`} target="_blank" rel="noopener">
-                      {d.title}
-                    </a>
+                    <Link to={`/docs/${d.id}`}>{d.title}</Link>
                   </li>
                 ))}
               </ul>
