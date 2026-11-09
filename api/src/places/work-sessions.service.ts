@@ -33,6 +33,11 @@ import { PlaceAuthorization } from './place-authorization.entity';
 import { Place, PlaceStatus } from './place.entity';
 import { authIsValid, PlacesService } from './places.service';
 import { WorkSession } from './work-session.entity';
+import type {
+  RecentSessionDto,
+  WorkSessionDto,
+  WorkSessionListDto,
+} from './responses.dto';
 
 type Actor = { id: string; role: string };
 
@@ -52,7 +57,7 @@ function isUniqueViolation(e: unknown) {
   return err?.code === '23505' || err?.driverError?.code === '23505';
 }
 
-function toView(s: WorkSession) {
+function toView(s: WorkSession): WorkSessionDto {
   return {
     id: s.id,
     startedAt: s.startedAt,
@@ -233,6 +238,28 @@ export class WorkSessionsService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /** Last 10 sessions on a place for everyone: who, when, how long. */
+  async recent(idOrCode: string, actor: Actor): Promise<RecentSessionDto[]> {
+    const place = await this.places.get(idOrCode, actor);
+    const rows = await this.repo.find({
+      where: { placeId: place.id },
+      relations: { user: true },
+      order: { startedAt: 'DESC' },
+      take: 10,
+    });
+    return rows.map((s) => ({
+      id: s.id,
+      startedAt: s.startedAt,
+      endedAt: s.endedAt,
+      autoClosed: s.autoClosed,
+      user: {
+        id: s.userId,
+        name: s.user?.name ?? null,
+        avatarUrl: s.user?.avatarUrl ?? null,
+      },
+    }));
+  }
+
   async end(id: string, dto: EndSessionDto, actor: Actor) {
     return this.ds.transaction(async (m) => {
       const s = await m.findOne(WorkSession, {
@@ -276,7 +303,7 @@ export class WorkSessionsService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  async list(q: ListSessionsQuery, actor: Actor) {
+  async list(q: ListSessionsQuery, actor: Actor): Promise<WorkSessionListDto> {
     const page = Math.max(1, Number(q.page ?? 1));
     const limit = Math.min(100, Math.max(1, Number(q.limit ?? 50)));
     const where: FindOptionsWhere<WorkSession> = {};

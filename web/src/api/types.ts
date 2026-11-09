@@ -22,3 +22,12 @@ export type ProjectStage = S['ProjectStage'];
 export type LoginResult =
   | { user: Me }
   | { twoFactorRequired: true; challengeToken: string };
+
+export type Place = S['PlaceDto'];
+export type PlaceStatus = S['PlaceStatus'];
+export type WorkSession = S['WorkSessionDto'];
+export type RecentSession = S['RecentSessionDto'];
+export type Fault = S['FaultListItemDto'];
+export type FaultDetail = S['FaultDetailDto'];
+export type FaultStatus = S['FaultStatus'];
+export type Doc = S['DocDto'];

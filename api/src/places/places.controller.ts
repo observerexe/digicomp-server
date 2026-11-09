@@ -1,5 +1,11 @@
-import { ApiOkResponse } from '@nestjs/swagger';
-import { AuthorizationDto } from './responses.dto';
+import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
+import {
+  AuthorizationDto,
+  PlaceDto,
+  RecentSessionDto,
+  WorkSessionDto,
+  WorkSessionListDto,
+} from './responses.dto';
 import {
   Body,
   Controller,
@@ -43,12 +49,14 @@ export class PlacesController {
     private sessions: WorkSessionsService,
   ) {}
 
+  @ApiOkResponse({ type: [PlaceDto] })
   @Can(Action.PlacesRead)
   @Get()
   list(@Query() q: ListPlacesQuery, @Req() req: Req) {
     return this.places.list(q, req.user);
   }
 
+  @ApiOkResponse({ type: PlaceDto })
   @Can(Action.PlacesRead)
   @Get(':id')
   get(@Param('id') id: string, @Req() req: Req) {
@@ -71,6 +79,15 @@ export class PlacesController {
     return this.places.update(id, dto, req.user);
   }
 
+  /** Last 10 sessions for everyone (who, when, how long; no notes). */
+  @ApiOkResponse({ type: [RecentSessionDto] })
+  @Can(Action.PlacesRead)
+  @Get(':id/sessions/recent')
+  recent(@Param('id') id: string, @Req() req: Req) {
+    return this.sessions.recent(id, req.user);
+  }
+
+  @ApiCreatedResponse({ type: WorkSessionDto })
   @Can(Action.SessionsStart)
   @Post(':id/sessions')
   start(
@@ -87,6 +104,7 @@ export class PlacesController {
 export class WorkSessionsController {
   constructor(private sessions: WorkSessionsService) {}
 
+  @ApiOkResponse({ type: WorkSessionListDto })
   @Can(Action.PlacesRead)
   @Get()
   list(@Query() q: ListSessionsQuery, @Req() req: Req) {
@@ -123,6 +141,7 @@ export class WorkSessionsController {
     return new StreamableFile(Buffer.from(html, 'utf8'));
   }
 
+  @ApiOkResponse({ type: WorkSessionDto })
   @Can(Action.SessionsStart)
   @Patch(':id/end')
   end(

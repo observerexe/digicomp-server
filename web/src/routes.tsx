@@ -4,22 +4,24 @@ import { AppShell } from './layout/AppShell';
 import { AboutPage } from './pages/AboutPage';
 import { LoginPage } from './pages/LoginPage';
 import { MorePage } from './pages/MorePage';
+import { EquipmentPage } from './pages/lab/EquipmentPage';
+import { JournalPage } from './pages/lab/JournalPage';
+import { LabPage } from './pages/lab/LabPage';
+import { ScanPage } from './pages/lab/ScanPage';
+import { StickersPage } from './pages/lab/StickersPage';
 import { EditProfilePage } from './pages/profile/EditProfilePage';
 import { PasswordPage } from './pages/profile/PasswordPage';
 import { ProfilePage } from './pages/profile/ProfilePage';
 import { TwoFactorPage } from './pages/profile/TwoFactorPage';
 import {
   DocsPage,
-  EquipmentPage,
   ForbiddenPage,
   HomePage,
   InventoryPage,
-  LabPage,
   NotFoundPage,
   PanelPage,
   ProjectsPage,
   RatingPage,
-  ScanPage,
   TasksPage,
 } from './pages/sections';
 import { TeamPage } from './pages/team/TeamPage';
@@ -38,6 +40,15 @@ export const routes: RouteObject[] = [
       { index: true, element: <HomePage /> },
       { path: 'tasks', element: <TasksPage /> },
       { path: 'lab', element: <LabPage /> },
+      { path: 'lab/journal', element: <JournalPage /> },
+      {
+        path: 'lab/stickers',
+        element: (
+          <RequirePermission action="places.manage" fallback={<ForbiddenPage />}>
+            <StickersPage />
+          </RequirePermission>
+        ),
+      },
       { path: 'lab/:code', element: <EquipmentPage /> },
       { path: 'scan', element: <ScanPage /> },
       { path: 'projects', element: <ProjectsPage /> },

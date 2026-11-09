@@ -727,6 +727,23 @@ export interface paths {
         patch: operations["PlacesController_update"];
         trace?: never;
     };
+    "/api/places/{id}/sessions/recent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Last 10 sessions for everyone (who, when, how long; no notes). */
+        get: operations["PlacesController_recent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/places/{id}/sessions": {
         parameters: {
             query?: never;
@@ -1573,20 +1590,6 @@ export interface components {
             role?: "admin" | "moderator" | "member";
             active?: boolean;
         };
-        UserExtendedDto: {
-            role: components["schemas"]["Role"];
-            avatarUrl: string | null;
-            email: string;
-            active: boolean;
-            twoFactorEnabled: boolean;
-            /** Format: date-time */
-            createdAt: string;
-            id: string;
-            name: string;
-            position: string;
-            specialty: string;
-            bio: string;
-        };
         ResetPasswordDto: {
             newPassword: string;
         };
@@ -1766,6 +1769,46 @@ export interface components {
             /** @description Points taken by a fine; required for `fine`, not allowed otherwise. */
             amount?: number;
         };
+        /** @enum {string} */
+        PlaceStatus: "active" | "maintenance" | "archived";
+        AuthorizationUserDto: {
+            id: string;
+            name: string;
+        };
+        PlaceSessionRefDto: {
+            id: string;
+            /** Format: date-time */
+            startedAt: string;
+            user: components["schemas"]["AuthorizationUserDto"];
+        };
+        MyAuthorizationDto: {
+            /**
+             * Format: date-time
+             * @description null — no end date.
+             */
+            expiresAt: string | null;
+        };
+        PlaceDto: {
+            status: components["schemas"]["PlaceStatus"];
+            activeSessions: components["schemas"]["PlaceSessionRefDto"][];
+            /** @description The caller's valid authorization, null when there is none. */
+            myAuthorization: components["schemas"]["MyAuthorizationDto"] | null;
+            id: string;
+            /** @description QR code, upper case (CNC-1). */
+            code: string;
+            title: string;
+            category: string;
+            location: string;
+            description: string;
+            needsAuthorization: boolean;
+            /** @description One session at a time. */
+            exclusive: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            inUse: boolean;
+        };
         CreatePlaceDto: {
             code: string;
             title: string;
@@ -1785,19 +1828,55 @@ export interface components {
             needsAuthorization?: boolean;
             exclusive?: boolean;
         };
+        RecentSessionDto: {
+            /** Format: date-time */
+            endedAt: string | null;
+            id: string;
+            /** Format: date-time */
+            startedAt: string;
+            autoClosed: boolean;
+            user: components["schemas"]["UserRefDto"];
+        };
         StartSessionDto: {
             safetyConfirmed: boolean;
             note?: string;
             idempotencyKey?: string;
         };
+        SessionUserDto: {
+            id: string;
+            name?: string;
+        };
+        SessionPlaceDto: {
+            id: string;
+            code?: string;
+            title?: string;
+        };
+        WorkSessionDto: {
+            /** Format: date-time */
+            endedAt: string | null;
+            endedById: string | null;
+            id: string;
+            /** Format: date-time */
+            startedAt: string;
+            safetyConfirmed: boolean;
+            note: string;
+            equipmentState: string;
+            endReason: string;
+            /** @description Closed by the server after SESSION_AUTO_CLOSE_HOURS. */
+            autoClosed: boolean;
+            user: components["schemas"]["SessionUserDto"];
+            place: components["schemas"]["SessionPlaceDto"];
+        };
+        WorkSessionListDto: {
+            items: components["schemas"]["WorkSessionDto"][];
+            total: number;
+            page: number;
+            limit: number;
+        };
         EndSessionDto: {
             note?: string;
             equipmentState?: string;
             reason?: string;
-        };
-        AuthorizationUserDto: {
-            id: string;
-            name: string;
         };
         PlaceRefDto: {
             id: string;
@@ -1865,6 +1944,63 @@ export interface components {
             /** @description Required when cancelling someone else's booking. */
             reason?: string;
         };
+        /** @enum {string} */
+        FaultStatus: "open" | "in_progress" | "closed";
+        FaultPlaceDto: {
+            status?: components["schemas"]["PlaceStatus"];
+            id: string;
+            code?: string;
+            title?: string;
+        };
+        FaultListItemDto: {
+            status: components["schemas"]["FaultStatus"];
+            reporter: components["schemas"]["UserRefDto"] | null;
+            closedBy: components["schemas"]["UserRefDto"] | null;
+            /** Format: date-time */
+            closedAt: string | null;
+            photosCount: number;
+            id: string;
+            description: string;
+            /** @description What was done; filled when closed. */
+            resolution: string;
+            place: components["schemas"]["FaultPlaceDto"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        FaultListDto: {
+            items: components["schemas"]["FaultListItemDto"][];
+            total: number;
+            page: number;
+            limit: number;
+        };
+        FaultPhotoDto: {
+            id: string;
+            mimeType: string;
+            size: number;
+            uploadedById: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        FaultDetailDto: {
+            status: components["schemas"]["FaultStatus"];
+            reporter: components["schemas"]["UserRefDto"] | null;
+            closedBy: components["schemas"]["UserRefDto"] | null;
+            /** Format: date-time */
+            closedAt: string | null;
+            /** @description GET /faults/:id/photos/:photoId */
+            photos: components["schemas"]["FaultPhotoDto"][];
+            id: string;
+            description: string;
+            /** @description What was done; filled when closed. */
+            resolution: string;
+            place: components["schemas"]["FaultPlaceDto"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
         CreateFaultDto: {
             /** Format: uuid */
             placeId: string;
@@ -1874,6 +2010,35 @@ export interface components {
             resolution: string;
             /** @description Return the equipment from maintenance to work. */
             reactivatePlace?: boolean;
+        };
+        /** @enum {string} */
+        AccessScope: "members" | "supervisors";
+        DocDto: {
+            accessScope: components["schemas"]["AccessScope"];
+            placeId: string | null;
+            inventoryItemId: string | null;
+            /** @description Latest version; null for a document without files. */
+            version: number | null;
+            fileName: string | null;
+            mimeType: string | null;
+            size: number | null;
+            id: string;
+            title: string;
+            category: string;
+            description: string;
+            authorId: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            archived: boolean;
+            versionsCount: number;
+        };
+        DocListDto: {
+            items: components["schemas"]["DocDto"][];
+            total: number;
+            page: number;
+            limit: number;
         };
         CreateDocDto: {
             title: string;
@@ -2102,7 +2267,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MeDto"];
+                    "application/json": Record<string, never>;
                 };
             };
         };
@@ -2194,7 +2359,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserExtendedDto"];
+                    "application/json": Record<string, never>;
                 };
             };
         };
@@ -2320,7 +2485,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MeDto"];
+                    "application/json": Record<string, never>;
                 };
             };
         };
@@ -2709,7 +2874,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskDto"];
+                    "application/json": Record<string, never>;
                 };
             };
         };
@@ -2772,7 +2937,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskDto"];
+                    "application/json": Record<string, never>;
                 };
             };
         };
@@ -2793,7 +2958,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskDto"];
+                    "application/json": Record<string, never>;
                 };
             };
         };
@@ -2814,7 +2979,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskDto"];
+                    "application/json": Record<string, never>;
                 };
             };
         };
@@ -2835,7 +3000,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskDto"];
+                    "application/json": Record<string, never>;
                 };
             };
         };
@@ -2856,7 +3021,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskDto"];
+                    "application/json": Record<string, never>;
                 };
             };
         };
@@ -2881,7 +3046,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskDto"];
+                    "application/json": Record<string, never>;
                 };
             };
         };
@@ -2902,7 +3067,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskDto"];
+                    "application/json": Record<string, never>;
                 };
             };
         };
@@ -3098,7 +3263,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PlaceDto"][];
+                };
             };
         };
     };
@@ -3119,7 +3286,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PlaceDto"];
+                };
             };
         };
     };
@@ -3138,7 +3307,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PlaceDto"];
+                };
             };
         };
     };
@@ -3161,7 +3332,30 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PlaceDto"];
+                };
+            };
+        };
+    };
+    PlacesController_recent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecentSessionDto"][];
+                };
             };
         };
     };
@@ -3184,7 +3378,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["WorkSessionDto"];
+                };
             };
         };
     };
@@ -3209,7 +3405,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["WorkSessionListDto"];
+                };
             };
         };
     };
@@ -3276,7 +3474,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["WorkSessionDto"];
+                };
             };
         };
     };
@@ -3451,7 +3651,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["FaultListDto"];
+                };
             };
         };
     };
@@ -3472,7 +3674,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["FaultDetailDto"];
+                };
             };
         };
     };
@@ -3491,7 +3695,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["FaultDetailDto"];
+                };
             };
         };
     };
@@ -3510,7 +3716,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["FaultDetailDto"];
+                };
             };
         };
     };
@@ -3549,7 +3757,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["FaultDetailDto"];
+                };
             };
         };
     };
@@ -3568,7 +3778,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["FaultDetailDto"];
+                };
             };
         };
     };
@@ -3591,7 +3803,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["FaultDetailDto"];
+                };
             };
         };
     };
@@ -3616,7 +3830,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DocListDto"];
+                };
             };
         };
     };
@@ -3637,7 +3853,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": Record<string, never>;
+                };
             };
         };
     };
@@ -3656,7 +3874,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": Record<string, never>;
+                };
             };
         };
     };
@@ -3698,7 +3918,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": Record<string, never>;
+                };
             };
         };
     };

@@ -22,7 +22,7 @@ export async function resizeImage(file: File, max = 512): Promise<File> {
     if (!ctx) return file;
     ctx.drawImage(bitmap, 0, 0, w, h);
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.88));
-    return blob ? new File([blob], 'avatar.jpg', { type: 'image/jpeg' }) : file;
+    return blob ? new File([blob], 'photo.jpg', { type: 'image/jpeg' }) : file;
   } finally {
     bitmap.close();
   }

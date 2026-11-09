@@ -1,4 +1,4 @@
-import { ApiOkResponse } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
 import { BookingDto } from './responses.dto';
 import {
   Body,
@@ -25,6 +25,7 @@ export class BookingsController {
   constructor(private bookings: BookingsService) {}
 
   /** Book a slot; overlapping slots of one place are rejected. */
+  @ApiCreatedResponse({ type: BookingDto })
   @Can(Action.BookingsCreate)
   @Post()
   create(@Body() dto: CreateBookingDto, @Req() req: Req) {
@@ -38,6 +39,7 @@ export class BookingsController {
     return this.bookings.mine(req.user);
   }
 
+  @ApiOkResponse({ type: BookingDto })
   @Can(Action.BookingsCancel)
   @Post(':id/cancel')
   @HttpCode(200)

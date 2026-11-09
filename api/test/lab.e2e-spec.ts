@@ -258,6 +258,64 @@ describe('Лабораторія і проєкти (e2e)', () => {
     });
   });
 
+  describe('останні сеанси на обладнанні', () => {
+    it('бачать усі: хто, коли, без нотаток; загальний журнал member — лише свій', async () => {
+      const s1 = await start(a);
+      await as(app, a)
+        .patch(`/api/work-sessions/${s1.body.id}/end`)
+        .send({ note: 'Приватна нотатка' })
+        .expect(200);
+      await start(b).expect(201);
+
+      const res = await as(app, a)
+        .get('/api/places/CNC-1/sessions/recent')
+        .expect(200);
+      expect(res.body).toHaveLength(2);
+      expect(res.body[0].user.name).toBe('Богдана');
+      expect(res.body[0].endedAt).toBeNull();
+      expect(res.body[1].user.name).toBe('Андрій');
+      for (const row of res.body as Record<string, unknown>[]) {
+        expect(Object.keys(row).sort()).toEqual(
+          ['autoClosed', 'endedAt', 'id', 'startedAt', 'user'].sort(),
+        );
+      }
+      expect(JSON.stringify(res.body)).not.toContain('Приватна нотатка');
+
+      const own = await as(app, a)
+        .get(`/api/work-sessions?placeId=${placeId}`)
+        .expect(200);
+      expect(own.body.items).toHaveLength(1);
+    });
+
+    it('не більше 10, найновіші першими; архівне обладнання member не бачить', async () => {
+      for (let i = 0; i < 12; i++) {
+        const s = await start(a);
+        await as(app, a)
+          .patch(`/api/work-sessions/${s.body.id}/end`)
+          .send({})
+          .expect(200);
+      }
+      const res = await as(app, b)
+        .get(`/api/places/${placeId}/sessions/recent`)
+        .expect(200);
+      expect(res.body).toHaveLength(10);
+      const times = (res.body as { startedAt: string }[]).map((r) =>
+        Date.parse(r.startedAt),
+      );
+      expect([...times].sort((x, y) => y - x)).toEqual(times);
+
+      await as(app, admin)
+        .patch(`/api/places/${placeId}`)
+        .send({ status: 'archived' })
+        .expect(200);
+      code(
+        await as(app, b).get(`/api/places/${placeId}/sessions/recent`),
+        404,
+        'PLACE_NOT_FOUND',
+      );
+    });
+  });
+
   describe('вивантаження журналу', () => {
     async function session(u: TestUser, startIso: string, minutes: number) {
       await ds.query(

@@ -109,7 +109,8 @@ textarea {
   font-size: 14px;
   font-weight: 500;
 }
-.field input {
+.field input,
+.field select {
   min-height: var(--size-button);
   padding: 0 14px;
   border-radius: var(--radius-control);
@@ -143,4 +144,14 @@ textarea {
 .field input:disabled {
   background: var(--c-surface2);
   color: var(--c-text2);
+}
+
+/* Printing (QR stickers): only the printable part of the page. */
+@media print {
+  body {
+    background: #fff;
+  }
+  .no-print {
+    display: none !important;
+  }
 }

@@ -19,7 +19,7 @@ import {
 import { PlaceAuthorization } from './place-authorization.entity';
 import { Place, PlaceStatus } from './place.entity';
 import { WorkSession } from './work-session.entity';
-import type { AuthorizationDto } from './responses.dto';
+import type { AuthorizationDto, PlaceDto } from './responses.dto';
 
 type Actor = { id: string; role: string };
 
@@ -221,7 +221,7 @@ export class PlacesService {
     return { ok: true };
   }
 
-  private async decorate(rows: Place[], actor: Actor) {
+  private async decorate(rows: Place[], actor: Actor): Promise<PlaceDto[]> {
     const ids = rows.map((p) => p.id);
     const active = ids.length
       ? await this.sessions.find({

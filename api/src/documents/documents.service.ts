@@ -22,6 +22,8 @@ import {
   UpdateDocDto,
 } from './dto';
 import { AccessScope, Doc, DocVersion } from './doc.entity';
+import type { Plain } from '../common/responses.dto';
+import type { DocDto, DocListDto } from './responses.dto';
 
 type Actor = { id: string; role: string };
 
@@ -43,7 +45,11 @@ function versionView(v: DocVersion) {
   };
 }
 
-function docView(d: Doc, latest: DocVersion | undefined, count: number) {
+function docView(
+  d: Doc,
+  latest: DocVersion | undefined,
+  count: number,
+): Plain<DocDto> {
   return {
     id: d.id,
     title: d.title,
@@ -75,7 +81,7 @@ export class DocumentsService {
     private audit: AuditService,
   ) {}
 
-  async list(q: ListDocsQuery, actor: Actor) {
+  async list(q: ListDocsQuery, actor: Actor): Promise<DocListDto> {
     const page = Math.max(1, Number(q.page ?? 1));
     const limit = Math.min(100, Math.max(1, Number(q.limit ?? 50)));
     const qb = this.docs.createQueryBuilder('d');

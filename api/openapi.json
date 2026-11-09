@@ -121,7 +121,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MeDto"
+                  "type": "object"
                 }
               }
             }
@@ -251,7 +251,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserExtendedDto"
+                  "type": "object"
                 }
               }
             }
@@ -420,7 +420,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MeDto"
+                  "type": "object"
                 }
               }
             }
@@ -961,7 +961,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TaskDto"
+                  "type": "object"
                 }
               }
             }
@@ -1023,7 +1023,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TaskDto"
+                  "type": "object"
                 }
               }
             }
@@ -1075,7 +1075,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TaskDto"
+                  "type": "object"
                 }
               }
             }
@@ -1105,7 +1105,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TaskDto"
+                  "type": "object"
                 }
               }
             }
@@ -1135,7 +1135,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TaskDto"
+                  "type": "object"
                 }
               }
             }
@@ -1165,7 +1165,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TaskDto"
+                  "type": "object"
                 }
               }
             }
@@ -1205,7 +1205,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TaskDto"
+                  "type": "object"
                 }
               }
             }
@@ -1236,7 +1236,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TaskDto"
+                  "type": "object"
                 }
               }
             }
@@ -1565,7 +1565,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlaceDto"
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1587,7 +1597,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaceDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1610,7 +1627,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaceDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1641,9 +1665,50 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaceDto"
+                }
+              }
+            }
           }
         },
+        "tags": [
+          "Places"
+        ]
+      }
+    },
+    "/api/places/{id}/sessions/recent": {
+      "get": {
+        "operationId": "PlacesController_recent",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RecentSessionDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Last 10 sessions for everyone (who, when, how long; no notes).",
         "tags": [
           "Places"
         ]
@@ -1674,7 +1739,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkSessionDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1753,7 +1825,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkSessionListDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1886,7 +1965,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkSessionDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2175,7 +2261,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FaultListDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2197,7 +2290,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FaultDetailDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2220,7 +2320,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FaultDetailDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2243,7 +2350,14 @@
         ],
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FaultDetailDto"
+                }
+              }
+            }
           }
         },
         "summary": "Photo (png, jpg, webp up to 5 MB, max 3): the reporter or staff.",
@@ -2298,7 +2412,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FaultDetailDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2321,7 +2442,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FaultDetailDto"
+                }
+              }
+            }
           }
         },
         "summary": "Report in progress + equipment on maintenance, in one action.",
@@ -2355,7 +2483,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FaultDetailDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2435,7 +2570,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocListDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2457,7 +2599,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2480,7 +2629,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2511,7 +2667,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -3812,63 +3975,6 @@
           }
         }
       },
-      "UserExtendedDto": {
-        "type": "object",
-        "properties": {
-          "role": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Role"
-              }
-            ]
-          },
-          "avatarUrl": {
-            "type": "string",
-            "nullable": true
-          },
-          "email": {
-            "type": "string"
-          },
-          "active": {
-            "type": "boolean"
-          },
-          "twoFactorEnabled": {
-            "type": "boolean"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "position": {
-            "type": "string"
-          },
-          "specialty": {
-            "type": "string"
-          },
-          "bio": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "role",
-          "avatarUrl",
-          "email",
-          "active",
-          "twoFactorEnabled",
-          "createdAt",
-          "id",
-          "name",
-          "position",
-          "specialty",
-          "bio"
-        ]
-      },
       "ResetPasswordDto": {
         "type": "object",
         "properties": {
@@ -4550,6 +4656,144 @@
           "reason"
         ]
       },
+      "PlaceStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "maintenance",
+          "archived"
+        ]
+      },
+      "AuthorizationUserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "PlaceSessionRefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/AuthorizationUserDto"
+          }
+        },
+        "required": [
+          "id",
+          "startedAt",
+          "user"
+        ]
+      },
+      "MyAuthorizationDto": {
+        "type": "object",
+        "properties": {
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "null — no end date."
+          }
+        },
+        "required": [
+          "expiresAt"
+        ]
+      },
+      "PlaceDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PlaceStatus"
+              }
+            ]
+          },
+          "activeSessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlaceSessionRefDto"
+            }
+          },
+          "myAuthorization": {
+            "nullable": true,
+            "description": "The caller's valid authorization, null when there is none.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MyAuthorizationDto"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "description": "QR code, upper case (CNC-1)."
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "needsAuthorization": {
+            "type": "boolean"
+          },
+          "exclusive": {
+            "type": "boolean",
+            "description": "One session at a time."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "inUse": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "status",
+          "activeSessions",
+          "myAuthorization",
+          "id",
+          "code",
+          "title",
+          "category",
+          "location",
+          "description",
+          "needsAuthorization",
+          "exclusive",
+          "createdAt",
+          "updatedAt",
+          "inUse"
+        ]
+      },
       "CreatePlaceDto": {
         "type": "object",
         "properties": {
@@ -4625,6 +4869,36 @@
           }
         }
       },
+      "RecentSessionDto": {
+        "type": "object",
+        "properties": {
+          "endedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "autoClosed": {
+            "type": "boolean"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserRefDto"
+          }
+        },
+        "required": [
+          "endedAt",
+          "id",
+          "startedAt",
+          "autoClosed",
+          "user"
+        ]
+      },
       "StartSessionDto": {
         "type": "object",
         "properties": {
@@ -4645,6 +4919,119 @@
           "safetyConfirmed"
         ]
       },
+      "SessionUserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "SessionPlaceDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "WorkSessionDto": {
+        "type": "object",
+        "properties": {
+          "endedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "endedById": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "safetyConfirmed": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": "string"
+          },
+          "equipmentState": {
+            "type": "string"
+          },
+          "endReason": {
+            "type": "string"
+          },
+          "autoClosed": {
+            "type": "boolean",
+            "description": "Closed by the server after SESSION_AUTO_CLOSE_HOURS."
+          },
+          "user": {
+            "$ref": "#/components/schemas/SessionUserDto"
+          },
+          "place": {
+            "$ref": "#/components/schemas/SessionPlaceDto"
+          }
+        },
+        "required": [
+          "endedAt",
+          "endedById",
+          "id",
+          "startedAt",
+          "safetyConfirmed",
+          "note",
+          "equipmentState",
+          "endReason",
+          "autoClosed",
+          "user",
+          "place"
+        ]
+      },
+      "WorkSessionListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkSessionDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit"
+        ]
+      },
       "EndSessionDto": {
         "type": "object",
         "properties": {
@@ -4661,21 +5048,6 @@
             "maxLength": 500
           }
         }
-      },
-      "AuthorizationUserDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "name"
-        ]
       },
       "PlaceRefDto": {
         "type": "object",
@@ -4889,6 +5261,240 @@
           }
         }
       },
+      "FaultStatus": {
+        "type": "string",
+        "enum": [
+          "open",
+          "in_progress",
+          "closed"
+        ]
+      },
+      "FaultPlaceDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PlaceStatus"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "FaultListItemDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FaultStatus"
+              }
+            ]
+          },
+          "reporter": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserRefDto"
+              }
+            ]
+          },
+          "closedBy": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserRefDto"
+              }
+            ]
+          },
+          "closedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "photosCount": {
+            "type": "number"
+          },
+          "id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "resolution": {
+            "type": "string",
+            "description": "What was done; filled when closed."
+          },
+          "place": {
+            "$ref": "#/components/schemas/FaultPlaceDto"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "reporter",
+          "closedBy",
+          "closedAt",
+          "photosCount",
+          "id",
+          "description",
+          "resolution",
+          "place",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "FaultListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FaultListItemDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit"
+        ]
+      },
+      "FaultPhotoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "number"
+          },
+          "uploadedById": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "mimeType",
+          "size",
+          "uploadedById",
+          "createdAt"
+        ]
+      },
+      "FaultDetailDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FaultStatus"
+              }
+            ]
+          },
+          "reporter": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserRefDto"
+              }
+            ]
+          },
+          "closedBy": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserRefDto"
+              }
+            ]
+          },
+          "closedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "photos": {
+            "description": "GET /faults/:id/photos/:photoId",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FaultPhotoDto"
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "resolution": {
+            "type": "string",
+            "description": "What was done; filled when closed."
+          },
+          "place": {
+            "$ref": "#/components/schemas/FaultPlaceDto"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "reporter",
+          "closedBy",
+          "closedAt",
+          "photos",
+          "id",
+          "description",
+          "resolution",
+          "place",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
       "CreateFaultDto": {
         "type": "object",
         "properties": {
@@ -4920,6 +5526,123 @@
         },
         "required": [
           "resolution"
+        ]
+      },
+      "AccessScope": {
+        "type": "string",
+        "enum": [
+          "members",
+          "supervisors"
+        ]
+      },
+      "DocDto": {
+        "type": "object",
+        "properties": {
+          "accessScope": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AccessScope"
+              }
+            ]
+          },
+          "placeId": {
+            "type": "string",
+            "nullable": true
+          },
+          "inventoryItemId": {
+            "type": "string",
+            "nullable": true
+          },
+          "version": {
+            "type": "number",
+            "nullable": true,
+            "description": "Latest version; null for a document without files."
+          },
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "mimeType": {
+            "type": "string",
+            "nullable": true
+          },
+          "size": {
+            "type": "number",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "authorId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "versionsCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "accessScope",
+          "placeId",
+          "inventoryItemId",
+          "version",
+          "fileName",
+          "mimeType",
+          "size",
+          "id",
+          "title",
+          "category",
+          "description",
+          "authorId",
+          "createdAt",
+          "updatedAt",
+          "archived",
+          "versionsCount"
+        ]
+      },
+      "DocListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit"
         ]
       },
       "CreateDocDto": {

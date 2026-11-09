@@ -68,7 +68,7 @@ export class BookingsService {
     private audit: AuditService,
   ) {}
 
-  async create(dto: CreateBookingDto, actor: Actor) {
+  async create(dto: CreateBookingDto, actor: Actor): Promise<BookingDto> {
     const startsAt = new Date(dto.startsAt);
     const endsAt = new Date(dto.endsAt);
     const now = Date.now();
@@ -167,7 +167,11 @@ export class BookingsService {
   }
 
   /** Own booking — anyone; someone else's — staff, with a reason. */
-  async cancel(id: string, dto: CancelBookingDto, actor: Actor) {
+  async cancel(
+    id: string,
+    dto: CancelBookingDto,
+    actor: Actor,
+  ): Promise<BookingDto> {
     await this.ds.transaction(async (m) => {
       const b = await m.findOne(Booking, {
         where: { id },

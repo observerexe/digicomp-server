@@ -27,9 +27,6 @@ export function HomePage() {
   return <Section title={`Добрий день, ${first}`} note="Тут будуть ваш активний сеанс, ТЗ, бали й найближчі бронювання." />;
 }
 export const TasksPage = () => <Section title="ТЗ" note="Дошка завдань: беріть ТЗ, здавайте на перевірку, слідкуйте за дедлайнами." />;
-export const LabPage = () => <Section title="Лабораторія" note="Обладнання, розумні пристрої й бронювання." />;
-export const EquipmentPage = () => <Section title="Обладнання" note="Сторінка обладнання: допуск, «Почати роботу», бронювання, несправності." />;
-export const ScanPage = () => <Section title="Сканувати QR" note="Наведіть камеру на QR-наліпку обладнання чи позиції складу." />;
 export const ProjectsPage = () => <Section title="Проєкти" note="Дошка проєктів за етапами." />;
 export const InventoryPage = () => <Section title="Склад" note="Позиції, залишки, «взяти» й «поповнити»." />;
 export const DocsPage = () => <Section title="Архів" note="Документи з версіями: інструкції, паспорти, шаблони." />;

@@ -20,7 +20,7 @@ export function formatDateTime(value: string | Date, now = new Date()): string {
   return `${weekday.format(d)}, ${formatDate(d, now)}, ${time.format(d)}`;
 }
 
-export function formatTime(value: string | Date): string {
+export function formatTime(value: string | Date | number): string {
   return time.format(new Date(value));
 }
 
@@ -55,4 +55,17 @@ export function plural(n: number, [one, few, many]: [string, string, string]): s
   if (b === 1) return one;
   if (b >= 2 && b <= 4) return few;
   return many;
+}
+
+/** "1:46" — hours and minutes between two moments. */
+export function formatDuration(from: string | Date, to: string | Date): string {
+  const min = Math.max(0, Math.round((new Date(to).getTime() - new Date(from).getTime()) / 60_000));
+  return `${Math.floor(min / 60)}:${String(min % 60).padStart(2, '0')}`;
+}
+
+/** "4,2 МБ" */
+export function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} Б`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} КБ`;
+  return `${(bytes / 1024 / 1024).toLocaleString('uk-UA', { maximumFractionDigits: 1 })} МБ`;
 }

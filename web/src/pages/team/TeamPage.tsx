@@ -5,7 +5,7 @@ import { api, unwrap } from '../../api/client';
 import type { UserListItem } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
 import { Avatar } from '../../components/Avatar';
-import { Icon } from '../../components/Icon';
+import { Chips, distinct, norm, SearchField } from '../../components/Filters';
 import { ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { ROLE_LABEL } from '../../lib/labels';
@@ -14,8 +14,6 @@ import s from './team.module.css';
 /** The group is small: one request, search and filter on the device (instant). */
 export const TEAM_KEY = ['users', 'team'] as const;
 const fetchTeam = () => unwrap(api.GET('/api/users', { params: { query: { limit: '100' } } }));
-
-const norm = (v: string) => v.toLocaleLowerCase('uk-UA').trim();
 
 export function matches(u: UserListItem, search: string, specialty: string | null) {
   if (specialty && u.specialty !== specialty) return false;
@@ -31,44 +29,15 @@ export function TeamPage() {
   const [specialty, setSpecialty] = useState<string | null>(null);
 
   const items = team.data?.items ?? [];
-  const specialties = useMemo(
-    () => [...new Set(items.map((u) => u.specialty).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'uk')),
-    [items],
-  );
+  const specialties = useMemo(() => distinct(items.map((u) => u.specialty)), [items]);
   const shown = items.filter((u) => matches(u, search, specialty));
 
   return (
     <>
       <PageHeader title="Команда" />
       <div className={s.tools}>
-        <label className={s.search}>
-          <Icon name="search" size={20} />
-          <span className="visually-hidden">Пошук</span>
-          <input
-            type="search"
-            placeholder="Ім’я, посада чи спеціальність"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </label>
-        {specialties.length > 1 && (
-          <div className={s.chips} role="group" aria-label="Спеціальність">
-            <button type="button" className={s.chip} aria-pressed={specialty === null} onClick={() => setSpecialty(null)}>
-              Усі
-            </button>
-            {specialties.map((sp) => (
-              <button
-                key={sp}
-                type="button"
-                className={s.chip}
-                aria-pressed={specialty === sp}
-                onClick={() => setSpecialty(specialty === sp ? null : sp)}
-              >
-                {sp}
-              </button>
-            ))}
-          </div>
-        )}
+        <SearchField value={search} onChange={setSearch} placeholder="Ім’я, посада чи спеціальність" />
+        <Chips label="Спеціальність" values={specialties} value={specialty} onChange={setSpecialty} />
       </div>
 
       {team.isPending ? (

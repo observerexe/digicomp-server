@@ -20,6 +20,8 @@ import { PlacesService } from '../places/places.service';
 import { User } from '../users/user.entity';
 import { CloseFaultDto, CreateFaultDto, ListFaultsQuery } from './dto';
 import { FaultPhoto, FaultReport, FaultStatus } from './fault.entities';
+import type { Plain } from '../common/responses.dto';
+import type { FaultDetailDto, FaultDto, FaultListDto } from './responses.dto';
 
 export const FAULT_MAX_PHOTOS = 3;
 export const FAULT_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
@@ -64,7 +66,7 @@ export class FaultsService {
     return this.get(id);
   }
 
-  async list(q: ListFaultsQuery) {
+  async list(q: ListFaultsQuery): Promise<FaultListDto> {
     const page = Math.max(1, Number(q.page ?? 1));
     const limit = Math.min(100, Math.max(1, Number(q.limit ?? 50)));
     const qb = this.faults
@@ -85,7 +87,7 @@ export class FaultsService {
     return { items, total, page, limit };
   }
 
-  async get(id: string) {
+  async get(id: string): Promise<FaultDetailDto> {
     const f = await this.faults.findOne({
       where: { id },
       relations: { place: true },
@@ -244,7 +246,7 @@ export class FaultsService {
     );
   }
 
-  private view(f: FaultReport, users: Map<string, Ref>) {
+  private view(f: FaultReport, users: Map<string, Ref>): Plain<FaultDto> {
     const ref = (uid: string | null) =>
       uid ? (users.get(uid) ?? { id: uid, name: null, avatarUrl: null }) : null;
     return {

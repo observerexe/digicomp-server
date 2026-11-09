@@ -203,3 +203,9 @@
     padding: 32px 40px 48px;
   }
 }
+@media print {
+  .main {
+    padding: 0;
+    max-width: none;
+  }
+}

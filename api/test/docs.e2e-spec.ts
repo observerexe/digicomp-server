@@ -96,6 +96,23 @@ describe('OpenAPI і /docs (лише admin)', () => {
       ['/api/place-authorizations', 'get', '200'],
       ['/api/tasks', 'get', '200'],
       ['/api/projects', 'get', '200'],
+      ['/api/places', 'get', '200'],
+      ['/api/places/{id}', 'get', '200'],
+      ['/api/places/{id}/sessions/recent', 'get', '200'],
+      ['/api/places/{id}/sessions', 'post', '201'],
+      ['/api/places/{id}/bookings', 'get', '200'],
+      ['/api/work-sessions', 'get', '200'],
+      ['/api/work-sessions/{id}/end', 'patch', '200'],
+      ['/api/bookings', 'post', '201'],
+      ['/api/bookings/{id}/cancel', 'post', '200'],
+      ['/api/faults', 'get', '200'],
+      ['/api/faults', 'post', '201'],
+      ['/api/faults/{id}', 'get', '200'],
+      ['/api/faults/{id}/photos', 'post', '201'],
+      ['/api/faults/{id}/in-progress', 'post', '200'],
+      ['/api/faults/{id}/maintenance', 'post', '200'],
+      ['/api/faults/{id}/close', 'post', '200'],
+      ['/api/documents', 'get', '200'],
     ];
     for (const [p, method, code] of described) {
       expect([p, method, paths[p][method].responses[code].content]).toEqual([

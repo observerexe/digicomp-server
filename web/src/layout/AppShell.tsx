@@ -5,6 +5,7 @@ import { Avatar } from '../components/Avatar';
 import { Icon } from '../components/Icon';
 import { ROLE_LABEL } from '../lib/labels';
 import { OfflineBanner } from '../components/OfflineBanner';
+import { ActiveSessionBar } from '../pages/lab/ActiveSessionBar';
 import { SIDEBAR, STAFF, TABS, visible } from './nav';
 import s from './AppShell.module.css';
 
@@ -18,7 +19,7 @@ export function AppShell() {
       <a href="#main" className={s.skip}>
         Перейти до вмісту
       </a>
-      <aside className={s.sidebar}>
+      <aside className={`${s.sidebar} no-print`}>
         <Link to="/" className={s.brand}>
           <img src="/icons/icon.svg" alt="" width={36} height={36} />
           <span>DigiComp HUB</span>
@@ -52,7 +53,7 @@ export function AppShell() {
       </aside>
 
       <div className={s.content}>
-        <header className={s.topbar}>
+        <header className={`${s.topbar} no-print`}>
           <Link to="/" className={s.brandSmall}>
             <img src="/icons/icon.svg" alt="" width={28} height={28} />
             DigiComp HUB
@@ -61,13 +62,16 @@ export function AppShell() {
             <Icon name="menu" />
           </NavLink>
         </header>
-        <OfflineBanner />
+        <div className="no-print">
+          <OfflineBanner />
+          <ActiveSessionBar />
+        </div>
         <main id="main" className={s.main} tabIndex={-1}>
           <Outlet />
         </main>
       </div>
 
-      <nav aria-label="Основна навігація" className={s.tabbar}>
+      <nav aria-label="Основна навігація" className={`${s.tabbar} no-print`}>
         {TABS.slice(0, 2).map((i) => (
           <NavLink key={i.to} to={i.to} end={i.to === '/'} className={s.tab}>
             <Icon name={i.icon} />

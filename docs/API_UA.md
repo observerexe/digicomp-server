@@ -182,6 +182,7 @@
 | GET | `/places/:id` | admin, moderator, member |
 | POST | `/places` | admin, moderator |
 | PATCH | `/places/:id` | admin, moderator |
+| GET | `/places/:id/sessions/recent` | admin, moderator, member |
 | POST | `/places/:id/sessions` | admin, moderator, member |
 
 ### Журнал користування
@@ -342,7 +343,7 @@
 | GET | `/docs` | admin (сторінка Swagger UI) |
 | GET | `/docs/openapi.json` | admin |
 
-Сторінка відкривається в браузері за cookie-входом (або з `Authorization`). Для фронту схему зберігають у файл без запуску сервера й бази: `cd api && npm run build && npm run openapi` записує `api/openapi.json`. Схеми тіл запитів будуються з DTO. Схеми відповідей (класи `*/responses.dto.ts`) додаються разом із розділами фронту; сервіси повертають ці типи, тож розбіжність ловить компілятор. Уже описані: `auth/me`, `auth/2fa/*`, `users` (список, картка, `me`, пароль, аватар), `points/me`, `points/leaderboard`, `points/users/:id`, `discipline`, `discipline/me`, `bookings/me`, `places/:id/bookings`, `place-authorizations`, `tasks`, `projects`.
+Сторінка відкривається в браузері за cookie-входом (або з `Authorization`). Для фронту схему зберігають у файл без запуску сервера й бази: `cd api && npm run build && npm run openapi` записує `api/openapi.json`. Схеми тіл запитів будуються з DTO. Схеми відповідей (класи `*/responses.dto.ts`) додаються разом із розділами фронту; сервіси повертають ці типи, тож розбіжність ловить компілятор. Уже описані: `auth/me`, `auth/2fa/*`, `users` (список, картка, `me`, пароль, аватар), `points/me`, `points/leaderboard`, `points/users/:id`, `discipline`, `discipline/me`, `bookings` (створення, скасування, `me`), `places` (список, картка, останні сеанси, старт сеансу), `places/:id/bookings`, `place-authorizations`, `work-sessions` (список, завершення), `faults` (усі дії), `documents` (список), `tasks`, `projects`.
 
 ## Основні поля запитів
 
@@ -351,7 +352,7 @@
 
 **Місця.** `POST /places`: `code` (латиниця, цифри, `_`, `-`, 3–60), `title`, `category`, `location`, `description`, `needsAuthorization` (за замовчуванням true), `exclusive` (за замовчуванням true). `status`: `active`, `maintenance`, `archived`. У шляху `:id` можна передавати uuid або код (наприклад `SOLDER-01`): так працюють QR-посилання. У відповіді: `inUse`, `activeSessions`, `myAuthorization`.
 
-**Сеанси.** `POST /places/:id/sessions`: `safetyConfirmed: true` (обов'язково), `note`, `idempotencyKey`. Час початку ставить сервер, користувач береться з токена. `PATCH /work-sessions/:id/end`: `note`, `equipmentState`, `reason` (обов'язкова, якщо завершує не власник). `GET /work-sessions`: `placeId`, `userId`, `active`, `from`, `to`; member бачить лише свої. Admin і moderator можуть починати сеанс без допуску. Якщо зараз іде чуже бронювання, сеанс почати не можна (409 `PLACE_BOOKED`); admin може.
+**Сеанси.** `POST /places/:id/sessions`: `safetyConfirmed: true` (обов'язково), `note`, `idempotencyKey`. Час початку ставить сервер, користувач береться з токена. `PATCH /work-sessions/:id/end`: `note`, `equipmentState`, `reason` (обов'язкова, якщо завершує не власник). `GET /work-sessions`: `placeId`, `userId`, `active`, `from`, `to`; member бачить лише свої. `GET /places/:id/sessions/recent` (id або QR-код): останні 10 сеансів на обладнанні для всіх — `{ id, startedAt, endedAt, autoClosed, user: { id, name, avatarUrl } }`, без нотаток і причин; архівне обладнання для member дає 404. Admin і moderator можуть починати сеанс без допуску. Якщо зараз іде чуже бронювання, сеанс почати не можна (409 `PLACE_BOOKED`); admin може.
 
 **Автозакриття.** Сервер раз на 10 хвилин закриває сеанси, що тривають довше 12 годин (`SESSION_AUTO_CLOSE_HOURS`). Кінець ставиться як «початок + 12 год», у сеансі `autoClosed: true`, `endReason: "закрито автоматично"`, в аудиті `session.auto_closed` без автора.
 

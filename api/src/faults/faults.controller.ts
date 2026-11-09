@@ -1,3 +1,5 @@
+import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
+import { FaultDetailDto, FaultListDto } from './responses.dto';
 import {
   Body,
   Controller,
@@ -29,18 +31,21 @@ type Req = { user: { id: string; role: string } };
 export class FaultsController {
   constructor(private faults: FaultsService) {}
 
+  @ApiOkResponse({ type: FaultListDto })
   @Can(Action.FaultsRead)
   @Get()
   list(@Query() q: ListFaultsQuery) {
     return this.faults.list(q);
   }
 
+  @ApiOkResponse({ type: FaultDetailDto })
   @Can(Action.FaultsRead)
   @Get(':id')
   get(@Param('id', ParseUUIDPipe) id: string) {
     return this.faults.get(id);
   }
 
+  @ApiCreatedResponse({ type: FaultDetailDto })
   @Can(Action.FaultsCreate)
   @Post()
   create(@Body() dto: CreateFaultDto, @Req() req: Req) {
@@ -48,6 +53,7 @@ export class FaultsController {
   }
 
   /** Photo (png, jpg, webp up to 5 MB, max 3): the reporter or staff. */
+  @ApiCreatedResponse({ type: FaultDetailDto })
   @Can(Action.FaultsAttach)
   @Post(':id/photos')
   @UseInterceptors(
@@ -80,6 +86,7 @@ export class FaultsController {
     return new StreamableFile(stream);
   }
 
+  @ApiOkResponse({ type: FaultDetailDto })
   @Can(Action.FaultsClose)
   @Post(':id/in-progress')
   @HttpCode(200)
@@ -88,6 +95,7 @@ export class FaultsController {
   }
 
   /** Report in progress + equipment on maintenance, in one action. */
+  @ApiOkResponse({ type: FaultDetailDto })
   @Can(Action.FaultsClose)
   @Post(':id/maintenance')
   @HttpCode(200)
@@ -95,6 +103,7 @@ export class FaultsController {
     return this.faults.maintenance(id, req.user);
   }
 
+  @ApiOkResponse({ type: FaultDetailDto })
   @Can(Action.FaultsClose)
   @Post(':id/close')
   @HttpCode(200)

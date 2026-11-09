@@ -1,3 +1,5 @@
+import { ApiOkResponse } from '@nestjs/swagger';
+import { DocListDto } from './responses.dto';
 import {
   Body,
   Controller,
@@ -42,6 +44,7 @@ export class DocumentsController {
   constructor(private docs: DocumentsService) {}
 
   @Can(Action.DocumentsRead)
+  @ApiOkResponse({ type: DocListDto })
   @Get()
   list(@Query() q: ListDocsQuery, @Req() req: Req) {
     return this.docs.list(q, req.user);
