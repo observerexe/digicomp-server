@@ -54,7 +54,7 @@ export class LabBookingsFaultsProjectStages1796000000000 implements MigrationInt
       `UPDATE "projects" SET "stage" = (CASE
          WHEN lower("status") ~* '(заверш|готов|виконано|закінч|done|finish)' THEN 'done'
          WHEN lower("status") ~* '(перевір|тест|рев.ю|review)' THEN 'review'
-         WHEN lower("status") ~* '(робот|викон|процес|актив|progress)' THEN 'execution'
+         WHEN lower("status") ~* '(робот|работ|викон|процес|актив|progress)' THEN 'execution'
          WHEN lower("status") ~* '(ідея|idea)' THEN 'idea'
          ELSE 'planning' END)::"public"."projects_stage_enum"`,
     );
