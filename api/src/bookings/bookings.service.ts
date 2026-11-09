@@ -13,6 +13,7 @@ import { PlaceStatus } from '../places/place.entity';
 import { authIsValid, PlacesService } from '../places/places.service';
 import { Booking } from './booking.entity';
 import { CancelBookingDto, CreateBookingDto, ListBookingsQuery } from './dto';
+import type { BookingDto } from './responses.dto';
 
 const HOUR = 3600_000;
 const DAY = 24 * HOUR;
@@ -38,7 +39,7 @@ function isExclusionViolation(e: unknown) {
   return err?.code === '23P01' || err?.driverError?.code === '23P01';
 }
 
-function view(b: Booking) {
+function view(b: Booking): BookingDto {
   return {
     id: b.id,
     startsAt: b.startsAt,

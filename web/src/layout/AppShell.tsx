@@ -1,6 +1,9 @@
 import { NavLink, Outlet, Link } from 'react-router';
 import { useAuth } from '../auth/AuthProvider';
+import type { Role } from '../api/types';
+import { Avatar } from '../components/Avatar';
 import { Icon } from '../components/Icon';
+import { ROLE_LABEL } from '../lib/labels';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { SIDEBAR, STAFF, TABS, visible } from './nav';
 import s from './AppShell.module.css';
@@ -9,12 +12,6 @@ import s from './AppShell.module.css';
 export function AppShell() {
   const { user, can } = useAuth();
   const staff = visible(STAFF, can);
-  const initials = (user?.name ?? '')
-    .split(/\s+/)
-    .map((w) => w[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
 
   return (
     <div className={s.shell}>
@@ -46,9 +43,7 @@ export function AppShell() {
           </nav>
         )}
         <Link to="/profile" className={s.me}>
-          <span className={s.avatar} aria-hidden="true">
-            {initials}
-          </span>
+          <Avatar name={user?.name ?? ''} url={user?.avatarUrl} size={40} />
           <span className={s.meText}>
             <span>{user?.name}</span>
             <span className={s.muted}>{roleLabel(user?.role)}</span>
@@ -94,5 +89,5 @@ export function AppShell() {
 }
 
 export function roleLabel(role: string | undefined) {
-  return role === 'admin' ? 'Адміністратор' : role === 'moderator' ? 'Модератор' : 'Учасник';
+  return ROLE_LABEL[(role ?? 'member') as Role] ?? ROLE_LABEL.member;
 }

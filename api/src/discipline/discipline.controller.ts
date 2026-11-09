@@ -1,3 +1,5 @@
+import { ApiOkResponse } from '@nestjs/swagger';
+import { DisciplineListDto, DisciplineRecordDto } from './responses.dto';
 import {
   Body,
   Controller,
@@ -25,6 +27,7 @@ export class DisciplineController {
 
   /** Own warnings, fines and reprimands; nobody else's. */
   @Can(Action.DisciplineReadOwn)
+  @ApiOkResponse({ type: [DisciplineRecordDto] })
   @Get('me')
   mine(@Req() req: Req) {
     return this.discipline.mine(req.user.id);
@@ -32,6 +35,7 @@ export class DisciplineController {
 
   /** Discipline table for the control panel (staff). */
   @Can(Action.DisciplineReadAll)
+  @ApiOkResponse({ type: DisciplineListDto })
   @Get()
   list(@Query() q: ListDisciplineQuery) {
     return this.discipline.list(q);

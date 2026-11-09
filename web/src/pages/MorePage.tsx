@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link } from 'react-router';
 import { useAuth } from '../auth/AuthProvider';
 import { Icon } from '../components/Icon';
 import { Card, PageHeader } from '../components/ui';
@@ -40,7 +40,6 @@ export function ThemeSwitch() {
 /** «Ще» on a phone: sections that are not in the bottom bar, theme, exit. */
 export function MorePage() {
   const { can, logout } = useAuth();
-  const navigate = useNavigate();
   const links = [...MORE, ...visible(STAFF, can), { to: '/about', label: 'Про застосунок', icon: 'info' as const }];
   return (
     <>
@@ -60,7 +59,7 @@ export function MorePage() {
         <button
           type="button"
           className="btn btn-ghost"
-          onClick={() => void logout().then(() => navigate('/login'))}
+          onClick={() => void logout({ next: '/' })}
         >
           <Icon name="logout" size={20} />
           Вийти
@@ -68,7 +67,7 @@ export function MorePage() {
         <button
           type="button"
           className="btn btn-ghost"
-          onClick={() => void logout(true).then(() => navigate('/login'))}
+          onClick={() => void logout({ everywhere: true, next: '/' })}
         >
           Вийти на всіх пристроях
         </button>

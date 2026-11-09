@@ -1,3 +1,5 @@
+import { ApiOkResponse } from '@nestjs/swagger';
+import { TaskDto } from './responses.dto';
 import {
   Body,
   Controller,
@@ -39,6 +41,7 @@ export class TasksController {
 
   /** Board: all tasks, filter by status or `mine=true`. */
   @Can(Action.TasksRead)
+  @ApiOkResponse({ type: [TaskDto] })
   @Get()
   list(@Query() q: ListTasksQuery, @Req() req: Req) {
     return this.tasks.list(q, req.user);

@@ -19,6 +19,7 @@ import {
 import { PlaceAuthorization } from './place-authorization.entity';
 import { Place, PlaceStatus } from './place.entity';
 import { WorkSession } from './work-session.entity';
+import type { AuthorizationDto } from './responses.dto';
 
 type Actor = { id: string; role: string };
 
@@ -137,7 +138,10 @@ export class PlacesService {
     return (await this.decorate([place], actor))[0];
   }
 
-  async listAuthorizations(q: ListAuthorizationsQuery, actor: Actor) {
+  async listAuthorizations(
+    q: ListAuthorizationsQuery,
+    actor: Actor,
+  ): Promise<AuthorizationDto[]> {
     const where: { userId?: string; placeId?: string } = {};
     if (can(actor, Action.PlacesAuthorize)) {
       if (q.userId) where.userId = q.userId;

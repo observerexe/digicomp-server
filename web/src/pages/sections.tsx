@@ -34,7 +34,6 @@ export const ProjectsPage = () => <Section title="Проєкти" note="Дошк
 export const InventoryPage = () => <Section title="Склад" note="Позиції, залишки, «взяти» й «поповнити»." />;
 export const DocsPage = () => <Section title="Архів" note="Документи з версіями: інструкції, паспорти, шаблони." />;
 export const RatingPage = () => <Section title="Рейтинг" note="Топ учасників за місяць і за весь час." />;
-export const ProfilePage = () => <Section title="Профіль" note="Біо, аватар, бали, допуски, бронювання, вхід із кодом." />;
 export const PanelPage = () => <Section title="Панель керування" note="Учасники, бали, дисципліна, ТЗ на перевірці, допуски, обладнання." />;
 
 export function ForbiddenPage() {

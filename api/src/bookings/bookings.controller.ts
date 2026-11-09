@@ -1,3 +1,5 @@
+import { ApiOkResponse } from '@nestjs/swagger';
+import { BookingDto } from './responses.dto';
 import {
   Body,
   Controller,
@@ -30,6 +32,7 @@ export class BookingsController {
   }
 
   @Can(Action.BookingsCreate)
+  @ApiOkResponse({ type: [BookingDto] })
   @Get('me')
   mine(@Req() req: Req) {
     return this.bookings.mine(req.user);
@@ -54,6 +57,7 @@ export class PlaceBookingsController {
 
   /** Calendar of a place (id or QR code). */
   @Can(Action.PlacesRead)
+  @ApiOkResponse({ type: [BookingDto] })
   @Get(':id/bookings')
   list(@Param('id') id: string, @Query() q: ListBookingsQuery) {
     return this.bookings.forPlace(id, q);

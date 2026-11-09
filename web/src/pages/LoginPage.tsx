@@ -12,7 +12,8 @@ export function safeNext(next: string | null) {
 }
 
 export function LoginPage() {
-  const { user, login, verifyTwoFactor } = useAuth();
+  const { user, login, verifyTwoFactor, exit } = useAuth();
+  const notice = exit?.notice;
   const [params] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -62,6 +63,12 @@ export function LoginPage() {
       <main className={s.box}>
         <img src="/icons/icon.svg" alt="" width={56} height={56} />
         <h1 className={s.title}>DigiComp HUB</h1>
+
+        {notice && !challenge && (
+          <p role="status" className={s.notice}>
+            {notice}
+          </p>
+        )}
 
         {!challenge ? (
           <form onSubmit={onPassword} className={s.form} noValidate>

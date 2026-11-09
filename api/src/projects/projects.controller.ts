@@ -1,3 +1,5 @@
+import { ApiOkResponse } from '@nestjs/swagger';
+import { ProjectListDto } from './responses.dto';
 import {
   Body,
   Controller,
@@ -32,6 +34,7 @@ export class ProjectsController {
   constructor(private projects: ProjectsService) {}
 
   @Can(Action.ProjectsRead)
+  @ApiOkResponse({ type: ProjectListDto })
   @Get()
   list(@Query() q: ListProjectsQuery) {
     return this.projects.list(q);

@@ -132,3 +132,15 @@ textarea {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+.field textarea {
+  min-height: 120px;
+  padding: 12px 14px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  resize: vertical;
+}
+.field input:disabled {
+  background: var(--c-surface2);
+  color: var(--c-text2);
+}

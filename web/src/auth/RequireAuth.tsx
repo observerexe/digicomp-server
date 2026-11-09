@@ -5,7 +5,7 @@ import { useAuth } from './AuthProvider';
 
 /** Logged-in area: unknown session → skeleton, none → /login?next=… */
 export function RequireAuth({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, exit } = useAuth();
   const loc = useLocation();
   if (loading) {
     return (
@@ -17,7 +17,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     );
   }
   if (!user) {
-    const next = encodeURIComponent(loc.pathname + loc.search);
+    const next = encodeURIComponent(exit?.next ?? loc.pathname + loc.search);
     return <Navigate to={`/login?next=${next}`} replace />;
   }
   return <>{children}</>;

@@ -29,3 +29,13 @@
   margin: 0;
   color: var(--c-text2);
 }
+.notice {
+  width: 100%;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-control);
+  background: var(--c-success-soft);
+  color: var(--c-success);
+  font-size: 14px;
+  line-height: 20px;
+}

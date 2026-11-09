@@ -32,6 +32,8 @@ import {
   TaskFile,
   TaskStatus,
 } from './task.entities';
+import type { Plain } from '../common/responses.dto';
+import type { TaskDto } from './responses.dto';
 
 /** Messages mapped to stable errorCode in common/http-exception.filter.ts. */
 export const TaskErrors = {
@@ -58,7 +60,7 @@ function sortAssignees(list: TaskAssignee[]) {
   );
 }
 
-function taskView(t: Task) {
+function taskView(t: Task): Plain<TaskDto> {
   return {
     id: t.id,
     title: t.title,

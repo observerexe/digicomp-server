@@ -1,3 +1,7 @@
+import { ApiOkResponse } from '@nestjs/swagger';
+import { OkDto } from '../common/responses.dto';
+import { MeDto } from '../users/responses.dto';
+import { RecoveryCodesDto, TwoFactorSetupDto } from './responses.dto';
 import {
   Body,
   Controller,
@@ -88,6 +92,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, PolicyGuard)
   @Can(Action.ProfileTwoFactor)
   @HttpCode(200)
+  @ApiOkResponse({ type: TwoFactorSetupDto })
   @Post('auth/2fa/setup')
   setupTwoFactor(@Req() req: { user: { id: string; role: string } }) {
     return this.twoFactor.setup(req.user);
@@ -98,6 +103,7 @@ export class AuthController {
   @Can(Action.ProfileTwoFactor)
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @HttpCode(200)
+  @ApiOkResponse({ type: RecoveryCodesDto })
   @Post('auth/2fa/enable')
   enableTwoFactor(
     @Body() dto: TwoFactorCodeDto,
@@ -110,6 +116,7 @@ export class AuthController {
   @Can(Action.ProfileTwoFactor)
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(200)
+  @ApiOkResponse({ type: OkDto })
   @Post('auth/2fa/disable')
   disableTwoFactor(
     @Body() dto: TwoFactorProofDto,
@@ -122,6 +129,7 @@ export class AuthController {
   @Can(Action.ProfileTwoFactor)
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(200)
+  @ApiOkResponse({ type: RecoveryCodesDto })
   @Post('auth/2fa/recovery-codes')
   regenerateRecoveryCodes(
     @Body() dto: TwoFactorCodeDto,
@@ -187,6 +195,7 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @ApiOkResponse({ type: MeDto })
   @Get('auth/me')
   me(@Req() req: { user: { id: string; role: string } }) {
     return this.users.me(req.user.id);

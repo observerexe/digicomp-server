@@ -144,3 +144,9 @@ export function errorText(code: string | undefined | null): string {
     (code.endsWith('_NOT_FOUND') ? ERROR_MESSAGES.NOT_FOUND! : ERROR_MESSAGES.ERROR!)
   );
 }
+
+/** Text for anything thrown by an API call (ApiError or a network failure). */
+export function errorOf(e: unknown): string {
+  const code = e && typeof e === 'object' && 'code' in e && typeof e.code === 'string' ? e.code : 'NETWORK';
+  return errorText(code);
+}

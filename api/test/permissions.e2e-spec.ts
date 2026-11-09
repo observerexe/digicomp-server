@@ -366,6 +366,13 @@ describe('Матриця прав (e2e)', () => {
         .post(`/api/users/${u.id}/avatar`)
         .attach('file', PNG_1PX, 'a.png');
       expect(up.status).toBe(201);
+      // Адреса під /api з версією: новий аватар не береться з кешу браузера.
+      expect(up.body.avatarUrl).toMatch(
+        new RegExp(`^/api/files/avatars/${u.id}\\?v=\\d+$`),
+      );
+      const img = await as(app, u).get(up.body.avatarUrl as string);
+      expect(img.status).toBe(200);
+      expect(img.headers['content-type']).toBe('image/png');
       allowed(await as(app, u).delete(`/api/users/${u.id}/avatar`));
     });
     it('member не змінює собі ім’я, посаду, спеціальність', async () => {
@@ -937,6 +944,30 @@ describe('Матриця прав (e2e)', () => {
       expect(a.body.email).toBe(member2.email);
       const b = await as(app, member).get(`/api/users/${member2.id}`);
       expect(b.body.email).toBeUndefined();
+    });
+    it('member бачить публічну картку: з біо й балами, без приватного', async () => {
+      await as(app, member2).patch('/api/users/me').send({ bio: 'Про мене' });
+      const one = await as(app, member).get(`/api/users/${member2.id}`);
+      expect(Object.keys(one.body).sort()).toEqual(
+        [
+          'avatarUrl',
+          'bio',
+          'id',
+          'name',
+          'pointsTotal',
+          'position',
+          'role',
+          'specialty',
+        ].sort(),
+      );
+      expect(one.body.bio).toBe('Про мене');
+      const list = await as(app, member).get('/api/users');
+      const card = (list.body.items as { id: string }[]).find(
+        (u) => u.id === member2.id,
+      );
+      expect(card).toMatchObject({ bio: 'Про мене' });
+      expect(card).not.toHaveProperty('email');
+      expect(card).not.toHaveProperty('active');
     });
     it('/auth/me віддає permissions з політики', async () => {
       const res = await as(app, mod).get('/api/auth/me').expect(200);

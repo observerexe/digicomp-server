@@ -1,7 +1,9 @@
 import { permissionsFor } from '../auth/policy';
+import type { Plain } from '../common/responses.dto';
+import type { MeDto, UserExtendedDto, UserPublicDto } from './responses.dto';
 import { User } from './user.entity';
 
-export function toProfile(u: User) {
+export function toProfile(u: User): Plain<MeDto> {
   return {
     id: u.id,
     email: u.email,
@@ -17,29 +19,25 @@ export function toProfile(u: User) {
   };
 }
 
-export function toExtendedView(u: User) {
+export function toExtendedView(u: User): Plain<UserExtendedDto> {
   return {
-    id: u.id,
+    ...toBasicView(u),
     email: u.email,
-    name: u.name,
-    role: u.role,
-    position: u.position,
-    specialty: u.specialty,
-    bio: u.bio,
-    avatarUrl: u.avatarUrl,
     active: u.active,
     twoFactorEnabled: !!u.totpEnabledAt,
     createdAt: u.createdAt,
   };
 }
 
-export function toBasicView(u: User) {
+/** Public card (docs/PLAN.md, «Команда» and «Чужий профіль»). */
+export function toBasicView(u: User): Plain<UserPublicDto> {
   return {
     id: u.id,
     name: u.name,
     role: u.role,
     position: u.position,
     specialty: u.specialty,
+    bio: u.bio,
     avatarUrl: u.avatarUrl,
   };
 }

@@ -15,10 +15,17 @@ import {
   UploadedFileLike,
   validateUpload,
 } from '../files/file-validation';
+import { API_PREFIX } from '../common/api-prefix';
 import { StorageService } from '../files/storage.service';
 import { SessionsService } from '../sessions/sessions.service';
 import { ListUsersQuery, UpdateProfileDto, UpdateUserDto } from './dto';
 import { toBasicView, toExtendedView, toProfile } from './profile';
+import type {
+  AvatarDto,
+  MeDto,
+  UserDetailDto,
+  UserListDto,
+} from './responses.dto';
 import { Role, User } from './user.entity';
 
 export type Actor = { id: string; role: string };
@@ -77,7 +84,7 @@ export class UsersService {
     return toProfile(u);
   }
 
-  async list(q: ListUsersQuery, actor: Actor) {
+  async list(q: ListUsersQuery, actor: Actor): Promise<UserListDto> {
     const extended = can(actor, Action.UsersReadExtended);
     const page = Math.max(1, Number(q.page ?? 1));
     const limit = Math.min(100, Math.max(1, Number(q.limit ?? 50)));
@@ -112,7 +119,7 @@ export class UsersService {
     };
   }
 
-  async get(id: string, actor: Actor) {
+  async get(id: string, actor: Actor): Promise<UserDetailDto> {
     const extended = can(actor, Action.UsersReadExtended);
     const u = await this.repo.findOneBy({ id });
     if (!u || (!extended && !u.active)) {
@@ -129,7 +136,7 @@ export class UsersService {
     };
   }
 
-  async updateProfile(actor: Actor, dto: UpdateProfileDto) {
+  async updateProfile(actor: Actor, dto: UpdateProfileDto): Promise<MeDto> {
     const id = actor.id;
     const u = await this.repo.findOneBy({ id });
     if (!u) throw new NotFoundException('User not found');
@@ -269,7 +276,7 @@ export class UsersService {
     id: string,
     file: UploadedFileLike | undefined,
     actor: Actor,
-  ) {
+  ): Promise<AvatarDto> {
     if (actor.id !== id) throw new ForbiddenException('Not allowed');
     const u = await this.repo.findOneBy({ id });
     if (!u) throw new NotFoundException('User not found');
@@ -278,7 +285,8 @@ export class UsersService {
       await this.storage.remove(`avatars/${id}.${ext}`);
     }
     await this.storage.save(`avatars/${id}.${info.ext}`, file!.buffer, true);
-    u.avatarUrl = `/files/avatars/${id}`;
+    // The version makes browsers drop the cached old picture.
+    u.avatarUrl = avatarUrl(id, Date.now());
     await this.repo.save(u);
     await this.audit.log({
       actorId: actor.id,
@@ -289,7 +297,7 @@ export class UsersService {
     return { avatarUrl: u.avatarUrl };
   }
 
-  async removeAvatar(id: string, actor: Actor) {
+  async removeAvatar(id: string, actor: Actor): Promise<AvatarDto> {
     if (actor.id !== id && !can(actor, Action.UsersModerateContent)) {
       throw new ForbiddenException('Not allowed');
     }
@@ -320,4 +328,9 @@ export class UsersService {
     }
     return changed;
   }
+}
+
+/** URL of the avatar file, under the API prefix; `v` busts the browser cache. */
+export function avatarUrl(userId: string, version: number) {
+  return `${API_PREFIX}/files/avatars/${userId}?v=${version}`;
 }

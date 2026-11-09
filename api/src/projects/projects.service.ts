@@ -23,6 +23,8 @@ import {
   ProjectMember,
   ProjectStage,
 } from './project.entities';
+import type { Plain } from '../common/responses.dto';
+import type { ProjectDto, ProjectListDto } from './responses.dto';
 
 type Actor = { id: string; role: string };
 
@@ -46,7 +48,7 @@ function memberView(u: User) {
   };
 }
 
-function projectView(p: Project) {
+function projectView(p: Project): Plain<ProjectDto> {
   return {
     id: p.id,
     title: p.title,
@@ -87,7 +89,7 @@ export class ProjectsService {
     private audit: AuditService,
   ) {}
 
-  async list(q: ListProjectsQuery) {
+  async list(q: ListProjectsQuery): Promise<ProjectListDto> {
     const page = Math.max(1, Number(q.page ?? 1));
     const limit = Math.min(100, Math.max(1, Number(q.limit ?? 50)));
     const qb = this.projects

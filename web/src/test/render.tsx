@@ -20,7 +20,7 @@ export const member: Me = {
   permissions: ['tasks.take', 'places.read'],
 };
 
-export const moderator: Me = { ...member, id: 'm1', name: 'Олег Петренко', role: 'moderator', permissions: [...member.permissions, 'users.manage'] };
+export const moderator: Me = { ...member, id: 'm1', name: 'Олег Петренко', role: 'moderator', permissions: [...member.permissions, 'users.manage', 'profile.edit_own_role_info'] };
 
 type Handler = (req: Request) => Response | Promise<Response>;
 

@@ -1493,15 +1493,74 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @enum {string} */
+        Role: "admin" | "moderator" | "member";
+        UserListItemDto: {
+            role: components["schemas"]["Role"];
+            avatarUrl: string | null;
+            email?: string;
+            active?: boolean;
+            twoFactorEnabled?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            id: string;
+            name: string;
+            position: string;
+            specialty: string;
+            bio: string;
+        };
+        UserListDto: {
+            items: components["schemas"]["UserListItemDto"][];
+            total: number;
+            page: number;
+            limit: number;
+        };
         UpdateProfileDto: {
             name?: string;
             position?: string;
             specialty?: string;
             bio?: string;
         };
+        MeDto: {
+            role: components["schemas"]["Role"];
+            avatarUrl: string | null;
+            email: string;
+            active: boolean;
+            twoFactorEnabled: boolean;
+            /** @description Actions allowed by the role (docs/PLAN.md); the API checks the rest. */
+            permissions: string[];
+            id: string;
+            name: string;
+            position: string;
+            specialty: string;
+            bio: string;
+        };
         ChangePasswordDto: {
             currentPassword: string;
             newPassword: string;
+        };
+        OkDto: {
+            /** @enum {boolean} */
+            ok: true;
+        };
+        UserDetailDto: {
+            role: components["schemas"]["Role"];
+            avatarUrl: string | null;
+            email?: string;
+            active?: boolean;
+            twoFactorEnabled?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            id: string;
+            name: string;
+            position: string;
+            specialty: string;
+            bio: string;
+            /** @description Sum of the points ledger (all time). */
+            pointsTotal: number;
+        };
+        AvatarDto: {
+            avatarUrl: string | null;
         };
         UpdateUserDto: {
             name?: string;
@@ -1513,6 +1572,20 @@ export interface components {
             /** @enum {string} */
             role?: "admin" | "moderator" | "member";
             active?: boolean;
+        };
+        UserExtendedDto: {
+            role: components["schemas"]["Role"];
+            avatarUrl: string | null;
+            email: string;
+            active: boolean;
+            twoFactorEnabled: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            name: string;
+            position: string;
+            specialty: string;
+            bio: string;
         };
         ResetPasswordDto: {
             newPassword: string;
@@ -1536,8 +1609,18 @@ export interface components {
             code?: string;
             recoveryCode?: string;
         };
+        TwoFactorSetupDto: {
+            /** @description Base32 secret for manual entry in the authenticator app. */
+            secret: string;
+            /** @description otpauth:// link to show as a QR code. */
+            otpauthUri: string;
+        };
         TwoFactorCodeDto: {
             code: string;
+        };
+        RecoveryCodesDto: {
+            /** @description Shown once; only hashes are stored. */
+            recoveryCodes: string[];
         };
         TwoFactorProofDto: {
             code?: string;
@@ -1545,6 +1628,43 @@ export interface components {
         };
         OptionalRefreshDto: {
             refreshToken?: string;
+        };
+        /** @enum {string} */
+        PointsKind: "task" | "manual" | "fine" | "reversal";
+        PointsCreatorDto: {
+            name: string | null;
+            id: string;
+        };
+        PointsHistoryEntryDto: {
+            kind: components["schemas"]["PointsKind"];
+            taskId: string | null;
+            taskTitle: string | null;
+            /** @description The entry this one cancels (kind = reversal). */
+            reversesId: string | null;
+            /** @description null for task points (awarded by the system on acceptance). */
+            createdBy: components["schemas"]["PointsCreatorDto"] | null;
+            id: string;
+            /** @description Negative for fines and reversals. */
+            amount: number;
+            reason: string;
+            /** @description A reversal entry exists for this one. */
+            revoked: boolean;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        PointsHistoryDto: {
+            /** @description Last 100 entries, newest first. */
+            history: components["schemas"]["PointsHistoryEntryDto"][];
+            balance: number;
+        };
+        LeaderboardRowDto: {
+            avatarUrl: string | null;
+            id: string;
+            name: string;
+            position: string;
+            total: number;
+            /** @description Equal totals share a rank. */
+            rank: number;
         };
         AwardPointsDto: {
             /** Format: uuid */
@@ -1555,6 +1675,38 @@ export interface components {
         PointsEntry: Record<string, never>;
         RevokeDto: {
             reason: string;
+        };
+        /** @enum {string} */
+        TaskStatus: "todo" | "queued" | "in_progress" | "review" | "done";
+        TaskAssigneeDto: {
+            /** @description null when the user no longer exists. */
+            name: string | null;
+            avatarUrl: string | null;
+            /**
+             * Format: date-time
+             * @description Order of taking decides who gets the remainder of a points split.
+             */
+            takenAt: string;
+            id: string;
+        };
+        TaskDto: {
+            description: string | null;
+            status: components["schemas"]["TaskStatus"];
+            /** Format: date-time */
+            dueDate: string | null;
+            /** Format: date-time */
+            completedAt: string | null;
+            /** @description In the order of taking. */
+            assignees: components["schemas"]["TaskAssigneeDto"][];
+            id: string;
+            title: string;
+            points: number;
+            maxAssignees: number;
+            createdById: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
         };
         CreateTaskDto: {
             title: string;
@@ -1574,6 +1726,36 @@ export interface components {
         };
         CommentDto: {
             body: string;
+        };
+        /** @enum {string} */
+        DisciplineType: "warning" | "fine" | "reprimand";
+        UserRefDto: {
+            /** @description null when the user no longer exists. */
+            name: string | null;
+            avatarUrl: string | null;
+            id: string;
+        };
+        DisciplineRecordDto: {
+            type: components["schemas"]["DisciplineType"];
+            /** @description Fine size in points; null for warnings and reprimands. */
+            amount: number | null;
+            user: components["schemas"]["UserRefDto"] | null;
+            issuedBy: components["schemas"]["UserRefDto"] | null;
+            /** Format: date-time */
+            revokedAt: string | null;
+            revokedBy: components["schemas"]["UserRefDto"] | null;
+            revokeReason: string | null;
+            id: string;
+            reason: string;
+            /** Format: date-time */
+            createdAt: string;
+            revoked: boolean;
+        };
+        DisciplineListDto: {
+            items: components["schemas"]["DisciplineRecordDto"][];
+            total: number;
+            page: number;
+            limit: number;
         };
         IssueDisciplineDto: {
             /** Format: uuid */
@@ -1613,6 +1795,30 @@ export interface components {
             equipmentState?: string;
             reason?: string;
         };
+        AuthorizationUserDto: {
+            id: string;
+            name: string;
+        };
+        PlaceRefDto: {
+            id: string;
+            code: string;
+            title: string;
+        };
+        AuthorizationDto: {
+            /**
+             * Format: date-time
+             * @description null — no end date.
+             */
+            expiresAt: string | null;
+            id: string;
+            user: components["schemas"]["AuthorizationUserDto"];
+            place: components["schemas"]["PlaceRefDto"];
+            grantedById: string;
+            /** Format: date-time */
+            grantedAt: string;
+            expired: boolean;
+            note: string;
+        };
         GrantAuthorizationDto: {
             /** Format: uuid */
             userId: string;
@@ -1627,6 +1833,33 @@ export interface components {
             startsAt: string;
             endsAt: string;
             note?: string;
+        };
+        BookingUserDto: {
+            avatarUrl?: string | null;
+            id: string;
+            name?: string;
+        };
+        BookingPlaceDto: {
+            id: string;
+            code?: string;
+            title?: string;
+        };
+        BookingDto: {
+            /** Format: date-time */
+            cancelledAt: string | null;
+            cancelledById: string | null;
+            id: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+            note: string;
+            /** Format: date-time */
+            createdAt: string;
+            cancelled: boolean;
+            cancelReason: string;
+            user: components["schemas"]["BookingUserDto"];
+            place: components["schemas"]["BookingPlaceDto"];
         };
         CancelBookingDto: {
             /** @description Required when cancelling someone else's booking. */
@@ -1691,6 +1924,46 @@ export interface components {
             /** Format: uuid */
             projectId?: string;
             idempotencyKey?: string;
+        };
+        /** @enum {string} */
+        ProjectStage: "idea" | "planning" | "execution" | "review" | "done";
+        ProjectMemberDto: {
+            avatarUrl: string | null;
+            id: string;
+            name: string;
+            position: string;
+        };
+        ProjectListItemDto: {
+            stage: components["schemas"]["ProjectStage"];
+            /**
+             * Format: date
+             * @description YYYY-MM-DD
+             */
+            startDate: string | null;
+            /**
+             * Format: date
+             * @description YYYY-MM-DD
+             */
+            deadline: string | null;
+            sources: string[];
+            createdById: string | null;
+            members: components["schemas"]["ProjectMemberDto"][];
+            id: string;
+            title: string;
+            description: string;
+            /** @description 0–100 */
+            progress: number;
+            accomplishments: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ProjectListDto: {
+            items: components["schemas"]["ProjectListItemDto"][];
+            total: number;
+            page: number;
+            limit: number;
         };
         CreateProjectDto: {
             title: string;
@@ -1805,7 +2078,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["UserListDto"];
+                };
             };
         };
     };
@@ -1826,7 +2101,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MeDto"];
+                };
             };
         };
     };
@@ -1847,7 +2124,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MeDto"];
+                };
             };
         };
     };
@@ -1868,7 +2147,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
             };
         };
     };
@@ -1887,7 +2168,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["UserDetailDto"];
+                };
             };
         };
     };
@@ -1910,7 +2193,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["UserExtendedDto"];
+                };
             };
         };
     };
@@ -1929,7 +2214,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AvatarDto"];
+                };
             };
         };
     };
@@ -1948,7 +2235,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AvatarDto"];
+                };
             };
         };
     };
@@ -2030,7 +2319,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MeDto"];
+                };
             };
         };
     };
@@ -2093,7 +2384,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TwoFactorSetupDto"];
+                };
             };
         };
     };
@@ -2114,7 +2407,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["RecoveryCodesDto"];
+                };
             };
         };
     };
@@ -2135,7 +2430,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
             };
         };
     };
@@ -2156,7 +2453,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["RecoveryCodesDto"];
+                };
             };
         };
     };
@@ -2253,7 +2552,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MeDto"];
+                };
             };
         };
     };
@@ -2270,7 +2571,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PointsHistoryDto"];
+                };
             };
         };
     };
@@ -2290,7 +2593,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["LeaderboardRowDto"][];
+                };
             };
         };
     };
@@ -2309,7 +2614,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PointsHistoryDto"];
+                };
             };
         };
     };
@@ -2378,7 +2685,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TaskDto"][];
+                };
             };
         };
     };
@@ -2399,7 +2708,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TaskDto"];
+                };
             };
         };
     };
@@ -2460,7 +2771,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TaskDto"];
+                };
             };
         };
     };
@@ -2479,7 +2792,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TaskDto"];
+                };
             };
         };
     };
@@ -2498,7 +2813,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TaskDto"];
+                };
             };
         };
     };
@@ -2517,7 +2834,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TaskDto"];
+                };
             };
         };
     };
@@ -2536,7 +2855,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TaskDto"];
+                };
             };
         };
     };
@@ -2559,7 +2880,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TaskDto"];
+                };
             };
         };
     };
@@ -2578,7 +2901,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TaskDto"];
+                };
             };
         };
     };
@@ -2677,7 +3002,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DisciplineRecordDto"][];
+                };
             };
         };
     };
@@ -2700,7 +3027,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DisciplineListDto"];
+                };
             };
         };
     };
@@ -2721,7 +3050,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DisciplineRecordDto"];
+                };
             };
         };
     };
@@ -2744,7 +3075,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DisciplineRecordDto"];
+                };
             };
         };
     };
@@ -2963,7 +3296,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AuthorizationDto"][];
+                };
             };
         };
     };
@@ -3024,7 +3359,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["BookingDto"];
+                };
             };
         };
     };
@@ -3041,7 +3378,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["BookingDto"][];
+                };
             };
         };
     };
@@ -3064,7 +3403,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["BookingDto"];
+                };
             };
         };
     };
@@ -3086,7 +3427,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["BookingDto"][];
+                };
             };
         };
     };
@@ -3590,7 +3933,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ProjectListDto"];
+                };
             };
         };
     };

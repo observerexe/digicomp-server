@@ -25,6 +25,8 @@ import {
   totpKey,
   verifyTotp,
 } from './totp';
+import type { OkDto } from '../common/responses.dto';
+import type { RecoveryCodesDto, TwoFactorSetupDto } from './responses.dto';
 
 export const TwoFactorErrors = {
   NotConfigured: 'Two-factor is not configured on the server',
@@ -94,7 +96,7 @@ export class TwoFactorService {
   }
 
   /** Step 1: new secret (not active until confirmed with a code). */
-  async setup(actor: Actor) {
+  async setup(actor: Actor): Promise<TwoFactorSetupDto> {
     const key = this.key();
     return this.ds.transaction(async (m) => {
       const u = await this.lockUser(m, actor.id);
@@ -112,7 +114,7 @@ export class TwoFactorService {
    * Step 2: confirm with a code. Returns recovery codes (shown once).
    * All sessions are closed: the next login goes through 2FA.
    */
-  async enable(actor: Actor, code: string) {
+  async enable(actor: Actor, code: string): Promise<RecoveryCodesDto> {
     const key = this.key();
     const codes = generateRecoveryCodes();
     const hashes = await Promise.all(codes.map((c) => argon2.hash(c)));
@@ -150,7 +152,7 @@ export class TwoFactorService {
     return { recoveryCodes: codes };
   }
 
-  async disable(actor: Actor, proof: Proof) {
+  async disable(actor: Actor, proof: Proof): Promise<OkDto> {
     requireProof(proof);
     const ok = await this.ds.transaction(async (m) => {
       const u = await this.lockUser(m, actor.id);
@@ -175,7 +177,10 @@ export class TwoFactorService {
   }
 
   /** New set of recovery codes; the old ones stop working. */
-  async regenerateRecoveryCodes(actor: Actor, code: string) {
+  async regenerateRecoveryCodes(
+    actor: Actor,
+    code: string,
+  ): Promise<RecoveryCodesDto> {
     const codes = generateRecoveryCodes();
     const hashes = await Promise.all(codes.map((c) => argon2.hash(c)));
     const ok = await this.ds.transaction(async (m) => {

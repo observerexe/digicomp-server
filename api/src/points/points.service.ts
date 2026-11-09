@@ -10,6 +10,7 @@ import { Action, Actor, assertCan } from '../auth/policy';
 import { User } from '../users/user.entity';
 import { AwardPointsDto, LeaderboardQuery, RevokeDto } from './dto';
 import { PointsEntry, PointsKind } from './points-entry.entity';
+import type { LeaderboardRowDto, PointsHistoryDto } from './responses.dto';
 
 export const PointsErrors = {
   UnknownMember: 'Unknown or inactive member',
@@ -50,7 +51,7 @@ export class PointsService {
   }
 
   /** Balance and the last 100 ledger entries of a user. */
-  async history(userId: string) {
+  async history(userId: string): Promise<PointsHistoryDto> {
     const rows = await this.ds.query<HistoryRow[]>(
       `SELECT p.id, p.kind, p.amount, p.reason, p.task_id AS "taskId",
               t.title AS "taskTitle", p.reverses_id AS "reversesId",
@@ -175,18 +176,9 @@ export class PointsService {
    * Ranking of active members. Revoked entries and their reversals are left
    * out, so a fine revoked next month does not add points to that month.
    */
-  leaderboard(q: LeaderboardQuery = {}) {
+  leaderboard(q: LeaderboardQuery = {}): Promise<LeaderboardRowDto[]> {
     const month = q.period === 'month';
-    return this.ds.query<
-      {
-        id: string;
-        name: string;
-        avatarUrl: string | null;
-        position: string;
-        total: number;
-        rank: number;
-      }[]
-    >(
+    return this.ds.query<LeaderboardRowDto[]>(
       `WITH effective AS (
          SELECT p.user_id, p.amount
          FROM points_ledger p

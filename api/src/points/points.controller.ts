@@ -1,3 +1,5 @@
+import { ApiOkResponse } from '@nestjs/swagger';
+import { LeaderboardRowDto, PointsHistoryDto } from './responses.dto';
 import {
   Body,
   Controller,
@@ -24,6 +26,7 @@ export class PointsController {
 
   /** Own balance and history. */
   @Can(Action.PointsRead)
+  @ApiOkResponse({ type: PointsHistoryDto })
   @Get('me')
   mine(@Req() req: Req) {
     return this.points.history(req.user.id);
@@ -31,6 +34,7 @@ export class PointsController {
 
   /** `period=month|all` (default all). Blocked members are not listed. */
   @Can(Action.PointsRead)
+  @ApiOkResponse({ type: [LeaderboardRowDto] })
   @Get('leaderboard')
   leaderboard(@Query() q: LeaderboardQuery) {
     return this.points.leaderboard(q);
@@ -38,6 +42,7 @@ export class PointsController {
 
   /** Another member's balance and history (staff). */
   @Can(Action.PointsReadAll)
+  @ApiOkResponse({ type: PointsHistoryDto })
   @Get('users/:userId')
   ofUser(@Param('userId', ParseUUIDPipe) userId: string) {
     return this.points.historyOf(userId);

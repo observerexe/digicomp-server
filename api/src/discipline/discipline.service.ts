@@ -14,6 +14,7 @@ import { PointsErrors, PointsService } from '../points/points.service';
 import { User } from '../users/user.entity';
 import { DisciplineRecord, DisciplineType } from './discipline.entity';
 import { IssueDisciplineDto, ListDisciplineQuery } from './dto';
+import type { DisciplineListDto, DisciplineRecordDto } from './responses.dto';
 
 export const DisciplineErrors = {
   AmountRequired: 'Fine amount is required',
@@ -22,7 +23,10 @@ export const DisciplineErrors = {
 
 type Ref = { id: string; name: string | null; avatarUrl: string | null };
 
-function view(r: DisciplineRecord, users: Map<string, User>) {
+function view(
+  r: DisciplineRecord,
+  users: Map<string, User>,
+): DisciplineRecordDto {
   const ref = (id: string | null): Ref | null => {
     if (!id) return null;
     const u = users.get(id);
@@ -64,7 +68,7 @@ export class DisciplineService {
   }
 
   /** Staff table, newest first. */
-  async list(q: ListDisciplineQuery) {
+  async list(q: ListDisciplineQuery): Promise<DisciplineListDto> {
     const page = Math.max(1, Number(q.page ?? 1));
     const limit = Math.min(100, Math.max(1, Number(q.limit ?? 50)));
     const qb = this.records

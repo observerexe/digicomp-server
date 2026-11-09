@@ -71,6 +71,41 @@ describe('OpenAPI і /docs (лише admin)', () => {
     ).toBe(true);
   });
 
+  it('відповіді, які використовує фронт, мають схеми', async () => {
+    const res = await as(app, admin).get('/api/docs/openapi.json').expect(200);
+    const paths = res.body.paths as Record<
+      string,
+      Record<string, { responses: Record<string, { content?: unknown }> }>
+    >;
+    const described: [string, string, string][] = [
+      ['/api/auth/me', 'get', '200'],
+      ['/api/auth/2fa/setup', 'post', '200'],
+      ['/api/auth/2fa/enable', 'post', '200'],
+      ['/api/auth/2fa/disable', 'post', '200'],
+      ['/api/auth/2fa/recovery-codes', 'post', '200'],
+      ['/api/users', 'get', '200'],
+      ['/api/users/{id}', 'get', '200'],
+      ['/api/users/me', 'patch', '200'],
+      ['/api/users/me/password', 'patch', '200'],
+      ['/api/users/{id}/avatar', 'post', '201'],
+      ['/api/users/{id}/avatar', 'delete', '200'],
+      ['/api/points/me', 'get', '200'],
+      ['/api/points/leaderboard', 'get', '200'],
+      ['/api/discipline/me', 'get', '200'],
+      ['/api/bookings/me', 'get', '200'],
+      ['/api/place-authorizations', 'get', '200'],
+      ['/api/tasks', 'get', '200'],
+      ['/api/projects', 'get', '200'],
+    ];
+    for (const [p, method, code] of described) {
+      expect([p, method, paths[p][method].responses[code].content]).toEqual([
+        p,
+        method,
+        expect.anything(),
+      ]);
+    }
+  });
+
   it('файли Swagger UI: лише зі списку', async () => {
     const js = await as(app, admin).get('/api/docs/assets/init.js').expect(200);
     expect(js.headers['content-type']).toContain('javascript');

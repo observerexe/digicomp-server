@@ -1,3 +1,6 @@
+import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
+import { OkDto } from '../common/responses.dto';
+import { AvatarDto, MeDto, UserDetailDto, UserListDto } from './responses.dto';
 import {
   Body,
   Controller,
@@ -34,18 +37,21 @@ export class UsersController {
   constructor(private users: UsersService) {}
 
   @Can(Action.UsersRead)
+  @ApiOkResponse({ type: UserListDto })
   @Get()
   list(@Query() q: ListUsersQuery, @Req() req: Req) {
     return this.users.list(q, req.user);
   }
 
   @Can(Action.ProfileEditOwnBio)
+  @ApiOkResponse({ type: MeDto })
   @Patch('me')
   updateMe(@Body() dto: UpdateProfileDto, @Req() req: Req) {
     return this.users.updateProfile(req.user, dto);
   }
 
   @Can(Action.ProfileChangePassword)
+  @ApiOkResponse({ type: OkDto })
   @Patch('me/password')
   changePassword(@Body() dto: ChangePasswordDto, @Req() req: Req) {
     return this.users.changePassword(
@@ -56,12 +62,14 @@ export class UsersController {
   }
 
   @Can(Action.UsersRead)
+  @ApiOkResponse({ type: UserDetailDto })
   @Get(':id')
   get(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
     return this.users.get(id, req.user);
   }
 
   @Can(Action.ProfileEditOwnAvatar)
+  @ApiCreatedResponse({ type: AvatarDto })
   @Post(':id/avatar')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -77,6 +85,7 @@ export class UsersController {
   }
 
   @Can(Action.ProfileEditOwnAvatar)
+  @ApiOkResponse({ type: AvatarDto })
   @Delete(':id/avatar')
   removeAvatar(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
     return this.users.removeAvatar(id, req.user);

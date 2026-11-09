@@ -18,6 +18,7 @@ export const TABS: NavItem[] = [
 
 /** Everything else: the «Ще» menu on a phone, the sidebar on a computer. */
 export const MORE: NavItem[] = [
+  { to: '/team', label: 'Команда', icon: 'users' },
   { to: '/projects', label: 'Проєкти', icon: 'folder' },
   { to: '/inventory', label: 'Склад', icon: 'box' },
   { to: '/docs', label: 'Архів', icon: 'file' },

@@ -1,3 +1,5 @@
+import { ApiOkResponse } from '@nestjs/swagger';
+import { AuthorizationDto } from './responses.dto';
 import {
   Body,
   Controller,
@@ -137,6 +139,7 @@ export class WorkSessionsController {
 export class AuthorizationsController {
   constructor(private places: PlacesService) {}
 
+  @ApiOkResponse({ type: [AuthorizationDto] })
   @Can(Action.PlacesRead)
   @Get()
   list(@Query() q: ListAuthorizationsQuery, @Req() req: Req) {
