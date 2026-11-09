@@ -12,13 +12,14 @@
 - `api/` — бекенд NestJS 12 + TypeORM + PostgreSQL 17 (Docker Compose у корені).
 - `api/src/<модуль>/` — controller, service, entity, dto для кожного модуля.
 - `api/src/migrations/` — міграції бази. `synchronize` вимкнено, схема змінюється лише міграціями.
-- `docs/*_UA.md` — довідники: API, вебчастина, бекапи, міграції, Home Assistant.
+- `docs/*_UA.md` — довідники: API, вебчастина, бекапи, міграції, Home Assistant, розширена панель.
+- `ops/agent/` — агент на сервері для розширеної панелі (Python, systemd).
 - `web/` (з'явиться на етапі 7) — новий фронт: React + TypeScript + Vite, PWA.
 
 ## Команди
 - Запуск усього: `docker compose up -d --build`
 - Бекенд локально: `cd api && npm ci && npm run start:dev`
-- Тести: `cd api && npm test` і `npm run test:e2e`
+- Тести: `cd api && npm test` і `npm run test:e2e`; агент сервера: `python3 -m unittest discover -s ops/agent`
 - Лінтер: `cd api && npm run lint`
 - Нова міграція: `./scripts/migration-generate.sh <Name>`
 

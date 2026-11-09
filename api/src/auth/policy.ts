@@ -37,6 +37,7 @@ export enum Action {
   UsersReadExtended = 'users.read_extended',
   UsersGrantAdmin = 'users.grant_admin',
   UsersResetPassword = 'users.reset_password',
+  UsersResetTwoFactor = 'users.reset_two_factor',
   UsersEditName = 'users.edit_name',
   UsersEditEmail = 'users.edit_email',
   UsersModerateContent = 'users.moderate_content',
@@ -52,6 +53,7 @@ export enum Action {
   ProfileEditOwnRoleInfo = 'profile.edit_own_role_info',
   ProfileEditOwnName = 'profile.edit_own_name',
   ProfileChangePassword = 'profile.change_password',
+  ProfileTwoFactor = 'profile.two_factor',
 
   // Points and discipline
   PointsRead = 'points.read',
@@ -126,6 +128,7 @@ export const ROLES: Record<Action, readonly Role[]> = {
   [Action.UsersReadExtended]: STAFF,
   [Action.UsersGrantAdmin]: ADMIN,
   [Action.UsersResetPassword]: ADMIN,
+  [Action.UsersResetTwoFactor]: ADMIN,
   [Action.UsersEditName]: ADMIN,
   [Action.UsersEditEmail]: ADMIN,
   [Action.UsersModerateContent]: ADMIN,
@@ -140,6 +143,7 @@ export const ROLES: Record<Action, readonly Role[]> = {
   [Action.ProfileEditOwnRoleInfo]: STAFF,
   [Action.ProfileEditOwnName]: ADMIN,
   [Action.ProfileChangePassword]: ALL,
+  [Action.ProfileTwoFactor]: ALL,
 
   [Action.PointsRead]: ALL,
   [Action.PointsAward]: STAFF,

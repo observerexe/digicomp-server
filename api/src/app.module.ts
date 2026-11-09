@@ -7,6 +7,7 @@ import { databaseOptions } from './database';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { HealthController } from './health/health.controller';
+import { AdminPanelModule } from './admin-panel/admin-panel.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { DocsModule } from './docs/docs.module';
@@ -47,6 +48,7 @@ import { UsersModule } from './users/users.module';
     ProjectsModule,
     SmartModule,
     DocsModule,
+    AdminPanelModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService, { provide: APP_GUARD, useClass: AppThrottlerGuard }],

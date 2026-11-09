@@ -1,6 +1,6 @@
 # API DigiComp HUB — довідник для фронтенду
 
-Цей файл описує все, що вміє бекенд станом на етап 3 з `docs/PLAN.md`. Нові зміни додаються сюди ж.
+Цей файл описує все, що вміє бекенд станом на етап 4 з `docs/PLAN.md`. Нові зміни додаються сюди ж.
 Контракт `/auth` не змінювався. `/tasks` перероблено на етапі 2: `PATCH /tasks/:id/status` і `assigneeIds` прибрано, замість них окремі дії (див. «ТЗ»). Старий фронт ТЗ через новий API не працюватиме.
 
 ## Загальні правила
@@ -55,6 +55,15 @@
 | `FAULT_CLOSED` | 409 | Звіт про несправність уже закрито |
 | `FAULT_PHOTO_LIMIT` | 409 | До звіту вже додано 3 фото |
 | `PROJECT_DATES_INVALID` | 400 | Дедлайн проєкту раніше дати початку |
+| `TWO_FACTOR_INVALID_CODE` | 403 | Неправильний або вже використаний код 2FA чи код відновлення |
+| `TWO_FACTOR_LOCKED` | 403 | 10 неправильних кодів поспіль: перевірка заблокована на 15 хвилин |
+| `TWO_FACTOR_CHALLENGE_INVALID` | 401 | `challengeToken` невалідний або минуло 5 хвилин: увійдіть знову |
+| `TWO_FACTOR_CODE_REQUIRED` | 400 | Не передано ні `code`, ні `recoveryCode` |
+| `TWO_FACTOR_ALREADY_ENABLED`, `TWO_FACTOR_NOT_ENABLED`, `TWO_FACTOR_NO_SETUP` | 409 | 2FA вже увімкнена, ще не увімкнена або не було кроку `setup` |
+| `TWO_FACTOR_NOT_CONFIGURED` | 503 | На сервері немає `TOTP_KEY` |
+| `TWO_FACTOR_REQUIRED` | 403 | Розширена панель доступна лише після входу з кодом 2FA |
+| `AGENT_UNAVAILABLE` | 503 | Агент на сервері не відповідає (не встановлений, зупинений, інший токен) |
+| `AGENT_BUSY` | 409 | На сервері вже виконується інша дія з панелі |
 | `FORBIDDEN` | 403 | Роль не має права на цю дію (за матрицею) |
 | `TARGET_ROLE_FORBIDDEN` | 403 | Модератор намагається діяти над модератором чи адміном |
 | `SELF_ACTION_FORBIDDEN` | 403 | Дія над собою заборонена: модератор через `/users/:id`, нарахування балів собі, прийняття власного ТЗ |
@@ -103,6 +112,11 @@
 | POST | `/auth/logout` | публічний (за refresh-токеном) |
 | POST | `/auth/logout-all` | будь-який авторизований |
 | GET | `/auth/me` | будь-який авторизований |
+| POST | `/auth/2fa/verify` | публічний (за `challengeToken` з `/auth/login`) |
+| POST | `/auth/2fa/setup` | будь-який авторизований (свій акаунт) |
+| POST | `/auth/2fa/enable` | будь-який авторизований |
+| POST | `/auth/2fa/disable` | будь-який авторизований |
+| POST | `/auth/2fa/recovery-codes` | будь-який авторизований |
 
 ### Користувачі
 
@@ -117,6 +131,7 @@
 | DELETE | `/users/:id/avatar` | власний; чужий лише admin |
 | PATCH | `/users/:id` | admin; moderator лише над `member` і лише деякі поля (див. нижче) |
 | POST | `/users/:id/reset-password` | admin |
+| POST | `/users/:id/2fa/reset` | admin |
 
 ### ТЗ (дошка завдань)
 
@@ -264,6 +279,53 @@
 | POST | `/smart/allowlist` | admin |
 | PATCH | `/smart/allowlist/:id` | admin |
 | DELETE | `/smart/allowlist/:id` | admin |
+
+### Розширена панель (лише порт 3001, див. `docs/ADMIN_PANEL_UA.md`)
+
+| Метод | Шлях | Хто має доступ |
+|---|---|---|
+| GET | `/admin-panel/overview` | admin з сесією 2FA |
+| GET | `/admin-panel/logs` | admin з сесією 2FA |
+| POST | `/admin-panel/actions/backup` | admin з сесією 2FA |
+| POST | `/admin-panel/actions/restore-check` | admin з сесією 2FA |
+| POST | `/admin-panel/actions/restart` | admin з сесією 2FA |
+| GET | `/admin-panel/jobs/:id` | admin з сесією 2FA |
+
+**Двофакторний вхід (2FA).**
+- Коди з застосунку-автентифікатора (TOTP: 6 цифр, 30 секунд). Підходять Aegis, Google Authenticator, 1Password тощо. Увімкнути 2FA може кожен; для розширеної панелі вона обов'язкова.
+- **Увімкнення:**
+  - `POST /auth/2fa/setup` повертає `{ secret, otpauthUri }`. З `otpauthUri` фронт малює QR. Поки 2FA не підтверджена, вона не діє.
+  - `POST /auth/2fa/enable { code }` повертає `{ recoveryCodes: [8 кодів] }`. Коди показуються лише раз.
+  - Після увімкнення всі сесії користувача закриваються: увійти треба знову, тепер із кодом.
+- **Вхід:**
+  - якщо 2FA увімкнена, `POST /auth/login` відповідає 200 з `{ twoFactorRequired: true, challengeToken }`, без токенів і cookie;
+  - далі `POST /auth/2fa/verify { challengeToken, code }` або `{ challengeToken, recoveryCode }` повертає те саме, що звичайний вхід (токени або cookie для `X-DC-Client: web`);
+  - `challengeToken` діє 5 хвилин і не працює як токен доступу.
+- **Захист від підбору і повторів:**
+  - кожен код приймається лише раз; код, старший за вже використаний, теж не приймається;
+  - код відновлення одноразовий, у базі зберігаються лише хеші;
+  - після 10 неправильних кодів поспіль перевірка блокується на 15 хвилин (`TWO_FACTOR_LOCKED`);
+  - на `/auth/2fa/verify` діє ліміт 5 спроб на хвилину.
+- `POST /auth/2fa/disable { code | recoveryCode }` вимикає 2FA. `POST /auth/2fa/recovery-codes { code }` видає новий набір кодів відновлення, старі перестають діяти.
+- `POST /users/:id/2fa/reset` (admin) скидає 2FA людині, яка загубила телефон, і закриває її сесії. Пишеться в аудит.
+- У `GET /auth/me` і в розширеному профілі є `twoFactorEnabled`.
+- Секрет 2FA зашифровано в базі ключем `TOTP_KEY`. Без цього ключа на сервері 2FA не вмикається (503 `TWO_FACTOR_NOT_CONFIGURED`).
+
+**Розширена панель.**
+- Працює лише на панельному порту (`PANEL_PORT`, за замовчуванням 3001), відкритому через `tailscale serve`. На основному порту ці шляхи відповідають 404.
+- Потрібен `admin` у сесії, де вхід був із кодом 2FA. Інакше 403 `TWO_FACTOR_REQUIRED`. Якщо 2FA вимкнули, такі сесії теж перестають підходити.
+- `GET /admin-panel/overview` повертає:
+  - `metrics`: `cpuPercent`, `cpuCount`, `load`, `memory { totalBytes, usedBytes, availableBytes }`, `disks [{ path, totalBytes, usedBytes, freeBytes }]`, `uptimeSeconds`;
+  - `containers`: `[{ name: "api" | "db" | "homeassistant", state, health, status }]`;
+  - `lastBackup`: `{ found, count, file, sizeBytes, at }`.
+- `GET /admin-panel/logs?lines=200` (1–500): `{ lines: [] }`, останні рядки логу API.
+- Дії відповідають 202 з задачею `{ id, action, status: "running", startedAt }`:
+  - `POST /admin-panel/actions/backup` і `/actions/restore-check`;
+  - `/actions/restart { target: "api" | "ha" }` — базу з панелі не перезапустити.
+
+  Одночасно виконується лише одна дія, інакше 409 `AGENT_BUSY`.
+- `GET /admin-panel/jobs/:id` повертає статус задачі: `running`, `succeeded` або `failed`, `exitCode` і до 100 останніх рядків `output`. Після перезапуску API фронт має кілька секунд чекати і повторювати запит.
+- Кожна дія пишеться в аудит (`panel.action`). Метрики, логи й дії дає агент на сервері; якщо він не відповідає — 503 `AGENT_UNAVAILABLE`.
 
 ### Аудит
 

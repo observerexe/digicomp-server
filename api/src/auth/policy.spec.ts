@@ -33,6 +33,25 @@ type Case = [
 ];
 
 const ROWS: Record<string, Case[]> = {
+  '2FA: своя і скидання чужої': [
+    ['member: своя', member, Action.ProfileTwoFactor, undefined, true],
+    ['moderator: своя', mod, Action.ProfileTwoFactor, undefined, true],
+    ['admin: скинути чужу', admin, Action.UsersResetTwoFactor, undefined, true],
+    [
+      'moderator: скинути чужу',
+      mod,
+      Action.UsersResetTwoFactor,
+      undefined,
+      Deny.Forbidden,
+    ],
+    [
+      'member: скинути чужу',
+      member,
+      Action.UsersResetTwoFactor,
+      undefined,
+      Deny.Forbidden,
+    ],
+  ],
   'Розширена панель': [
     ['admin', admin, Action.AdminPanel, undefined, true],
     ['moderator', mod, Action.AdminPanel, undefined, Deny.Forbidden],

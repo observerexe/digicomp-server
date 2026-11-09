@@ -29,6 +29,10 @@ export class RefreshSession {
   @Column({ name: 'revoked_at', type: 'timestamp', nullable: true })
   revokedAt: Date | null;
 
+  /** Login of this session family passed two-factor verification. */
+  @Column({ type: 'boolean', default: false })
+  mfa: boolean;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

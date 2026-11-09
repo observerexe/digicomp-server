@@ -3,6 +3,8 @@ import {
   Controller,
   Get,
   HttpCode,
+  Param,
+  ParseUUIDPipe,
   Post,
   Req,
   Res,
@@ -21,7 +23,15 @@ import {
   readCookie,
   setAuthCookies,
 } from './cookies';
-import { CreateUserDto, LoginDto, OptionalRefreshDto } from './dto';
+import {
+  CreateUserDto,
+  LoginDto,
+  OptionalRefreshDto,
+  TwoFactorCodeDto,
+  TwoFactorProofDto,
+  TwoFactorVerifyDto,
+} from './dto';
+import { TwoFactorService } from './two-factor.service';
 import { JwtAuthGuard, Can, PolicyGuard } from './roles';
 import { Action } from './policy';
 
@@ -30,6 +40,7 @@ export class AuthController {
   constructor(
     private auth: AuthService,
     private users: UsersService,
+    private twoFactor: TwoFactorService,
   ) {}
 
   @Throttle({ default: { limit: 5, ttl: 60000 } })
@@ -47,11 +58,88 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.auth.login(dto);
+    // 2FA on: no tokens yet, the client sends the code to /auth/2fa/verify.
+    if ('twoFactorRequired' in result) return result;
     if (isWebClient(req)) {
       setAuthCookies(req, res, result.accessToken, result.refreshToken);
       return { user: result.user };
     }
     return result;
+  }
+
+  /** Second login step: challengeToken from /auth/login + code or recovery code. */
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @HttpCode(200)
+  @Post('auth/2fa/verify')
+  async verifyTwoFactor(
+    @Body() dto: TwoFactorVerifyDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.auth.verifyTwoFactor(dto);
+    if (isWebClient(req)) {
+      setAuthCookies(req, res, result.accessToken, result.refreshToken);
+      return { user: result.user };
+    }
+    return result;
+  }
+
+  /** Start 2FA setup: secret and otpauth:// link for a QR code. */
+  @UseGuards(JwtAuthGuard, PolicyGuard)
+  @Can(Action.ProfileTwoFactor)
+  @HttpCode(200)
+  @Post('auth/2fa/setup')
+  setupTwoFactor(@Req() req: { user: { id: string; role: string } }) {
+    return this.twoFactor.setup(req.user);
+  }
+
+  /** Confirm with a code: 2FA on, recovery codes returned once, all sessions closed. */
+  @UseGuards(JwtAuthGuard, PolicyGuard)
+  @Can(Action.ProfileTwoFactor)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @HttpCode(200)
+  @Post('auth/2fa/enable')
+  enableTwoFactor(
+    @Body() dto: TwoFactorCodeDto,
+    @Req() req: { user: { id: string; role: string } },
+  ) {
+    return this.twoFactor.enable(req.user, dto.code);
+  }
+
+  @UseGuards(JwtAuthGuard, PolicyGuard)
+  @Can(Action.ProfileTwoFactor)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @HttpCode(200)
+  @Post('auth/2fa/disable')
+  disableTwoFactor(
+    @Body() dto: TwoFactorProofDto,
+    @Req() req: { user: { id: string; role: string } },
+  ) {
+    return this.twoFactor.disable(req.user, dto);
+  }
+
+  @UseGuards(JwtAuthGuard, PolicyGuard)
+  @Can(Action.ProfileTwoFactor)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @HttpCode(200)
+  @Post('auth/2fa/recovery-codes')
+  regenerateRecoveryCodes(
+    @Body() dto: TwoFactorCodeDto,
+    @Req() req: { user: { id: string; role: string } },
+  ) {
+    return this.twoFactor.regenerateRecoveryCodes(req.user, dto.code);
+  }
+
+  /** Admin turns off 2FA of a user who lost access to the app. */
+  @UseGuards(JwtAuthGuard, PolicyGuard)
+  @Can(Action.UsersResetTwoFactor)
+  @HttpCode(200)
+  @Post('users/:id/2fa/reset')
+  resetTwoFactor(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: { user: { id: string; role: string } },
+  ) {
+    return this.twoFactor.reset(id, req.user);
   }
 
   @Throttle({ default: { limit: 20, ttl: 60000 } })

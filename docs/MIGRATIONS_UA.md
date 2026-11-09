@@ -82,3 +82,13 @@
 - Додано `projects.start_date`, `projects.deadline` (тип `date`).
 - `down` відновлює текстовий статус з етапу («Планується», «В роботі» тощо; оригінал лишається в аудиті). Бронювання, звіти та фото видаляються.
 - Перевірено e2e-тестом `api/test/migration-lab.e2e-spec.ts`.
+
+### `TwoFactorAuth` (етап 4)
+
+- Додає в `users` поля 2FA:
+  - `totp_secret_enc` — секрет, зашифрований ключем `TOTP_KEY`;
+  - `totp_enabled_at`, `totp_last_step`, `totp_failed_attempts`, `totp_locked_until`;
+  - `recovery_codes` — хеші argon2.
+- Додає `mfa` у `refresh_sessions`: чи пройшла ця сесія 2FA.
+- Лише нові колонки зі значеннями за замовчуванням; наявні дані не змінюються, 2FA ні в кого не вмикається.
+- `down` видаляє ці колонки: увімкнена 2FA зникає, користувачі входять лише за паролем.

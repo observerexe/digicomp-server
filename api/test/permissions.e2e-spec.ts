@@ -15,8 +15,7 @@ import {
 
 // Матриця прав з docs/PLAN.md («Ролі та права») на реальних ендпоінтах.
 // Кожен рядок таблиці — describe; у ньому перевірка для кожної ролі.
-// Рядки для модулів, яких ще немає в бекенді, позначено it.todo
-// (їхні правила вже покриті unit-тестом src/auth/policy.spec.ts).
+// Рядок «Розширена панель» — у admin-panel.e2e-spec.ts.
 
 type Res = { status: number; body: { errorCode?: string } };
 
@@ -60,9 +59,8 @@ describe('Матриця прав (e2e)', () => {
   const audit = (action: string, entityId: string) =>
     app.get(DataSource).getRepository(AuditLog).findOneBy({ action, entityId });
 
-  describe('Розширена панель (метрики, логи, бекап, перезапуск)', () => {
-    it.todo('етап 4: admin так, moderator і member ні');
-  });
+  // Рядок «Розширена панель» перевіряється в admin-panel.e2e-spec.ts:
+  // там окремий панельний порт і фейковий агент на сервері.
 
   describe('Журнал усіх дій (аудит)', () => {
     it('admin так', async () => {

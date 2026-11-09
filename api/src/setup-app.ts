@@ -2,6 +2,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { DocsService } from './docs/docs.controller';
 import { buildOpenApi } from './docs/openapi';
 import { AllExceptionsFilter } from './common/http-exception.filter';
+import { panelPortGuard } from './admin-panel/panel-port';
 import { apiNoStore, csrfGuard, securityHeaders } from './common/web';
 
 /**
@@ -10,6 +11,7 @@ import { apiNoStore, csrfGuard, securityHeaders } from './common/web';
  */
 export function setupApp(app: INestApplication) {
   app.use(securityHeaders);
+  app.use(panelPortGuard);
   app.use(csrfGuard);
   app.use(apiNoStore);
   app.useGlobalFilters(new AllExceptionsFilter());

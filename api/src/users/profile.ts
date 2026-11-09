@@ -12,6 +12,7 @@ export function toProfile(u: User) {
     bio: u.bio,
     avatarUrl: u.avatarUrl,
     active: u.active,
+    twoFactorEnabled: !!u.totpEnabledAt,
     permissions: permissionsFor(u.role),
   };
 }
@@ -27,6 +28,7 @@ export function toExtendedView(u: User) {
     bio: u.bio,
     avatarUrl: u.avatarUrl,
     active: u.active,
+    twoFactorEnabled: !!u.totpEnabledAt,
     createdAt: u.createdAt,
   };
 }

@@ -399,6 +399,150 @@
         ]
       }
     },
+    "/auth/2fa/verify": {
+      "post": {
+        "operationId": "AuthController_verifyTwoFactor",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwoFactorVerifyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Second login step: challengeToken from /auth/login + code or recovery code.",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/2fa/setup": {
+      "post": {
+        "operationId": "AuthController_setupTwoFactor",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Start 2FA setup: secret and otpauth:// link for a QR code.",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/2fa/enable": {
+      "post": {
+        "operationId": "AuthController_enableTwoFactor",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwoFactorCodeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Confirm with a code: 2FA on, recovery codes returned once, all sessions closed.",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/2fa/disable": {
+      "post": {
+        "operationId": "AuthController_disableTwoFactor",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwoFactorProofDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/2fa/recovery-codes": {
+      "post": {
+        "operationId": "AuthController_regenerateRecoveryCodes",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwoFactorCodeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/users/{id}/2fa/reset": {
+      "post": {
+        "operationId": "AuthController_resetTwoFactor",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Admin turns off 2FA of a user who lost access to the app.",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
     "/auth/refresh": {
       "post": {
         "operationId": "AuthController_refresh",
@@ -2929,6 +3073,143 @@
           "Smart"
         ]
       }
+    },
+    "/admin-panel/overview": {
+      "get": {
+        "operationId": "AdminPanelController_overview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "CPU, RAM, disks, uptime, containers (api, db, homeassistant), last backup.",
+        "tags": [
+          "AdminPanel"
+        ]
+      }
+    },
+    "/admin-panel/logs": {
+      "get": {
+        "operationId": "AdminPanelController_logs",
+        "parameters": [
+          {
+            "name": "lines",
+            "required": false,
+            "in": "query",
+            "description": "Number of last lines, 1–500 (default 200).",
+            "schema": {
+              "maxLength": 3,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Last lines of the API log.",
+        "tags": [
+          "AdminPanel"
+        ]
+      }
+    },
+    "/admin-panel/actions/backup": {
+      "post": {
+        "operationId": "AdminPanelController_backup",
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "AdminPanel"
+        ]
+      }
+    },
+    "/admin-panel/actions/restore-check": {
+      "post": {
+        "operationId": "AdminPanelController_restoreCheck",
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "AdminPanel"
+        ]
+      }
+    },
+    "/admin-panel/actions/restart": {
+      "post": {
+        "operationId": "AdminPanelController_restart",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestartDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Restart the API or Home Assistant (not the database).",
+        "tags": [
+          "AdminPanel"
+        ]
+      }
+    },
+    "/admin-panel/jobs/{id}": {
+      "get": {
+        "operationId": "AdminPanelController_job",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Status and last output lines of a started action.",
+        "tags": [
+          "AdminPanel"
+        ]
+      }
     }
   },
   "info": {
@@ -3095,6 +3376,51 @@
           "email",
           "password"
         ]
+      },
+      "TwoFactorVerifyDto": {
+        "type": "object",
+        "properties": {
+          "challengeToken": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^\\d{6}$"
+          },
+          "recoveryCode": {
+            "type": "string",
+            "maxLength": 20
+          }
+        },
+        "required": [
+          "challengeToken"
+        ]
+      },
+      "TwoFactorCodeDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^\\d{6}$"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "TwoFactorProofDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^\\d{6}$"
+          },
+          "recoveryCode": {
+            "type": "string",
+            "maxLength": 20
+          }
+        }
       },
       "OptionalRefreshDto": {
         "type": "object",
@@ -3831,6 +4157,22 @@
             "type": "boolean"
           }
         }
+      },
+      "RestartDto": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "Only the API and Home Assistant; the database is never restarted here.",
+            "enum": [
+              "api",
+              "ha"
+            ]
+          }
+        },
+        "required": [
+          "target"
+        ]
       }
     }
   }

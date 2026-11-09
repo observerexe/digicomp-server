@@ -15,6 +15,14 @@ export class AppThrottlerGuard extends ThrottlerGuard {
     if (path === '/auth/login' && typeof body.email === 'string') {
       return 'login:' + body.email.trim().toLowerCase().slice(0, 200);
     }
+    // 2FA codes: counted per login attempt, not per IP.
+    if (
+      path === '/auth/2fa/verify' &&
+      typeof body.challengeToken === 'string'
+    ) {
+      const h = createHash('sha256').update(body.challengeToken).digest('hex');
+      return '2fa:' + h.slice(0, 32);
+    }
     if (path === '/auth/refresh' || path === '/auth/logout') {
       const rt =
         typeof body.refreshToken === 'string'

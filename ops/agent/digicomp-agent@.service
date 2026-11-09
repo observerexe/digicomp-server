@@ -1,0 +1,43 @@
+# Агент розширеної панелі DigiComp HUB.
+# Встановлення: docs/ADMIN_PANEL_UA.md. Запуск від вашого користувача:
+#   sudo systemctl enable --now digicomp-agent@$USER
+[Unit]
+Description=DigiComp server agent (admin panel)
+After=docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=%i
+Group=docker
+EnvironmentFile=/etc/digicomp-agent.env
+ExecStart=/usr/bin/python3 /opt/digicomp-agent/digicomp_agent.py
+Restart=on-failure
+RestartSec=5
+
+# Сокет: /run/digicomp-agent/agent.sock. Тека лишається між перезапусками,
+# бо вона змонтована в контейнер API.
+RuntimeDirectory=digicomp-agent
+RuntimeDirectoryMode=0750
+RuntimeDirectoryPreserve=yes
+
+# Ізоляція. Агенту потрібні лише docker (через unix-сокет) і тека бекапів.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

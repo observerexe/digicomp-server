@@ -2,6 +2,7 @@ import {
   IsEmail,
   IsOptional,
   IsString,
+  Matches,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -53,4 +54,30 @@ export class OptionalRefreshDto {
   @MinLength(20)
   @MaxLength(200)
   refreshToken?: string;
+}
+
+/** 6-digit code from the authenticator app. */
+export class TwoFactorCodeDto {
+  @IsString()
+  @Matches(/^\d{6}$/)
+  code: string;
+}
+
+/** Either a code from the app or a one-time recovery code. */
+export class TwoFactorProofDto {
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{6}$/)
+  code?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  recoveryCode?: string;
+}
+
+export class TwoFactorVerifyDto extends TwoFactorProofDto {
+  @IsString()
+  @MaxLength(1000)
+  challengeToken: string;
 }

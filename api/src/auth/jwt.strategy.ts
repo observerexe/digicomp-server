@@ -19,9 +19,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: { sub: string }) {
+  async validate(payload: { sub: string; mfa?: boolean }) {
     const user = await this.users.findOneBy({ id: payload.sub });
     if (!user || !user.active) throw new UnauthorizedException();
-    return { id: user.id, role: user.role };
+    // mfa: this login passed 2FA and 2FA is still on for the user.
+    const mfa = payload.mfa === true && user.totpEnabledAt !== null;
+    return { id: user.id, role: user.role, mfa };
   }
 }

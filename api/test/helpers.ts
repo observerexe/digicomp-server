@@ -77,3 +77,16 @@ export const PNG_1PX = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
   'base64',
 );
+
+/**
+ * Access token of a session that passed 2FA (2FA marked as enabled in the
+ * database). The full 2FA flow is covered by two-factor.e2e-spec.ts.
+ */
+export async function mfaToken(app: INestApplication, user: TestUser) {
+  await app
+    .get(DataSource)
+    .query(`UPDATE users SET totp_enabled_at = now() WHERE id = $1`, [user.id]);
+  return app
+    .get(JwtService)
+    .signAsync({ sub: user.id, role: user.role, mfa: true });
+}

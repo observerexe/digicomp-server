@@ -18,8 +18,8 @@ export class SessionsService {
     @InjectDataSource() private ds: DataSource,
   ) {}
 
-  async issue(userId: string, familyId: string = randomUUID()) {
-    return this.create(this.repo, userId, familyId);
+  async issue(userId: string, mfa = false, familyId: string = randomUUID()) {
+    return this.create(this.repo, userId, familyId, mfa);
   }
 
   async rotate(token: string) {
@@ -50,13 +50,19 @@ export class SessionsService {
         m.getRepository(RefreshSession),
         s.userId,
         s.familyId,
+        s.mfa,
       );
-      return { error: false as const, userId: s.userId, token: next };
+      return {
+        error: false as const,
+        userId: s.userId,
+        token: next,
+        mfa: s.mfa,
+      };
     });
     if (result.error) {
       throw new UnauthorizedException('Invalid refresh token');
     }
-    return { userId: result.userId, token: result.token };
+    return { userId: result.userId, token: result.token, mfa: result.mfa };
   }
 
   async revokeByToken(token: string) {
@@ -80,6 +86,7 @@ export class SessionsService {
     repo: Repository<RefreshSession>,
     userId: string,
     familyId: string,
+    mfa: boolean,
   ) {
     const token = randomBytes(48).toString('base64url');
     await repo.save(
@@ -89,6 +96,7 @@ export class SessionsService {
         tokenHash: hash(token),
         expiresAt: new Date(Date.now() + TTL_MS),
         revokedAt: null,
+        mfa,
       }),
     );
     return token;
