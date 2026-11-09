@@ -4,6 +4,9 @@ import { AppShell } from './layout/AppShell';
 import { AboutPage } from './pages/AboutPage';
 import { LoginPage } from './pages/LoginPage';
 import { MorePage } from './pages/MorePage';
+import { DisciplinePage } from './pages/points/DisciplinePage';
+import { PointsPage } from './pages/points/PointsPage';
+import { RatingPage } from './pages/points/RatingPage';
 import { TaskFormPage } from './pages/tasks/TaskFormPage';
 import { TaskPage } from './pages/tasks/TaskPage';
 import { TasksPage } from './pages/tasks/TasksPage';
@@ -24,7 +27,6 @@ import {
   NotFoundPage,
   PanelPage,
   ProjectsPage,
-  RatingPage,
 } from './pages/sections';
 import { TeamPage } from './pages/team/TeamPage';
 import { UserPage } from './pages/team/UserPage';
@@ -74,6 +76,22 @@ export const routes: RouteObject[] = [
       { path: 'inventory', element: <InventoryPage /> },
       { path: 'docs', element: <DocsPage /> },
       { path: 'rating', element: <RatingPage /> },
+      {
+        path: 'points',
+        element: (
+          <RequirePermission action="points.award" fallback={<ForbiddenPage />}>
+            <PointsPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'discipline',
+        element: (
+          <RequirePermission action="discipline.issue" fallback={<ForbiddenPage />}>
+            <DisciplinePage />
+          </RequirePermission>
+        ),
+      },
       { path: 'profile', element: <ProfilePage /> },
       { path: 'profile/edit', element: <EditProfilePage /> },
       { path: 'profile/password', element: <PasswordPage /> },

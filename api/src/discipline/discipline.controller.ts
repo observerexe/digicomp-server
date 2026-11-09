@@ -1,4 +1,4 @@
-import { ApiOkResponse } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
 import { DisciplineListDto, DisciplineRecordDto } from './responses.dto';
 import {
   Body,
@@ -42,6 +42,7 @@ export class DisciplineController {
   }
 
   /** Warning, fine (takes points) or reprimand; a moderator not to self. */
+  @ApiCreatedResponse({ type: DisciplineRecordDto })
   @Can(Action.DisciplineIssue)
   @Post()
   issue(@Body() dto: IssueDisciplineDto, @Req() req: Req) {
@@ -49,6 +50,7 @@ export class DisciplineController {
   }
 
   /** Revoke with a reason; a revoked fine returns the points. */
+  @ApiOkResponse({ type: DisciplineRecordDto })
   @Can(Action.DisciplineRevoke)
   @Post(':id/revoke')
   @HttpCode(200)

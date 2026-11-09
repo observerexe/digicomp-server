@@ -1675,7 +1675,18 @@ export interface components {
             amount: number;
             reason: string;
         };
-        PointsEntry: Record<string, never>;
+        PointsEntryDto: {
+            kind: components["schemas"]["PointsKind"];
+            taskId: string | null;
+            createdById: string | null;
+            reversesId: string | null;
+            id: string;
+            userId: string;
+            amount: number;
+            reason: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
         RevokeDto: {
             reason: string;
         };
@@ -2849,7 +2860,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PointsEntry"];
+                    "application/json": components["schemas"]["PointsEntryDto"];
                 };
             };
         };
@@ -2874,7 +2885,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PointsEntry"];
+                    "application/json": components["schemas"]["PointsEntryDto"];
                 };
             };
         };

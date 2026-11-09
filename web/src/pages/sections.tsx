@@ -29,7 +29,6 @@ export function HomePage() {
 export const ProjectsPage = () => <Section title="Проєкти" note="Дошка проєктів за етапами." />;
 export const InventoryPage = () => <Section title="Склад" note="Позиції, залишки, «взяти» й «поповнити»." />;
 export const DocsPage = () => <Section title="Архів" note="Документи з версіями: інструкції, паспорти, шаблони." />;
-export const RatingPage = () => <Section title="Рейтинг" note="Топ учасників за місяць і за весь час." />;
 export const PanelPage = () => <Section title="Панель керування" note="Учасники, бали, дисципліна, ТЗ на перевірці, допуски, обладнання." />;
 
 export function ForbiddenPage() {

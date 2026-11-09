@@ -60,3 +60,26 @@ export class LeaderboardRowDto {
   /** Equal totals share a rank. */
   rank: number;
 }
+
+/** A new ledger entry (award or its reversal). */
+export class PointsEntryDto {
+  id: string;
+  userId: string;
+  amount: number;
+
+  @ApiProperty({ enum: PointsKind, enumName: 'PointsKind' })
+  kind: PointsKind;
+
+  reason: string;
+
+  @ApiProperty({ type: String, nullable: true })
+  taskId: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  createdById: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  reversesId: string | null;
+
+  createdAt: Date;
+}

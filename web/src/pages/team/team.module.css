@@ -107,3 +107,9 @@
   font-size: 24px;
   color: var(--c-text);
 }
+.staffActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}

@@ -13,7 +13,7 @@ import s from './team.module.css';
 /** Another member's public profile: avatar, name, position, specialty, bio, points. */
 export function UserPage() {
   const { id = '' } = useParams();
-  const { user: me } = useAuth();
+  const { user: me, can } = useAuth();
   const q = useQuery({
     queryKey: ['users', 'one', id],
     queryFn: () => unwrap(api.GET('/api/users/{id}', { params: { path: { id } } })),
@@ -62,6 +62,20 @@ export function UserPage() {
           </div>
         </div>
         {u.bio ? <p className={s.fullBio}>{u.bio}</p> : <p className="hint">Біо ще не заповнене.</p>}
+        {(can('points.award') || can('discipline.issue')) && (
+          <div className={s.staffActions}>
+            {can('points.award') && (
+              <Link to={`/points?user=${u.id}`} className="btn">
+                Нарахувати бали
+              </Link>
+            )}
+            {can('discipline.issue') && (
+              <Link to={`/discipline?user=${u.id}`} className="btn btn-ghost">
+                Дисципліна
+              </Link>
+            )}
+          </div>
+        )}
         <p className={s.points}>
           <span className={s.pointsValue}>{u.pointsTotal}</span> {plural(u.pointsTotal, ['бал', 'бали', 'балів'])} за весь час
         </p>

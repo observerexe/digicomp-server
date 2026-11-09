@@ -836,7 +836,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PointsEntry"
+                  "$ref": "#/components/schemas/PointsEntryDto"
                 }
               }
             }
@@ -877,7 +877,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PointsEntry"
+                  "$ref": "#/components/schemas/PointsEntryDto"
                 }
               }
             }
@@ -4338,9 +4338,56 @@
           "reason"
         ]
       },
-      "PointsEntry": {
+      "PointsEntryDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PointsKind"
+              }
+            ]
+          },
+          "taskId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdById": {
+            "type": "string",
+            "nullable": true
+          },
+          "reversesId": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "taskId",
+          "createdById",
+          "reversesId",
+          "id",
+          "userId",
+          "amount",
+          "reason",
+          "createdAt"
+        ]
       },
       "RevokeDto": {
         "type": "object",

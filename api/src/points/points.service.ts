@@ -10,7 +10,11 @@ import { Action, Actor, assertCan } from '../auth/policy';
 import { User } from '../users/user.entity';
 import { AwardPointsDto, LeaderboardQuery, RevokeDto } from './dto';
 import { PointsEntry, PointsKind } from './points-entry.entity';
-import type { LeaderboardRowDto, PointsHistoryDto } from './responses.dto';
+import type {
+  LeaderboardRowDto,
+  PointsEntryDto,
+  PointsHistoryDto,
+} from './responses.dto';
 
 export const PointsErrors = {
   UnknownMember: 'Unknown or inactive member',
@@ -83,7 +87,7 @@ export class PointsService {
   }
 
   /** Manual award (not to self for a moderator). */
-  award(dto: AwardPointsDto, actor: Actor) {
+  award(dto: AwardPointsDto, actor: Actor): Promise<PointsEntryDto> {
     return this.ds.transaction(async (m) => {
       const target = await this.findMember(m, dto.userId);
       assertCan(actor, Action.PointsAward, { target });
@@ -116,7 +120,11 @@ export class PointsService {
   }
 
   /** Revoke a manual award: admin any, moderator only their own. */
-  revoke(entryId: string, dto: RevokeDto, actor: Actor) {
+  revoke(
+    entryId: string,
+    dto: RevokeDto,
+    actor: Actor,
+  ): Promise<PointsEntryDto> {
     return this.ds.transaction(async (m) => {
       const entry = await m.findOne(PointsEntry, {
         where: { id: entryId },

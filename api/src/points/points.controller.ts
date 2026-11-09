@@ -1,5 +1,9 @@
-import { ApiOkResponse } from '@nestjs/swagger';
-import { LeaderboardRowDto, PointsHistoryDto } from './responses.dto';
+import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
+import {
+  LeaderboardRowDto,
+  PointsEntryDto,
+  PointsHistoryDto,
+} from './responses.dto';
 import {
   Body,
   Controller,
@@ -49,6 +53,7 @@ export class PointsController {
   }
 
   /** Manual award; a moderator cannot award to self. */
+  @ApiCreatedResponse({ type: PointsEntryDto })
   @Can(Action.PointsAward)
   @Post('award')
   award(@Body() dto: AwardPointsDto, @Req() req: Req) {
@@ -56,6 +61,7 @@ export class PointsController {
   }
 
   /** Revoke a manual award with a reason. */
+  @ApiOkResponse({ type: PointsEntryDto })
   @Can(Action.PointsRevoke)
   @Post(':entryId/revoke')
   @HttpCode(200)
