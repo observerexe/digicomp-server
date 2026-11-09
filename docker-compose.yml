@@ -12,7 +12,10 @@ services:
       retries: 5
 
   api:
-    build: ./api
+    build:
+      # Корінь репо: образ збирає і фронт (web/), і API (api/).
+      context: .
+      dockerfile: api/Dockerfile
     restart: unless-stopped
     env_file: .env
     environment:

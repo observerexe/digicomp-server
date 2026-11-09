@@ -52,40 +52,44 @@ describe('2FA (e2e)', () => {
 
   const login = (u: TestUser, web = false) => {
     const r = request(app.getHttpServer())
-      .post('/auth/login')
+      .post('/api/auth/login')
       .send({ email: u.email, password: PASSWORD });
     return web ? r.set('X-DC-Client', 'web') : r;
   };
   const verify = (body: Record<string, unknown>, web = false) => {
-    const r = request(app.getHttpServer()).post('/auth/2fa/verify').send(body);
+    const r = request(app.getHttpServer())
+      .post('/api/auth/2fa/verify')
+      .send(body);
     return web ? r.set('X-DC-Client', 'web') : r;
   };
 
   /** Turns 2FA on, returns the secret and recovery codes. */
   async function enable(u: TestUser) {
-    const setup = await as(app, u).post('/auth/2fa/setup');
+    const setup = await as(app, u).post('/api/auth/2fa/setup');
     expect(setup.status).toBe(200);
     const secret = setup.body.secret as string;
     const en = await as(app, u)
-      .post('/auth/2fa/enable')
+      .post('/api/auth/2fa/enable')
       .send({ code: totp(secret) });
     expect(en.status).toBe(200);
     return { secret, recoveryCodes: en.body.recoveryCodes as string[] };
   }
 
   it('налаштування: секрет, otpauth, коди відновлення; секрет у базі зашифрований', async () => {
-    const setup = await as(app, admin).post('/auth/2fa/setup');
+    const setup = await as(app, admin).post('/api/auth/2fa/setup');
     expect(setup.body.secret).toMatch(/^[A-Z2-7]{32}$/);
     expect(setup.body.otpauthUri).toContain(`secret=${setup.body.secret}`);
     // До підтвердження 2FA ще не діє.
     expect((await login(admin)).body.accessToken).toBeTruthy();
     code(
-      await as(app, admin).post('/auth/2fa/enable').send({ code: '000000' }),
+      await as(app, admin)
+        .post('/api/auth/2fa/enable')
+        .send({ code: '000000' }),
       403,
       'TWO_FACTOR_INVALID_CODE',
     );
     const en = await as(app, admin)
-      .post('/auth/2fa/enable')
+      .post('/api/auth/2fa/enable')
       .send({ code: totp(setup.body.secret) });
     expect(en.body.recoveryCodes).toHaveLength(8);
 
@@ -94,11 +98,11 @@ describe('2FA (e2e)', () => {
     expect(row.recoveryCodes).toHaveLength(8);
     expect(row.recoveryCodes.join()).not.toContain(en.body.recoveryCodes[0]);
 
-    const me = await as(app, admin).get('/auth/me');
+    const me = await as(app, admin).get('/api/auth/me');
     expect(me.body.twoFactorEnabled).toBe(true);
     expect(JSON.stringify(me.body)).not.toMatch(/totp|recovery/i);
     code(
-      await as(app, admin).post('/auth/2fa/setup'),
+      await as(app, admin).post('/api/auth/2fa/setup'),
       409,
       'TWO_FACTOR_ALREADY_ENABLED',
     );
@@ -108,7 +112,7 @@ describe('2FA (e2e)', () => {
     const before = await login(admin);
     await enable(admin);
     const r = await request(app.getHttpServer())
-      .post('/auth/refresh')
+      .post('/api/auth/refresh')
       .send({ refreshToken: before.body.refreshToken });
     code(r, 401, 'INVALID_REFRESH_TOKEN');
   });
@@ -125,7 +129,7 @@ describe('2FA (e2e)', () => {
     expect(
       (
         await request(app.getHttpServer())
-          .get('/auth/me')
+          .get('/api/auth/me')
           .set('Authorization', `Bearer ${first.body.challengeToken}`)
       ).status,
     ).toBe(401);
@@ -247,24 +251,24 @@ describe('2FA (e2e)', () => {
       [admin.id],
     );
     const regen = await as(app, me)
-      .post('/auth/2fa/recovery-codes')
+      .post('/api/auth/2fa/recovery-codes')
       .send({ code: totp(secret) });
     expect(regen.status).toBe(200);
     expect(regen.body.recoveryCodes).toHaveLength(8);
 
     code(
-      await as(app, me).post('/auth/2fa/disable').send({ code: '000000' }),
+      await as(app, me).post('/api/auth/2fa/disable').send({ code: '000000' }),
       403,
       'TWO_FACTOR_INVALID_CODE',
     );
     // Код відновлення теж підходить.
     const off = await as(app, me)
-      .post('/auth/2fa/disable')
+      .post('/api/auth/2fa/disable')
       .send({ recoveryCode: regen.body.recoveryCodes[0] });
     expect(off.status).toBe(200);
     expect((await login(admin)).body.accessToken).toBeTruthy();
     code(
-      await as(app, me).post('/auth/2fa/disable').send({ code: '123456' }),
+      await as(app, me).post('/api/auth/2fa/disable').send({ code: '123456' }),
       409,
       'TWO_FACTOR_NOT_ENABLED',
     );
@@ -279,11 +283,11 @@ describe('2FA (e2e)', () => {
     await enable(admin2);
     const mod = await makeUser(app, Role.Moderator);
     code(
-      await as(app, mod).post(`/users/${admin2.id}/2fa/reset`),
+      await as(app, mod).post(`/api/users/${admin2.id}/2fa/reset`),
       403,
       'FORBIDDEN',
     );
-    const r = await as(app, admin).post(`/users/${admin2.id}/2fa/reset`);
+    const r = await as(app, admin).post(`/api/users/${admin2.id}/2fa/reset`);
     expect(r.status).toBe(200);
     expect((await login(admin2)).body.accessToken).toBeTruthy();
     const [log] = await ds.query<{ actor_id: string }[]>(
@@ -292,7 +296,7 @@ describe('2FA (e2e)', () => {
     );
     expect(log.actor_id).toBe(admin.id);
     code(
-      await as(app, admin).post(`/users/${admin2.id}/2fa/reset`),
+      await as(app, admin).post(`/api/users/${admin2.id}/2fa/reset`),
       409,
       'TWO_FACTOR_NOT_ENABLED',
     );
@@ -303,7 +307,7 @@ describe('2FA (e2e)', () => {
     delete process.env.TOTP_KEY;
     try {
       code(
-        await as(app, admin).post('/auth/2fa/setup'),
+        await as(app, admin).post('/api/auth/2fa/setup'),
         503,
         'TWO_FACTOR_NOT_CONFIGURED',
       );

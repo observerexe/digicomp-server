@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.0",
   "paths": {
-    "/app-config": {
+    "/api/app-config": {
       "get": {
         "operationId": "AppController_config",
         "parameters": [],
@@ -29,7 +29,7 @@
         ]
       }
     },
-    "/users": {
+    "/api/users": {
       "get": {
         "operationId": "UsersController_list",
         "parameters": [
@@ -118,7 +118,7 @@
         ]
       }
     },
-    "/users/me": {
+    "/api/users/me": {
       "patch": {
         "operationId": "UsersController_updateMe",
         "parameters": [],
@@ -142,7 +142,7 @@
         ]
       }
     },
-    "/users/me/password": {
+    "/api/users/me/password": {
       "patch": {
         "operationId": "UsersController_changePassword",
         "parameters": [],
@@ -166,7 +166,7 @@
         ]
       }
     },
-    "/users/{id}": {
+    "/api/users/{id}": {
       "get": {
         "operationId": "UsersController_get",
         "parameters": [
@@ -220,7 +220,7 @@
         ]
       }
     },
-    "/users/{id}/avatar": {
+    "/api/users/{id}/avatar": {
       "post": {
         "operationId": "UsersController_setAvatar",
         "parameters": [
@@ -264,7 +264,7 @@
         ]
       }
     },
-    "/users/{id}/reset-password": {
+    "/api/users/{id}/reset-password": {
       "post": {
         "operationId": "UsersController_resetPassword",
         "parameters": [
@@ -297,7 +297,7 @@
         ]
       }
     },
-    "/audit": {
+    "/api/audit": {
       "get": {
         "operationId": "AuditController_list",
         "parameters": [],
@@ -321,7 +321,7 @@
         ]
       }
     },
-    "/files/avatars/{userId}": {
+    "/api/files/avatars/{userId}": {
       "get": {
         "operationId": "FilesController_avatar",
         "parameters": [
@@ -344,7 +344,7 @@
         ]
       }
     },
-    "/auth/setup": {
+    "/api/auth/setup": {
       "post": {
         "operationId": "AuthController_setup",
         "parameters": [],
@@ -368,7 +368,7 @@
         ]
       }
     },
-    "/auth/login": {
+    "/api/auth/login": {
       "post": {
         "operationId": "AuthController_login",
         "parameters": [],
@@ -399,7 +399,7 @@
         ]
       }
     },
-    "/auth/2fa/verify": {
+    "/api/auth/2fa/verify": {
       "post": {
         "operationId": "AuthController_verifyTwoFactor",
         "parameters": [],
@@ -431,7 +431,7 @@
         ]
       }
     },
-    "/auth/2fa/setup": {
+    "/api/auth/2fa/setup": {
       "post": {
         "operationId": "AuthController_setupTwoFactor",
         "parameters": [],
@@ -446,7 +446,7 @@
         ]
       }
     },
-    "/auth/2fa/enable": {
+    "/api/auth/2fa/enable": {
       "post": {
         "operationId": "AuthController_enableTwoFactor",
         "parameters": [],
@@ -471,7 +471,7 @@
         ]
       }
     },
-    "/auth/2fa/disable": {
+    "/api/auth/2fa/disable": {
       "post": {
         "operationId": "AuthController_disableTwoFactor",
         "parameters": [],
@@ -495,7 +495,7 @@
         ]
       }
     },
-    "/auth/2fa/recovery-codes": {
+    "/api/auth/2fa/recovery-codes": {
       "post": {
         "operationId": "AuthController_regenerateRecoveryCodes",
         "parameters": [],
@@ -519,7 +519,7 @@
         ]
       }
     },
-    "/users/{id}/2fa/reset": {
+    "/api/users/{id}/2fa/reset": {
       "post": {
         "operationId": "AuthController_resetTwoFactor",
         "parameters": [
@@ -543,7 +543,7 @@
         ]
       }
     },
-    "/auth/refresh": {
+    "/api/auth/refresh": {
       "post": {
         "operationId": "AuthController_refresh",
         "parameters": [],
@@ -574,7 +574,7 @@
         ]
       }
     },
-    "/auth/logout": {
+    "/api/auth/logout": {
       "post": {
         "operationId": "AuthController_logout",
         "parameters": [],
@@ -598,7 +598,7 @@
         ]
       }
     },
-    "/auth/logout-all": {
+    "/api/auth/logout-all": {
       "post": {
         "operationId": "AuthController_logoutAll",
         "parameters": [],
@@ -612,7 +612,7 @@
         ]
       }
     },
-    "/auth/me": {
+    "/api/auth/me": {
       "get": {
         "operationId": "AuthController_me",
         "parameters": [],
@@ -626,7 +626,7 @@
         ]
       }
     },
-    "/points/me": {
+    "/api/points/me": {
       "get": {
         "operationId": "PointsController_mine",
         "parameters": [],
@@ -641,7 +641,7 @@
         ]
       }
     },
-    "/points/leaderboard": {
+    "/api/points/leaderboard": {
       "get": {
         "operationId": "PointsController_leaderboard",
         "parameters": [
@@ -670,7 +670,7 @@
         ]
       }
     },
-    "/points/users/{userId}": {
+    "/api/points/users/{userId}": {
       "get": {
         "operationId": "PointsController_ofUser",
         "parameters": [
@@ -694,7 +694,7 @@
         ]
       }
     },
-    "/points/award": {
+    "/api/points/award": {
       "post": {
         "operationId": "PointsController_award",
         "parameters": [],
@@ -726,7 +726,7 @@
         ]
       }
     },
-    "/points/{entryId}/revoke": {
+    "/api/points/{entryId}/revoke": {
       "post": {
         "operationId": "PointsController_revoke",
         "parameters": [
@@ -767,7 +767,7 @@
         ]
       }
     },
-    "/tasks": {
+    "/api/tasks": {
       "get": {
         "operationId": "TasksController_list",
         "parameters": [
@@ -833,7 +833,7 @@
         ]
       }
     },
-    "/tasks/{id}": {
+    "/api/tasks/{id}": {
       "get": {
         "operationId": "TasksController_get",
         "parameters": [
@@ -910,7 +910,7 @@
         ]
       }
     },
-    "/tasks/{id}/take": {
+    "/api/tasks/{id}/take": {
       "post": {
         "operationId": "TasksController_take",
         "parameters": [
@@ -933,7 +933,7 @@
         ]
       }
     },
-    "/tasks/{id}/leave": {
+    "/api/tasks/{id}/leave": {
       "post": {
         "operationId": "TasksController_leave",
         "parameters": [
@@ -956,7 +956,7 @@
         ]
       }
     },
-    "/tasks/{id}/start": {
+    "/api/tasks/{id}/start": {
       "post": {
         "operationId": "TasksController_start",
         "parameters": [
@@ -979,7 +979,7 @@
         ]
       }
     },
-    "/tasks/{id}/submit": {
+    "/api/tasks/{id}/submit": {
       "post": {
         "operationId": "TasksController_submit",
         "parameters": [
@@ -1002,7 +1002,7 @@
         ]
       }
     },
-    "/tasks/{id}/return": {
+    "/api/tasks/{id}/return": {
       "post": {
         "operationId": "TasksController_returnForRework",
         "parameters": [
@@ -1036,7 +1036,7 @@
         ]
       }
     },
-    "/tasks/{id}/accept": {
+    "/api/tasks/{id}/accept": {
       "post": {
         "operationId": "TasksController_accept",
         "parameters": [
@@ -1060,7 +1060,7 @@
         ]
       }
     },
-    "/tasks/{id}/comments": {
+    "/api/tasks/{id}/comments": {
       "post": {
         "operationId": "TasksController_addComment",
         "parameters": [
@@ -1093,7 +1093,7 @@
         ]
       }
     },
-    "/tasks/{id}/files": {
+    "/api/tasks/{id}/files": {
       "post": {
         "operationId": "TasksController_addFile",
         "parameters": [
@@ -1116,7 +1116,7 @@
         ]
       }
     },
-    "/tasks/{id}/files/{fileId}/download": {
+    "/api/tasks/{id}/files/{fileId}/download": {
       "get": {
         "operationId": "TasksController_download",
         "parameters": [
@@ -1147,7 +1147,7 @@
         ]
       }
     },
-    "/tasks/{id}/files/{fileId}": {
+    "/api/tasks/{id}/files/{fileId}": {
       "delete": {
         "operationId": "TasksController_removeFile",
         "parameters": [
@@ -1179,7 +1179,7 @@
         ]
       }
     },
-    "/discipline/me": {
+    "/api/discipline/me": {
       "get": {
         "operationId": "DisciplineController_mine",
         "parameters": [],
@@ -1194,7 +1194,7 @@
         ]
       }
     },
-    "/discipline": {
+    "/api/discipline": {
       "get": {
         "operationId": "DisciplineController_list",
         "parameters": [
@@ -1274,7 +1274,7 @@
         ]
       }
     },
-    "/discipline/{id}/revoke": {
+    "/api/discipline/{id}/revoke": {
       "post": {
         "operationId": "DisciplineController_revoke",
         "parameters": [
@@ -1308,7 +1308,7 @@
         ]
       }
     },
-    "/places": {
+    "/api/places": {
       "get": {
         "operationId": "PlacesController_list",
         "parameters": [
@@ -1376,7 +1376,7 @@
         ]
       }
     },
-    "/places/{id}": {
+    "/api/places/{id}": {
       "get": {
         "operationId": "PlacesController_get",
         "parameters": [
@@ -1430,7 +1430,7 @@
         ]
       }
     },
-    "/places/{id}/sessions": {
+    "/api/places/{id}/sessions": {
       "post": {
         "operationId": "PlacesController_start",
         "parameters": [
@@ -1463,7 +1463,7 @@
         ]
       }
     },
-    "/work-sessions": {
+    "/api/work-sessions": {
       "get": {
         "operationId": "WorkSessionsController_list",
         "parameters": [
@@ -1542,7 +1542,7 @@
         ]
       }
     },
-    "/work-sessions/export.csv": {
+    "/api/work-sessions/export.csv": {
       "get": {
         "operationId": "WorkSessionsController_exportCsv",
         "parameters": [
@@ -1592,7 +1592,7 @@
         ]
       }
     },
-    "/work-sessions/report": {
+    "/api/work-sessions/report": {
       "get": {
         "operationId": "WorkSessionsController_report",
         "parameters": [
@@ -1642,7 +1642,7 @@
         ]
       }
     },
-    "/work-sessions/{id}/end": {
+    "/api/work-sessions/{id}/end": {
       "patch": {
         "operationId": "WorkSessionsController_end",
         "parameters": [
@@ -1675,7 +1675,7 @@
         ]
       }
     },
-    "/place-authorizations": {
+    "/api/place-authorizations": {
       "get": {
         "operationId": "AuthorizationsController_list",
         "parameters": [
@@ -1730,7 +1730,7 @@
         ]
       }
     },
-    "/place-authorizations/{id}": {
+    "/api/place-authorizations/{id}": {
       "delete": {
         "operationId": "AuthorizationsController_revoke",
         "parameters": [
@@ -1753,7 +1753,7 @@
         ]
       }
     },
-    "/bookings": {
+    "/api/bookings": {
       "post": {
         "operationId": "BookingsController_create",
         "parameters": [],
@@ -1778,7 +1778,7 @@
         ]
       }
     },
-    "/bookings/me": {
+    "/api/bookings/me": {
       "get": {
         "operationId": "BookingsController_mine",
         "parameters": [],
@@ -1792,7 +1792,7 @@
         ]
       }
     },
-    "/bookings/{id}/cancel": {
+    "/api/bookings/{id}/cancel": {
       "post": {
         "operationId": "BookingsController_cancel",
         "parameters": [
@@ -1825,7 +1825,7 @@
         ]
       }
     },
-    "/places/{id}/bookings": {
+    "/api/places/{id}/bookings": {
       "get": {
         "operationId": "PlaceBookingsController_list",
         "parameters": [
@@ -1865,7 +1865,7 @@
         ]
       }
     },
-    "/faults": {
+    "/api/faults": {
       "get": {
         "operationId": "FaultsController_list",
         "parameters": [
@@ -1942,7 +1942,7 @@
         ]
       }
     },
-    "/faults/{id}": {
+    "/api/faults/{id}": {
       "get": {
         "operationId": "FaultsController_get",
         "parameters": [
@@ -1965,7 +1965,7 @@
         ]
       }
     },
-    "/faults/{id}/photos": {
+    "/api/faults/{id}/photos": {
       "post": {
         "operationId": "FaultsController_addPhoto",
         "parameters": [
@@ -1989,7 +1989,7 @@
         ]
       }
     },
-    "/faults/{id}/photos/{photoId}": {
+    "/api/faults/{id}/photos/{photoId}": {
       "get": {
         "operationId": "FaultsController_photo",
         "parameters": [
@@ -2020,7 +2020,7 @@
         ]
       }
     },
-    "/faults/{id}/in-progress": {
+    "/api/faults/{id}/in-progress": {
       "post": {
         "operationId": "FaultsController_inProgress",
         "parameters": [
@@ -2043,7 +2043,7 @@
         ]
       }
     },
-    "/faults/{id}/maintenance": {
+    "/api/faults/{id}/maintenance": {
       "post": {
         "operationId": "FaultsController_maintenance",
         "parameters": [
@@ -2067,7 +2067,7 @@
         ]
       }
     },
-    "/faults/{id}/close": {
+    "/api/faults/{id}/close": {
       "post": {
         "operationId": "FaultsController_close",
         "parameters": [
@@ -2100,7 +2100,7 @@
         ]
       }
     },
-    "/documents": {
+    "/api/documents": {
       "get": {
         "operationId": "DocumentsController_list",
         "parameters": [
@@ -2202,7 +2202,7 @@
         ]
       }
     },
-    "/documents/{id}": {
+    "/api/documents/{id}": {
       "get": {
         "operationId": "DocumentsController_get",
         "parameters": [
@@ -2277,7 +2277,7 @@
         ]
       }
     },
-    "/documents/{id}/versions": {
+    "/api/documents/{id}/versions": {
       "get": {
         "operationId": "DocumentsController_versions",
         "parameters": [
@@ -2300,7 +2300,7 @@
         ]
       }
     },
-    "/documents/{id}/download": {
+    "/api/documents/{id}/download": {
       "get": {
         "operationId": "DocumentsController_download",
         "parameters": [
@@ -2332,7 +2332,7 @@
         ]
       }
     },
-    "/documents/{id}/files": {
+    "/api/documents/{id}/files": {
       "post": {
         "operationId": "DocumentsController_addVersion",
         "parameters": [
@@ -2365,7 +2365,7 @@
         ]
       }
     },
-    "/inventory/items": {
+    "/api/inventory/items": {
       "get": {
         "operationId": "InventoryController_list",
         "parameters": [
@@ -2449,7 +2449,7 @@
         ]
       }
     },
-    "/inventory/items/{id}": {
+    "/api/inventory/items/{id}": {
       "get": {
         "operationId": "InventoryController_get",
         "parameters": [
@@ -2503,7 +2503,7 @@
         ]
       }
     },
-    "/inventory/items/{id}/movements": {
+    "/api/inventory/items/{id}/movements": {
       "post": {
         "operationId": "InventoryController_move",
         "parameters": [
@@ -2536,7 +2536,7 @@
         ]
       }
     },
-    "/inventory/movements": {
+    "/api/inventory/movements": {
       "get": {
         "operationId": "InventoryController_movements",
         "parameters": [
@@ -2594,7 +2594,7 @@
         ]
       }
     },
-    "/inventory/export": {
+    "/api/inventory/export": {
       "get": {
         "operationId": "InventoryController_export",
         "parameters": [],
@@ -2608,7 +2608,7 @@
         ]
       }
     },
-    "/projects": {
+    "/api/projects": {
       "get": {
         "operationId": "ProjectsController_list",
         "parameters": [
@@ -2696,7 +2696,7 @@
         ]
       }
     },
-    "/projects/{id}": {
+    "/api/projects/{id}": {
       "get": {
         "operationId": "ProjectsController_get",
         "parameters": [
@@ -2771,7 +2771,7 @@
         ]
       }
     },
-    "/projects/{id}/history": {
+    "/api/projects/{id}/history": {
       "get": {
         "operationId": "ProjectsController_history",
         "parameters": [
@@ -2794,7 +2794,7 @@
         ]
       }
     },
-    "/projects/{id}/files": {
+    "/api/projects/{id}/files": {
       "post": {
         "operationId": "ProjectsController_addFile",
         "parameters": [
@@ -2817,7 +2817,7 @@
         ]
       }
     },
-    "/projects/{id}/files/{fileId}/download": {
+    "/api/projects/{id}/files/{fileId}/download": {
       "get": {
         "operationId": "ProjectsController_download",
         "parameters": [
@@ -2848,7 +2848,7 @@
         ]
       }
     },
-    "/projects/{id}/files/{fileId}": {
+    "/api/projects/{id}/files/{fileId}": {
       "delete": {
         "operationId": "ProjectsController_removeFile",
         "parameters": [
@@ -2879,7 +2879,7 @@
         ]
       }
     },
-    "/smart/entities": {
+    "/api/smart/entities": {
       "get": {
         "operationId": "SmartController_list",
         "parameters": [],
@@ -2893,7 +2893,7 @@
         ]
       }
     },
-    "/smart/lights/{id}/state": {
+    "/api/smart/lights/{id}/state": {
       "post": {
         "operationId": "SmartController_setLight",
         "parameters": [
@@ -2933,7 +2933,7 @@
         ]
       }
     },
-    "/smart/scenes/{id}/activate": {
+    "/api/smart/scenes/{id}/activate": {
       "post": {
         "operationId": "SmartController_activate",
         "parameters": [
@@ -2956,7 +2956,7 @@
         ]
       }
     },
-    "/smart/status": {
+    "/api/smart/status": {
       "get": {
         "operationId": "SmartController_status",
         "parameters": [],
@@ -2970,7 +2970,7 @@
         ]
       }
     },
-    "/smart/allowlist": {
+    "/api/smart/allowlist": {
       "get": {
         "operationId": "SmartController_allowlist",
         "parameters": [],
@@ -3006,7 +3006,7 @@
         ]
       }
     },
-    "/smart/discover": {
+    "/api/smart/discover": {
       "get": {
         "operationId": "SmartController_discover",
         "parameters": [],
@@ -3020,7 +3020,7 @@
         ]
       }
     },
-    "/smart/allowlist/{id}": {
+    "/api/smart/allowlist/{id}": {
       "patch": {
         "operationId": "SmartController_update",
         "parameters": [
@@ -3074,7 +3074,7 @@
         ]
       }
     },
-    "/admin-panel/overview": {
+    "/api/admin-panel/overview": {
       "get": {
         "operationId": "AdminPanelController_overview",
         "parameters": [],
@@ -3089,7 +3089,7 @@
         ]
       }
     },
-    "/admin-panel/logs": {
+    "/api/admin-panel/logs": {
       "get": {
         "operationId": "AdminPanelController_logs",
         "parameters": [
@@ -3115,7 +3115,7 @@
         ]
       }
     },
-    "/admin-panel/actions/backup": {
+    "/api/admin-panel/actions/backup": {
       "post": {
         "operationId": "AdminPanelController_backup",
         "parameters": [],
@@ -3136,7 +3136,7 @@
         ]
       }
     },
-    "/admin-panel/actions/restore-check": {
+    "/api/admin-panel/actions/restore-check": {
       "post": {
         "operationId": "AdminPanelController_restoreCheck",
         "parameters": [],
@@ -3157,7 +3157,7 @@
         ]
       }
     },
-    "/admin-panel/actions/restart": {
+    "/api/admin-panel/actions/restart": {
       "post": {
         "operationId": "AdminPanelController_restart",
         "parameters": [],
@@ -3189,7 +3189,7 @@
         ]
       }
     },
-    "/admin-panel/jobs/{id}": {
+    "/api/admin-panel/jobs/{id}": {
       "get": {
         "operationId": "AdminPanelController_job",
         "parameters": [],

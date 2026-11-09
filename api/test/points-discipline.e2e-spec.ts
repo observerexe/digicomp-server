@@ -40,23 +40,25 @@ describe('Бали і дисципліна (e2e)', () => {
   });
 
   const balance = async (u: TestUser) =>
-    (await as(app, u).get('/points/me')).body.balance as number;
+    (await as(app, u).get('/api/points/me')).body.balance as number;
   const award = (
     who: TestUser,
     to: TestUser,
     amount: number,
     reason = 'чергування',
   ) =>
-    as(app, who).post('/points/award').send({ userId: to.id, amount, reason });
+    as(app, who)
+      .post('/api/points/award')
+      .send({ userId: to.id, amount, reason });
   const issue = (who: TestUser, body: Record<string, unknown>) =>
-    as(app, who).post('/discipline').send(body);
+    as(app, who).post('/api/discipline').send(body);
 
   describe('ручне нарахування', () => {
     it('нараховує і показує в історії, хто нарахував', async () => {
       const res = await award(mod, a, 5, 'прибрав склад');
       expect(res.status).toBe(201);
       expect(await balance(a)).toBe(5);
-      const me = await as(app, a).get('/points/me');
+      const me = await as(app, a).get('/api/points/me');
       expect(me.body.history[0]).toMatchObject({
         kind: 'manual',
         amount: 5,
@@ -80,7 +82,7 @@ describe('Бали і дисципліна (e2e)', () => {
     it('зняття: компенсаційний запис, повторно не можна', async () => {
       const e = await award(mod, a, 5);
       const r = await as(app, mod)
-        .post(`/points/${e.body.id}/revoke`)
+        .post(`/api/points/${e.body.id}/revoke`)
         .send({ reason: 'помилково' });
       expect(r.status).toBe(200);
       expect(r.body).toMatchObject({
@@ -91,12 +93,12 @@ describe('Бали і дисципліна (e2e)', () => {
       expect(await balance(a)).toBe(0);
       code(
         await as(app, admin)
-          .post(`/points/${e.body.id}/revoke`)
+          .post(`/api/points/${e.body.id}/revoke`)
           .send({ reason: 'x' }),
         409,
         'ALREADY_REVOKED',
       );
-      const me = await as(app, a).get('/points/me');
+      const me = await as(app, a).get('/api/points/me');
       expect(
         me.body.history.find((h: { id: string }) => h.id === e.body.id),
       ).toMatchObject({
@@ -123,7 +125,7 @@ describe('Бали і дисципліна (e2e)', () => {
       expect(f.status).toBe(201);
       code(
         await as(app, admin)
-          .post(`/points/${entry.id}/revoke`)
+          .post(`/api/points/${entry.id}/revoke`)
           .send({ reason: 'x' }),
         409,
         'ENTRY_NOT_REVOCABLE',
@@ -132,9 +134,9 @@ describe('Бали і дисципліна (e2e)', () => {
 
     it('чужу історію бачать лише модератори й адмін', async () => {
       await award(mod, a, 5);
-      const res = await as(app, mod).get(`/points/users/${a.id}`);
+      const res = await as(app, mod).get(`/api/points/users/${a.id}`);
       expect(res.body.balance).toBe(5);
-      code(await as(app, b).get(`/points/users/${a.id}`), 403, 'FORBIDDEN');
+      code(await as(app, b).get(`/api/points/users/${a.id}`), 403, 'FORBIDDEN');
     });
   });
 
@@ -157,7 +159,7 @@ describe('Бали і дисципліна (e2e)', () => {
       expect(await balance(a)).toBe(6);
 
       const rev = await as(app, mod)
-        .post(`/discipline/${fine.body.id}/revoke`)
+        .post(`/api/discipline/${fine.body.id}/revoke`)
         .send({ reason: 'розібрались' });
       expect(rev.status).toBe(200);
       expect(rev.body).toMatchObject({
@@ -168,7 +170,7 @@ describe('Бали і дисципліна (e2e)', () => {
       expect(await balance(a)).toBe(10);
       code(
         await as(app, mod)
-          .post(`/discipline/${fine.body.id}/revoke`)
+          .post(`/api/discipline/${fine.body.id}/revoke`)
           .send({ reason: 'x' }),
         409,
         'ALREADY_REVOKED',
@@ -215,16 +217,16 @@ describe('Бали і дисципліна (e2e)', () => {
     it('учасник бачить лише свої записи разом з тим, хто видав', async () => {
       await issue(mod, { userId: a.id, type: 'warning', reason: 'для А' });
       await issue(mod, { userId: b.id, type: 'reprimand', reason: 'для Б' });
-      const mine = await as(app, a).get('/discipline/me');
+      const mine = await as(app, a).get('/api/discipline/me');
       expect(mine.body).toHaveLength(1);
       expect(mine.body[0]).toMatchObject({
         reason: 'для А',
         user: { id: a.id },
         issuedBy: { id: mod.id, name: mod.name },
       });
-      code(await as(app, a).get('/discipline'), 403, 'FORBIDDEN');
+      code(await as(app, a).get('/api/discipline'), 403, 'FORBIDDEN');
       code(
-        await as(app, a).get(`/discipline?userId=${b.id}`),
+        await as(app, a).get(`/api/discipline?userId=${b.id}`),
         403,
         'FORBIDDEN',
       );
@@ -238,18 +240,18 @@ describe('Бали і дисципліна (e2e)', () => {
       });
       await issue(mod, { userId: b.id, type: 'warning', reason: '2' });
       await as(app, mod)
-        .post(`/discipline/${w.body.id}/revoke`)
+        .post(`/api/discipline/${w.body.id}/revoke`)
         .send({ reason: 'x' });
 
-      const all = await as(app, mod).get('/discipline');
+      const all = await as(app, mod).get('/api/discipline');
       expect(all.body).toMatchObject({ total: 2, page: 1, limit: 50 });
-      const ofA = await as(app, mod).get(`/discipline?userId=${a.id}`);
+      const ofA = await as(app, mod).get(`/api/discipline?userId=${a.id}`);
       expect(ofA.body.items).toHaveLength(1);
-      const active = await as(app, mod).get('/discipline?state=active');
+      const active = await as(app, mod).get('/api/discipline?state=active');
       expect(
         active.body.items.map((r: { reason: string }) => r.reason),
       ).toEqual(['2']);
-      const revoked = await as(app, admin).get('/discipline?state=revoked');
+      const revoked = await as(app, admin).get('/api/discipline?state=revoked');
       expect(
         revoked.body.items.map((r: { reason: string }) => r.reason),
       ).toEqual(['1']);
@@ -262,7 +264,7 @@ describe('Бали і дисципліна (e2e)', () => {
         reason: 'r',
       });
       await as(app, admin)
-        .post(`/discipline/${w.body.id}/revoke`)
+        .post(`/api/discipline/${w.body.id}/revoke`)
         .send({ reason: 'x' });
       const [log] = await ds.query<
         { actor_id: string; meta: Record<string, unknown> }[]
@@ -287,7 +289,7 @@ describe('Бали і дисципліна (e2e)', () => {
     const board = async (period?: string) =>
       (
         await as(app, a).get(
-          `/points/leaderboard${period ? `?period=${period}` : ''}`,
+          `/api/points/leaderboard${period ? `?period=${period}` : ''}`,
         )
       ).body as Row[];
 
@@ -324,7 +326,7 @@ describe('Бали і дисципліна (e2e)', () => {
       expect(byId(await board('all'))[a.id]).toBe(52);
       expect(byId(await board('month'))[a.id]).toBe(2);
       expect(
-        (await as(app, a).get('/points/leaderboard?period=week')).status,
+        (await as(app, a).get('/api/points/leaderboard?period=week')).status,
       ).toBe(400);
     });
 
@@ -343,7 +345,7 @@ describe('Бали і дисципліна (e2e)', () => {
         `SELECT id FROM discipline_records`,
       );
       await as(app, mod)
-        .post(`/discipline/${rec.id}/revoke`)
+        .post(`/api/discipline/${rec.id}/revoke`)
         .send({ reason: 'x' });
 
       const month = Object.fromEntries(
@@ -355,7 +357,7 @@ describe('Бали і дисципліна (e2e)', () => {
 
     it('публічний профіль показує бали', async () => {
       await award(mod, a, 6);
-      const res = await as(app, b).get(`/users/${a.id}`);
+      const res = await as(app, b).get(`/api/users/${a.id}`);
       expect(res.body.pointsTotal).toBe(6);
     });
   });

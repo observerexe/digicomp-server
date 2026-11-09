@@ -1,0 +1,7 @@
+Гарнітура e-Ukraine та e-Ukraine Head
+© Міністерство цифрової трансформації України
+Ліцензія: Creative Commons Attribution 4.0 International (CC BY 4.0)
+https://creativecommons.org/licenses/by/4.0/deed.uk
+
+Джерело: https://thedigital.gov.ua/fonts (версія 1.062).
+Зміни: оригінальні файли OTF перетворено у формат WOFF2 без зміни гліфів.

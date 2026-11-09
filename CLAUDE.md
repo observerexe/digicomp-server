@@ -14,13 +14,16 @@
 - `api/src/migrations/` — міграції бази. `synchronize` вимкнено, схема змінюється лише міграціями.
 - `docs/*_UA.md` — довідники: API, вебчастина, бекапи, міграції, Home Assistant, розширена панель.
 - `ops/agent/` — агент на сервері для розширеної панелі (Python, systemd).
-- `web/` (з'явиться на етапі 7) — новий фронт: React + TypeScript + Vite, PWA.
+- `web/` — фронт: React + TypeScript + Vite, PWA. Його роздає NestJS; API — під `/api`. Довідник: `docs/WEB_UA.md`.
+- `docs/design/` — затверджений дизайн: `tokens.json` (кольори, шрифт, розміри) і правила.
 
 ## Команди
 - Запуск усього: `docker compose up -d --build`
 - Бекенд локально: `cd api && npm ci && npm run start:dev`
 - Тести: `cd api && npm test` і `npm run test:e2e`; агент сервера: `python3 -m unittest discover -s ops/agent`
 - Лінтер: `cd api && npm run lint`
+- Фронт: `cd web && npm test && npm run lint && npm run typecheck && npm run build`
+- Після зміни API: `cd api && npm run build && npm run openapi`, потім `cd web && npm run api:types`
 - Нова міграція: `./scripts/migration-generate.sh <Name>`
 
 ## Правила роботи

@@ -50,7 +50,7 @@ describe('Лабораторія і проєкти (e2e)', () => {
     mod = await makeUser(app, Role.Moderator, { name: 'Модератор' });
     a = await makeUser(app, Role.Member, { name: 'Андрій' });
     b = await makeUser(app, Role.Member, { name: 'Богдана' });
-    const p = await as(app, admin).post('/places').send({
+    const p = await as(app, admin).post('/api/places').send({
       code: 'CNC-1',
       title: 'Фрезер',
       category: 'Верстати',
@@ -61,11 +61,11 @@ describe('Лабораторія і проєкти (e2e)', () => {
 
   const book = (u: TestUser, startMs: number, endMs: number, over = {}) =>
     as(app, u)
-      .post('/bookings')
+      .post('/api/bookings')
       .send({ placeId, startsAt: iso(startMs), endsAt: iso(endMs), ...over });
   const start = (u: TestUser) =>
     as(app, u)
-      .post(`/places/${placeId}/sessions`)
+      .post(`/api/places/${placeId}/sessions`)
       .send({ safetyConfirmed: true });
 
   describe('бронювання', () => {
@@ -92,10 +92,10 @@ describe('Лабораторія і проєкти (e2e)', () => {
     it('скасоване бронювання звільняє слот', async () => {
       const t = Date.now() + 24 * H;
       const first = await book(a, t, t + H);
-      await as(app, a).post(`/bookings/${first.body.id}/cancel`).send({});
+      await as(app, a).post(`/api/bookings/${first.body.id}/cancel`).send({});
       expect((await book(b, t, t + H)).status).toBe(201);
       code(
-        await as(app, a).post(`/bookings/${first.body.id}/cancel`).send({}),
+        await as(app, a).post(`/api/bookings/${first.body.id}/cancel`).send({}),
         409,
         'BOOKING_CANCELLED',
       );
@@ -115,21 +115,21 @@ describe('Лабораторія і проєкти (e2e)', () => {
 
     it('обладнання на обслуговуванні не бронюється', async () => {
       await as(app, admin)
-        .patch(`/places/${placeId}`)
+        .patch(`/api/places/${placeId}`)
         .send({ status: 'maintenance' });
       const t = Date.now() + 24 * H;
       code(await book(a, t, t + H), 409, 'PLACE_UNAVAILABLE');
     });
 
     it('допуск має діяти до кінця бронювання', async () => {
-      const p = await as(app, admin).post('/places').send({
+      const p = await as(app, admin).post('/api/places').send({
         code: 'LASER-2',
         title: 'Лазер',
         category: 'Верстати',
         needsAuthorization: true,
       });
       await as(app, mod)
-        .post('/place-authorizations')
+        .post('/api/place-authorizations')
         .send({
           userId: a.id,
           placeId: p.body.id,
@@ -145,13 +145,13 @@ describe('Лабораторія і проєкти (e2e)', () => {
       expect(
         (
           await as(app, a)
-            .post('/bookings')
+            .post('/api/bookings')
             .send(body(t, t + H))
         ).status,
       ).toBe(201);
       code(
         await as(app, a)
-          .post('/bookings')
+          .post('/api/bookings')
           .send(body(t + 2 * H, t + 4 * H)),
         403,
         'NOT_AUTHORIZED_FOR_PLACE',
@@ -162,7 +162,7 @@ describe('Лабораторія і проєкти (e2e)', () => {
       const t = Date.now() + 24 * H;
       await book(a, t, t + H, { note: 'зйомка' });
       await book(b, t + 2 * H, t + 3 * H);
-      const cal = await as(app, b).get(`/places/CNC-1/bookings`);
+      const cal = await as(app, b).get(`/api/places/CNC-1/bookings`);
       expect(cal.status).toBe(200);
       expect(cal.body).toHaveLength(2);
       expect(cal.body[0]).toMatchObject({
@@ -171,11 +171,11 @@ describe('Лабораторія і проєкти (e2e)', () => {
         place: { code: 'CNC-1' },
         cancelled: false,
       });
-      const mine = await as(app, a).get('/bookings/me');
+      const mine = await as(app, a).get('/api/bookings/me');
       expect(mine.body).toHaveLength(1);
       code(
         await as(app, a).get(
-          `/places/${placeId}/bookings?from=${iso(t)}&to=${iso(t + 70 * 24 * H)}`,
+          `/api/places/${placeId}/bookings?from=${iso(t)}&to=${iso(t + 70 * 24 * H)}`,
         ),
         400,
         'INVALID_PERIOD',
@@ -209,7 +209,7 @@ describe('Лабораторія і проєкти (e2e)', () => {
       const s1 = (await start(a)).body.id as string;
       const s2 = (
         await as(app, admin)
-          .post(`/places/${placeId}/sessions`)
+          .post(`/api/places/${placeId}/sessions`)
           .send({ safetyConfirmed: true })
       ).body; // exclusive place: admin cannot start while busy
       expect(s2.errorCode).toBe('PLACE_IN_USE');
@@ -253,7 +253,7 @@ describe('Лабораторія і проєкти (e2e)', () => {
         [s],
       );
       await app.get(WorkSessionsService).autoCloseStale();
-      const list = await as(app, a).get('/work-sessions');
+      const list = await as(app, a).get('/api/work-sessions');
       expect(list.body.items[0]).toMatchObject({ id: s, autoClosed: true });
     });
   });
@@ -276,7 +276,9 @@ describe('Лабораторія і проєкти (e2e)', () => {
     const period = 'from=2026-09-30T21:00:00Z&to=2026-10-31T22:00:00Z';
 
     it('CSV за місяць: київський час, тривалість, фільтри', async () => {
-      const res = await as(app, mod).get(`/work-sessions/export.csv?${period}`);
+      const res = await as(app, mod).get(
+        `/api/work-sessions/export.csv?${period}`,
+      );
       expect(res.status).toBe(200);
       expect(res.headers['content-type']).toContain('text/csv');
       expect(res.headers['content-disposition']).toContain('equipment-log.csv');
@@ -288,13 +290,15 @@ describe('Лабораторія і проєкти (e2e)', () => {
       expect(lines[2]).toContain('Богдана,2026-10-20 15:00');
 
       const onlyB = await as(app, mod).get(
-        `/work-sessions/export.csv?${period}&userId=${b.id}`,
+        `/api/work-sessions/export.csv?${period}&userId=${b.id}`,
       );
       expect(onlyB.text.trim().split('\r\n')).toHaveLength(2);
     });
 
     it('сторінка для друку: таблиця, підсумки, власний CSP без скриптів', async () => {
-      const res = await as(app, admin).get(`/work-sessions/report?${period}`);
+      const res = await as(app, admin).get(
+        `/api/work-sessions/report?${period}`,
+      );
       expect(res.status).toBe(200);
       expect(res.headers['content-type']).toContain('text/html');
       const csp = res.headers['content-security-policy'];
@@ -312,7 +316,7 @@ describe('Лабораторія і проєкти (e2e)', () => {
         `SELECT count(*)::int AS n FROM work_sessions
          WHERE started_at >= date_trunc('month', now(), 'Europe/Kyiv')`,
       );
-      const res = await as(app, mod).get('/work-sessions/export.csv');
+      const res = await as(app, mod).get('/api/work-sessions/export.csv');
       expect(res.status).toBe(200);
       const lines = res.text.replace('\ufeff', '').trim().split('\r\n');
       expect(lines).toHaveLength(1 + n);
@@ -322,7 +326,7 @@ describe('Лабораторія і проєкти (e2e)', () => {
     it('кривий період — помилка', async () => {
       code(
         await as(app, mod).get(
-          '/work-sessions/export.csv?from=2026-11-01T00:00:00Z&to=2026-10-01T00:00:00Z',
+          '/api/work-sessions/export.csv?from=2026-11-01T00:00:00Z&to=2026-10-01T00:00:00Z',
         ),
         400,
         'INVALID_PERIOD',
@@ -331,12 +335,12 @@ describe('Лабораторія і проєкти (e2e)', () => {
 
     it('відкривається через cookie-вхід (як посилання з вебу)', async () => {
       const login = await request(app.getHttpServer())
-        .post('/auth/login')
+        .post('/api/auth/login')
         .set('X-DC-Client', 'web')
         .send({ email: mod.email, password: 'test-password-123' });
       const cookies = login.headers['set-cookie'] as unknown as string[];
       const res = await request(app.getHttpServer())
-        .get(`/work-sessions/report?${period}`)
+        .get(`/api/work-sessions/report?${period}`)
         .set('Cookie', cookies);
       expect(res.status).toBe(200);
     });
@@ -345,7 +349,7 @@ describe('Лабораторія і проєкти (e2e)', () => {
   describe('несправності', () => {
     it('звіт → обслуговування → закриття з поверненням у роботу', async () => {
       const f = await as(app, a)
-        .post('/faults')
+        .post('/api/faults')
         .send({ placeId, description: 'Шпиндель шумить' });
       expect(f.status).toBe(201);
       expect(f.body).toMatchObject({
@@ -356,16 +360,16 @@ describe('Лабораторія і проєкти (e2e)', () => {
       const id = f.body.id as string;
 
       const ph = await as(app, a)
-        .post(`/faults/${id}/photos`)
+        .post(`/api/faults/${id}/photos`)
         .attach('file', PNG_1PX, 'фото.png');
       expect(ph.body.photos).toHaveLength(1);
       const img = await as(app, b).get(
-        `/faults/${id}/photos/${ph.body.photos[0].id}`,
+        `/api/faults/${id}/photos/${ph.body.photos[0].id}`,
       );
       expect(img.status).toBe(200);
       expect(img.headers['content-type']).toBe('image/png');
 
-      const m = await as(app, mod).post(`/faults/${id}/maintenance`);
+      const m = await as(app, mod).post(`/api/faults/${id}/maintenance`);
       expect(m.body).toMatchObject({
         status: 'in_progress',
         place: { status: 'maintenance' },
@@ -373,12 +377,12 @@ describe('Лабораторія і проєкти (e2e)', () => {
       code(await start(b), 409, 'PLACE_UNAVAILABLE');
 
       code(
-        await as(app, mod).post(`/faults/${id}/close`).send({}),
+        await as(app, mod).post(`/api/faults/${id}/close`).send({}),
         400,
         'VALIDATION_ERROR',
       );
       const c = await as(app, mod)
-        .post(`/faults/${id}/close`)
+        .post(`/api/faults/${id}/close`)
         .send({ resolution: 'Замінили підшипник', reactivatePlace: true });
       expect(c.body).toMatchObject({
         status: 'closed',
@@ -389,14 +393,14 @@ describe('Лабораторія і проєкти (e2e)', () => {
       expect((await start(b)).status).toBe(201);
       code(
         await as(app, mod)
-          .post(`/faults/${id}/close`)
+          .post(`/api/faults/${id}/close`)
           .send({ resolution: 'x' }),
         409,
         'FAULT_CLOSED',
       );
       code(
         await as(app, a)
-          .post(`/faults/${id}/photos`)
+          .post(`/api/faults/${id}/photos`)
           .attach('file', PNG_1PX, 'f.png'),
         409,
         'FAULT_CLOSED',
@@ -422,27 +426,27 @@ describe('Лабораторія і проєкти (e2e)', () => {
     it('«в роботу» без зупинки обладнання; закриття без повернення', async () => {
       const id = (
         await as(app, a)
-          .post('/faults')
+          .post('/api/faults')
           .send({ placeId, description: 'Подряпина' })
       ).body.id as string;
-      const r = await as(app, mod).post(`/faults/${id}/in-progress`);
+      const r = await as(app, mod).post(`/api/faults/${id}/in-progress`);
       expect(r.body).toMatchObject({
         status: 'in_progress',
         place: { status: 'active' },
       });
-      await as(app, mod).post(`/faults/${id}/maintenance`);
+      await as(app, mod).post(`/api/faults/${id}/maintenance`);
       const c = await as(app, mod)
-        .post(`/faults/${id}/close`)
+        .post(`/api/faults/${id}/close`)
         .send({ resolution: 'Чекаємо запчастину' });
       expect(c.body.place.status).toBe('maintenance');
     });
 
     it('максимум 3 фото, лише картинки', async () => {
       const id = (
-        await as(app, a).post('/faults').send({ placeId, description: 'x' })
+        await as(app, a).post('/api/faults').send({ placeId, description: 'x' })
       ).body.id as string;
       const up = (buf: Buffer, name: string) =>
-        as(app, a).post(`/faults/${id}/photos`).attach('file', buf, name);
+        as(app, a).post(`/api/faults/${id}/photos`).attach('file', buf, name);
       code(
         await up(Buffer.from('%PDF-1.4'), 'a.pdf'),
         400,
@@ -455,15 +459,15 @@ describe('Лабораторія і проєкти (e2e)', () => {
     });
 
     it('список з фільтрами', async () => {
-      await as(app, a).post('/faults').send({ placeId, description: '1' });
+      await as(app, a).post('/api/faults').send({ placeId, description: '1' });
       const second = await as(app, b)
-        .post('/faults')
+        .post('/api/faults')
         .send({ placeId, description: '2' });
       await as(app, mod)
-        .post(`/faults/${second.body.id}/close`)
+        .post(`/api/faults/${second.body.id}/close`)
         .send({ resolution: 'ok' });
       const open = await as(app, b).get(
-        `/faults?placeId=${placeId}&status=open`,
+        `/api/faults?placeId=${placeId}&status=open`,
       );
       expect(open.body).toMatchObject({ total: 1 });
       expect(open.body.items[0]).toMatchObject({
@@ -475,7 +479,7 @@ describe('Лабораторія і проєкти (e2e)', () => {
 
   describe('проєкти: етапи й дати', () => {
     it('створення з етапом і датами, фільтр за етапом', async () => {
-      const p = await as(app, mod).post('/projects').send({
+      const p = await as(app, mod).post('/api/projects').send({
         title: 'Фестиваль',
         stage: 'idea',
         startDate: '2026-11-10',
@@ -487,13 +491,15 @@ describe('Лабораторія і проєкти (e2e)', () => {
         startDate: '2026-11-10',
         deadline: '2026-12-20',
       });
-      const def = await as(app, mod).post('/projects').send({ title: 'Інше' });
+      const def = await as(app, mod)
+        .post('/api/projects')
+        .send({ title: 'Інше' });
       expect(def.body).toMatchObject({
         stage: 'planning',
         startDate: null,
         deadline: null,
       });
-      const list = await as(app, a).get('/projects?stage=idea');
+      const list = await as(app, a).get('/api/projects?stage=idea');
       expect(list.body.items.map((x: { id: string }) => x.id)).toEqual([
         p.body.id,
       ]);
@@ -502,13 +508,13 @@ describe('Лабораторія і проєкти (e2e)', () => {
     it('лише фіксовані етапи, дедлайн не раніше початку', async () => {
       code(
         await as(app, mod)
-          .post('/projects')
+          .post('/api/projects')
           .send({ title: 'x', stage: 'Планується' }),
         400,
         'VALIDATION_ERROR',
       );
       code(
-        await as(app, mod).post('/projects').send({
+        await as(app, mod).post('/api/projects').send({
           title: 'x',
           startDate: '2026-12-01',
           deadline: '2026-11-01',
@@ -518,23 +524,23 @@ describe('Лабораторія і проєкти (e2e)', () => {
       );
       code(
         await as(app, mod)
-          .post('/projects')
+          .post('/api/projects')
           .send({ title: 'x', deadline: '01.12.2026' }),
         400,
         'VALIDATION_ERROR',
       );
       const p = await as(app, mod)
-        .post('/projects')
+        .post('/api/projects')
         .send({ title: 'x', startDate: '2026-12-01' });
       code(
         await as(app, mod)
-          .patch(`/projects/${p.body.id}`)
+          .patch(`/api/projects/${p.body.id}`)
           .send({ deadline: '2026-11-30' }),
         400,
         'PROJECT_DATES_INVALID',
       );
       const cleared = await as(app, mod)
-        .patch(`/projects/${p.body.id}`)
+        .patch(`/api/projects/${p.body.id}`)
         .send({ startDate: null, deadline: '2026-11-30' });
       expect(cleared.body).toMatchObject({
         startDate: null,
@@ -544,13 +550,13 @@ describe('Лабораторія і проєкти (e2e)', () => {
 
     it('учасник змінює етап, зміна в історії', async () => {
       const p = await as(app, mod)
-        .post('/projects')
+        .post('/api/projects')
         .send({ title: 'x', memberIds: [a.id] });
       const upd = await as(app, a)
-        .patch(`/projects/${p.body.id}`)
+        .patch(`/api/projects/${p.body.id}`)
         .send({ stage: 'execution' });
       expect(upd.body.stage).toBe('execution');
-      const hist = await as(app, a).get(`/projects/${p.body.id}/history`);
+      const hist = await as(app, a).get(`/api/projects/${p.body.id}/history`);
       expect(hist.body[0]).toMatchObject({
         action: 'project.updated',
         meta: { stage: { from: 'planning', to: 'execution' } },

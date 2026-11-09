@@ -34,7 +34,7 @@ const ASSETS: Record<string, string> = {
 // X-DC-Client lets "Try it out" pass the CSRF check with cookie auth.
 const INIT_JS = `window.addEventListener('load', function () {
   window.ui = SwaggerUIBundle({
-    url: '/docs/openapi.json',
+    url: '/api/docs/openapi.json',
     dom_id: '#swagger-ui',
     presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
     layout: 'StandaloneLayout',
@@ -52,13 +52,13 @@ const HTML = `<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <title>DigiComp HUB API</title>
-<link rel="stylesheet" href="/docs/assets/swagger-ui.css">
+<link rel="stylesheet" href="/api/docs/assets/swagger-ui.css">
 </head>
 <body>
 <div id="swagger-ui"></div>
-<script src="/docs/assets/swagger-ui-bundle.js"></script>
-<script src="/docs/assets/swagger-ui-standalone-preset.js"></script>
-<script src="/docs/assets/init.js"></script>
+<script src="/api/docs/assets/swagger-ui-bundle.js"></script>
+<script src="/api/docs/assets/swagger-ui-standalone-preset.js"></script>
+<script src="/api/docs/assets/init.js"></script>
 </body>
 </html>
 `;

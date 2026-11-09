@@ -4,3 +4,5 @@ api/.e2e-files
 api/dist
 *.tsbuildinfo
 __pycache__/
+web/dist
+web/dev-dist

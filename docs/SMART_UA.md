@@ -26,7 +26,7 @@ HA не відкривається в інтернет (Funnel веде лише
        unset HAT
 
 3. Перезапустіть API: `cd ~/server && docker compose up -d --build api`
-4. Перевірте зв'язок (адмін-токен у змінній `TOKEN`): `curl -s http://127.0.0.1:3000/smart/status -H "Authorization: Bearer $TOKEN"`
+4. Перевірте зв'язок (адмін-токен у змінній `TOKEN`): `curl -s http://127.0.0.1:3000/api/smart/status -H "Authorization: Bearer $TOKEN"`
 
 HA стоїть на тому ж сервері в режимі `network_mode: host`, а API працює в контейнері, тому до HA він звертається за адресою
 `http://host.docker.internal:8123` (змінна `HA_URL`, значення за замовчуванням уже таке).

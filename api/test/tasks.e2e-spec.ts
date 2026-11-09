@@ -50,14 +50,14 @@ describe('ТЗ (e2e)', () => {
 
   const create = async (over: Record<string, unknown> = {}) => {
     const res = await as(app, mod)
-      .post('/tasks')
+      .post('/api/tasks')
       .send({ title: 'Зняти відео', points: 10, maxAssignees: 3, ...over });
     expect(res.status).toBe(201);
     return res.body.id as string;
   };
   const act = (u: TestUser, id: string, step: string, body?: object) =>
     as(app, u)
-      .post(`/tasks/${id}/${step}`)
+      .post(`/api/tasks/${id}/${step}`)
       .send(body ?? {});
   const ledger = async (taskId: string) =>
     (
@@ -73,7 +73,7 @@ describe('ТЗ (e2e)', () => {
 
   it('повний шлях з поверненням і поділом 10 балів на трьох', async () => {
     const id = await create();
-    const fresh = await as(app, a).get(`/tasks/${id}`);
+    const fresh = await as(app, a).get(`/api/tasks/${id}`);
     expect(fresh.body).toMatchObject({
       status: 'todo',
       maxAssignees: 3,
@@ -103,7 +103,7 @@ describe('ТЗ (e2e)', () => {
     code(await act(mod, id, 'return'), 400, 'VALIDATION_ERROR');
     const back = await act(mod, id, 'return', { body: 'Звук тихий' });
     expect(back.body.status).toBe('in_progress');
-    const detail = await as(app, a).get(`/tasks/${id}`);
+    const detail = await as(app, a).get(`/api/tasks/${id}`);
     expect(detail.body.comments).toMatchObject([
       { kind: 'return', body: 'Звук тихий', author: { id: mod.id } },
     ]);
@@ -118,7 +118,7 @@ describe('ТЗ (e2e)', () => {
     expect(await ledger(id)).toEqual({ [a.id]: 4, [b.id]: 3, [c.id]: 3 });
 
     // Бали видно в профілі.
-    const me = await as(app, a).get('/points/me');
+    const me = await as(app, a).get('/api/points/me');
     expect(me.body.balance).toBe(4);
     expect(me.body.history[0]).toMatchObject({
       kind: 'task',
@@ -131,7 +131,7 @@ describe('ТЗ (e2e)', () => {
     code(await act(mod, id, 'accept'), 409, 'TASK_ALREADY_COMPLETED');
     code(await act(a, id, 'leave'), 409, 'TASK_ALREADY_COMPLETED');
     code(
-      await as(app, mod).patch(`/tasks/${id}`).send({ points: 50 }),
+      await as(app, mod).patch(`/api/tasks/${id}`).send({ points: 50 }),
       409,
       'TASK_ALREADY_COMPLETED',
     );
@@ -231,50 +231,54 @@ describe('ТЗ (e2e)', () => {
   it('редагування і видалення', async () => {
     const id = await create({ maxAssignees: 3 });
     const upd = await as(app, mod)
-      .patch(`/tasks/${id}`)
+      .patch(`/api/tasks/${id}`)
       .send({ title: 'Нова назва', dueDate: '2026-12-01T00:00:00.000Z' });
     expect(upd.body).toMatchObject({ title: 'Нова назва' });
     expect(new Date(upd.body.dueDate as string).toISOString()).toBe(
       '2026-12-01T00:00:00.000Z',
     );
     expect(
-      (await as(app, mod).patch(`/tasks/${id}`).send({ dueDate: null })).body
-        .dueDate,
+      (await as(app, mod).patch(`/api/tasks/${id}`).send({ dueDate: null }))
+        .body.dueDate,
     ).toBeNull();
     expect(
-      (await as(app, a).patch(`/tasks/${id}`).send({ title: 'x' })).status,
+      (await as(app, a).patch(`/api/tasks/${id}`).send({ title: 'x' })).status,
     ).toBe(403);
 
     await act(a, id, 'take');
     await act(b, id, 'take');
     code(
-      await as(app, mod).patch(`/tasks/${id}`).send({ maxAssignees: 1 }),
+      await as(app, mod).patch(`/api/tasks/${id}`).send({ maxAssignees: 1 }),
       409,
       'MAX_ASSIGNEES_TOO_LOW',
     );
-    code(await as(app, mod).delete(`/tasks/${id}`), 409, 'TASK_HAS_ASSIGNEES');
+    code(
+      await as(app, mod).delete(`/api/tasks/${id}`),
+      409,
+      'TASK_HAS_ASSIGNEES',
+    );
 
     const free = await create();
-    expect((await as(app, a).delete(`/tasks/${free}`)).status).toBe(403);
-    expect((await as(app, mod).delete(`/tasks/${free}`)).status).toBe(200);
-    expect((await as(app, a).get(`/tasks/${free}`)).status).toBe(404);
+    expect((await as(app, a).delete(`/api/tasks/${free}`)).status).toBe(403);
+    expect((await as(app, mod).delete(`/api/tasks/${free}`)).status).toBe(200);
+    expect((await as(app, a).get(`/api/tasks/${free}`)).status).toBe(404);
   });
 
   it('фільтри дошки: статус і «мої»', async () => {
     const t1 = await create();
     const t2 = await create();
     await act(a, t1, 'take');
-    const mine = await as(app, a).get('/tasks?mine=true');
+    const mine = await as(app, a).get('/api/tasks?mine=true');
     expect(mine.body.map((t: { id: string }) => t.id)).toEqual([t1]);
-    const free = await as(app, a).get('/tasks?status=todo');
+    const free = await as(app, a).get('/api/tasks?status=todo');
     expect(free.body.map((t: { id: string }) => t.id)).toEqual([t2]);
-    expect((await as(app, a).get('/tasks?status=bad')).status).toBe(400);
+    expect((await as(app, a).get('/api/tasks?status=bad')).status).toBe(400);
   });
 
   it('коментарі: пише будь-хто, порожній не можна', async () => {
     const id = await create();
     const res = await as(app, c)
-      .post(`/tasks/${id}/comments`)
+      .post(`/api/tasks/${id}/comments`)
       .send({ body: ' Коли дедлайн? ' });
     expect(res.status).toBe(201);
     expect(res.body).toMatchObject({
@@ -283,7 +287,7 @@ describe('ТЗ (e2e)', () => {
       author: { id: c.id, name: c.name },
     });
     code(
-      await as(app, c).post(`/tasks/${id}/comments`).send({ body: '  ' }),
+      await as(app, c).post(`/api/tasks/${id}/comments`).send({ body: '  ' }),
       400,
       'VALIDATION_ERROR',
     );
@@ -292,7 +296,9 @@ describe('ТЗ (e2e)', () => {
   it('файли: виконавці й модератори додають, видаляє автор або модератор', async () => {
     const id = await create();
     const upload = (u: TestUser) =>
-      as(app, u).post(`/tasks/${id}/files`).attach('file', PNG_1PX, 'кадр.png');
+      as(app, u)
+        .post(`/api/tasks/${id}/files`)
+        .attach('file', PNG_1PX, 'кадр.png');
 
     code(await upload(a), 403, 'NOT_PARTICIPANT');
     await act(a, id, 'take');
@@ -304,29 +310,34 @@ describe('ТЗ (e2e)', () => {
     });
     expect((await upload(mod)).status).toBe(201);
 
-    const dl = await as(app, b).get(`/tasks/${id}/files/${f.body.id}/download`);
+    const dl = await as(app, b).get(
+      `/api/tasks/${id}/files/${f.body.id}/download`,
+    );
     expect(dl.status).toBe(200);
     expect(dl.headers['content-type']).toBe('image/png');
 
     expect(
-      (await as(app, b).delete(`/tasks/${id}/files/${f.body.id}`)).status,
+      (await as(app, b).delete(`/api/tasks/${id}/files/${f.body.id}`)).status,
     ).toBe(403);
     expect(
-      (await as(app, a).delete(`/tasks/${id}/files/${f.body.id}`)).status,
+      (await as(app, a).delete(`/api/tasks/${id}/files/${f.body.id}`)).status,
     ).toBe(200);
-    const detail = await as(app, a).get(`/tasks/${id}`);
+    const detail = await as(app, a).get(`/api/tasks/${id}`);
     expect(detail.body.files).toHaveLength(1);
   });
 
   it('старий PATCH /tasks/:id/status і assigneeIds прибрано', async () => {
     const id = await create();
     expect(
-      (await as(app, mod).patch(`/tasks/${id}/status`).send({ status: 'done' }))
-        .status,
+      (
+        await as(app, mod)
+          .patch(`/api/tasks/${id}/status`)
+          .send({ status: 'done' })
+      ).status,
     ).toBe(404);
     code(
       await as(app, mod)
-        .post('/tasks')
+        .post('/api/tasks')
         .send({ title: 'x', points: 1, assigneeIds: [a.id] }),
       400,
       'VALIDATION_ERROR',

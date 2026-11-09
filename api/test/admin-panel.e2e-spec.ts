@@ -106,7 +106,9 @@ describe('Розширена панель (e2e)', () => {
     app = await createTestApp();
     ds = app.get(DataSource);
     await app.listen(0, '127.0.0.1');
-    const port = (app.getHttpServer().address() as AddressInfo).port;
+    const port = (
+      (app.getHttpServer() as unknown as Server).address() as AddressInfo
+    ).port;
     process.env.PANEL_PORT = String(port);
     panel = `http://127.0.0.1:${port}`;
     // "Funnel" port: the same app on another port.
@@ -140,36 +142,40 @@ describe('Розширена панель (e2e)', () => {
 
   describe('матриця прав: розширена панель', () => {
     it('admin з 2FA так', async () => {
-      const r = await get(panel, '/admin-panel/overview', adminMfa);
+      const r = await get(panel, '/api/admin-panel/overview', adminMfa);
       expect(r.status).toBe(200);
     });
     it('admin без 2FA ні', async () => {
       code(
-        await get(panel, '/admin-panel/overview', admin.token),
+        await get(panel, '/api/admin-panel/overview', admin.token),
         403,
         'TWO_FACTOR_REQUIRED',
       );
     });
     it('moderator і member ні', async () => {
       code(
-        await get(panel, '/admin-panel/overview', mod.token),
+        await get(panel, '/api/admin-panel/overview', mod.token),
         403,
         'FORBIDDEN',
       );
       code(
-        await get(panel, '/admin-panel/overview', member.token),
+        await get(panel, '/api/admin-panel/overview', member.token),
         403,
         'FORBIDDEN',
       );
       const modMfa = await mfaToken(app, mod);
-      code(await get(panel, '/admin-panel/overview', modMfa), 403, 'FORBIDDEN');
+      code(
+        await get(panel, '/api/admin-panel/overview', modMfa),
+        403,
+        'FORBIDDEN',
+      );
     });
     it('2FA вимкнули — сесія з 2FA більше не підходить', async () => {
       await ds.query(`UPDATE users SET totp_enabled_at = NULL WHERE id = $1`, [
         admin.id,
       ]);
       code(
-        await get(panel, '/admin-panel/overview', adminMfa),
+        await get(panel, '/api/admin-panel/overview', adminMfa),
         403,
         'TWO_FACTOR_REQUIRED',
       );
@@ -177,18 +183,22 @@ describe('Розширена панель (e2e)', () => {
   });
 
   it('на основному порту (Funnel) панелі немає: 404', async () => {
-    code(await get(main, '/admin-panel/overview', adminMfa), 404, 'NOT_FOUND');
     code(
-      await post(main, '/admin-panel/actions/backup', adminMfa),
+      await get(main, '/api/admin-panel/overview', adminMfa),
+      404,
+      'NOT_FOUND',
+    );
+    code(
+      await post(main, '/api/admin-panel/actions/backup', adminMfa),
       404,
       'NOT_FOUND',
     );
     // Решта API на основному порту працює.
-    expect((await get(main, '/auth/me', admin.token)).status).toBe(200);
+    expect((await get(main, '/api/auth/me', admin.token)).status).toBe(200);
   });
 
   it('огляд: метрики, контейнери, бекап; агенту йде токен', async () => {
-    const r = await get(panel, '/admin-panel/overview', adminMfa);
+    const r = await get(panel, '/api/admin-panel/overview', adminMfa);
     expect(r.body).toEqual({
       metrics: { cpuPercent: 12.5, uptimeSeconds: 3600 },
       containers: [{ name: 'api', state: 'running' }],
@@ -200,31 +210,35 @@ describe('Розширена панель (e2e)', () => {
   });
 
   it('логи: кількість рядків обмежена', async () => {
-    const r = await get(panel, '/admin-panel/logs?lines=999', adminMfa);
+    const r = await get(panel, '/api/admin-panel/logs?lines=999', adminMfa);
     expect(r.body.lines).toEqual(['a', 'b']);
     expect(agent.seen.at(-1)!.url).toBe('/v1/logs?lines=500');
     code(
-      await get(panel, '/admin-panel/logs?lines=-5', adminMfa),
+      await get(panel, '/api/admin-panel/logs?lines=-5', adminMfa),
       400,
       'VALIDATION_ERROR',
     );
   });
 
   it('дії: бекап, одна за раз, статус задачі, аудит', async () => {
-    const r = await post(panel, '/admin-panel/actions/backup', adminMfa);
+    const r = await post(panel, '/api/admin-panel/actions/backup', adminMfa);
     expect(r.status).toBe(202);
     expect(r.body).toMatchObject({ action: 'backup', status: 'running' });
     expect(agent.seen.at(-1)!.body).toEqual({ action: 'backup' });
     code(
-      await post(panel, '/admin-panel/actions/restore-check', adminMfa),
+      await post(panel, '/api/admin-panel/actions/restore-check', adminMfa),
       409,
       'AGENT_BUSY',
     );
 
-    const job = await get(panel, `/admin-panel/jobs/${r.body.id}`, adminMfa);
+    const job = await get(
+      panel,
+      `/api/admin-panel/jobs/${r.body.id}`,
+      adminMfa,
+    );
     expect(job.body).toMatchObject({ status: 'succeeded', exitCode: 0 });
     code(
-      await get(panel, '/admin-panel/jobs/..%2F..%2Fetc', adminMfa),
+      await get(panel, '/api/admin-panel/jobs/..%2F..%2Fetc', adminMfa),
       400,
       'VALIDATION_ERROR',
     );
@@ -239,7 +253,7 @@ describe('Розширена панель (e2e)', () => {
   });
 
   it('перезапуск: лише api або ha', async () => {
-    const r = await post(panel, '/admin-panel/actions/restart', adminMfa, {
+    const r = await post(panel, '/api/admin-panel/actions/restart', adminMfa, {
       target: 'ha',
     });
     expect(r.status).toBe(202);
@@ -247,7 +261,9 @@ describe('Розширена панель (e2e)', () => {
     agent.finish();
     for (const target of ['db', 'all', '']) {
       code(
-        await post(panel, '/admin-panel/actions/restart', adminMfa, { target }),
+        await post(panel, '/api/admin-panel/actions/restart', adminMfa, {
+          target,
+        }),
         400,
         'VALIDATION_ERROR',
       );
@@ -258,11 +274,11 @@ describe('Розширена панель (e2e)', () => {
     process.env.AGENT_SOCKET = join(dir, 'missing.sock');
     try {
       code(
-        await get(panel, '/admin-panel/overview', adminMfa),
+        await get(panel, '/api/admin-panel/overview', adminMfa),
         503,
         'AGENT_UNAVAILABLE',
       );
-      expect((await get(panel, '/auth/me', admin.token)).status).toBe(200);
+      expect((await get(panel, '/api/auth/me', admin.token)).status).toBe(200);
     } finally {
       process.env.AGENT_SOCKET = join(dir, 'agent.sock');
     }
@@ -272,7 +288,7 @@ describe('Розширена панель (e2e)', () => {
     process.env.AGENT_TOKEN = 'wrong';
     try {
       code(
-        await get(panel, '/admin-panel/overview', adminMfa),
+        await get(panel, '/api/admin-panel/overview', adminMfa),
         503,
         'AGENT_UNAVAILABLE',
       );

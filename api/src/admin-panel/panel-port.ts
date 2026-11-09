@@ -5,7 +5,7 @@ import type { NextFunction, Request, Response } from 'express';
  * is published on 127.0.0.1 and exposed through `tailscale serve`
  * (tailnet only); Funnel points at the main port, where these routes 404.
  */
-export const PANEL_PREFIX = '/admin-panel';
+export const PANEL_PREFIX = '/api/admin-panel';
 
 export function panelPort(): number | null {
   const raw = process.env.PANEL_PORT ?? '3001';

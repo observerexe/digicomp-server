@@ -5,6 +5,7 @@ import { NestFactory } from '@nestjs/core';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
 import { AppModule } from './app.module';
+import { applyGlobalPrefix } from './common/api-prefix';
 import { buildOpenApi } from './docs/openapi';
 
 async function main() {
@@ -12,6 +13,7 @@ async function main() {
     preview: true,
     logger: false,
   });
+  applyGlobalPrefix(app);
   const out = join(__dirname, '..', 'openapi.json');
   writeFileSync(out, JSON.stringify(buildOpenApi(app), null, 2) + '\n');
   await app.close();

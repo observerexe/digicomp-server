@@ -2,6 +2,8 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { DocsService } from './docs/docs.controller';
 import { buildOpenApi } from './docs/openapi';
 import { AllExceptionsFilter } from './common/http-exception.filter';
+import { applyGlobalPrefix } from './common/api-prefix';
+import { serveWeb } from './web/serve-web';
 import { panelPortGuard } from './admin-panel/panel-port';
 import { apiNoStore, csrfGuard, securityHeaders } from './common/web';
 
@@ -10,10 +12,12 @@ import { apiNoStore, csrfGuard, securityHeaders } from './common/web';
  * so tests run against the same security setup as production.
  */
 export function setupApp(app: INestApplication) {
+  applyGlobalPrefix(app);
   app.use(securityHeaders);
   app.use(panelPortGuard);
   app.use(csrfGuard);
   app.use(apiNoStore);
+  serveWeb(app);
   app.useGlobalFilters(new AllExceptionsFilter());
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),

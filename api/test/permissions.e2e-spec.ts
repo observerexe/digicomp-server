@@ -64,20 +64,20 @@ describe('Матриця прав (e2e)', () => {
 
   describe('Журнал усіх дій (аудит)', () => {
     it('admin так', async () => {
-      allowed(await as(app, admin).get('/audit'));
+      allowed(await as(app, admin).get('/api/audit'));
     });
     it('moderator ні', async () => {
-      denied(await as(app, mod).get('/audit'));
+      denied(await as(app, mod).get('/api/audit'));
     });
     it('member ні', async () => {
-      denied(await as(app, member).get('/audit'));
+      denied(await as(app, member).get('/api/audit'));
     });
   });
 
   describe('Видати або передати адмінку', () => {
     it('admin так', async () => {
       const res = await as(app, admin)
-        .patch(`/users/${member2.id}`)
+        .patch(`/api/users/${member2.id}`)
         .send({ role: 'admin' });
       allowed(res);
       expect(res.body.role).toBe('admin');
@@ -85,24 +85,24 @@ describe('Матриця прав (e2e)', () => {
     it('moderator ні', async () => {
       denied(
         await as(app, mod)
-          .patch(`/users/${member2.id}`)
+          .patch(`/api/users/${member2.id}`)
           .send({ role: 'admin' }),
       );
     });
     it('member ні', async () => {
       denied(
         await as(app, member)
-          .patch(`/users/${member2.id}`)
+          .patch(`/api/users/${member2.id}`)
           .send({ role: 'admin' }),
       );
     });
     it('останнього адміна не можна позбавити ролі', async () => {
       await as(app, admin)
-        .patch(`/users/${admin2.id}`)
+        .patch(`/api/users/${admin2.id}`)
         .send({ role: 'member' })
         .expect(200);
       const res = await as(app, admin)
-        .patch(`/users/${admin.id}`)
+        .patch(`/api/users/${admin.id}`)
         .send({ role: 'member' });
       expect(res.status).toBe(409);
       expect(res.body.errorCode).toBe('LAST_ADMIN');
@@ -114,7 +114,7 @@ describe('Матриця прав (e2e)', () => {
     it('admin так, з записом в аудит', async () => {
       allowed(
         await as(app, admin)
-          .post(`/users/${member2.id}/reset-password`)
+          .post(`/api/users/${member2.id}/reset-password`)
           .send(body),
       );
       expect(await audit('user.password_reset', member2.id)).toMatchObject({
@@ -124,14 +124,14 @@ describe('Матриця прав (e2e)', () => {
     it('moderator ні', async () => {
       denied(
         await as(app, mod)
-          .post(`/users/${member2.id}/reset-password`)
+          .post(`/api/users/${member2.id}/reset-password`)
           .send(body),
       );
     });
     it('member ні', async () => {
       denied(
         await as(app, member)
-          .post(`/users/${member2.id}/reset-password`)
+          .post(`/api/users/${member2.id}/reset-password`)
           .send(body),
       );
     });
@@ -141,21 +141,21 @@ describe('Матриця прав (e2e)', () => {
     it('admin так', async () => {
       allowed(
         await as(app, admin)
-          .patch(`/users/${member2.id}`)
+          .patch(`/api/users/${member2.id}`)
           .send({ name: 'Нове ім’я' }),
       );
     });
     it('moderator ні', async () => {
       denied(
         await as(app, mod)
-          .patch(`/users/${member2.id}`)
+          .patch(`/api/users/${member2.id}`)
           .send({ name: 'Нове ім’я' }),
       );
     });
     it('member ні', async () => {
       denied(
         await as(app, member)
-          .patch(`/users/${member2.id}`)
+          .patch(`/api/users/${member2.id}`)
           .send({ name: 'Нове ім’я' }),
       );
     });
@@ -163,9 +163,11 @@ describe('Матриця прав (e2e)', () => {
 
   describe('Видалити недоречний аватар чи біо іншого', () => {
     it('admin так: аватар і біо', async () => {
-      allowed(await as(app, admin).delete(`/users/${member2.id}/avatar`));
+      allowed(await as(app, admin).delete(`/api/users/${member2.id}/avatar`));
       allowed(
-        await as(app, admin).patch(`/users/${member2.id}`).send({ bio: '' }),
+        await as(app, admin)
+          .patch(`/api/users/${member2.id}`)
+          .send({ bio: '' }),
       );
       expect(await audit('user.avatar_removed', member2.id)).toMatchObject({
         actorId: admin.id,
@@ -173,16 +175,16 @@ describe('Матриця прав (e2e)', () => {
     });
     it('moderator ні', async () => {
       denied(
-        await as(app, mod).delete(`/users/${member2.id}/avatar`),
+        await as(app, mod).delete(`/api/users/${member2.id}/avatar`),
         'NOT_ALLOWED',
       );
       denied(
-        await as(app, mod).patch(`/users/${member2.id}`).send({ bio: '' }),
+        await as(app, mod).patch(`/api/users/${member2.id}`).send({ bio: '' }),
       );
     });
     it('member ні', async () => {
       denied(
-        await as(app, member).delete(`/users/${member2.id}/avatar`),
+        await as(app, member).delete(`/api/users/${member2.id}/avatar`),
         'NOT_ALLOWED',
       );
     });
@@ -192,26 +194,32 @@ describe('Матриця прав (e2e)', () => {
     it('admin так', async () => {
       allowed(
         await as(app, admin)
-          .patch(`/users/${mod2.id}`)
+          .patch(`/api/users/${mod2.id}`)
           .send({ role: 'member' }),
       );
       allowed(
-        await as(app, admin).patch(`/users/${mod2.id}`).send({ active: false }),
+        await as(app, admin)
+          .patch(`/api/users/${mod2.id}`)
+          .send({ active: false }),
       );
     });
     it('moderator ні', async () => {
       denied(
-        await as(app, mod).patch(`/users/${mod2.id}`).send({ role: 'member' }),
+        await as(app, mod)
+          .patch(`/api/users/${mod2.id}`)
+          .send({ role: 'member' }),
       );
       denied(
-        await as(app, mod).patch(`/users/${mod2.id}`).send({ active: false }),
+        await as(app, mod)
+          .patch(`/api/users/${mod2.id}`)
+          .send({ active: false }),
         'TARGET_ROLE_FORBIDDEN',
       );
     });
     it('member ні', async () => {
       denied(
         await as(app, member)
-          .patch(`/users/${mod2.id}`)
+          .patch(`/api/users/${mod2.id}`)
           .send({ active: false }),
       );
     });
@@ -224,12 +232,12 @@ describe('Матриця прав (e2e)', () => {
       password: 'password-123',
     });
     it('admin так', async () => {
-      const res = await as(app, admin).post('/users').send(body());
+      const res = await as(app, admin).post('/api/users').send(body());
       expect(res.status).toBe(201);
       expect(res.body.role).toBe('member');
     });
     it('moderator так: створює лише member, пише в аудит', async () => {
-      const res = await as(app, mod).post('/users').send(body());
+      const res = await as(app, mod).post('/api/users').send(body());
       expect(res.status).toBe(201);
       expect(res.body.role).toBe('member');
       expect(await audit('user.created', res.body.id)).toMatchObject({
@@ -237,7 +245,7 @@ describe('Матриця прав (e2e)', () => {
       });
     });
     it('member ні', async () => {
-      denied(await as(app, member).post('/users').send(body()));
+      denied(await as(app, member).post('/api/users').send(body()));
     });
   });
 
@@ -245,37 +253,41 @@ describe('Матриця прав (e2e)', () => {
     it('admin так', async () => {
       allowed(
         await as(app, admin)
-          .patch(`/users/${member2.id}`)
+          .patch(`/api/users/${member2.id}`)
           .send({ active: false }),
       );
     });
     it('moderator так, лише member; дія в аудиті, сесія заблокованого гасне', async () => {
       allowed(
         await as(app, mod)
-          .patch(`/users/${member2.id}`)
+          .patch(`/api/users/${member2.id}`)
           .send({ active: false }),
       );
       expect(await audit('user.updated', member2.id)).toMatchObject({
         actorId: mod.id,
       });
-      expect((await as(app, member2).get('/auth/me')).status).toBe(401);
+      expect((await as(app, member2).get('/api/auth/me')).status).toBe(401);
     });
     it('moderator не блокує адміна', async () => {
       denied(
-        await as(app, mod).patch(`/users/${admin.id}`).send({ active: false }),
+        await as(app, mod)
+          .patch(`/api/users/${admin.id}`)
+          .send({ active: false }),
         'TARGET_ROLE_FORBIDDEN',
       );
     });
     it('moderator не діє над собою через /users/:id', async () => {
       denied(
-        await as(app, mod).patch(`/users/${mod.id}`).send({ active: false }),
+        await as(app, mod)
+          .patch(`/api/users/${mod.id}`)
+          .send({ active: false }),
         'SELF_ACTION_FORBIDDEN',
       );
     });
     it('member ні', async () => {
       denied(
         await as(app, member)
-          .patch(`/users/${member2.id}`)
+          .patch(`/api/users/${member2.id}`)
           .send({ active: false }),
       );
     });
@@ -285,13 +297,13 @@ describe('Матриця прав (e2e)', () => {
     it('admin так', async () => {
       allowed(
         await as(app, admin)
-          .patch(`/users/${member2.id}`)
+          .patch(`/api/users/${member2.id}`)
           .send({ role: 'moderator' }),
       );
     });
     it('moderator так', async () => {
       const res = await as(app, mod)
-        .patch(`/users/${member2.id}`)
+        .patch(`/api/users/${member2.id}`)
         .send({ role: 'moderator' });
       allowed(res);
       expect(res.body.role).toBe('moderator');
@@ -299,13 +311,13 @@ describe('Матриця прав (e2e)', () => {
     it('member ні', async () => {
       denied(
         await as(app, member)
-          .patch(`/users/${member2.id}`)
+          .patch(`/api/users/${member2.id}`)
           .send({ role: 'moderator' }),
       );
     });
     it('роль guest більше не приймається', async () => {
       const res = await as(app, admin)
-        .patch(`/users/${member2.id}`)
+        .patch(`/api/users/${member2.id}`)
         .send({ role: 'guest' });
       expect(res.status).toBe(400);
     });
@@ -314,25 +326,29 @@ describe('Матриця прав (e2e)', () => {
   describe('Змінити спеціальність і посаду іншого', () => {
     const body = { specialty: 'Звук', position: 'Звукорежисер' };
     it('admin так (і для модератора)', async () => {
-      allowed(await as(app, admin).patch(`/users/${mod2.id}`).send(body));
+      allowed(await as(app, admin).patch(`/api/users/${mod2.id}`).send(body));
     });
     it('moderator так для member', async () => {
-      const res = await as(app, mod).patch(`/users/${member2.id}`).send(body);
+      const res = await as(app, mod)
+        .patch(`/api/users/${member2.id}`)
+        .send(body);
       allowed(res);
       expect(res.body).toMatchObject(body);
     });
     it('moderator ні для модератора чи адміна', async () => {
       denied(
-        await as(app, mod).patch(`/users/${mod2.id}`).send(body),
+        await as(app, mod).patch(`/api/users/${mod2.id}`).send(body),
         'TARGET_ROLE_FORBIDDEN',
       );
       denied(
-        await as(app, mod).patch(`/users/${admin.id}`).send(body),
+        await as(app, mod).patch(`/api/users/${admin.id}`).send(body),
         'TARGET_ROLE_FORBIDDEN',
       );
     });
     it('member ні', async () => {
-      denied(await as(app, member).patch(`/users/${member2.id}`).send(body));
+      denied(
+        await as(app, member).patch(`/api/users/${member2.id}`).send(body),
+      );
     });
   });
 
@@ -343,18 +359,20 @@ describe('Матриця прав (e2e)', () => {
       ['member', () => member],
     ])('%s так', async (_r, who) => {
       const u = who();
-      allowed(await as(app, u).patch('/users/me').send({ bio: 'Нове біо' }));
+      allowed(
+        await as(app, u).patch('/api/users/me').send({ bio: 'Нове біо' }),
+      );
       const up = await as(app, u)
-        .post(`/users/${u.id}/avatar`)
+        .post(`/api/users/${u.id}/avatar`)
         .attach('file', PNG_1PX, 'a.png');
       expect(up.status).toBe(201);
-      allowed(await as(app, u).delete(`/users/${u.id}/avatar`));
+      allowed(await as(app, u).delete(`/api/users/${u.id}/avatar`));
     });
     it('member не змінює собі ім’я, посаду, спеціальність', async () => {
       for (const field of ['name', 'position', 'specialty']) {
         denied(
           await as(app, member)
-            .patch('/users/me')
+            .patch('/api/users/me')
             .send({ [field]: 'Інше' }),
           'FIELD_NOT_ALLOWED',
         );
@@ -363,23 +381,27 @@ describe('Матриця прав (e2e)', () => {
     it('member може надіслати незмінене ім’я разом із біо', async () => {
       allowed(
         await as(app, member)
-          .patch('/users/me')
+          .patch('/api/users/me')
           .send({ name: member.name, bio: 'Ок' }),
       );
     });
     it('moderator змінює собі посаду, але не ім’я', async () => {
-      allowed(await as(app, mod).patch('/users/me').send({ position: 'Лід' }));
+      allowed(
+        await as(app, mod).patch('/api/users/me').send({ position: 'Лід' }),
+      );
       denied(
-        await as(app, mod).patch('/users/me').send({ name: 'Інше' }),
+        await as(app, mod).patch('/api/users/me').send({ name: 'Інше' }),
         'FIELD_NOT_ALLOWED',
       );
     });
     it('admin змінює собі ім’я', async () => {
-      allowed(await as(app, admin).patch('/users/me').send({ name: 'Адмін' }));
+      allowed(
+        await as(app, admin).patch('/api/users/me').send({ name: 'Адмін' }),
+      );
     });
     it('чужий аватар не завантажує ніхто, навіть admin', async () => {
       const res = await as(app, admin)
-        .post(`/users/${member2.id}/avatar`)
+        .post(`/api/users/${member2.id}/avatar`)
         .attach('file', PNG_1PX, 'a.png');
       denied(res, 'NOT_ALLOWED');
     });
@@ -388,11 +410,11 @@ describe('Матриця прав (e2e)', () => {
   describe('Бали, штрафи, догани, попередження', () => {
     const award = (who: TestUser, to: TestUser) =>
       as(app, who)
-        .post('/points/award')
+        .post('/api/points/award')
         .send({ userId: to.id, amount: 5, reason: 'чергування' });
     const warn = (who: TestUser, to: TestUser) =>
       as(app, who)
-        .post('/discipline')
+        .post('/api/discipline')
         .send({ userId: to.id, type: 'warning', reason: 'запізнення' });
 
     it('admin так (навіть модератору)', async () => {
@@ -426,11 +448,11 @@ describe('Матриця прав (e2e)', () => {
     const issue = async (who: TestUser) =>
       (
         await as(app, who)
-          .post('/discipline')
+          .post('/api/discipline')
           .send({ userId: member.id, type: 'reprimand', reason: 'r' })
       ).body as { id: string };
     const revoke = (who: TestUser, id: string, reason = 'помилка') =>
-      as(app, who).post(`/discipline/${id}/revoke`).send({ reason });
+      as(app, who).post(`/api/discipline/${id}/revoke`).send({ reason });
 
     it('admin знімає будь-який', async () => {
       const r = await issue(mod);
@@ -454,25 +476,25 @@ describe('Матриця прав (e2e)', () => {
     });
     it('нарахування балів: moderator лише своє', async () => {
       const own = await as(app, mod)
-        .post('/points/award')
+        .post('/api/points/award')
         .send({ userId: member.id, amount: 3, reason: 'x' });
       const other = await as(app, mod2)
-        .post('/points/award')
+        .post('/api/points/award')
         .send({ userId: member.id, amount: 3, reason: 'x' });
       denied(
         await as(app, mod)
-          .post(`/points/${other.body.id}/revoke`)
+          .post(`/api/points/${other.body.id}/revoke`)
           .send({ reason: 'r' }),
         'NOT_OWNER',
       );
       allowed(
         await as(app, mod)
-          .post(`/points/${own.body.id}/revoke`)
+          .post(`/api/points/${own.body.id}/revoke`)
           .send({ reason: 'r' }),
       );
       denied(
         await as(app, member)
-          .post(`/points/${other.body.id}/revoke`)
+          .post(`/api/points/${other.body.id}/revoke`)
           .send({ reason: 'r' }),
       );
     });
@@ -482,20 +504,24 @@ describe('Матриця прав (e2e)', () => {
     const task = { title: 'ТЗ', points: 10 };
     const project = { title: 'Проєкт' };
     it('admin так', async () => {
-      expect((await as(app, admin).post('/tasks').send(task)).status).toBe(201);
+      expect((await as(app, admin).post('/api/tasks').send(task)).status).toBe(
+        201,
+      );
       expect(
-        (await as(app, admin).post('/projects').send(project)).status,
+        (await as(app, admin).post('/api/projects').send(project)).status,
       ).toBe(201);
     });
     it('moderator так', async () => {
-      expect((await as(app, mod).post('/tasks').send(task)).status).toBe(201);
-      expect((await as(app, mod).post('/projects').send(project)).status).toBe(
+      expect((await as(app, mod).post('/api/tasks').send(task)).status).toBe(
         201,
       );
+      expect(
+        (await as(app, mod).post('/api/projects').send(project)).status,
+      ).toBe(201);
     });
     it('member ні', async () => {
-      denied(await as(app, member).post('/tasks').send(task));
-      denied(await as(app, member).post('/projects').send(project));
+      denied(await as(app, member).post('/api/tasks').send(task));
+      denied(await as(app, member).post('/api/projects').send(project));
     });
   });
 
@@ -503,33 +529,33 @@ describe('Матриця прав (e2e)', () => {
     const newTask = async (max = 3) =>
       (
         await as(app, admin)
-          .post('/tasks')
+          .post('/api/tasks')
           .send({ title: 'ТЗ', points: 10, maxAssignees: max })
       ).body.id as string;
 
     it('admin, moderator, member самі беруть вільне ТЗ', async () => {
       const id = await newTask();
       for (const u of [admin, mod, member]) {
-        allowed(await as(app, u).post(`/tasks/${id}/take`));
+        allowed(await as(app, u).post(`/api/tasks/${id}/take`));
       }
     });
     it('виконавець здає, сторонній ні', async () => {
       const id = await newTask();
-      await as(app, member).post(`/tasks/${id}/take`);
+      await as(app, member).post(`/api/tasks/${id}/take`);
       denied(
-        await as(app, member2).post(`/tasks/${id}/start`),
+        await as(app, member2).post(`/api/tasks/${id}/start`),
         'NOT_PARTICIPANT',
       );
-      allowed(await as(app, member).post(`/tasks/${id}/start`));
+      allowed(await as(app, member).post(`/api/tasks/${id}/start`));
       denied(
-        await as(app, member2).post(`/tasks/${id}/submit`),
+        await as(app, member2).post(`/api/tasks/${id}/submit`),
         'NOT_PARTICIPANT',
       );
       denied(
-        await as(app, admin).post(`/tasks/${id}/submit`),
+        await as(app, admin).post(`/api/tasks/${id}/submit`),
         'NOT_PARTICIPANT',
       );
-      allowed(await as(app, member).post(`/tasks/${id}/submit`));
+      allowed(await as(app, member).post(`/api/tasks/${id}/submit`));
     });
   });
 
@@ -537,15 +563,17 @@ describe('Матриця прав (e2e)', () => {
     /** Task in review with the given assignee. */
     const inReview = async (assignee: TestUser) => {
       const id = (
-        await as(app, admin).post('/tasks').send({ title: 'ТЗ', points: 10 })
+        await as(app, admin)
+          .post('/api/tasks')
+          .send({ title: 'ТЗ', points: 10 })
       ).body.id as string;
       for (const step of ['take', 'start', 'submit']) {
-        allowed(await as(app, assignee).post(`/tasks/${id}/${step}`));
+        allowed(await as(app, assignee).post(`/api/tasks/${id}/${step}`));
       }
       return id;
     };
     const accept = (who: TestUser, id: string) =>
-      as(app, who).post(`/tasks/${id}/accept`);
+      as(app, who).post(`/api/tasks/${id}/accept`);
 
     it('admin так', async () => {
       allowed(await accept(admin, await inReview(member)));
@@ -557,7 +585,7 @@ describe('Матриця прав (e2e)', () => {
     it('moderator не повертає своє на допрацювання', async () => {
       const id = await inReview(mod);
       denied(
-        await as(app, mod).post(`/tasks/${id}/return`).send({ body: 'ні' }),
+        await as(app, mod).post(`/api/tasks/${id}/return`).send({ body: 'ні' }),
         'SELF_ACTION_FORBIDDEN',
       );
     });
@@ -570,13 +598,13 @@ describe('Матриця прав (e2e)', () => {
     let projectId: string;
     beforeEach(async () => {
       const p = await as(app, admin)
-        .post('/projects')
+        .post('/api/projects')
         .send({ title: 'Проєкт', memberIds: [member.id] });
       projectId = p.body.id;
     });
     const update = (who: TestUser) =>
       as(app, who)
-        .patch(`/projects/${projectId}`)
+        .patch(`/api/projects/${projectId}`)
         .send({ stage: 'execution', progress: 50 });
 
     it('admin так', async () => {
@@ -592,7 +620,7 @@ describe('Матриця прав (e2e)', () => {
     it('member не змінює склад учасників', async () => {
       denied(
         await as(app, member)
-          .patch(`/projects/${projectId}`)
+          .patch(`/api/projects/${projectId}`)
           .send({ memberIds: [member.id, member2.id] }),
         'PROJECT_MEMBERS_FORBIDDEN',
       );
@@ -603,17 +631,17 @@ describe('Матриця прав (e2e)', () => {
     let n = 0;
     const doc = (who: TestUser) =>
       as(app, who)
-        .post('/documents')
+        .post('/api/documents')
         .field('title', 'Інструкція')
         .field('category', 'Інструкції')
         .attach('file', Buffer.from('текст'), 'a.txt');
     const place = (who: TestUser) =>
       as(app, who)
-        .post('/places')
+        .post('/api/places')
         .send({ code: `PLACE-${++n}`, title: 'Лазер', category: 'Верстати' });
     const item = (who: TestUser) =>
       as(app, who)
-        .post('/inventory/items')
+        .post('/api/inventory/items')
         .send({ code: `ITEM-${++n}`, title: 'Фанера', category: 'Матеріали' });
 
     it('admin так', async () => {
@@ -624,7 +652,7 @@ describe('Матриця прав (e2e)', () => {
     it('moderator так, включно з архівуванням', async () => {
       const d = await doc(mod);
       expect(d.status).toBe(201);
-      allowed(await as(app, mod).delete(`/documents/${d.body.id}`));
+      allowed(await as(app, mod).delete(`/api/documents/${d.body.id}`));
       expect((await place(mod)).status).toBe(201);
       expect((await item(mod)).status).toBe(201);
     });
@@ -632,16 +660,16 @@ describe('Матриця прав (e2e)', () => {
       denied(await doc(member));
       denied(await place(member));
       denied(await item(member));
-      allowed(await as(app, member).get('/documents'));
-      allowed(await as(app, member).get('/places'));
-      allowed(await as(app, member).get('/inventory/items'));
+      allowed(await as(app, member).get('/api/documents'));
+      allowed(await as(app, member).get('/api/places'));
+      allowed(await as(app, member).get('/api/inventory/items'));
     });
   });
 
   describe('Видати допуск до обладнання', () => {
     let placeId: string;
     beforeEach(async () => {
-      const p = await as(app, admin).post('/places').send({
+      const p = await as(app, admin).post('/api/places').send({
         code: 'LASER-1',
         title: 'Лазер',
         category: 'Верстати',
@@ -651,7 +679,7 @@ describe('Матриця прав (e2e)', () => {
     });
     const grant = (who: TestUser) =>
       as(app, who)
-        .post('/place-authorizations')
+        .post('/api/place-authorizations')
         .send({ userId: member2.id, placeId });
 
     it('admin так', async () => {
@@ -668,7 +696,7 @@ describe('Матриця прав (e2e)', () => {
   describe('Склад: взяти або поповнити', () => {
     let itemId: string;
     beforeEach(async () => {
-      const i = await as(app, admin).post('/inventory/items').send({
+      const i = await as(app, admin).post('/api/inventory/items').send({
         code: 'ITEM-1',
         title: 'Фанера',
         category: 'Матеріали',
@@ -684,7 +712,7 @@ describe('Матриця прав (e2e)', () => {
       const u = who();
       const move = (delta: number) =>
         as(app, u)
-          .post(`/inventory/items/${itemId}/movements`)
+          .post(`/api/inventory/items/${itemId}/movements`)
           .send({ delta, note: 'тест' });
       expect((await move(-1)).status).toBe(201);
       expect((await move(2)).status).toBe(201);
@@ -694,7 +722,7 @@ describe('Матриця прав (e2e)', () => {
   describe('Сеанс роботи з обладнанням', () => {
     let placeId: string;
     beforeEach(async () => {
-      const p = await as(app, admin).post('/places').send({
+      const p = await as(app, admin).post('/api/places').send({
         code: 'LASER-1',
         title: 'Лазер',
         category: 'Верстати',
@@ -704,7 +732,7 @@ describe('Матриця прав (e2e)', () => {
     });
     const start = (who: TestUser) =>
       as(app, who)
-        .post(`/places/${placeId}/sessions`)
+        .post(`/api/places/${placeId}/sessions`)
         .send({ safetyConfirmed: true });
 
     it('admin так', async () => {
@@ -716,7 +744,7 @@ describe('Матриця прав (e2e)', () => {
     it('member лише з допуском', async () => {
       denied(await start(member), 'NOT_AUTHORIZED_FOR_PLACE');
       await as(app, mod)
-        .post('/place-authorizations')
+        .post('/api/place-authorizations')
         .send({ userId: member.id, placeId })
         .expect(201);
       expect((await start(member)).status).toBe(201);
@@ -726,20 +754,20 @@ describe('Матриця прав (e2e)', () => {
   describe('Завершити чужий сеанс', () => {
     let sessionId: string;
     beforeEach(async () => {
-      const p = await as(app, admin).post('/places').send({
+      const p = await as(app, admin).post('/api/places').send({
         code: 'PRINTER-1',
         title: 'Принтер',
         category: 'Друк',
         needsAuthorization: false,
       });
       const s = await as(app, member2)
-        .post(`/places/${p.body.id}/sessions`)
+        .post(`/api/places/${p.body.id}/sessions`)
         .send({ safetyConfirmed: true });
       sessionId = s.body.id;
     });
     const end = (who: TestUser, reason?: string) =>
       as(app, who)
-        .patch(`/work-sessions/${sessionId}/end`)
+        .patch(`/api/work-sessions/${sessionId}/end`)
         .send(reason ? { reason } : {});
 
     it('admin так, з причиною', async () => {
@@ -759,7 +787,7 @@ describe('Матриця прав (e2e)', () => {
   describe('Бронювання', () => {
     let placeId: string;
     beforeEach(async () => {
-      const p = await as(app, admin).post('/places').send({
+      const p = await as(app, admin).post('/api/places').send({
         code: 'CAM-1',
         title: 'Камера',
         category: 'Відео',
@@ -772,7 +800,7 @@ describe('Матриця прав (e2e)', () => {
       // Each booking gets its own hour, so they never overlap.
       const start = Date.now() + (24 + slot++) * 3600_000;
       const res = await as(app, who)
-        .post('/bookings')
+        .post('/api/bookings')
         .send({
           placeId,
           startsAt: new Date(start).toISOString(),
@@ -783,7 +811,7 @@ describe('Матриця прав (e2e)', () => {
     };
     const cancel = (who: TestUser, id: string, reason?: string) =>
       as(app, who)
-        .post(`/bookings/${id}/cancel`)
+        .post(`/api/bookings/${id}/cancel`)
         .send(reason ? { reason } : {});
 
     it('admin скасовує будь-яке (з причиною)', async () => {
@@ -806,7 +834,7 @@ describe('Матриця прав (e2e)', () => {
       denied(await cancel(member, await book(member2)), 'NOT_OWNER');
     });
     it('member бронює лише з допуском', async () => {
-      const p = await as(app, admin).post('/places').send({
+      const p = await as(app, admin).post('/api/places').send({
         code: 'LASER-B',
         title: 'Лазер',
         category: 'Верстати',
@@ -819,10 +847,10 @@ describe('Матриця прав (e2e)', () => {
         endsAt: new Date(start + 3600_000).toISOString(),
       };
       denied(
-        await as(app, member).post('/bookings').send(body),
+        await as(app, member).post('/api/bookings').send(body),
         'NOT_AUTHORIZED_FOR_PLACE',
       );
-      expect((await as(app, mod).post('/bookings').send(body)).status).toBe(
+      expect((await as(app, mod).post('/api/bookings').send(body)).status).toBe(
         201,
       );
     });
@@ -831,7 +859,7 @@ describe('Матриця прав (e2e)', () => {
   describe('Звіт про несправність', () => {
     let placeId: string;
     beforeEach(async () => {
-      const p = await as(app, admin).post('/places').send({
+      const p = await as(app, admin).post('/api/places').send({
         code: 'PRN-1',
         title: 'Принтер',
         category: 'Друк',
@@ -840,13 +868,15 @@ describe('Матриця прав (e2e)', () => {
     });
     const report = async (who: TestUser) => {
       const res = await as(app, who)
-        .post('/faults')
+        .post('/api/faults')
         .send({ placeId, description: 'Не вмикається' });
       expect(res.status).toBe(201);
       return res.body.id as string;
     };
     const close = (who: TestUser, id: string) =>
-      as(app, who).post(`/faults/${id}/close`).send({ resolution: 'Замінили' });
+      as(app, who)
+        .post(`/api/faults/${id}/close`)
+        .send({ resolution: 'Замінили' });
 
     it('усі створюють', async () => {
       for (const u of [admin, mod, member]) await report(u);
@@ -858,13 +888,13 @@ describe('Матриця прав (e2e)', () => {
     it('member не закриває і не ставить на обслуговування', async () => {
       const id = await report(member);
       denied(await close(member, id));
-      denied(await as(app, member).post(`/faults/${id}/maintenance`));
+      denied(await as(app, member).post(`/api/faults/${id}/maintenance`));
     });
     it('фото: автор так, інший member ні', async () => {
       const id = await report(member);
       const up = (who: TestUser) =>
         as(app, who)
-          .post(`/faults/${id}/photos`)
+          .post(`/api/faults/${id}/photos`)
           .attach('file', PNG_1PX, 'f.png');
       expect((await up(member)).status).toBe(201);
       denied(await up(member2), 'NOT_OWNER');
@@ -874,42 +904,42 @@ describe('Матриця прав (e2e)', () => {
 
   describe('Вивантаження журналу', () => {
     it('admin і moderator так, member ні', async () => {
-      allowed(await as(app, admin).get('/work-sessions/export.csv'));
-      allowed(await as(app, mod).get('/work-sessions/report'));
-      denied(await as(app, member).get('/work-sessions/export.csv'));
-      denied(await as(app, member).get('/work-sessions/report'));
+      allowed(await as(app, admin).get('/api/work-sessions/export.csv'));
+      allowed(await as(app, mod).get('/api/work-sessions/report'));
+      denied(await as(app, member).get('/api/work-sessions/export.csv'));
+      denied(await as(app, member).get('/api/work-sessions/report'));
     });
   });
 
   describe('Розумні пристрої: керувати / список дозволених', () => {
     const light = '00000000-0000-4000-8000-000000000000';
     const control = (who: TestUser) =>
-      as(app, who).post(`/smart/lights/${light}/state`).send({ on: true });
+      as(app, who).post(`/api/smart/lights/${light}/state`).send({ on: true });
 
     it('admin: керувати так, список так', async () => {
       expect((await control(admin)).status).not.toBe(403);
-      allowed(await as(app, admin).get('/smart/allowlist'));
+      allowed(await as(app, admin).get('/api/smart/allowlist'));
     });
     it('moderator: керувати так, список ні', async () => {
       expect((await control(mod)).status).not.toBe(403);
-      denied(await as(app, mod).get('/smart/allowlist'));
+      denied(await as(app, mod).get('/api/smart/allowlist'));
     });
     it('member: перегляд, список ні', async () => {
-      allowed(await as(app, member).get('/smart/entities'));
+      allowed(await as(app, member).get('/api/smart/entities'));
       denied(await control(member));
-      denied(await as(app, member).get('/smart/allowlist'));
+      denied(await as(app, member).get('/api/smart/allowlist'));
     });
   });
 
   describe('Розширений перегляд учасників', () => {
     it('admin і moderator бачать email, member ні', async () => {
-      const a = await as(app, mod).get(`/users/${member2.id}`);
+      const a = await as(app, mod).get(`/api/users/${member2.id}`);
       expect(a.body.email).toBe(member2.email);
-      const b = await as(app, member).get(`/users/${member2.id}`);
+      const b = await as(app, member).get(`/api/users/${member2.id}`);
       expect(b.body.email).toBeUndefined();
     });
     it('/auth/me віддає permissions з політики', async () => {
-      const res = await as(app, mod).get('/auth/me').expect(200);
+      const res = await as(app, mod).get('/api/auth/me').expect(200);
       expect(res.body.role).toBe('moderator');
       expect(res.body.permissions).toContain('users.create');
       expect(res.body.permissions).not.toContain('audit.read');
@@ -918,7 +948,7 @@ describe('Матриця прав (e2e)', () => {
 
   describe('Без входу', () => {
     it('захищені маршрути відповідають 401', async () => {
-      await request(app.getHttpServer()).get('/users').expect(401);
+      await request(app.getHttpServer()).get('/api/users').expect(401);
     });
   });
 });

@@ -26,8 +26,9 @@ describe('App (e2e)', () => {
     expect(res.body).toMatchObject({ status: 'ok', db: 'up' });
   });
 
-  it('GET /: старого вебінтерфейсу більше немає', async () => {
-    await request(app.getHttpServer()).get('/').expect(404);
+  it('GET /api/: під /api сторінок немає, лише JSON 404', async () => {
+    const res = await request(app.getHttpServer()).get('/api/').expect(404);
+    expect(res.headers['content-type']).toContain('application/json');
   });
 
   it('усі відповіді мають заголовки безпеки', async () => {
@@ -41,7 +42,7 @@ describe('App (e2e)', () => {
 
   it('cookie-запит без X-DC-Client відхиляється з кодом CSRF', async () => {
     const res = await request(app.getHttpServer())
-      .post('/auth/logout')
+      .post('/api/auth/logout')
       .set('Cookie', 'dc_rt=fake')
       .expect(403);
     expect(res.body).toMatchObject({ errorCode: 'CSRF' });
@@ -49,7 +50,7 @@ describe('App (e2e)', () => {
 
   it('cookie-запит із чужим Origin відхиляється з кодом CSRF', async () => {
     const res = await request(app.getHttpServer())
-      .post('/auth/logout')
+      .post('/api/auth/logout')
       .set('Cookie', 'dc_rt=fake')
       .set('X-DC-Client', 'web')
       .set('Origin', 'https://evil.example')

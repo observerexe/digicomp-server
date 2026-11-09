@@ -1,0 +1,215 @@
+.shell {
+  min-height: 100dvh;
+  display: flex;
+}
+
+.skip {
+  position: absolute;
+  left: -9999px;
+  top: 8px;
+  z-index: 100;
+  padding: 12px 16px;
+  border-radius: var(--radius-control);
+  background: var(--c-primary);
+  color: var(--c-on-primary);
+}
+.skip:focus {
+  left: 8px;
+}
+
+/* Computer: sidebar */
+.sidebar {
+  display: none;
+  flex: none;
+  width: var(--size-sidebar);
+  box-sizing: border-box;
+  padding: 24px 16px;
+  gap: 24px;
+  flex-direction: column;
+  background: var(--c-surface);
+  border-right: 1px solid var(--c-border);
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  overflow-y: auto;
+}
+.brand,
+.brandSmall {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--c-text);
+  text-decoration: none;
+  padding: 0 8px;
+}
+.brandSmall {
+  font-size: 16px;
+  padding: 0;
+}
+.sideNav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sideCaption {
+  padding: 0 12px 6px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--c-text3);
+}
+.sideLink {
+  min-height: var(--size-touch-min);
+  padding: 0 12px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--c-text2);
+  font-weight: 500;
+  font-size: 15px;
+  text-decoration: none;
+  transition: background var(--motion-fast);
+}
+.sideLink:hover {
+  background: var(--c-surface2);
+}
+.sideLink[aria-current='page'] {
+  background: var(--c-primary-soft);
+  color: var(--c-primary-text);
+}
+.me {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--c-border);
+  color: var(--c-text);
+  text-decoration: none;
+}
+.avatar {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--c-primary-soft);
+  color: var(--c-primary-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+}
+.meText {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  font-weight: 500;
+}
+.muted {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--c-text2);
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 8px 8px 16px;
+  padding-top: max(8px, env(safe-area-inset-top));
+  background: var(--c-bg);
+}
+.iconButton {
+  width: var(--size-touch-min);
+  height: var(--size-touch-min);
+  border-radius: var(--radius-control);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--c-text);
+}
+.iconButton[aria-current='page'] {
+  color: var(--c-primary-text);
+}
+.main {
+  flex: 1;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1200px;
+  padding: 8px 16px calc(var(--size-bottom-nav) + 24px + env(safe-area-inset-bottom));
+  outline: none;
+}
+
+/* Phone: bottom bar */
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  height: calc(var(--size-bottom-nav) + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  padding: 0 8px env(safe-area-inset-bottom);
+  background: var(--c-surface);
+  border-top: 1px solid var(--c-border);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: center;
+}
+.tab {
+  min-height: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--c-text2);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.tab[aria-current='page'] {
+  color: var(--c-primary-text);
+}
+.scan {
+  justify-self: center;
+  width: 60px;
+  height: 60px;
+  margin-top: -26px;
+  border-radius: 999px;
+  background: var(--c-primary);
+  color: var(--c-on-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 16px rgb(29 95 214 / 35%);
+}
+
+@media (min-width: 900px) {
+  .sidebar {
+    display: flex;
+  }
+  .topbar,
+  .tabbar {
+    display: none;
+  }
+  .main {
+    padding: 32px 40px 48px;
+  }
+}

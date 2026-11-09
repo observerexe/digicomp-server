@@ -2,6 +2,8 @@ import type { Request, Response } from 'express';
 
 export const AT_COOKIE = 'dc_at';
 export const RT_COOKIE = 'dc_rt';
+/** The refresh cookie is sent only to the auth endpoints. */
+export const RT_COOKIE_PATH = '/api/auth';
 
 const HOUR_MS = 60 * 60 * 1000;
 const REFRESH_MS = 30 * 24 * HOUR_MS;
@@ -50,7 +52,7 @@ export function setAuthCookies(
   res.cookie(AT_COOKIE, access, { ...base, path: '/', maxAge: HOUR_MS });
   res.cookie(RT_COOKIE, refresh, {
     ...base,
-    path: '/auth',
+    path: RT_COOKIE_PATH,
     maxAge: REFRESH_MS,
   });
 }
@@ -62,5 +64,5 @@ export function clearAuthCookies(req: Request, res: Response) {
     secure: isSecure(req),
   };
   res.clearCookie(AT_COOKIE, { ...base, path: '/' });
-  res.clearCookie(RT_COOKIE, { ...base, path: '/auth' });
+  res.clearCookie(RT_COOKIE, { ...base, path: RT_COOKIE_PATH });
 }

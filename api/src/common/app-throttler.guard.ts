@@ -3,13 +3,14 @@ import { JwtService } from '@nestjs/jwt';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { createHash } from 'crypto';
 import { AT_COOKIE, RT_COOKIE, readCookie } from '../auth/cookies';
+import { apiPath } from './api-prefix';
 
 @Injectable()
 export class AppThrottlerGuard extends ThrottlerGuard {
   @Inject(JwtService) private readonly jwt!: JwtService;
 
   protected async getTracker(req: Record<string, any>): Promise<string> {
-    const path: string = req.path ?? req.url ?? '';
+    const path = apiPath(String(req.path ?? req.url ?? ''));
     const body = req.body ?? {};
 
     if (path === '/auth/login' && typeof body.email === 'string') {
