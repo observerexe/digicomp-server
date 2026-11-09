@@ -71,6 +71,37 @@ describe('ТЗ (e2e)', () => {
       return acc;
     }, {});
 
+  it('виконані: останні виконані першими, limit обмежує кількість', async () => {
+    const finish = async (title: string) => {
+      const id = await create({ title, maxAssignees: 1 });
+      await act(a, id, 'take').expect(200);
+      await act(a, id, 'start').expect(200);
+      await act(a, id, 'submit').expect(200);
+      await act(mod, id, 'accept').expect(200);
+      return id;
+    };
+    const first = await finish('Перше');
+    const second = await finish('Друге');
+    // The older task is completed last, so it must come first.
+    await ds.query(
+      `UPDATE tasks SET completed_at = (SELECT max(completed_at) FROM tasks) + interval '1 minute' WHERE id = $1`,
+      [first],
+    );
+    await create({ title: 'Вільне' });
+
+    const done = await as(app, b).get('/api/tasks?status=done').expect(200);
+    expect(done.body.map((t: { id: string }) => t.id)).toEqual([first, second]);
+    const one = await as(app, b)
+      .get('/api/tasks?status=done&limit=1')
+      .expect(200);
+    expect(one.body.map((t: { id: string }) => t.id)).toEqual([first]);
+    // Assignees still come with a limited list.
+    expect(one.body[0].assignees).toHaveLength(1);
+    const all = await as(app, b).get('/api/tasks?limit=2').expect(200);
+    expect(all.body).toHaveLength(2);
+    await as(app, b).get('/api/tasks?limit=abc').expect(400);
+  });
+
   it('повний шлях з поверненням і поділом 10 балів на трьох', async () => {
     const id = await create();
     const fresh = await as(app, a).get(`/api/tasks/${id}`);

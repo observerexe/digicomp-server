@@ -32,8 +32,13 @@ import {
   TaskFile,
   TaskStatus,
 } from './task.entities';
-import type { Plain } from '../common/responses.dto';
-import type { TaskDto } from './responses.dto';
+import type { OkDto, Plain } from '../common/responses.dto';
+import type {
+  TaskCommentDto,
+  TaskDetailDto,
+  TaskDto,
+  TaskFileDto,
+} from './responses.dto';
 
 /** Messages mapped to stable errorCode in common/http-exception.filter.ts. */
 export const TaskErrors = {
@@ -80,7 +85,7 @@ function taskView(t: Task): Plain<TaskDto> {
   };
 }
 
-function commentView(c: TaskComment) {
+function commentView(c: TaskComment): TaskCommentDto {
   return {
     id: c.id,
     kind: c.kind,
@@ -90,7 +95,7 @@ function commentView(c: TaskComment) {
   };
 }
 
-function fileView(f: TaskFile) {
+function fileView(f: TaskFile): TaskFileDto {
   return {
     id: f.id,
     fileName: f.fileName,
@@ -114,12 +119,20 @@ export class TasksService {
     private audit: AuditService,
   ) {}
 
-  async list(q: ListTasksQuery, actor: Actor) {
+  async list(q: ListTasksQuery, actor: Actor): Promise<TaskDto[]> {
     const qb = this.tasks
       .createQueryBuilder('t')
       .leftJoinAndSelect('t.assignees', 'a')
-      .leftJoinAndSelect('a.user', 'u')
-      .orderBy('t.createdAt', 'DESC');
+      .leftJoinAndSelect('a.user', 'u');
+    // Done tasks: the most recently completed first (the board shows the last ones).
+    if (q.status === TaskStatus.Done) {
+      qb.orderBy('t.completedAt', 'DESC', 'NULLS LAST');
+      qb.addOrderBy('t.createdAt', 'DESC');
+    } else {
+      qb.orderBy('t.createdAt', 'DESC');
+    }
+    qb.addOrderBy('t.id', 'ASC');
+    if (q.limit) qb.take(Math.min(500, Math.max(1, Number(q.limit))));
     if (q.status) qb.andWhere('t.status = :status', { status: q.status });
     if (q.mine === 'true') {
       qb.andWhere(
@@ -130,7 +143,7 @@ export class TasksService {
     return (await qb.getMany()).map(taskView);
   }
 
-  async get(id: string) {
+  async get(id: string): Promise<TaskDetailDto> {
     const task = await this.tasks.findOne({
       where: { id },
       relations: { assignees: { user: true } },
@@ -151,7 +164,7 @@ export class TasksService {
     };
   }
 
-  async create(dto: CreateTaskDto, actor: Actor) {
+  async create(dto: CreateTaskDto, actor: Actor): Promise<TaskDto> {
     const task = await this.tasks.save(
       this.tasks.create({
         title: dto.title.trim(),
@@ -172,7 +185,7 @@ export class TasksService {
     return taskView(task);
   }
 
-  update(id: string, dto: UpdateTaskDto, actor: Actor) {
+  update(id: string, dto: UpdateTaskDto, actor: Actor): Promise<TaskDto> {
     return this.locked(id, async (m, task, assignees) => {
       if (task.status === TaskStatus.Done) {
         throw new ConflictException(TaskErrors.Completed);
@@ -203,7 +216,7 @@ export class TasksService {
     });
   }
 
-  async remove(id: string, actor: Actor) {
+  async remove(id: string, actor: Actor): Promise<OkDto> {
     const stored = await this.ds.transaction(async (m) => {
       const task = await this.lock(m, id);
       const count = await m.count(TaskAssignee, { where: { taskId: id } });
@@ -221,7 +234,7 @@ export class TasksService {
   }
 
   /** Take a free or queued task while there are free slots. */
-  take(id: string, actor: Actor) {
+  take(id: string, actor: Actor): Promise<TaskDto> {
     return this.locked(id, async (m, task, assignees) => {
       if (task.status === TaskStatus.Done) {
         throw new ConflictException(TaskErrors.Completed);
@@ -249,7 +262,7 @@ export class TasksService {
   }
 
   /** An assignee drops the task; the last one leaving frees it. */
-  leave(id: string, actor: Actor) {
+  leave(id: string, actor: Actor): Promise<TaskDto> {
     return this.locked(id, async (m, task, assignees) => {
       this.assertParticipant(actor, Action.TasksWork, assignees);
       if (task.status === TaskStatus.Done) {
@@ -272,7 +285,7 @@ export class TasksService {
   }
 
   /** queued -> in_progress; nobody can join after that. */
-  start(id: string, actor: Actor) {
+  start(id: string, actor: Actor): Promise<TaskDto> {
     return this.move(
       id,
       actor,
@@ -284,7 +297,7 @@ export class TasksService {
   }
 
   /** in_progress -> review. */
-  submit(id: string, actor: Actor) {
+  submit(id: string, actor: Actor): Promise<TaskDto> {
     return this.move(
       id,
       actor,
@@ -296,7 +309,7 @@ export class TasksService {
   }
 
   /** review -> in_progress with a mandatory comment. */
-  returnForRework(id: string, dto: CommentDto, actor: Actor) {
+  returnForRework(id: string, dto: CommentDto, actor: Actor): Promise<TaskDto> {
     return this.move(
       id,
       actor,
@@ -316,7 +329,7 @@ export class TasksService {
   }
 
   /** review -> done; points are split between assignees. */
-  accept(id: string, actor: Actor) {
+  accept(id: string, actor: Actor): Promise<TaskDto> {
     return this.move(
       id,
       actor,
@@ -409,7 +422,7 @@ export class TasksService {
   }
 
   /** The uploader or staff may remove a file. */
-  async removeFile(id: string, fileId: string, actor: Actor) {
+  async removeFile(id: string, fileId: string, actor: Actor): Promise<OkDto> {
     const f = await this.files.findOneBy({ id: fileId, taskId: id });
     if (!f) throw new NotFoundException('File not found');
     if (f.uploadedById !== actor.id && !can(actor, Action.TasksManage)) {

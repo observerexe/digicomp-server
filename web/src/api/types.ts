@@ -31,3 +31,4 @@ export type Fault = S['FaultListItemDto'];
 export type FaultDetail = S['FaultDetailDto'];
 export type FaultStatus = S['FaultStatus'];
 export type Doc = S['DocDto'];
+export type TaskDetail = S['TaskDetailDto'];

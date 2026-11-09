@@ -1,5 +1,11 @@
-import { ApiOkResponse } from '@nestjs/swagger';
-import { TaskDto } from './responses.dto';
+import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
+import { OkDto } from '../common/responses.dto';
+import {
+  TaskCommentDto,
+  TaskDetailDto,
+  TaskDto,
+  TaskFileDto,
+} from './responses.dto';
 import {
   Body,
   Controller,
@@ -49,18 +55,21 @@ export class TasksController {
 
   /** Task with assignees, comments and files. */
   @Can(Action.TasksRead)
+  @ApiOkResponse({ type: TaskDetailDto })
   @Get(':id')
   get(@Param('id', ParseUUIDPipe) id: string) {
     return this.tasks.get(id);
   }
 
   @Can(Action.TasksCreate)
+  @ApiCreatedResponse({ type: TaskDto })
   @Post()
   create(@Body() dto: CreateTaskDto, @Req() req: Req) {
     return this.tasks.create(dto, req.user);
   }
 
   @Can(Action.TasksManage)
+  @ApiOkResponse({ type: TaskDto })
   @Patch(':id')
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -72,12 +81,14 @@ export class TasksController {
 
   /** Only a free task without assignees. */
   @Can(Action.TasksManage)
+  @ApiOkResponse({ type: OkDto })
   @Delete(':id')
   remove(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
     return this.tasks.remove(id, req.user);
   }
 
   @Can(Action.TasksTake)
+  @ApiOkResponse({ type: TaskDto })
   @Post(':id/take')
   @HttpCode(200)
   take(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
@@ -85,6 +96,7 @@ export class TasksController {
   }
 
   @Can(Action.TasksWork)
+  @ApiOkResponse({ type: TaskDto })
   @Post(':id/leave')
   @HttpCode(200)
   leave(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
@@ -92,6 +104,7 @@ export class TasksController {
   }
 
   @Can(Action.TasksWork)
+  @ApiOkResponse({ type: TaskDto })
   @Post(':id/start')
   @HttpCode(200)
   start(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
@@ -99,6 +112,7 @@ export class TasksController {
   }
 
   @Can(Action.TasksWork)
+  @ApiOkResponse({ type: TaskDto })
   @Post(':id/submit')
   @HttpCode(200)
   submit(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
@@ -107,6 +121,7 @@ export class TasksController {
 
   /** Back to work from review; `body` is the moderator's comment. */
   @Can(Action.TasksAccept)
+  @ApiOkResponse({ type: TaskDto })
   @Post(':id/return')
   @HttpCode(200)
   returnForRework(
@@ -119,6 +134,7 @@ export class TasksController {
 
   /** Accept the task: points are split equally between assignees. */
   @Can(Action.TasksAccept)
+  @ApiOkResponse({ type: TaskDto })
   @Post(':id/accept')
   @HttpCode(200)
   accept(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
@@ -126,6 +142,7 @@ export class TasksController {
   }
 
   @Can(Action.TasksComment)
+  @ApiCreatedResponse({ type: TaskCommentDto })
   @Post(':id/comments')
   addComment(
     @Param('id', ParseUUIDPipe) id: string,
@@ -136,6 +153,7 @@ export class TasksController {
   }
 
   @Can(Action.TasksAttach)
+  @ApiCreatedResponse({ type: TaskFileDto })
   @Post(':id/files')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -170,6 +188,7 @@ export class TasksController {
 
   /** The uploader or staff. */
   @Can(Action.TasksComment)
+  @ApiOkResponse({ type: OkDto })
   @Delete(':id/files/:fileId')
   removeFile(
     @Param('id', ParseUUIDPipe) id: string,

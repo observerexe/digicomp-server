@@ -203,7 +203,7 @@ function MineCard({ user }: { user: Me }) {
           empty="Активних ТЗ немає. Вільні ТЗ — на дошці."
           items={activeTasks.map((t) => ({
             key: t.id,
-            to: '/tasks',
+            to: `/tasks/${t.id}`,
             title: t.title,
             sub: [TASK_STATUS_LABEL[t.status], t.dueDate && `до ${formatDate(t.dueDate)}`].filter(Boolean).join(' · '),
           }))}

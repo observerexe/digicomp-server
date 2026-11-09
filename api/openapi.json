@@ -920,6 +920,16 @@
                 "false"
               ]
             }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "At most this many tasks (1–500). Done tasks come newest-completed first.",
+            "schema": {
+              "maxLength": 3,
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -961,7 +971,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/TaskDto"
                 }
               }
             }
@@ -987,7 +997,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDetailDto"
+                }
+              }
+            }
           }
         },
         "summary": "Task with assignees, comments and files.",
@@ -1023,7 +1040,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/TaskDto"
                 }
               }
             }
@@ -1047,7 +1064,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
           }
         },
         "summary": "Only a free task without assignees.",
@@ -1075,7 +1099,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/TaskDto"
                 }
               }
             }
@@ -1105,7 +1129,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/TaskDto"
                 }
               }
             }
@@ -1135,7 +1159,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/TaskDto"
                 }
               }
             }
@@ -1165,7 +1189,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/TaskDto"
                 }
               }
             }
@@ -1205,7 +1229,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/TaskDto"
                 }
               }
             }
@@ -1236,7 +1260,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/TaskDto"
                 }
               }
             }
@@ -1273,7 +1297,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskCommentDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1296,7 +1327,14 @@
         ],
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskFileDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1358,7 +1396,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
           }
         },
         "summary": "The uploader or staff.",
@@ -4417,6 +4462,187 @@
           "updatedAt"
         ]
       },
+      "TaskCommentKind": {
+        "type": "string",
+        "enum": [
+          "comment",
+          "return"
+        ],
+        "description": "`return` — written by a moderator when sending the task back."
+      },
+      "UserRefDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true,
+            "description": "null when the user no longer exists."
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "avatarUrl",
+          "id"
+        ]
+      },
+      "TaskCommentDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "description": "`return` — written by a moderator when sending the task back.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TaskCommentKind"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "author": {
+            "$ref": "#/components/schemas/UserRefDto"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "body",
+          "author",
+          "createdAt"
+        ]
+      },
+      "TaskFileDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "number"
+          },
+          "uploadedById": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "fileName",
+          "mimeType",
+          "size",
+          "uploadedById",
+          "createdAt"
+        ]
+      },
+      "TaskDetailDto": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TaskStatus"
+              }
+            ]
+          },
+          "dueDate": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "completedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "assignees": {
+            "description": "In the order of taking.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskAssigneeDto"
+            }
+          },
+          "comments": {
+            "description": "Oldest first.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskCommentDto"
+            }
+          },
+          "files": {
+            "description": "GET /tasks/:id/files/:fileId/download",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskFileDto"
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "points": {
+            "type": "number"
+          },
+          "maxAssignees": {
+            "type": "number"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "description",
+          "status",
+          "dueDate",
+          "completedAt",
+          "assignees",
+          "comments",
+          "files",
+          "id",
+          "title",
+          "points",
+          "maxAssignees",
+          "createdById",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
       "CreateTaskDto": {
         "type": "object",
         "properties": {
@@ -4495,28 +4721,6 @@
           "warning",
           "fine",
           "reprimand"
-        ]
-      },
-      "UserRefDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "nullable": true,
-            "description": "null when the user no longer exists."
-          },
-          "avatarUrl": {
-            "type": "string",
-            "nullable": true
-          },
-          "id": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "avatarUrl",
-          "id"
         ]
       },
       "DisciplineRecordDto": {

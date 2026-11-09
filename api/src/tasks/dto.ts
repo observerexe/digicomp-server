@@ -1,4 +1,5 @@
 import {
+  IsNumberString,
   IsDateString,
   IsEnum,
   IsIn,
@@ -83,6 +84,12 @@ export class ListTasksQuery {
   @IsOptional()
   @IsIn(['true', 'false'])
   mine?: string;
+
+  /** At most this many tasks (1–500). Done tasks come newest-completed first. */
+  @IsOptional()
+  @IsNumberString({ no_symbols: true })
+  @MaxLength(3)
+  limit?: string;
 }
 
 export class CommentDto {

@@ -4,6 +4,9 @@ import { AppShell } from './layout/AppShell';
 import { AboutPage } from './pages/AboutPage';
 import { LoginPage } from './pages/LoginPage';
 import { MorePage } from './pages/MorePage';
+import { TaskFormPage } from './pages/tasks/TaskFormPage';
+import { TaskPage } from './pages/tasks/TaskPage';
+import { TasksPage } from './pages/tasks/TasksPage';
 import { EquipmentPage } from './pages/lab/EquipmentPage';
 import { JournalPage } from './pages/lab/JournalPage';
 import { LabPage } from './pages/lab/LabPage';
@@ -22,7 +25,6 @@ import {
   PanelPage,
   ProjectsPage,
   RatingPage,
-  TasksPage,
 } from './pages/sections';
 import { TeamPage } from './pages/team/TeamPage';
 import { UserPage } from './pages/team/UserPage';
@@ -39,6 +41,23 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: <HomePage /> },
       { path: 'tasks', element: <TasksPage /> },
+      {
+        path: 'tasks/new',
+        element: (
+          <RequirePermission action="tasks.create" fallback={<ForbiddenPage />}>
+            <TaskFormPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'tasks/:id/edit',
+        element: (
+          <RequirePermission action="tasks.manage" fallback={<ForbiddenPage />}>
+            <TaskFormPage />
+          </RequirePermission>
+        ),
+      },
+      { path: 'tasks/:id', element: <TaskPage /> },
       { path: 'lab', element: <LabPage /> },
       { path: 'lab/journal', element: <JournalPage /> },
       {

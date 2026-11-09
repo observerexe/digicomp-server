@@ -1711,6 +1711,58 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        /**
+         * @description `return` — written by a moderator when sending the task back.
+         * @enum {string}
+         */
+        TaskCommentKind: "comment" | "return";
+        UserRefDto: {
+            /** @description null when the user no longer exists. */
+            name: string | null;
+            avatarUrl: string | null;
+            id: string;
+        };
+        TaskCommentDto: {
+            /** @description `return` — written by a moderator when sending the task back. */
+            kind: components["schemas"]["TaskCommentKind"];
+            id: string;
+            body: string;
+            author: components["schemas"]["UserRefDto"];
+            /** Format: date-time */
+            createdAt: string;
+        };
+        TaskFileDto: {
+            id: string;
+            fileName: string;
+            mimeType: string;
+            size: number;
+            uploadedById: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        TaskDetailDto: {
+            description: string | null;
+            status: components["schemas"]["TaskStatus"];
+            /** Format: date-time */
+            dueDate: string | null;
+            /** Format: date-time */
+            completedAt: string | null;
+            /** @description In the order of taking. */
+            assignees: components["schemas"]["TaskAssigneeDto"][];
+            /** @description Oldest first. */
+            comments: components["schemas"]["TaskCommentDto"][];
+            /** @description GET /tasks/:id/files/:fileId/download */
+            files: components["schemas"]["TaskFileDto"][];
+            id: string;
+            title: string;
+            points: number;
+            maxAssignees: number;
+            createdById: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
         CreateTaskDto: {
             title: string;
             description?: string;
@@ -1732,12 +1784,6 @@ export interface components {
         };
         /** @enum {string} */
         DisciplineType: "warning" | "fine" | "reprimand";
-        UserRefDto: {
-            /** @description null when the user no longer exists. */
-            name: string | null;
-            avatarUrl: string | null;
-            id: string;
-        };
         DisciplineRecordDto: {
             type: components["schemas"]["DisciplineType"];
             /** @description Fine size in points; null for warnings and reprimands. */
@@ -2839,6 +2885,8 @@ export interface operations {
                 status?: "todo" | "queued" | "in_progress" | "review" | "done";
                 /** @description Only tasks where the current user is an assignee. */
                 mine?: "true" | "false";
+                /** @description At most this many tasks (1–500). Done tasks come newest-completed first. */
+                limit?: string;
             };
             header?: never;
             path?: never;
@@ -2874,7 +2922,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["TaskDto"];
                 };
             };
         };
@@ -2894,7 +2942,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TaskDetailDto"];
+                };
             };
         };
     };
@@ -2913,7 +2963,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
             };
         };
     };
@@ -2937,7 +2989,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["TaskDto"];
                 };
             };
         };
@@ -2958,7 +3010,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["TaskDto"];
                 };
             };
         };
@@ -2979,7 +3031,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["TaskDto"];
                 };
             };
         };
@@ -3000,7 +3052,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["TaskDto"];
                 };
             };
         };
@@ -3021,7 +3073,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["TaskDto"];
                 };
             };
         };
@@ -3046,7 +3098,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["TaskDto"];
                 };
             };
         };
@@ -3067,7 +3119,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["TaskDto"];
                 };
             };
         };
@@ -3091,7 +3143,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TaskCommentDto"];
+                };
             };
         };
     };
@@ -3110,7 +3164,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TaskFileDto"];
+                };
             };
         };
     };
@@ -3150,7 +3206,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
             };
         };
     };

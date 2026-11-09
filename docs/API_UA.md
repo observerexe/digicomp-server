@@ -343,7 +343,7 @@
 | GET | `/docs` | admin (сторінка Swagger UI) |
 | GET | `/docs/openapi.json` | admin |
 
-Сторінка відкривається в браузері за cookie-входом (або з `Authorization`). Для фронту схему зберігають у файл без запуску сервера й бази: `cd api && npm run build && npm run openapi` записує `api/openapi.json`. Схеми тіл запитів будуються з DTO. Схеми відповідей (класи `*/responses.dto.ts`) додаються разом із розділами фронту; сервіси повертають ці типи, тож розбіжність ловить компілятор. Уже описані: `auth/me`, `auth/2fa/*`, `users` (список, картка, `me`, пароль, аватар), `points/me`, `points/leaderboard`, `points/users/:id`, `discipline`, `discipline/me`, `bookings` (створення, скасування, `me`), `places` (список, картка, останні сеанси, старт сеансу), `places/:id/bookings`, `place-authorizations`, `work-sessions` (список, завершення), `faults` (усі дії), `documents` (список), `tasks`, `projects`.
+Сторінка відкривається в браузері за cookie-входом (або з `Authorization`). Для фронту схему зберігають у файл без запуску сервера й бази: `cd api && npm run build && npm run openapi` записує `api/openapi.json`. Схеми тіл запитів будуються з DTO. Схеми відповідей (класи `*/responses.dto.ts`) додаються разом із розділами фронту; сервіси повертають ці типи, тож розбіжність ловить компілятор. Уже описані: `auth/me`, `auth/2fa/*`, `users` (список, картка, `me`, пароль, аватар), `points/me`, `points/leaderboard`, `points/users/:id`, `discipline`, `discipline/me`, `bookings` (створення, скасування, `me`), `places` (список, картка, останні сеанси, старт сеансу), `places/:id/bookings`, `place-authorizations`, `work-sessions` (список, завершення), `faults` (усі дії), `documents` (список), `tasks` (усі дії, картка з коментарями й файлами), `projects`.
 
 ## Основні поля запитів
 
@@ -409,7 +409,7 @@
 - `PATCH /tasks/:id`: `title`, `description`, `points`, `maxAssignees`, `dueDate` (`null` прибирає дедлайн). Не для виконаного ТЗ.
 - `DELETE /tasks/:id`: лише вільне ТЗ без виконавців.
 - Усі переходи повертають оновлене ТЗ.
-- `GET /tasks?status=queued&mine=true`: масив ТЗ, нові спершу.
+- `GET /tasks?status=queued&mine=true&limit=30`: масив ТЗ, нові спершу. Для `status=done` — спершу ті, що виконані останніми. `limit` (1–500) необов'язковий; дошка вантажить так останні виконані.
   - Поля ТЗ: `id`, `title`, `description`, `status`, `points`, `maxAssignees`, `dueDate`, `createdById`, `createdAt`, `updatedAt`, `completedAt`.
   - `assignees`: `[{ id, name, avatarUrl, takenAt }]` у порядку взяття.
 - `GET /tasks/:id` додатково повертає `comments` (`[{ id, kind, body, author: { id, name, avatarUrl }, createdAt }]`) і `files`.

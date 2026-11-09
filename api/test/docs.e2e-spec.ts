@@ -113,6 +113,19 @@ describe('OpenAPI і /docs (лише admin)', () => {
       ['/api/faults/{id}/maintenance', 'post', '200'],
       ['/api/faults/{id}/close', 'post', '200'],
       ['/api/documents', 'get', '200'],
+      ['/api/tasks', 'post', '201'],
+      ['/api/tasks/{id}', 'get', '200'],
+      ['/api/tasks/{id}', 'patch', '200'],
+      ['/api/tasks/{id}', 'delete', '200'],
+      ['/api/tasks/{id}/take', 'post', '200'],
+      ['/api/tasks/{id}/leave', 'post', '200'],
+      ['/api/tasks/{id}/start', 'post', '200'],
+      ['/api/tasks/{id}/submit', 'post', '200'],
+      ['/api/tasks/{id}/return', 'post', '200'],
+      ['/api/tasks/{id}/accept', 'post', '200'],
+      ['/api/tasks/{id}/comments', 'post', '201'],
+      ['/api/tasks/{id}/files', 'post', '201'],
+      ['/api/tasks/{id}/files/{fileId}', 'delete', '200'],
     ];
     for (const [p, method, code] of described) {
       expect([p, method, paths[p][method].responses[code].content]).toEqual([
