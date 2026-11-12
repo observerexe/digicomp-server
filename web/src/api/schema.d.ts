@@ -139,6 +139,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Newest first; `before` + `limit` page through, filters narrow down. */
         get: operations["AuditController_list"];
         put?: never;
         post?: never;
@@ -1607,7 +1608,24 @@ export interface components {
         ResetPasswordDto: {
             newPassword: string;
         };
-        AuditLog: Record<string, never>;
+        AuditActorDto: {
+            id: string;
+            name: string;
+        };
+        AuditEntryDto: {
+            /** @description null — the server itself (auto-close of sessions and the like). */
+            actorId: string | null;
+            actor: components["schemas"]["AuditActorDto"] | null;
+            entityId: string | null;
+            meta: {
+                [key: string]: unknown;
+            } | null;
+            id: string;
+            action: string;
+            entity: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
         CreateUserDto: {
             /** Format: email */
             email: string;
@@ -2405,6 +2423,67 @@ export interface components {
             room?: string;
             enabled?: boolean;
         };
+        ContainerDto: {
+            /** @description healthy, unhealthy, starting or null (no healthcheck). */
+            health: string | null;
+            /** @description api, db (compose service names) or homeassistant. */
+            name: string;
+            /** @description running, exited, restarting, … or missing. */
+            state: string;
+            status: string;
+        };
+        DiskDto: {
+            path: string;
+            totalBytes: number;
+            usedBytes: number;
+            freeBytes: number;
+        };
+        MemoryDto: {
+            totalBytes: number;
+            usedBytes: number;
+            availableBytes: number;
+        };
+        MetricsDto: {
+            cpuCount: number | null;
+            /** @description 1, 5 and 15 minute load average. */
+            load: number[];
+            disks: components["schemas"]["DiskDto"][];
+            /** @description Busy share over a short sample, 0–100. */
+            cpuPercent: number;
+            memory: components["schemas"]["MemoryDto"];
+            uptimeSeconds: number;
+            collectedAt: string;
+        };
+        LastBackupDto: {
+            found: boolean;
+            count: number;
+            file?: string;
+            sizeBytes?: number;
+            at?: string;
+        };
+        PanelOverviewDto: {
+            containers: components["schemas"]["ContainerDto"][];
+            metrics: components["schemas"]["MetricsDto"];
+            lastBackup: components["schemas"]["LastBackupDto"];
+        };
+        PanelLogsDto: {
+            lines: string[];
+            /** @description false when docker compose logs failed (lines then hold its error). */
+            ok: boolean;
+        };
+        /** @enum {string} */
+        PanelAction: "backup" | "restore-check" | "restart-api" | "restart-ha";
+        /** @enum {string} */
+        PanelJobStatus: "running" | "succeeded" | "failed";
+        PanelJobDto: {
+            action: components["schemas"]["PanelAction"];
+            status: components["schemas"]["PanelJobStatus"];
+            finishedAt: string | null;
+            exitCode: number | null;
+            output: string[];
+            id: string;
+            startedAt: string;
+        };
         RestartDto: {
             /**
              * @description Only the API and Home Assistant; the database is never restarted here.
@@ -2664,7 +2743,15 @@ export interface operations {
     };
     AuditController_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Exact action (`user.updated`) or a group with a dot (`user.`). */
+                action?: string;
+                actorId?: string;
+                entity?: string;
+                /** @description Id of the last entry already shown: the next page starts after it. */
+                before?: string;
+                limit?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2676,7 +2763,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AuditLog"][];
+                    "application/json": components["schemas"]["AuditEntryDto"][];
                 };
             };
         };
@@ -4794,7 +4881,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PanelOverviewDto"];
+                };
             };
         };
     };
@@ -4814,7 +4903,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PanelLogsDto"];
+                };
             };
         };
     };
@@ -4832,7 +4923,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["PanelJobDto"];
                 };
             };
         };
@@ -4851,7 +4942,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["PanelJobDto"];
                 };
             };
         };
@@ -4874,7 +4965,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["PanelJobDto"];
                 };
             };
         };
@@ -4883,7 +4974,9 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -4893,7 +4986,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["PanelJobDto"];
                 };
             };
         };

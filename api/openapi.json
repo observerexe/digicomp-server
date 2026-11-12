@@ -363,7 +363,55 @@
     "/api/audit": {
       "get": {
         "operationId": "AuditController_list",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "action",
+            "required": false,
+            "in": "query",
+            "description": "Exact action (`user.updated`) or a group with a dot (`user.`).",
+            "schema": {
+              "pattern": "^[a-z0-9_.]{1,60}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "actorId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "entity",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "pattern": "^[a-z_]{1,40}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "required": false,
+            "in": "query",
+            "description": "Id of the last entry already shown: the next page starts after it.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 3,
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -372,13 +420,14 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/AuditLog"
+                    "$ref": "#/components/schemas/AuditEntryDto"
                   }
                 }
               }
             }
           }
         },
+        "summary": "Newest first; `before` + `limit` page through, filters narrow down.",
         "tags": [
           "Audit"
         ]
@@ -3716,7 +3765,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PanelOverviewDto"
+                }
+              }
+            }
           }
         },
         "summary": "CPU, RAM, disks, uptime, containers (api, db, homeassistant), last backup.",
@@ -3742,7 +3798,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PanelLogsDto"
+                }
+              }
+            }
           }
         },
         "summary": "Last lines of the API log.",
@@ -3761,7 +3824,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/PanelJobDto"
                 }
               }
             }
@@ -3782,7 +3845,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/PanelJobDto"
                 }
               }
             }
@@ -3813,7 +3876,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/PanelJobDto"
                 }
               }
             }
@@ -3828,14 +3891,23 @@
     "/api/admin-panel/jobs/{id}": {
       "get": {
         "operationId": "AdminPanelController_job",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/PanelJobDto"
                 }
               }
             }
@@ -4248,9 +4320,71 @@
           "newPassword"
         ]
       },
-      "AuditLog": {
+      "AuditActorDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "AuditEntryDto": {
+        "type": "object",
+        "properties": {
+          "actorId": {
+            "type": "string",
+            "nullable": true,
+            "description": "null — the server itself (auto-close of sessions and the like)."
+          },
+          "actor": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuditActorDto"
+              }
+            ]
+          },
+          "entityId": {
+            "type": "string",
+            "nullable": true
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "entity": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "actorId",
+          "actor",
+          "entityId",
+          "meta",
+          "id",
+          "action",
+          "entity",
+          "createdAt"
+        ]
       },
       "CreateUserDto": {
         "type": "object",
@@ -7186,6 +7320,249 @@
             "type": "boolean"
           }
         }
+      },
+      "ContainerDto": {
+        "type": "object",
+        "properties": {
+          "health": {
+            "type": "string",
+            "nullable": true,
+            "description": "healthy, unhealthy, starting or null (no healthcheck)."
+          },
+          "name": {
+            "type": "string",
+            "description": "api, db (compose service names) or homeassistant."
+          },
+          "state": {
+            "type": "string",
+            "description": "running, exited, restarting, … or missing."
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "health",
+          "name",
+          "state",
+          "status"
+        ]
+      },
+      "DiskDto": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "totalBytes": {
+            "type": "number"
+          },
+          "usedBytes": {
+            "type": "number"
+          },
+          "freeBytes": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "path",
+          "totalBytes",
+          "usedBytes",
+          "freeBytes"
+        ]
+      },
+      "MemoryDto": {
+        "type": "object",
+        "properties": {
+          "totalBytes": {
+            "type": "number"
+          },
+          "usedBytes": {
+            "type": "number"
+          },
+          "availableBytes": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "totalBytes",
+          "usedBytes",
+          "availableBytes"
+        ]
+      },
+      "MetricsDto": {
+        "type": "object",
+        "properties": {
+          "cpuCount": {
+            "type": "number",
+            "nullable": true
+          },
+          "load": {
+            "description": "1, 5 and 15 minute load average.",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "disks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiskDto"
+            }
+          },
+          "cpuPercent": {
+            "type": "number",
+            "description": "Busy share over a short sample, 0–100."
+          },
+          "memory": {
+            "$ref": "#/components/schemas/MemoryDto"
+          },
+          "uptimeSeconds": {
+            "type": "number"
+          },
+          "collectedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "cpuCount",
+          "load",
+          "disks",
+          "cpuPercent",
+          "memory",
+          "uptimeSeconds",
+          "collectedAt"
+        ]
+      },
+      "LastBackupDto": {
+        "type": "object",
+        "properties": {
+          "found": {
+            "type": "boolean"
+          },
+          "count": {
+            "type": "number"
+          },
+          "file": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "number"
+          },
+          "at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "found",
+          "count"
+        ]
+      },
+      "PanelOverviewDto": {
+        "type": "object",
+        "properties": {
+          "containers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContainerDto"
+            }
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/MetricsDto"
+          },
+          "lastBackup": {
+            "$ref": "#/components/schemas/LastBackupDto"
+          }
+        },
+        "required": [
+          "containers",
+          "metrics",
+          "lastBackup"
+        ]
+      },
+      "PanelLogsDto": {
+        "type": "object",
+        "properties": {
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "false when docker compose logs failed (lines then hold its error)."
+          }
+        },
+        "required": [
+          "lines",
+          "ok"
+        ]
+      },
+      "PanelAction": {
+        "type": "string",
+        "enum": [
+          "backup",
+          "restore-check",
+          "restart-api",
+          "restart-ha"
+        ]
+      },
+      "PanelJobStatus": {
+        "type": "string",
+        "enum": [
+          "running",
+          "succeeded",
+          "failed"
+        ]
+      },
+      "PanelJobDto": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PanelAction"
+              }
+            ]
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PanelJobStatus"
+              }
+            ]
+          },
+          "finishedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "exitCode": {
+            "type": "number",
+            "nullable": true
+          },
+          "output": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "status",
+          "finishedAt",
+          "exitCode",
+          "output",
+          "id",
+          "startedAt"
+        ]
       },
       "RestartDto": {
         "type": "object",

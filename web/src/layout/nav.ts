@@ -30,6 +30,7 @@ export const STAFF: NavItem[] = [
   { to: '/panel', label: 'Панель керування', icon: 'shield', permission: 'users.manage' },
   { to: '/points', label: 'Бали', icon: 'star', permission: 'points.award' },
   { to: '/discipline', label: 'Дисципліна', icon: 'file', permission: 'discipline.issue' },
+  { to: '/admin', label: 'Розширена панель', icon: 'server', permission: 'admin.panel' },
 ];
 
 export const SIDEBAR: NavItem[] = [...TABS.slice(0, 3), ...MORE, TABS[3]!];

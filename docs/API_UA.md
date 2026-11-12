@@ -336,6 +336,13 @@
 |---|---|---|
 | GET | `/audit` | admin |
 
+`GET /audit?action=&actorId=&entity=&before=&limit=`: записи, нові спершу, масив.
+- `action`: точна дія (`user.updated`) або група з крапкою в кінці (`user.` — усі дії з учасниками).
+- `actorId`: хто діяв. `entity`: тип об'єкта (`user`, `place`, `task`…).
+- `limit` 1–200, за замовчуванням 100. Наступна сторінка: `before=<id останнього показаного запису>`, без пропусків навіть для записів з однаковим часом.
+- Поля запису: `id`, `actorId` (`null` — дія самого сервера, наприклад автозакриття сеансу), `actor: { id, name } | null`, `action`, `entity`, `entityId`, `meta`, `createdAt`.
+- Аудит працює на будь-якому порту, 2FA для нього не потрібна: він лише для читання й лише для admin.
+
 ### Документація API (OpenAPI)
 
 | Метод | Шлях | Хто має доступ |
@@ -343,7 +350,7 @@
 | GET | `/docs` | admin (сторінка Swagger UI) |
 | GET | `/docs/openapi.json` | admin |
 
-Сторінка відкривається в браузері за cookie-входом (або з `Authorization`). Для фронту схему зберігають у файл без запуску сервера й бази: `cd api && npm run build && npm run openapi` записує `api/openapi.json`. Схеми тіл запитів будуються з DTO. Схеми відповідей (класи `*/responses.dto.ts`) додаються разом із розділами фронту; сервіси повертають ці типи, тож розбіжність ловить компілятор. Уже описані: `auth/me`, `auth/2fa/*`, `users` (створення, список, картка, зміна, `me`, пароль, скидання пароля й 2FA, аватар), `points/me`, `points/leaderboard`, `points/users/:id`, `discipline`, `discipline/me`, `bookings` (створення, скасування, `me`), `places` (список, картка, останні сеанси, старт сеансу), `places/:id/bookings`, `place-authorizations` (список, видача, відкликання), `work-sessions` (список, завершення), `faults` (усі дії), `documents` (список), `tasks` (усі дії, картка з коментарями й файлами), `projects`.
+Сторінка відкривається в браузері за cookie-входом (або з `Authorization`). Для фронту схему зберігають у файл без запуску сервера й бази: `cd api && npm run build && npm run openapi` записує `api/openapi.json`. Схеми тіл запитів будуються з DTO. Схеми відповідей (класи `*/responses.dto.ts`) додаються разом із розділами фронту; сервіси повертають ці типи, тож розбіжність ловить компілятор. Уже описані: `auth/me`, `auth/2fa/*`, `users` (створення, список, картка, зміна, `me`, пароль, скидання пароля й 2FA, аватар), `points/me`, `points/leaderboard`, `points/users/:id`, `discipline`, `discipline/me`, `bookings` (створення, скасування, `me`), `places` (список, картка, останні сеанси, старт сеансу), `places/:id/bookings`, `place-authorizations` (список, видача, відкликання), `work-sessions` (список, завершення), `faults` (усі дії), `documents` (список), `tasks` (усі дії, картка з коментарями й файлами), `projects`, `admin-panel` (огляд, логи, дії, задачі), `audit`.
 
 ## Основні поля запитів
 

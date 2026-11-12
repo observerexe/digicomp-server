@@ -8,6 +8,8 @@ import { FaultsPage } from './pages/panel/FaultsPage';
 import { ManageUserPage } from './pages/panel/ManageUserPage';
 import { NewUserPage } from './pages/panel/NewUserPage';
 import { PanelPage } from './pages/panel/PanelPage';
+import { AdminPage } from './pages/admin/AdminPage';
+import { AuditPage } from './pages/admin/AuditPage';
 import { UsersPage } from './pages/panel/UsersPage';
 import { DocFormPage } from './pages/docs/DocFormPage';
 import { DocPage } from './pages/docs/DocPage';
@@ -208,6 +210,22 @@ export const routes: RouteObject[] = [
         element: (
           <RequirePermission action="faults.close" fallback={<ForbiddenPage />}>
             <FaultsPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'admin',
+        element: (
+          <RequirePermission action="admin.panel" fallback={<ForbiddenPage />}>
+            <AdminPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'admin/audit',
+        element: (
+          <RequirePermission action="audit.read" fallback={<ForbiddenPage />}>
+            <AuditPage />
           </RequirePermission>
         ),
       },
