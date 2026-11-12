@@ -4,7 +4,11 @@ import { AppShell } from './layout/AppShell';
 import { AboutPage } from './pages/AboutPage';
 import { LoginPage } from './pages/LoginPage';
 import { MorePage } from './pages/MorePage';
+import { FaultsPage } from './pages/panel/FaultsPage';
+import { ManageUserPage } from './pages/panel/ManageUserPage';
+import { NewUserPage } from './pages/panel/NewUserPage';
 import { PanelPage } from './pages/panel/PanelPage';
+import { UsersPage } from './pages/panel/UsersPage';
 import { DocFormPage } from './pages/docs/DocFormPage';
 import { DocPage } from './pages/docs/DocPage';
 import { DocsPage } from './pages/docs/DocsPage';
@@ -23,6 +27,7 @@ import { TasksPage } from './pages/tasks/TasksPage';
 import { EquipmentPage } from './pages/lab/EquipmentPage';
 import { JournalPage } from './pages/lab/JournalPage';
 import { LabPage } from './pages/lab/LabPage';
+import { PlaceFormPage } from './pages/lab/PlaceFormPage';
 import { ScanPage } from './pages/lab/ScanPage';
 import { StickersPage } from './pages/lab/StickersPage';
 import { EditProfilePage } from './pages/profile/EditProfilePage';
@@ -73,6 +78,22 @@ export const routes: RouteObject[] = [
         element: (
           <RequirePermission action="places.manage" fallback={<ForbiddenPage />}>
             <StickersPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'lab/new',
+        element: (
+          <RequirePermission action="places.manage" fallback={<ForbiddenPage />}>
+            <PlaceFormPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'lab/:code/edit',
+        element: (
+          <RequirePermission action="places.manage" fallback={<ForbiddenPage />}>
+            <PlaceFormPage />
           </RequirePermission>
         ),
       },
@@ -155,6 +176,38 @@ export const routes: RouteObject[] = [
         element: (
           <RequirePermission action="users.manage" fallback={<ForbiddenPage />}>
             <PanelPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'panel/users',
+        element: (
+          <RequirePermission action="users.manage" fallback={<ForbiddenPage />}>
+            <UsersPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'panel/users/new',
+        element: (
+          <RequirePermission action="users.create" fallback={<ForbiddenPage />}>
+            <NewUserPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'panel/users/:id',
+        element: (
+          <RequirePermission action="users.manage" fallback={<ForbiddenPage />}>
+            <ManageUserPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'panel/faults',
+        element: (
+          <RequirePermission action="faults.close" fallback={<ForbiddenPage />}>
+            <FaultsPage />
           </RequirePermission>
         ),
       },

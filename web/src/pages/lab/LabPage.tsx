@@ -23,7 +23,9 @@ export function LabPage() {
   const places = useQuery({ queryKey: keys.places, queryFn: () => unwrap(api.GET('/api/places')) });
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<string | null>(null);
-  const items = useMemo(() => (places.data ?? []).filter((p) => p.status !== 'archived'), [places.data]);
+  // Staff can open the archive to restore a piece of equipment.
+  const [archive, setArchive] = useState(false);
+  const items = useMemo(() => (places.data ?? []).filter((p) => (p.status === 'archived') === archive), [places.data, archive]);
   const categories = useMemo(() => distinct(items.map((p) => p.category)), [items]);
   const shown = items.filter((p) => matchesPlace(p, search, category));
 
@@ -35,9 +37,17 @@ export function LabPage() {
             Журнал
           </Link>
           {can('places.manage') && (
-            <Link to="/lab/stickers" className="btn btn-ghost">
-              Наліпки QR
-            </Link>
+            <>
+              <Link to="/lab/stickers" className="btn btn-ghost">
+                Наліпки QR
+              </Link>
+              <button type="button" className="btn btn-ghost" aria-pressed={archive} onClick={() => setArchive((v) => !v)}>
+                {archive ? 'До робочого' : 'Архів'}
+              </button>
+              <Link to="/lab/new" className="btn btn-primary">
+                Додати
+              </Link>
+            </>
           )}
         </div>
       </PageHeader>
@@ -54,7 +64,7 @@ export function LabPage() {
       ) : places.isError ? (
         <ErrorMessage text={errorOf(places.error)} />
       ) : shown.length === 0 ? (
-        <p className="hint">{items.length ? 'Нічого не знайдено. Спробуйте інший запит.' : 'Обладнання ще не додано.'}</p>
+        <p className="hint">{items.length ? 'Нічого не знайдено. Спробуйте інший запит.' : archive ? 'В архіві порожньо.' : 'Обладнання ще не додано.'}</p>
       ) : (
         <ul className={s.grid} aria-label="Обладнання">
           {shown.map((p) => (

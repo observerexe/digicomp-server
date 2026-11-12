@@ -19,7 +19,12 @@ import {
 import { PlaceAuthorization } from './place-authorization.entity';
 import { Place, PlaceStatus } from './place.entity';
 import { WorkSession } from './work-session.entity';
-import type { AuthorizationDto, PlaceDto } from './responses.dto';
+import type {
+  AuthorizationDto,
+  GrantedAuthorizationDto,
+  PlaceDto,
+} from './responses.dto';
+import type { OkDto } from '../common/responses.dto';
 
 type Actor = { id: string; role: string };
 
@@ -166,7 +171,10 @@ export class PlacesService {
     }));
   }
 
-  async grant(dto: GrantAuthorizationDto, actor: Actor) {
+  async grant(
+    dto: GrantAuthorizationDto,
+    actor: Actor,
+  ): Promise<GrantedAuthorizationDto> {
     const user = await this.users.findOneBy({ id: dto.userId });
     if (!user || !user.active) throw new NotFoundException('User not found');
     const place = await this.resolve(dto.placeId);
@@ -207,7 +215,7 @@ export class PlacesService {
     };
   }
 
-  async revoke(id: string, actor: Actor) {
+  async revoke(id: string, actor: Actor): Promise<OkDto> {
     const row = await this.auths.findOneBy({ id });
     if (!row) throw new NotFoundException('Authorization not found');
     await this.auths.delete({ id });

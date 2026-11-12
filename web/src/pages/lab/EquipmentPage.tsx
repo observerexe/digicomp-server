@@ -12,6 +12,7 @@ import { errorOf } from '../../errors/messages';
 import { formatDate, formatDateTime, formatDuration, formatSize, formatTime } from '../../lib/format';
 import { kyivDay, kyivParts, addDays } from '../../lib/kyiv';
 import { placeUrl } from '../../lib/scan';
+import { AuthorizationsSection } from './AuthorizationsSection';
 import { BookingsSection } from './BookingsSection';
 import { FaultsSection } from './FaultsSection';
 import { PlaceState } from './LabPage';
@@ -24,7 +25,7 @@ export const BOOKING_DAYS = 8;
 /** Equipment page (approved mockup): state, start/end, bookings, faults, history, documents. */
 export function EquipmentPage() {
   const { code = '' } = useParams();
-  const { user } = useAuth();
+  const { user, can } = useAuth();
   const place = usePlace(code);
   const [showQr, setShowQr] = useState(false);
 
@@ -95,6 +96,11 @@ export function EquipmentPage() {
         <button type="button" className="btn btn-ghost" aria-expanded={showQr} onClick={() => setShowQr((v) => !v)}>
           QR-код
         </button>
+        {can('places.manage') && (
+          <Link to={`/lab/${encodeURIComponent(p.code)}/edit`} className="btn btn-ghost">
+            Редагувати
+          </Link>
+        )}
       </div>
       {showQr && (
         <div className={s.qrBox}>
@@ -110,6 +116,7 @@ export function EquipmentPage() {
         </div>
         <div className={s.column}>
           <FaultsSection place={p} />
+          {can('places.authorize') && p.needsAuthorization && <AuthorizationsSection place={p} />}
           <RecentSessions code={p.code} />
           <PlaceDocs placeId={p.id} />
         </div>

@@ -1,6 +1,12 @@
 import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
 import { OkDto } from '../common/responses.dto';
-import { AvatarDto, MeDto, UserDetailDto, UserListDto } from './responses.dto';
+import {
+  AvatarDto,
+  MeDto,
+  UserDetailDto,
+  UserExtendedDto,
+  UserListDto,
+} from './responses.dto';
 import {
   Body,
   Controller,
@@ -92,6 +98,7 @@ export class UsersController {
   }
 
   @Can(Action.UsersManage)
+  @ApiOkResponse({ type: UserExtendedDto })
   @Patch(':id')
   update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -102,6 +109,7 @@ export class UsersController {
   }
 
   @Can(Action.UsersResetPassword)
+  @ApiCreatedResponse({ type: OkDto })
   @Post(':id/reset-password')
   resetPassword(
     @Param('id', ParseUUIDPipe) id: string,

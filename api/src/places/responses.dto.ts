@@ -23,6 +23,20 @@ export class AuthorizationDto {
   note: string;
 }
 
+/** Result of granting: the stored row without relations. */
+export class GrantedAuthorizationDto {
+  id: string;
+  userId: string;
+  placeId: string;
+  grantedById: string;
+  grantedAt: Date;
+
+  @ApiProperty({ type: Date, nullable: true })
+  expiresAt: Date | null;
+
+  note: string;
+}
+
 export class PlaceSessionRefDto {
   id: string;
   startedAt: Date;

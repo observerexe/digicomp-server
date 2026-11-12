@@ -11,6 +11,8 @@ import { AuditService } from '../audit/audit.service';
 import { SessionsService } from '../sessions/sessions.service';
 import { Role, User } from '../users/user.entity';
 import { toProfile } from '../users/profile';
+import type { MeDto } from '../users/responses.dto';
+import type { Plain } from '../common/responses.dto';
 import { CreateUserDto, LoginDto, TwoFactorVerifyDto } from './dto';
 import { TwoFactorService } from './two-factor.service';
 
@@ -119,7 +121,7 @@ export class AuthService {
     );
   }
 
-  publicUser(u: User) {
+  publicUser(u: User): Plain<MeDto> {
     return toProfile(u);
   }
 }

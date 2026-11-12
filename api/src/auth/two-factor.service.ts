@@ -7,6 +7,7 @@ import {
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
+import type { OkDto } from '../common/responses.dto';
 import { JwtService } from '@nestjs/jwt';
 import { InjectDataSource } from '@nestjs/typeorm';
 import * as argon2 from 'argon2';
@@ -25,7 +26,6 @@ import {
   totpKey,
   verifyTotp,
 } from './totp';
-import type { OkDto } from '../common/responses.dto';
 import type { RecoveryCodesDto, TwoFactorSetupDto } from './responses.dto';
 
 export const TwoFactorErrors = {
@@ -206,7 +206,7 @@ export class TwoFactorService {
   }
 
   /** Admin turns off 2FA of another user who lost the phone. */
-  async reset(targetId: string, actor: Actor) {
+  async reset(targetId: string, actor: Actor): Promise<OkDto> {
     assertCan(actor, Action.UsersResetTwoFactor);
     await this.ds.transaction(async (m) => {
       const u = await m.findOne(User, {

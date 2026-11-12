@@ -34,6 +34,7 @@ export function useActiveSession() {
 export function usePlace(code: string) {
   return useQuery({
     queryKey: keys.place(code),
+    enabled: !!code,
     queryFn: () => unwrap(api.GET('/api/places/{id}', { params: { path: { id: code } } })),
   });
 }

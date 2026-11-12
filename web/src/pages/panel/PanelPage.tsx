@@ -31,10 +31,13 @@ export function PanelPage() {
   });
   const attention: Tile[] = [
     { to: '/tasks', title: 'ТЗ на перевірці', note: 'Прийняти або повернути з коментарем', count: review.data },
-    { to: '/lab', title: 'Відкриті несправності', note: 'На сторінках обладнання', count: faults.data },
+    { to: '/panel/faults', title: 'Відкриті несправності', note: 'Взяти в роботу або закрити', count: faults.data },
     { to: '/inventory', title: 'Мало на складі', note: 'Позиції на мінімумі', count: low.data },
   ];
   const sections: Tile[] = [
+    { to: '/panel/users', title: 'Учасники й ролі', note: 'Створення, ролі, блокування, допуски', permission: 'users.manage' },
+    { to: '/lab', title: 'Обладнання', note: 'Додати, редагувати, допуски', permission: 'places.manage' },
+    { to: '/panel/faults', title: 'Несправності', note: 'Відкриті й у роботі', permission: 'faults.close' },
     { to: '/points', title: 'Бали', note: 'Нарахування й історія', permission: 'points.award' },
     { to: '/discipline', title: 'Дисципліна', note: 'Попередження, штрафи, догани', permission: 'discipline.issue' },
     { to: '/lab/journal', title: 'Журнал обладнання', note: 'Фільтри, CSV, друк', permission: 'sessions.export' },
@@ -70,7 +73,6 @@ export function PanelPage() {
             </li>
           ))}
       </ul>
-      <p className="hint">Керування учасниками, допусками й обладнанням з’явиться тут у наступній частині.</p>
     </>
   );
 }

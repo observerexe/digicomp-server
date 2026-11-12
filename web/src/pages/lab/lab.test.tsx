@@ -363,3 +363,77 @@ describe('Сканер, наліпки, журнал', () => {
     await waitFor(() => expect(calls.some((c) => c.path === '/api/work-sessions' && c.method === 'GET')).toBe(true));
   });
 });
+
+describe('Обладнання: керування (staff)', () => {
+  it('додавання: код обов’язковий, POST і перехід на сторінку', async () => {
+    const { handlers } = labApi(staff);
+    const { calls } = mockApi({
+      ...handlers,
+      'POST /api/places': async (req) => json(201, place({ ...((await req.json()) as Partial<Place>), id: 'p9' })),
+      'GET /api/places/OSC-2': () => json(200, place({ id: 'p9', code: 'OSC-2', title: 'Осцилограф' })),
+    });
+    const { router } = renderApp('/lab/new');
+    await userEvent.type(await screen.findByLabelText('Назва'), 'Осцилограф');
+    await userEvent.type(screen.getByLabelText('Категорія'), 'Вимірювання');
+    expect(screen.getByRole('button', { name: 'Додати' })).toBeDisabled();
+    await userEvent.type(screen.getByLabelText('Код (для QR)'), 'OSC-2');
+    await userEvent.click(screen.getByLabelText(/Лише один користувач/));
+    await userEvent.click(screen.getByRole('button', { name: 'Додати' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/lab/OSC-2'));
+    expect(JSON.parse(calls.find((c) => c.method === 'POST')!.body)).toEqual({
+      code: 'OSC-2',
+      title: 'Осцилограф',
+      category: 'Вимірювання',
+      location: '',
+      description: '',
+      needsAuthorization: true,
+      exclusive: false,
+    });
+  });
+
+  it('редагування: код не змінюється, стан — у PATCH', async () => {
+    const { handlers } = labApi(staff);
+    const { calls } = mockApi({ ...handlers, [`PATCH /api/places/${place().id}`]: async (req) => json(200, place((await req.json()) as Partial<Place>)) });
+    renderApp('/lab/CNC-1/edit');
+    expect(await screen.findByLabelText('Назва')).toHaveValue('Фрезер ЧПК');
+    expect(screen.queryByLabelText('Код (для QR)')).not.toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText('Стан'), 'archived');
+    await userEvent.click(screen.getByRole('button', { name: 'Зберегти' }));
+    await waitFor(() => expect(calls.some((c) => c.method === 'PATCH')).toBe(true));
+    expect(JSON.parse(calls.find((c) => c.method === 'PATCH')!.body)).toMatchObject({ status: 'archived', title: 'Фрезер ЧПК' });
+  });
+
+  it('сторінка обладнання: «Редагувати» і допуски — лише staff', async () => {
+    const { handlers } = labApi(staff);
+    mockApi({ ...handlers, 'GET /api/place-authorizations': () => json(200, []) });
+    renderApp('/lab/CNC-1');
+    expect(await screen.findByRole('link', { name: 'Редагувати' })).toHaveAttribute('href', '/lab/CNC-1/edit');
+    expect(await screen.findByRole('heading', { name: 'Допуски' })).toBeInTheDocument();
+  });
+
+  it('учасник не бачить керування; форма закрита', async () => {
+    mockApi(labApi(member).handlers);
+    renderApp('/lab/CNC-1');
+    await screen.findByRole('button', { name: 'Почати роботу' });
+    expect(screen.queryByRole('link', { name: 'Редагувати' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Допуски' })).not.toBeInTheDocument();
+  });
+
+  it('архів у списку для staff', async () => {
+    const { handlers } = labApi(staff);
+    mockApi({ ...handlers, 'GET /api/places': () => json(200, [place(), place({ id: 'p4', code: 'OLD-1', title: 'Старий паяльник', status: 'archived' })]) });
+    renderApp('/lab');
+    const list = await screen.findByRole('list', { name: 'Обладнання' });
+    expect(within(list).queryByText('Старий паяльник')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Архів' }));
+    expect(within(list).getByText('Старий паяльник')).toBeInTheDocument();
+  });
+});
+
+describe('Форма обладнання: учасник', () => {
+  it('закрита', async () => {
+    mockApi(labApi(member).handlers);
+    renderApp('/lab/new');
+    expect(await screen.findByRole('heading', { name: 'Немає доступу' })).toBeInTheDocument();
+  });
+});

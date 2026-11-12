@@ -1590,6 +1590,20 @@ export interface components {
             role?: "admin" | "moderator" | "member";
             active?: boolean;
         };
+        UserExtendedDto: {
+            role: components["schemas"]["Role"];
+            avatarUrl: string | null;
+            email: string;
+            active: boolean;
+            twoFactorEnabled: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            name: string;
+            position: string;
+            specialty: string;
+            bio: string;
+        };
         ResetPasswordDto: {
             newPassword: string;
         };
@@ -1962,6 +1976,17 @@ export interface components {
             placeId: string;
             expiresAt?: string;
             note?: string;
+        };
+        GrantedAuthorizationDto: {
+            /** Format: date-time */
+            expiresAt: string | null;
+            id: string;
+            userId: string;
+            placeId: string;
+            grantedById: string;
+            /** Format: date-time */
+            grantedAt: string;
+            note: string;
         };
         CreateBookingDto: {
             /** Format: uuid */
@@ -2473,7 +2498,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["MeDto"];
                 };
             };
         };
@@ -2565,7 +2590,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["UserExtendedDto"];
                 };
             };
         };
@@ -2631,7 +2656,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
             };
         };
     };
@@ -2691,7 +2718,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["MeDto"];
                 };
             };
         };
@@ -2845,7 +2872,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
             };
         };
     };
@@ -3737,7 +3766,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["GrantedAuthorizationDto"];
+                };
             };
         };
     };
@@ -3756,7 +3787,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
             };
         };
     };

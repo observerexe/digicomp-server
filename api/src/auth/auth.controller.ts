@@ -1,4 +1,4 @@
-import { ApiOkResponse } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
 import { OkDto } from '../common/responses.dto';
 import { MeDto } from '../users/responses.dto';
 import { RecoveryCodesDto, TwoFactorSetupDto } from './responses.dto';
@@ -48,6 +48,7 @@ export class AuthController {
   ) {}
 
   @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @ApiCreatedResponse({ type: MeDto })
   @Post('auth/setup')
   setup(@Body() dto: CreateUserDto) {
     return this.auth.setupFirstAdmin(dto);
@@ -142,6 +143,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, PolicyGuard)
   @Can(Action.UsersResetTwoFactor)
   @HttpCode(200)
+  @ApiOkResponse({ type: OkDto })
   @Post('users/:id/2fa/reset')
   resetTwoFactor(
     @Param('id', ParseUUIDPipe) id: string,
@@ -203,6 +205,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard, PolicyGuard)
   @Can(Action.UsersCreate)
+  @ApiCreatedResponse({ type: MeDto })
   @Post('users')
   createUser(@Body() dto: CreateUserDto, @Req() req: { user: { id: string } }) {
     return this.auth.create(dto, Role.Member, req.user.id);

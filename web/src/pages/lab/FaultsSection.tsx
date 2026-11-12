@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, type ChangeEvent, type FormEvent } from 'react';
+import { Link } from 'react-router';
 import { api, ApiError, unwrap } from '../../api/client';
-import type { Fault, FaultStatus, Place } from '../../api/types';
+import type { Fault, FaultStatus, Place, PlaceStatus } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
 import { Card, ErrorMessage, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
@@ -65,7 +66,7 @@ export function FaultsSection({ place }: { place: Place }) {
             ) : (
               <ul className={s.rows} aria-label="Відкриті несправності">
                 {active.map((f) => (
-                  <FaultRow key={f.id} fault={f} place={place} />
+                  <FaultRow key={f.id} fault={f} placeStatus={place.status} />
                 ))}
               </ul>
             )}
@@ -178,7 +179,12 @@ function ReportForm({ place, onDone }: { place: Place; onDone: () => void }) {
   );
 }
 
-function FaultRow({ fault, place }: { fault: Fault; place: Place }) {
+/**
+ * One report with staff actions. On the equipment page the place state comes
+ * from the page (fresh); in the panel list — from the report itself, and the
+ * equipment is shown as a link.
+ */
+export function FaultRow({ fault, placeStatus, showPlace = false }: { fault: Fault; placeStatus?: PlaceStatus; showPlace?: boolean }) {
   const { can } = useAuth();
   const qc = useQueryClient();
   const [expanded, setExpanded] = useState(false);
@@ -216,6 +222,11 @@ function FaultRow({ fault, place }: { fault: Fault; place: Place }) {
           {fault.reporter?.name && ` · ${fault.reporter.name}`}
         </span>
       </span>
+      {showPlace && (
+        <Link className={s.rowTitle} to={`/lab/${encodeURIComponent(fault.place.code ?? fault.place.id)}`}>
+          {fault.place.title ?? 'Обладнання'}
+        </Link>
+      )}
       <span>{fault.description}</span>
       {fault.photosCount > 0 && (
         <button type="button" className={s.linkButton} aria-expanded={expanded} onClick={() => setExpanded((v) => !v)}>
@@ -238,7 +249,7 @@ function FaultRow({ fault, place }: { fault: Fault; place: Place }) {
               В роботі
             </button>
           )}
-          {place.status === 'active' && (
+          {placeStatus === 'active' && (
             <button type="button" className="btn" disabled={act.isPending} onClick={() => act.mutate('maintenance')}>
               На обслуговування
             </button>
@@ -260,7 +271,7 @@ function FaultRow({ fault, place }: { fault: Fault; place: Place }) {
             <label htmlFor={`res-${fault.id}`}>Що зроблено</label>
             <input id={`res-${fault.id}`} maxLength={2000} value={resolution} onChange={(e) => setResolution(e.target.value)} />
           </div>
-          {place.status === 'maintenance' && (
+          {placeStatus === 'maintenance' && (
             <label className={s.check}>
               <input type="checkbox" checked={reactivate} onChange={(e) => setReactivate(e.target.checked)} />
               Повернути обладнання в роботу

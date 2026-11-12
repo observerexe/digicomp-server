@@ -24,8 +24,10 @@ import type {
   AvatarDto,
   MeDto,
   UserDetailDto,
+  UserExtendedDto,
   UserListDto,
 } from './responses.dto';
+import type { OkDto, Plain } from '../common/responses.dto';
 import { Role, User } from './user.entity';
 
 export type Actor = { id: string; role: string };
@@ -160,7 +162,11 @@ export class UsersService {
     return toProfile(u);
   }
 
-  async update(id: string, dto: UpdateUserDto, actor: Actor) {
+  async update(
+    id: string,
+    dto: UpdateUserDto,
+    actor: Actor,
+  ): Promise<Plain<UserExtendedDto>> {
     return this.ds.transaction(async (m) => {
       const u = await m.findOne(User, { where: { id } });
       if (!u) throw new NotFoundException('User not found');
@@ -257,7 +263,7 @@ export class UsersService {
     return { ok: true };
   }
 
-  async resetPassword(id: string, next: string, actor: Actor) {
+  async resetPassword(id: string, next: string, actor: Actor): Promise<OkDto> {
     const u = await this.repo.findOneBy({ id });
     if (!u) throw new NotFoundException('User not found');
     u.passwordHash = await argon2.hash(next);

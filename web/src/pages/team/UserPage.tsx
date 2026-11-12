@@ -62,8 +62,13 @@ export function UserPage() {
           </div>
         </div>
         {u.bio ? <p className={s.fullBio}>{u.bio}</p> : <p className="hint">Біо ще не заповнене.</p>}
-        {(can('points.award') || can('discipline.issue')) && (
+        {(can('users.manage') || can('points.award') || can('discipline.issue')) && (
           <div className={s.staffActions}>
+            {can('users.manage') && (
+              <Link to={`/panel/users/${u.id}`} className="btn">
+                Керувати
+              </Link>
+            )}
             {can('points.award') && (
               <Link to={`/points?user=${u.id}`} className="btn">
                 Нарахувати бали

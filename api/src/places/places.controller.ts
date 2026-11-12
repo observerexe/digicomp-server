@@ -1,6 +1,8 @@
 import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
+import { OkDto } from '../common/responses.dto';
 import {
   AuthorizationDto,
+  GrantedAuthorizationDto,
   PlaceDto,
   RecentSessionDto,
   WorkSessionDto,
@@ -166,12 +168,14 @@ export class AuthorizationsController {
   }
 
   @Can(Action.PlacesAuthorize)
+  @ApiCreatedResponse({ type: GrantedAuthorizationDto })
   @Post()
   grant(@Body() dto: GrantAuthorizationDto, @Req() req: Req) {
     return this.places.grant(dto, req.user);
   }
 
   @Can(Action.PlacesAuthorize)
+  @ApiOkResponse({ type: OkDto })
   @Delete(':id')
   revoke(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
     return this.places.revoke(id, req.user);

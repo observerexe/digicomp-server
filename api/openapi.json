@@ -121,7 +121,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/MeDto"
                 }
               }
             }
@@ -251,7 +251,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/UserExtendedDto"
                 }
               }
             }
@@ -345,7 +345,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -420,7 +427,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/MeDto"
                 }
               }
             }
@@ -625,7 +632,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
           }
         },
         "summary": "Admin turns off 2FA of a user who lost access to the app.",
@@ -2082,7 +2096,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrantedAuthorizationDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2105,7 +2126,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -4150,6 +4178,63 @@
           }
         }
       },
+      "UserExtendedDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Role"
+              }
+            ]
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "twoFactorEnabled": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "position": {
+            "type": "string"
+          },
+          "specialty": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "avatarUrl",
+          "email",
+          "active",
+          "twoFactorEnabled",
+          "createdAt",
+          "id",
+          "name",
+          "position",
+          "specialty",
+          "bio"
+        ]
+      },
       "ResetPasswordDto": {
         "type": "object",
         "properties": {
@@ -5514,6 +5599,44 @@
         "required": [
           "userId",
           "placeId"
+        ]
+      },
+      "GrantedAuthorizationDto": {
+        "type": "object",
+        "properties": {
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "placeId": {
+            "type": "string"
+          },
+          "grantedById": {
+            "type": "string"
+          },
+          "grantedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "expiresAt",
+          "id",
+          "userId",
+          "placeId",
+          "grantedById",
+          "grantedAt",
+          "note"
         ]
       },
       "CreateBookingDto": {
