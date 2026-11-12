@@ -14,8 +14,7 @@
     "typecheck": "tsc -b --noEmit",
     "lint": "oxlint src",
     "tokens": "node scripts/tokens.mjs",
-    "api:types": "openapi-typescript ../api/openapi.json -o src/api/schema.d.ts",
-    "fonts": "node scripts/fonts.mjs"
+    "api:types": "openapi-typescript ../api/openapi.json -o src/api/schema.d.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.107.1",
@@ -40,7 +39,6 @@
     "typescript": "^5.9.3",
     "vite": "^8.3.7",
     "vite-plugin-pwa": "^2.0.0",
-    "vitest": "^5.1.0",
-    "wawoff2": "^2.0.1"
+    "vitest": "^5.1.0"
   }
 }
