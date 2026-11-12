@@ -3,7 +3,7 @@ import type { Me, Role } from '../../api/types';
 type Target = { id: string; role: Role };
 
 /**
- * What the panel offers over one member (docs/PLAN.md, «Ролі та права»).
+ * What the panel offers over one member (docs/tech/ARCHITECTURE.md, «Ролі та права»).
  * Role-layer permissions come from /auth/me; the target rule mirrors the API:
  * a moderator acts only on members and never on self, the admin has no limits.
  * The API checks everything again — this only hides buttons that would fail.

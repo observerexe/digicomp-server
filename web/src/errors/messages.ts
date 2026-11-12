@@ -1,5 +1,5 @@
 /**
- * Human texts for API errorCode values (docs/API_UA.md, «Помилки»).
+ * Human texts for API errorCode values (docs/tech/API.md, «Помилки»).
  * messages.test.ts checks that every code the backend can return is here.
  */
 export const ERROR_MESSAGES: Record<string, string> = {

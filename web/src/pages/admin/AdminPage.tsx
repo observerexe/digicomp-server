@@ -23,7 +23,7 @@ import {
 } from './labels';
 import s from './admin.module.css';
 
-/** `tailscale serve --https=9443` (docs/ADMIN_PANEL_UA.md): same host, panel port. */
+/** `tailscale serve --https=9443` (docs/tech/OPERATIONS.md): same host, panel port. */
 export const PANEL_HTTPS_PORT = '9443';
 export const panelUrl = (loc: { hostname: string }) => `https://${loc.hostname}:${PANEL_HTTPS_PORT}/admin`;
 

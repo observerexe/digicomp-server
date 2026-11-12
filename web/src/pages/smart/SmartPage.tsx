@@ -14,7 +14,7 @@ export const SMART_KEY = ['smart', 'entities'] as const;
 /** Timings; tests shorten them. */
 export const SMART_TIMING = { refreshMs: 15_000, brightnessDelayMs: 400 };
 
-/** /smart: devices by room. Everyone sees, staff controls (docs/PLAN.md). */
+/** /smart: devices by room. Everyone sees, staff controls (docs/tech/ARCHITECTURE.md). */
 export function SmartPage() {
   const { can } = useAuth();
   const q = useQuery({
@@ -45,7 +45,7 @@ export function SmartPage() {
         <>
           <ErrorMessage text={errorOf(q.error)} />
           {q.error instanceof ApiError && q.error.code === 'SMART_NOT_CONFIGURED' && canManage && (
-            <p className="hint">Як підключити Home Assistant — у docs/SMART_UA.md.</p>
+            <p className="hint">Як підключити Home Assistant — docs/tech/OPERATIONS.md, розділ «Home Assistant».</p>
           )}
         </>
       ) : q.data.items.length === 0 ? (

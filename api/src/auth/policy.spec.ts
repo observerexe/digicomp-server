@@ -12,7 +12,7 @@ import {
   ROLES,
 } from './policy';
 
-// Матриця з docs/PLAN.md, розділ «Ролі та права».
+// Матриця з docs/tech/ARCHITECTURE.md, розділ «Ролі та права».
 // Кожен рядок таблиці — окремий describe; у кожному три ролі: можна / не можна.
 
 const admin: Actor = { id: 'a1', role: Role.Admin };
@@ -587,7 +587,7 @@ const ROWS: Record<string, Case[]> = {
   ],
 };
 
-describe('Матриця прав (docs/PLAN.md)', () => {
+describe('Матриця прав (docs/tech/ARCHITECTURE.md)', () => {
   for (const [row, cases] of Object.entries(ROWS)) {
     describe(row, () => {
       it.each(cases)('%s', (_label, actor, action, ctx, expected) => {

@@ -6,7 +6,7 @@ export function buildOpenApi(app: INestApplication) {
   const config = new DocumentBuilder()
     .setTitle('DigiComp HUB API')
     .setDescription(
-      'Права: docs/PLAN.md («Ролі та права»), коди помилок: docs/API_UA.md.',
+      'Права: docs/tech/ARCHITECTURE.md («Ролі та права»), правила й коди помилок: docs/tech/API.md.',
     )
     .setVersion('1')
     .addBearerAuth()

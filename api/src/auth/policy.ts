@@ -2,7 +2,7 @@ import { ForbiddenException } from '@nestjs/common';
 import { Role } from '../users/user.entity';
 
 /**
- * Single source of truth for permissions: the matrix from docs/PLAN.md
+ * Single source of truth for permissions: the matrix from docs/tech/ARCHITECTURE.md
  * ("Ролі та права"). Every check in controllers (via @Can) and services
  * (via can/assertCan) goes through this file.
  *

@@ -1,6 +1,6 @@
 /**
  * Splits task points equally between assignees. The remainder goes one point
- * each to the earliest takers (owner decision, docs/PLAN.md, stage 2).
+ * each to the earliest takers (owner decision, docs/tech/ARCHITECTURE.md «Прийняті рішення»).
  * `assignees` must be sorted by taking order.
  */
 export function splitPoints<T>(

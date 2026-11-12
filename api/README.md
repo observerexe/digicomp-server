@@ -1,6 +1,6 @@
 # DigiComp HUB API
 
-Бекенд на NestJS + TypeORM. Загальний опис, локальний запуск і тести: [README у корені](../README.md).
+Бекенд на NestJS + TypeORM. Як влаштовано: [docs/tech/ARCHITECTURE.md](../docs/tech/ARCHITECTURE.md); запуск, тести й міграції: [docs/tech/DEVELOPMENT.md](../docs/tech/DEVELOPMENT.md).
 
 - Точка входу: `src/main.ts`. Глобальні налаштування (заголовки безпеки, CSRF, фільтр помилок, валідація, CORS)
   у `src/setup-app.ts`; їх використовують і `main.ts`, і e2e-тести.

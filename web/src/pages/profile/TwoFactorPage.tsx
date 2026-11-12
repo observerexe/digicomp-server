@@ -13,7 +13,7 @@ import s from './profile.module.css';
 const onlyDigits = (v: string) => v.replace(/\s/g, '');
 const validCode = (v: string) => /^\d{6}$/.test(onlyDigits(v));
 
-/** Turn on, turn off, new recovery codes (docs/API_UA.md, «2FA»). */
+/** Turn on, turn off, new recovery codes (docs/tech/API.md, «2FA»). */
 export function TwoFactorPage() {
   const { user } = useAuth();
   if (!user) return null;

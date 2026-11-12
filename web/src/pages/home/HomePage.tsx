@@ -36,7 +36,7 @@ export function busyPlaces(places: Place[]): Place[] {
   return places.filter((p) => p.inUse && p.status !== 'archived');
 }
 
-/** «/»: active session, my tasks and deadlines, points, busy equipment, next bookings (docs/PLAN.md). */
+/** «/»: active session, my tasks and deadlines, points, busy equipment, next bookings (docs/tech/ARCHITECTURE.md). */
 export function HomePage() {
   const { user } = useAuth();
   const first = user?.name.split(/\s+/)[0] ?? '';

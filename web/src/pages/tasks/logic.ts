@@ -27,7 +27,7 @@ export const isAssignee = (t: Task, me: Me) => t.assignees.some((a) => a.id === 
 
 /**
  * What this person can do with the task now (the API checks it again):
- * docs/API_UA.md «ТЗ», policy: TasksAccept is staff and never one's own task.
+ * docs/tech/API.md «ТЗ», policy: TasksAccept is staff and never one's own task.
  */
 export function actionsFor(t: Task, me: Me, can: Can): ActionKind[] {
   const mine = isAssignee(t, me);

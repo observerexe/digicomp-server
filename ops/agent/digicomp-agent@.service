@@ -1,5 +1,5 @@
 # Агент розширеної панелі DigiComp HUB.
-# Встановлення: docs/ADMIN_PANEL_UA.md. Запуск від вашого користувача:
+# Встановлення: docs/tech/OPERATIONS.md («Розширена панель і агент»). Запуск від вашого користувача:
 #   sudo systemctl enable --now digicomp-agent@$USER
 [Unit]
 Description=DigiComp server agent (admin panel)

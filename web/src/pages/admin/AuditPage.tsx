@@ -12,7 +12,7 @@ import s from './admin.module.css';
 
 export const AUDIT_PAGE = 50;
 
-/** /admin/audit: every action of every member (admin, docs/PLAN.md). Works on any port. */
+/** /admin/audit: every action of every member (admin, docs/tech/ARCHITECTURE.md). Works on any port. */
 export function AuditPage() {
   const [group, setGroup] = useState('');
   const [actorId, setActorId] = useState('');

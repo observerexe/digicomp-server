@@ -3978,7 +3978,7 @@
   },
   "info": {
     "title": "DigiComp HUB API",
-    "description": "Права: docs/PLAN.md («Ролі та права»), коди помилок: docs/API_UA.md.",
+    "description": "Права: docs/tech/ARCHITECTURE.md («Ролі та права»), правила й коди помилок: docs/tech/API.md.",
     "version": "1",
     "contact": {}
   },
@@ -4131,7 +4131,7 @@
             "type": "boolean"
           },
           "permissions": {
-            "description": "Actions allowed by the role (docs/PLAN.md); the API checks the rest.",
+            "description": "Actions allowed by the role (docs/tech/ARCHITECTURE.md); the API checks the rest.",
             "type": "array",
             "items": {
               "type": "string"

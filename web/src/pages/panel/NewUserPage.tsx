@@ -11,7 +11,7 @@ import s from './panel.module.css';
 
 const EMPTY = { name: '', email: '', password: '', position: '', specialty: '' };
 
-/** /panel/users/new: a member with a password (invitations are deferred, docs/PLAN.md). */
+/** /panel/users/new: a member with a password (invitations are deferred, docs/tech/ARCHITECTURE.md). */
 export function NewUserPage() {
   const qc = useQueryClient();
   const [f, setF] = useState(EMPTY);

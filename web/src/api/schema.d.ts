@@ -1545,7 +1545,7 @@ export interface components {
             email: string;
             active: boolean;
             twoFactorEnabled: boolean;
-            /** @description Actions allowed by the role (docs/PLAN.md); the API checks the rest. */
+            /** @description Actions allowed by the role (docs/tech/ARCHITECTURE.md); the API checks the rest. */
             permissions: string[];
             id: string;
             name: string;

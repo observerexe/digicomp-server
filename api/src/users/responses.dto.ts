@@ -31,7 +31,7 @@ export class MeDto extends UserPublicDto {
   active: boolean;
   twoFactorEnabled: boolean;
 
-  /** Actions allowed by the role (docs/PLAN.md); the API checks the rest. */
+  /** Actions allowed by the role (docs/tech/ARCHITECTURE.md); the API checks the rest. */
   permissions: string[];
 }
 

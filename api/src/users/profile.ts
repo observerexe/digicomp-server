@@ -29,7 +29,7 @@ export function toExtendedView(u: User): Plain<UserExtendedDto> {
   };
 }
 
-/** Public card (docs/PLAN.md, «Команда» and «Чужий профіль»). */
+/** Public card (docs/tech/ARCHITECTURE.md, «Команда» and «Чужий профіль»). */
 export function toBasicView(u: User): Plain<UserPublicDto> {
   return {
     id: u.id,

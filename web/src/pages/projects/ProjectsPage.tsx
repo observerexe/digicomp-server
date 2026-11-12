@@ -11,7 +11,7 @@ import { kyivParts } from '../../lib/kyiv';
 import { canEditProject, STAGES, useMoveProject, useProjects } from './queries';
 import s from './projects.module.css';
 
-/** Projects board by stage (docs/PLAN.md «Проєкти»). */
+/** Projects board by stage (docs/tech/ARCHITECTURE.md «Проєкти»). */
 export function ProjectsPage() {
   const { user, can } = useAuth();
   const [mine, setMine] = useState(false);
