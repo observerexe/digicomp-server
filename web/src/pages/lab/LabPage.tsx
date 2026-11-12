@@ -17,7 +17,7 @@ export function matchesPlace(p: Place, search: string, category: string | null) 
   return !q || [p.title, p.code, p.category, p.location].some((f) => norm(f).includes(q));
 }
 
-/** «Лабораторія»: equipment with its state; smart devices join in section 8. */
+/** «Лабораторія»: equipment with its state; smart devices live on /smart. */
 export function LabPage() {
   const { can } = useAuth();
   const places = useQuery({ queryKey: keys.places, queryFn: () => unwrap(api.GET('/api/places')) });
@@ -36,6 +36,11 @@ export function LabPage() {
           <Link to="/lab/journal" className="btn btn-ghost">
             Журнал
           </Link>
+          {can('smart.read') && (
+            <Link to="/smart" className="btn btn-ghost">
+              Розумна лабораторія
+            </Link>
+          )}
           {can('places.manage') && (
             <>
               <Link to="/lab/stickers" className="btn btn-ghost">

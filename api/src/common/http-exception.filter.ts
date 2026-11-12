@@ -85,6 +85,7 @@ const MESSAGE_CODES: Record<string, string> = {
   'Entity already added': 'SMART_ENTITY_EXISTS',
   'Device is not available': 'DEVICE_UNAVAILABLE',
   'Brightness requires on=true': 'BRIGHTNESS_REQUIRES_ON',
+  'Smart device not found': 'SMART_DEVICE_NOT_FOUND',
 };
 
 const STATUS_CODES: Record<number, string> = {

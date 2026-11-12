@@ -94,6 +94,7 @@
 | `SETUP_ALREADY_COMPLETED` | 409 | Першого адміна вже створено |
 | `SMART_NOT_CONFIGURED`, `SMART_UNAVAILABLE`, `SMART_AUTH_FAILED` | 503 | Home Assistant не налаштований, не відповідає за 5 секунд або відхилив токен |
 | `UNKNOWN_HA_ENTITY`, `ENTITY_KIND_MISMATCH`, `SMART_ENTITY_EXISTS` | 400/409 | Додавання пристрою в дозволений список: такого пристрою немає в HA, не збігається тип, або він уже доданий |
+| `SMART_DEVICE_NOT_FOUND` | 404 | Пристрою немає у списку, він прихований або іншого типу (наприклад, `binary_sensor` на адресі світла) |
 | `DEVICE_UNAVAILABLE` | 409 | Пристрій у HA недоступний (вимкнений чи без зв'язку) |
 | `BRIGHTNESS_REQUIRES_ON` | 400 | Яскравість можна задавати лише разом із `on: true` |
 
@@ -400,7 +401,7 @@
 - `GET /projects?stage=execution` фільтрує за етапом.
 - `PATCH /projects/:id`: ті самі поля. Admin і moderator редагують усе, member лише проєкти, де він учасник, і не може змінювати `memberIds`. У `GET /projects/:id` є `canEdit`. `GET /projects/:id/history`: журнал змін.
 
-**Розумний будинок.** `GET /smart/entities` повертає `{ items: [] }`; у кожного елемента є `id`, `kind` (`light`, `sensor`, `scene`), `label`, `room`, `available`. Для світла додатково `on` і `brightness` (відсотки), для датчика `value`, `unit`, `deviceClass`. `POST /smart/lights/:id/state`: `{ "on": true, "brightness": 1-100 }`, повертає новий стан. `POST /smart/scenes/:id/activate` без тіла. Ідентифікатор `:id` це `id` елемента зі списку, а не назва пристрою в HA. Керувати можна лише світлом і сценами, розетки та вимикачі додати в список неможливо. Налаштування див. `docs/SMART_UA.md`.
+**Розумний будинок.** `GET /smart/entities` повертає `{ items: [] }`; у кожного елемента є `id`, `kind` (`light`, `sensor`, `binary_sensor`, `scene`), `label`, `room`, `enabled`, `available`. Для світла додатково `on` і `brightness` (відсотки, `null`, коли вимкнене), для датчиків (`sensor` і `binary_sensor`) — `value` (стан з HA: `21.5`, `on`, `off`), `unit`, `deviceClass`. Датчик «так/ні» (`binary_sensor`: рух, протікання, двері) лише показується, керувати ним не можна. `GET /smart/discover` повертає `{ items: [{ entityId, kind, name, state }] }` — пристрої HA, яких ще немає у списку. `POST /smart/lights/:id/state`: `{ "on": true, "brightness": 1-100 }`, повертає новий стан. `POST /smart/scenes/:id/activate` без тіла. Ідентифікатор `:id` це `id` елемента зі списку, а не назва пристрою в HA. Керувати можна лише світлом і сценами, розетки та вимикачі додати в список неможливо. Налаштування див. `docs/SMART_UA.md`.
 
 **ТЗ.** Статуси і переходи:
 

@@ -9,6 +9,8 @@ export enum SmartKind {
   Light = 'light',
   Sensor = 'sensor',
   Scene = 'scene',
+  /** On/off sensor (motion, leak, door): read only, like `sensor`. */
+  BinarySensor = 'binary_sensor',
 }
 
 @Entity('smart_entities')

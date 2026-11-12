@@ -37,6 +37,8 @@ import { PasswordPage } from './pages/profile/PasswordPage';
 import { ProfilePage } from './pages/profile/ProfilePage';
 import { TwoFactorPage } from './pages/profile/TwoFactorPage';
 import { HomePage } from './pages/home/HomePage';
+import { SmartDevicesPage } from './pages/smart/SmartDevicesPage';
+import { SmartPage } from './pages/smart/SmartPage';
 import { ForbiddenPage, NotFoundPage } from './pages/sections';
 import { TeamPage } from './pages/team/TeamPage';
 import { UserPage } from './pages/team/UserPage';
@@ -98,6 +100,15 @@ export const routes: RouteObject[] = [
       },
       { path: 'lab/:code', element: <EquipmentPage /> },
       { path: 'scan', element: <ScanPage /> },
+      { path: 'smart', element: <SmartPage /> },
+      {
+        path: 'smart/devices',
+        element: (
+          <RequirePermission action="smart.allowlist" fallback={<ForbiddenPage />}>
+            <SmartDevicesPage />
+          </RequirePermission>
+        ),
+      },
       { path: 'projects', element: <ProjectsPage /> },
       {
         path: 'projects/new',

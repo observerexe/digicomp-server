@@ -13,7 +13,7 @@ import {
 import { SmartKind } from './smart-entity.entity';
 
 export class CreateSmartEntityDto {
-  @Matches(/^(light|sensor|scene)\.[a-z0-9_]{1,100}$/)
+  @Matches(/^(light|sensor|binary_sensor|scene)\.[a-z0-9_]{1,100}$/)
   entityId: string;
 
   @IsEnum(SmartKind)

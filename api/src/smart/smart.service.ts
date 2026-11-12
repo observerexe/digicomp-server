@@ -13,17 +13,30 @@ import {
   UpdateSmartEntityDto,
 } from './dto';
 import { HaState, HomeAssistantClient } from './ha.client';
+import type { OkDto } from '../common/responses.dto';
+import type {
+  SmartAllowedDto,
+  SmartAllowlistDto,
+  SmartDiscoverDto,
+  SmartEntityListDto,
+  SmartEntityStateDto,
+  SmartStatusDto,
+} from './responses.dto';
 import { SmartEntity, SmartKind } from './smart-entity.entity';
 
 type Actor = { id: string; role: string };
 
-const DISCOVER_DOMAINS = ['light', 'sensor', 'scene'];
+/** Only these HA domains can ever be allowed; switches and plugs never. */
+const DISCOVER_DOMAINS: string[] = Object.values(SmartKind);
 
 function unavailable(s: HaState | null | undefined) {
   return !s || s.state === 'unavailable' || s.state === 'unknown';
 }
 
-function stateView(e: SmartEntity, s: HaState | undefined) {
+function stateView(
+  e: SmartEntity,
+  s: HaState | undefined,
+): SmartEntityStateDto {
   const base = {
     id: e.id,
     kind: e.kind,
@@ -32,7 +45,7 @@ function stateView(e: SmartEntity, s: HaState | undefined) {
     enabled: e.enabled,
     available: !unavailable(s),
   };
-  if (!s) return { ...base, state: null };
+  if (!s) return base;
   const a = s.attributes ?? {};
   if (e.kind === SmartKind.Light) {
     const raw = typeof a.brightness === 'number' ? a.brightness : null;
@@ -42,7 +55,7 @@ function stateView(e: SmartEntity, s: HaState | undefined) {
       brightness: raw === null ? null : Math.round((raw / 255) * 100),
     };
   }
-  if (e.kind === SmartKind.Sensor) {
+  if (e.kind === SmartKind.Sensor || e.kind === SmartKind.BinarySensor) {
     return {
       ...base,
       value: s.state,
@@ -64,13 +77,13 @@ export class SmartService {
     private audit: AuditService,
   ) {}
 
-  async status() {
+  async status(): Promise<SmartStatusDto> {
     const info = await this.ha.info();
     const allowed = await this.repo.count();
     return { connected: true, ...info, allowedEntities: allowed };
   }
 
-  async list() {
+  async list(): Promise<SmartEntityListDto> {
     const rows = await this.repo.find({
       where: { enabled: true },
       order: { room: 'ASC', label: 'ASC' },
@@ -81,7 +94,7 @@ export class SmartService {
     return { items: rows.map((e) => stateView(e, map.get(e.entityId))) };
   }
 
-  async listAll() {
+  async listAll(): Promise<SmartAllowlistDto> {
     const rows = await this.repo.find({ order: { room: 'ASC', label: 'ASC' } });
     return {
       items: rows.map((e) => ({
@@ -95,7 +108,7 @@ export class SmartService {
     };
   }
 
-  async discover() {
+  async discover(): Promise<SmartDiscoverDto> {
     const states = await this.ha.states();
     const known = new Set((await this.repo.find()).map((e) => e.entityId));
     return {
@@ -104,6 +117,7 @@ export class SmartService {
         .filter((s) => !known.has(s.entity_id))
         .map((s) => ({
           entityId: s.entity_id,
+          kind: s.entity_id.split('.')[0] as SmartKind,
           name:
             typeof s.attributes?.friendly_name === 'string'
               ? s.attributes.friendly_name
@@ -113,7 +127,7 @@ export class SmartService {
     };
   }
 
-  async add(dto: CreateSmartEntityDto, actor: Actor) {
+  async add(dto: CreateSmartEntityDto, actor: Actor): Promise<SmartAllowedDto> {
     if (dto.entityId.split('.')[0] !== dto.kind) {
       throw new BadRequestException('Entity kind does not match');
     }
@@ -149,7 +163,11 @@ export class SmartService {
     };
   }
 
-  async update(id: string, dto: UpdateSmartEntityDto, actor: Actor) {
+  async update(
+    id: string,
+    dto: UpdateSmartEntityDto,
+    actor: Actor,
+  ): Promise<SmartAllowedDto> {
     const e = await this.find(id);
     const changed: string[] = [];
     for (const k of ['label', 'room', 'enabled'] as const) {
@@ -179,7 +197,7 @@ export class SmartService {
     };
   }
 
-  async remove(id: string, actor: Actor) {
+  async remove(id: string, actor: Actor): Promise<OkDto> {
     const e = await this.find(id);
     await this.repo.delete({ id });
     await this.audit.log({
@@ -192,7 +210,11 @@ export class SmartService {
     return { ok: true };
   }
 
-  async setLight(id: string, dto: LightStateDto, actor: Actor) {
+  async setLight(
+    id: string,
+    dto: LightStateDto,
+    actor: Actor,
+  ): Promise<SmartEntityStateDto> {
     const e = await this.findControllable(id, SmartKind.Light);
     if (!dto.on && dto.brightness !== undefined) {
       throw new BadRequestException('Brightness requires on=true');
@@ -222,7 +244,7 @@ export class SmartService {
     return stateView(e, after ?? undefined);
   }
 
-  async activateScene(id: string, actor: Actor) {
+  async activateScene(id: string, actor: Actor): Promise<OkDto> {
     const e = await this.findControllable(id, SmartKind.Scene);
     await this.ha.callService('scene', 'turn_on', { entity_id: e.entityId });
     await this.audit.log({

@@ -2407,14 +2407,67 @@ export interface components {
             sources?: string[];
             memberIds?: string[];
         };
+        /** @enum {string} */
+        SmartKind: "light" | "sensor" | "scene" | "binary_sensor";
+        SmartEntityStateDto: {
+            kind: components["schemas"]["SmartKind"];
+            /** @description light: brightness in percent, null when off or not dimmable. */
+            brightness?: number | null;
+            unit?: string | null;
+            /** @description HA device class (`temperature`, `motion`, `moisture`, `door`…). */
+            deviceClass?: string | null;
+            id: string;
+            label: string;
+            room: string;
+            enabled: boolean;
+            /** @description false when HA does not know the device or reports it unavailable. */
+            available: boolean;
+            /** @description light: switched on. */
+            on?: boolean;
+            /** @description sensor, binary_sensor: raw HA state (`21.5`, `on`, `off`). */
+            value?: string;
+        };
+        SmartEntityListDto: {
+            items: components["schemas"]["SmartEntityStateDto"][];
+        };
         LightStateDto: {
             on: boolean;
             brightness?: number;
         };
+        SmartStatusDto: {
+            /** @enum {boolean} */
+            connected: true;
+            version: string | null;
+            /** @description HA location name. */
+            name: string | null;
+            allowedEntities: number;
+        };
+        SmartAllowedDto: {
+            kind: components["schemas"]["SmartKind"];
+            id: string;
+            /** @description HA entity id, e.g. `light.workshop`. */
+            entityId: string;
+            label: string;
+            room: string;
+            enabled: boolean;
+        };
+        SmartAllowlistDto: {
+            items: components["schemas"]["SmartAllowedDto"][];
+        };
+        SmartDiscoveredDto: {
+            kind: components["schemas"]["SmartKind"];
+            entityId: string;
+            /** @description HA friendly name, or the entity id. */
+            name: string;
+            state: string;
+        };
+        SmartDiscoverDto: {
+            items: components["schemas"]["SmartDiscoveredDto"][];
+        };
         CreateSmartEntityDto: {
             entityId: string;
             /** @enum {string} */
-            kind: "light" | "sensor" | "scene";
+            kind: "light" | "sensor" | "scene" | "binary_sensor";
             label: string;
             room?: string;
         };
@@ -4706,7 +4759,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SmartEntityListDto"];
+                };
             };
         };
     };
@@ -4730,7 +4785,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["SmartEntityStateDto"];
                 };
             };
         };
@@ -4750,7 +4805,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
             };
         };
     };
@@ -4767,7 +4824,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SmartStatusDto"];
+                };
             };
         };
     };
@@ -4784,7 +4843,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SmartAllowlistDto"];
+                };
             };
         };
     };
@@ -4805,7 +4866,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SmartAllowedDto"];
+                };
             };
         };
     };
@@ -4822,7 +4885,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SmartDiscoverDto"];
+                };
             };
         };
     };
@@ -4841,7 +4906,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
             };
         };
     };
@@ -4864,7 +4931,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SmartAllowedDto"];
+                };
             };
         };
     };

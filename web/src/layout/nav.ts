@@ -21,6 +21,7 @@ export const MORE: NavItem[] = [
   { to: '/team', label: 'Команда', icon: 'users' },
   { to: '/projects', label: 'Проєкти', icon: 'folder' },
   { to: '/inventory', label: 'Склад', icon: 'box' },
+  { to: '/smart', label: 'Розумна лабораторія', icon: 'bulb', permission: 'smart.read' },
   { to: '/docs', label: 'Архів', icon: 'file' },
   { to: '/rating', label: 'Рейтинг', icon: 'star' },
 ];
