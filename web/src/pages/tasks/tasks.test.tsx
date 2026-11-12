@@ -140,7 +140,11 @@ describe('Дошка ТЗ', () => {
     renderApp('/tasks');
     const col = await screen.findByRole('region', { name: 'Виконано' });
     await waitFor(() => expect(within(col).getAllByRole('article')).toHaveLength(30));
-    expect(within(col).getAllByText('14 · 13 · 13')).toHaveLength(30);
+    expect(within(col).getAllByText('+14 / +13 / +13')).toHaveLength(30);
+    expect(within(col).getAllByText('+14 / +13 / +13')[0]).toHaveAttribute(
+      'title',
+      `${member.name} +14, Ірина Бойко +13, Андрій Шевчук +13`,
+    );
     await userEvent.click(within(col).getByRole('button', { name: 'Показати ще' }));
     await waitFor(() => expect(within(col).getAllByRole('article')).toHaveLength(31));
     expect(within(col).queryByRole('button', { name: 'Показати ще' })).not.toBeInTheDocument();

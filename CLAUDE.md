@@ -18,6 +18,7 @@
 - `docs/design/` — затверджений дизайн: `tokens.json` (кольори, шрифт, розміри) і правила.
 
 ## Команди
+- Node.js 24.9 або новіший (поле `engines` у `package.json`; Docker-образ — `node:24-alpine`). На Node 22 юніт-тести API не запускаються: Jest вантажить ESM-пакети NestJS 12 лише з Node 24.9.
 - Запуск усього: `docker compose up -d --build`
 - Бекенд локально: `cd api && npm ci && npm run start:dev`
 - Тести: `cd api && npm test` і `npm run test:e2e`; агент сервера: `python3 -m unittest discover -s ops/agent`

@@ -11,10 +11,17 @@ import s from './tasks.module.css';
 
 const MAX_FACES = 5;
 
-/** «1 з 2 · можна приєднатися», «здано сьогодні о 11:20», «14 · 13 · 13». */
+/** Who got how much for a done task: «Ірина +14, Андрій +13». */
+export function pointsTitle(t: Task): string | undefined {
+  if (t.status !== 'done') return undefined;
+  const split = splitPoints(t.points, t.assignees.length);
+  return split.map((p, i) => `${t.assignees[i]?.name ?? '—'} +${p}`).join(', ');
+}
+
+/** «1 з 2 · можна приєднатися», «здано сьогодні о 11:20», «+14 / +13 / +13». */
 export function slotsText(t: Task, now = new Date()): string {
   const n = t.assignees.length;
-  if (t.status === 'done') return splitPoints(t.points, n).join(' · ');
+  if (t.status === 'done') return splitPoints(t.points, n).map((p) => `+${p}`).join(' / ');
   if (t.status === 'review') {
     const d = new Date(t.updatedAt);
     const day = kyivParts(d).date === kyivParts(now).date ? 'сьогодні' : formatDate(d, now);
@@ -78,7 +85,9 @@ export function TaskCard(props: {
             </span>
           ))}
         </span>
-        <span className={s.slots}>{slotsText(t)}</span>
+        <span className={s.slots} title={pointsTitle(t)}>
+          {slotsText(t)}
+        </span>
       </div>
       {actions.length > 0 && !props.returning && (
         <div className={s.cardActions}>

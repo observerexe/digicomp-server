@@ -105,6 +105,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   // Склад
   ITEM_NOT_FOUND: 'Позицію складу не знайдено.',
   ITEM_CODE_TAKEN: 'Позиція з таким кодом уже є.',
+  AUDIT_CURSOR_NOT_FOUND: 'Запис журналу, від якого гортали, не знайдено. Оновіть сторінку.',
   INSUFFICIENT_STOCK: 'На складі недостатньо.',
   INTEGER_REQUIRED: 'Для цієї одиниці кількість має бути цілою.',
   DELTA_ZERO: 'Кількість не може бути нулем.',

@@ -36,11 +36,8 @@ import { EditProfilePage } from './pages/profile/EditProfilePage';
 import { PasswordPage } from './pages/profile/PasswordPage';
 import { ProfilePage } from './pages/profile/ProfilePage';
 import { TwoFactorPage } from './pages/profile/TwoFactorPage';
-import {
-  ForbiddenPage,
-  HomePage,
-  NotFoundPage,
-} from './pages/sections';
+import { HomePage } from './pages/home/HomePage';
+import { ForbiddenPage, NotFoundPage } from './pages/sections';
 import { TeamPage } from './pages/team/TeamPage';
 import { UserPage } from './pages/team/UserPage';
 

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { User } from '../users/user.entity';
@@ -55,6 +55,10 @@ export class AuditService {
     if (q.actorId) qb.andWhere('a.actor_id = :actorId', { actorId: q.actorId });
     if (q.entity) qb.andWhere('a.entity = :entity', { entity: q.entity });
     if (q.before) {
+      // An unknown cursor would quietly look like the end of the journal.
+      if (!(await this.repo.existsBy({ id: q.before }))) {
+        throw new NotFoundException('Audit cursor not found');
+      }
       // Cursor by the row itself: the timestamp keeps its full precision.
       qb.andWhere(
         '(a.created_at, a.id) < (SELECT b.created_at, b.id FROM audit_log b WHERE b.id = :before)',

@@ -57,6 +57,7 @@ const base = (me: Me, extra: H = {}): H => ({
 
 beforeEach(() => {
   POLL.intervalMs = 5;
+  POLL.overviewMs = 15_000;
   POLL.restartWaitMs = 5000;
 });
 
@@ -143,6 +144,64 @@ describe('Розширена панель', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
+  it('огляд після 429 оновлюється далі, а не завмирає', async () => {
+    POLL.overviewMs = 5;
+    let n = 0;
+    mockApi(base(admin, { 'GET /api/admin-panel/overview': () => (++n === 1 ? json(429, { errorCode: 'TOO_MANY_REQUESTS' }) : json(200, overview())) }));
+    renderApp('/admin');
+    expect(await screen.findByRole('meter', { name: 'Пам’ять' })).toBeInTheDocument();
+    expect(n).toBeGreaterThan(1);
+  });
+
+  it('бекап без розміру: без порожнього « ·  · »', async () => {
+    mockApi(
+      base(admin, {
+        'GET /api/admin-panel/overview': () =>
+          json(200, overview({ lastBackup: { found: true, count: 3, file: 'x', at: new Date(Date.now() - 3_600_000).toISOString() } })),
+      }),
+    );
+    renderApp('/admin');
+    const line = (await screen.findByText(/файлів 3/)).textContent ?? '';
+    expect(line).not.toMatch(/·\s*·/);
+  });
+
+  it('після перезапуску 429 і 401 — чекаємо далі, а не «помилка»', async () => {
+    let polls = 0;
+    mockApi(
+      base(admin, {
+        'POST /api/auth/refresh': () => json(200, {}),
+        'POST /api/admin-panel/actions/restart': () => json(202, job({ action: 'restart-api' })),
+        'GET /api/admin-panel/jobs/abcdef12': () => {
+          polls++;
+          if (polls === 1) return json(429, { errorCode: 'TOO_MANY_REQUESTS' });
+          if (polls <= 3) return json(401, { errorCode: 'UNAUTHORIZED' });
+          return json(200, job({ action: 'restart-api', status: 'succeeded', exitCode: 0, finishedAt: new Date().toISOString() }));
+        },
+      }),
+    );
+    renderApp('/admin');
+    await userEvent.click(await screen.findByRole('button', { name: 'Перезапуск API' }));
+    await userEvent.click(within(screen.getByRole('group', { name: /Перезапустити API/ })).getByRole('button', { name: 'Так' }));
+    expect(await screen.findByText('готово')).toBeInTheDocument();
+    expect(screen.queryByText(/помилка/)).not.toBeInTheDocument();
+  });
+
+  it('агент забув задачу (404): «невідомо», а не «помилка»', async () => {
+    mockApi(
+      base(admin, {
+        'POST /api/admin-panel/actions/backup': () => json(202, job()),
+        'GET /api/admin-panel/jobs/abcdef12': () => json(404, { errorCode: 'NOT_FOUND' }),
+      }),
+    );
+    renderApp('/admin');
+    await userEvent.click(await screen.findByRole('button', { name: 'Бекап' }));
+    await userEvent.click(within(screen.getByRole('group', { name: /Зробити бекап/ })).getByRole('button', { name: 'Так' }));
+    expect(await screen.findByText('невідомо')).toBeInTheDocument();
+    expect(screen.getByText(/могла виконатись успішно/)).toBeInTheDocument();
+    expect(screen.queryByText(/^помилка/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Бекап' })).toBeEnabled();
+  });
+
   it('інша дія вже йде: текст AGENT_BUSY', async () => {
     mockApi(base(admin, { 'POST /api/admin-panel/actions/restore-check': () => json(409, { errorCode: 'AGENT_BUSY' }) }));
     renderApp('/admin');
@@ -202,6 +261,22 @@ describe('Журнал дій', () => {
 
     await userEvent.selectOptions(screen.getByLabelText('Що'), 'user.');
     expect(await screen.findByText(/Записів немає/)).toBeInTheDocument();
+  });
+  it('«Хто»: усі учасники, не лише перша сотня; дія міграції — з підписом', async () => {
+    const people = Array.from({ length: 130 }, (_, i) => ({ ...moderator, id: `u${i}`, name: `Учасник ${i}` }));
+    mockApi({
+      ...base(admin),
+      'GET /api/users': (req) => {
+        const page = Number(new URL(req.url).searchParams.get('page') ?? 1);
+        return json(200, { items: people.slice((page - 1) * 100, page * 100), total: people.length, page, limit: 100 });
+      },
+      'GET /api/audit': () => json(200, [entry({ id: 'm', action: 'project.stage_migrated', actorId: null, actor: null, entity: 'project' })]),
+    });
+    renderApp('/admin/audit');
+    expect(await screen.findByText('Етап проєкту перенесено зі старого статусу')).toBeInTheDocument();
+    const who = screen.getByLabelText('Хто');
+    await waitFor(() => expect(within(who).getAllByRole('option')).toHaveLength(131));
+    expect(within(who).getByRole('option', { name: 'Учасник 129' })).toBeInTheDocument();
   });
 });
 

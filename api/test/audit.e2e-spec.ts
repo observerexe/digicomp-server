@@ -41,7 +41,7 @@ describe('Журнал дій (e2e)', () => {
     }
     await repo.query(
       `INSERT INTO audit_log (actor_id, action, entity, created_at)
-       VALUES (NULL, 'session.auto_closed', 'work_session', now())`,
+       VALUES (NULL, 'session.auto_closed', 'session', now())`,
     );
   });
 
@@ -80,9 +80,17 @@ describe('Журнал дій (e2e)', () => {
     expect(await list('?action=points.awarded')).toHaveLength(3);
     expect(await list('?action=points.')).toHaveLength(3);
     expect(await list(`?actorId=${mod.id}`)).toHaveLength(5);
-    expect(await list('?entity=work_session')).toHaveLength(1);
-    // «_» is not a wildcard in a group.
-    expect(await list('?action=user_')).toHaveLength(0);
+    expect(await list('?entity=session')).toHaveLength(1);
+    // «_» is not a wildcard in a group: unescaped, «use_.» would match «user.».
+    expect(await list('?action=use_.')).toHaveLength(0);
+  });
+
+  it('невідомий курсор before — 404 з кодом, а не порожній кінець журналу', async () => {
+    const res = await as(app, admin).get(
+      '/api/audit?before=00000000-0000-4000-8000-000000000000',
+    );
+    expect(res.status).toBe(404);
+    expect(res.body).toMatchObject({ errorCode: 'AUDIT_CURSOR_NOT_FOUND' });
   });
 
   it('невірні параметри — 400', async () => {

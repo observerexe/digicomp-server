@@ -56,7 +56,7 @@ describe('Вхід', () => {
 
     await userEvent.type(await screen.findByLabelText('Код'), '123 456');
     await userEvent.click(screen.getByRole('button', { name: 'Підтвердити' }));
-    await screen.findByRole('heading', { name: 'Добрий день, Марта' });
+    await screen.findByRole('heading', { name: /, Марта$/ });
     const verify = calls.find((c) => c.path === '/api/auth/2fa/verify')!;
     expect(JSON.parse(verify.body)).toEqual({ challengeToken: 'ch-1', code: '123456' });
   });
@@ -108,7 +108,7 @@ describe('Навігація за правами', () => {
   it('нижня панель: 4 вкладки і кнопка QR посередині', async () => {
     mockApi({ 'GET /api/auth/me': () => json(200, member) });
     renderApp('/');
-    await screen.findByRole('heading', { name: 'Добрий день, Марта' });
+    await screen.findByRole('heading', { name: /, Марта$/ });
     const bars = screen.getAllByRole('navigation', { name: 'Основна навігація' });
     const tabbar = bars[bars.length - 1]!;
     const names = [...tabbar.querySelectorAll('a')].map((a) => a.getAttribute('aria-label') ?? a.textContent);

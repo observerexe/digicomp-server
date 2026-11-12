@@ -14,7 +14,19 @@ import s from './panel.module.css';
 
 /** Staff list: everyone, blocked included (GET /users gives staff all of them). */
 export const STAFF_USERS_KEY = ['users', 'panel'] as const;
-export const fetchStaffUsers = () => unwrap(api.GET('/api/users', { params: { query: { limit: '100' } } }));
+const USERS_PAGE = 100;
+
+/** Every user, page by page: the API gives at most 100 at once. */
+export async function fetchStaffUsers() {
+  const first = await unwrap(api.GET('/api/users', { params: { query: { limit: String(USERS_PAGE) } } }));
+  const items = [...first.items];
+  for (let page = 2; items.length < first.total && page <= 50; page++) {
+    const next = await unwrap(api.GET('/api/users', { params: { query: { limit: String(USERS_PAGE), page: String(page) } } }));
+    if (!next.items.length) break;
+    items.push(...next.items);
+  }
+  return { ...first, items };
+}
 
 const STATE = { active: 'Активні', blocked: 'Заблоковані' } as const;
 const ROLE_BY_LABEL = Object.fromEntries(Object.entries(ROLE_LABEL).map(([k, v]) => [v, k])) as Record<string, Role>;

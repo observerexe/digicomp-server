@@ -68,6 +68,7 @@ const MESSAGE_CODES: Record<string, string> = {
   'File too large': 'FILE_TOO_LARGE',
   'Insufficient stock': 'INSUFFICIENT_STOCK',
   'Item code already used': 'ITEM_CODE_TAKEN',
+  'Audit cursor not found': 'AUDIT_CURSOR_NOT_FOUND',
   'Delta must not be zero': 'DELTA_ZERO',
   'Delta must be an integer for this unit': 'INTEGER_REQUIRED',
   'Quantity must be an integer for this unit': 'INTEGER_REQUIRED',

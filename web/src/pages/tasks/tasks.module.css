@@ -36,6 +36,7 @@
   border: 1px solid var(--c-border);
   background: var(--c-surface);
   transition: opacity var(--motion-fast);
+  min-width: 0;
 }
 .card[draggable='true'] {
   cursor: grab;
@@ -51,6 +52,7 @@
   font-weight: 700;
   text-decoration: none;
   line-height: 22px;
+  overflow-wrap: anywhere;
 }
 .cardTitle:hover {
   text-decoration: underline;
@@ -127,6 +129,20 @@
 .cardActions :global(.btn) {
   min-height: var(--size-touch-min);
   padding: 0 16px;
+}
+/* Narrow board columns on a laptop: tighter card, buttons may wrap. */
+@media (min-width: 900px) {
+  .card {
+    padding: 12px;
+  }
+  .faces > * {
+    margin-left: -8px;
+  }
+  .cardActions :global(.btn) {
+    padding: 4px 12px;
+    white-space: normal;
+    text-align: center;
+  }
 }
 .returnForm,
 .commentForm,

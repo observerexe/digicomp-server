@@ -32,14 +32,18 @@ export const POLL = { intervalMs: 2000, overviewMs: 15_000, restartWaitMs: 90_00
 
 const OVERVIEW_KEY = ['admin-panel', 'overview'] as const;
 
+/** Not the panel port (404) or a session without 2FA: polling cannot help. */
+export const panelClosed = (e: unknown) => e instanceof ApiError && (e.status === 404 || e.code === 'TWO_FACTOR_REQUIRED');
+
 /** /admin: the extended panel (admin, 2FA session, panel port only — the API checks all three). */
 export function AdminPage() {
   const overview = useQuery({
     queryKey: OVERVIEW_KEY,
     queryFn: () => unwrap(api.GET('/api/admin-panel/overview')),
     retry: false,
-    // Stop polling when the panel is not reachable at all.
-    refetchInterval: (q) => (q.state.error instanceof ApiError && q.state.error.status < 500 ? false : POLL.overviewMs),
+    // Stop polling only when the panel cannot open here at all; a 429 or a
+    // session refresh must not freeze the numbers until a manual reload.
+    refetchInterval: (q) => (panelClosed(q.state.error) ? false : POLL.overviewMs),
   });
   const err = overview.error;
 
@@ -199,7 +203,8 @@ function Overview({ data }: { data: PanelOverview }) {
                 <span className={s.statValue}>{formatDateTime(b.at)}</span>
                 <span className={s.sub}>
                   {' '}
-                  · {formatAgo(b.at)} · {b.sizeBytes !== undefined && formatBytes(b.sizeBytes)} · файлів {b.count}
+                  · {formatAgo(b.at)}
+                  {b.sizeBytes !== undefined && ` · ${formatBytes(b.sizeBytes)}`} · файлів {b.count}
                 </span>
               </span>
               <Badge tone={stale ? 'warn' : 'ok'}>{stale ? 'застарів' : 'свіжий'}</Badge>
@@ -229,8 +234,12 @@ function start(action: PanelAction) {
   return unwrap(api.POST('/api/admin-panel/actions/restart', { body: { target: action === 'restart-api' ? 'api' : 'ha' } }));
 }
 
-/** Network down or a gateway error: expected while the API restarts. */
-const transient = (e: unknown) => e instanceof ApiError && (e.status === 0 || e.status >= 502);
+/**
+ * Worth asking again: network down or a gateway error while the API restarts,
+ * the request limit, or a session that is being restored after the restart.
+ */
+const retryable = (e: unknown) =>
+  e instanceof ApiError && (e.status === 0 || e.status >= 502 || e.status === 401 || e.status === 429);
 
 function Actions() {
   const qc = useQueryClient();
@@ -238,11 +247,14 @@ function Actions() {
   const [error, setError] = useState<unknown>(null);
   const [offline, setOffline] = useState(false);
   const [starting, setStarting] = useState(false);
-  const running = job?.status === 'running';
+  // The job result could not be read (the agent forgot it, access lost):
+  // the action may still have succeeded, so this is not «помилка».
+  const [lost, setLost] = useState(false);
+  const running = job?.status === 'running' && !lost;
 
   // Poll the job until it ends; ride out the API restart (the agent keeps the job).
   useEffect(() => {
-    if (!job || job.status !== 'running') return;
+    if (!job || !running) return;
     let stop = false;
     let timer: ReturnType<typeof setTimeout>;
     const since = Date.now();
@@ -258,10 +270,9 @@ function Actions() {
         }
       } catch (e) {
         if (stop) return;
-        if (!transient(e) || Date.now() - since > POLL.restartWaitMs) {
+        if (!retryable(e) || Date.now() - since > POLL.restartWaitMs) {
           setOffline(false);
-          setError(e);
-          setJob((j) => (j ? { ...j, status: 'failed' } : j));
+          setLost(true);
           return;
         }
         setOffline(true);
@@ -279,6 +290,7 @@ function Actions() {
 
   const run = async (action: PanelAction) => {
     setError(null);
+    setLost(false);
     setStarting(true);
     try {
       setJob(await start(action));
@@ -317,11 +329,22 @@ function Actions() {
                   {job.finishedAt && `, завершено о ${formatTime(job.finishedAt)}`}
                 </span>
               </span>
-              <Badge tone={job.status === 'succeeded' ? 'ok' : job.status === 'running' ? 'warn' : 'bad'}>
-                {job.status === 'succeeded' ? 'готово' : job.status === 'running' ? 'виконується…' : `помилка${job.exitCode !== null ? ` (код ${job.exitCode})` : ''}`}
+              <Badge tone={lost ? 'warn' : job.status === 'succeeded' ? 'ok' : job.status === 'running' ? 'warn' : 'bad'}>
+                {lost
+                  ? 'невідомо'
+                  : job.status === 'succeeded'
+                    ? 'готово'
+                    : job.status === 'running'
+                      ? 'виконується…'
+                      : `помилка${job.exitCode !== null ? ` (код ${job.exitCode})` : ''}`}
               </Badge>
             </div>
             {offline && <p className="hint">Сервер перезапускається, чекаємо, поки він знову відповість…</p>}
+            {lost && (
+              <p className="hint">
+                Не вдалося дізнатися, чим закінчилась дія: вона могла виконатись успішно. Перевірте стан контейнерів і час бекапу вище або логи.
+              </p>
+            )}
             {job.output.length > 0 && <pre className={s.output}>{job.output.join('\n')}</pre>}
           </div>
         )}

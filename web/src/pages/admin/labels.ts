@@ -131,6 +131,7 @@ export const AUDIT_ACTION: Record<string, string> = {
   'project.created': 'Створив проєкт',
   'project.updated': 'Змінив проєкт',
   'project.archived': 'Архівував проєкт',
+  'project.stage_migrated': 'Етап проєкту перенесено зі старого статусу',
   'project.file_added': 'Додав файл до проєкту',
   'project.file_removed': 'Видалив файл проєкту',
   'place.created': 'Додав обладнання',

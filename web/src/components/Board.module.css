@@ -88,14 +88,15 @@
     display: block;
   }
   .board {
-    grid-template-columns: repeat(5, minmax(200px, 1fr));
-    gap: 12px;
+    /* 5 × 160 + gaps fits a 1366 px laptop next to the sidebar. */
+    grid-template-columns: repeat(5, minmax(160px, 1fr));
+    gap: 10px;
     overflow-x: auto;
     padding-bottom: 8px;
   }
   .column {
     display: flex;
-    padding: 10px;
+    padding: 8px;
     border-radius: var(--radius-card);
     background: var(--c-surface2);
     border: 2px solid transparent;

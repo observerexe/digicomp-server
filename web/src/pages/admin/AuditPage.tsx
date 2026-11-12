@@ -6,6 +6,7 @@ import { Icon } from '../../components/Icon';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { formatDateTime } from '../../lib/format';
+import { fetchStaffUsers, STAFF_USERS_KEY } from '../panel/UsersPage';
 import { AUDIT_ACTION, AUDIT_GROUPS, entityLink, metaLines, type AuditEntry } from './labels';
 import s from './admin.module.css';
 
@@ -15,10 +16,7 @@ export const AUDIT_PAGE = 50;
 export function AuditPage() {
   const [group, setGroup] = useState('');
   const [actorId, setActorId] = useState('');
-  const people = useQuery({
-    queryKey: ['users', 'panel'],
-    queryFn: () => unwrap(api.GET('/api/users', { params: { query: { limit: '100' } } })),
-  });
+  const people = useQuery({ queryKey: STAFF_USERS_KEY, queryFn: fetchStaffUsers });
   const q = useInfiniteQuery({
     queryKey: ['audit', group, actorId],
     initialPageParam: '',
