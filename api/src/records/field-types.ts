@@ -37,6 +37,16 @@ export type ItemType = ScalarType | `ref:${RecordType}`;
 /** `list<…>` holds scalars or references, never other lists. */
 export type FieldType = ItemType | `list<${ItemType}>`;
 
+const ITEM_TYPES: readonly ItemType[] = [
+  ...SCALAR_TYPES,
+  ...RECORD_TYPES.map((t) => `ref:${t}` as const),
+];
+/** Every field type: what a template field may be. */
+export const FIELD_TYPES: readonly FieldType[] = [
+  ...ITEM_TYPES,
+  ...ITEM_TYPES.map((t) => `list<${t}>` as const),
+];
+
 /** One value of a fixed (code-defined) enum. */
 export type EnumOption = { key: string; label: string };
 

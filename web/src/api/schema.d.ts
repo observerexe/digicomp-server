@@ -1622,6 +1622,94 @@ export interface paths {
         patch: operations["OrgController_update"];
         trace?: never;
     };
+    "/api/papers/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Staff — every template; members — published ones open to all, not archived. */
+        get: operations["TemplatesController_list"];
+        put?: never;
+        /** With an empty draft version 1. */
+        post: operations["TemplatesController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/papers/templates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TemplatesController_get"];
+        put?: never;
+        post?: never;
+        /** Only a template with no published version. */
+        delete: operations["TemplatesController_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["TemplatesController_update"];
+        trace?: never;
+    };
+    "/api/papers/templates/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The draft version; if there is none, a new one copied from the current version. */
+        post: operations["TemplatesController_draft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/papers/templates/{id}/versions/{v}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Members — only the current version. */
+        get: operations["TemplatesController_version"];
+        put?: never;
+        post?: never;
+        /** Throws away a draft version. */
+        delete: operations["TemplatesController_discard"];
+        options?: never;
+        head?: never;
+        /** A draft only; answers without body and fields: the client has just sent them. */
+        patch: operations["TemplatesController_save"];
+        trace?: never;
+    };
+    "/api/papers/templates/{id}/versions/{v}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Checks fields and bindings against the target's schema; the version never changes after. */
+        post: operations["TemplatesController_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/papers": {
         parameters: {
             query?: never;
@@ -2961,9 +3049,163 @@ export interface components {
             signerPosition?: string;
         };
         /** @enum {string} */
-        PaperStatus: "draft" | "published" | "frozen" | "signed" | "cancelled";
+        TemplateKind: "creates" | "report" | "free";
         /** @enum {string} */
+        TemplateCreators: "all" | "staff";
+        /**
+         * @description Visibility of new documents.
+         * @enum {string}
+         */
         PaperVisibility: "author" | "members";
+        TemplateItemDto: {
+            kind: components["schemas"]["TemplateKind"];
+            target: components["schemas"]["RecordType"] | null;
+            numberPrefix: string | null;
+            creators: components["schemas"]["TemplateCreators"];
+            /** @description Visibility of new documents. */
+            visibility: components["schemas"]["PaperVisibility"];
+            /** @description Number of the version new documents are made from; null — none published yet. */
+            currentVersion: number | null;
+            /** @description Number of the draft version; always null for members. */
+            draftVersion: number | null;
+            id: string;
+            title: string;
+            autoFreeze: boolean;
+            archived: boolean;
+            /** @description The target's schema changed and a binding of the current version broke: no new documents until a new version is published. */
+            needsUpdate: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        CreateTemplateDto: {
+            /** @description Cannot be changed later. */
+            kind: components["schemas"]["TemplateKind"];
+            /** @description Record type: required for `creates` and `report`, none for `free`. Cannot be changed later. */
+            target?: components["schemas"]["RecordType"];
+            /** @description Default `staff`. */
+            creators?: components["schemas"]["TemplateCreators"];
+            /** @description Visibility of new documents. Default `author`. */
+            visibility?: components["schemas"]["PaperVisibility"];
+            title: string;
+            /** @description Without it documents get no number. */
+            numberPrefix?: string;
+            /** @description `creates` only. Default false. */
+            autoFreeze?: boolean;
+        };
+        TemplateVersionItemDto: {
+            /**
+             * Format: date-time
+             * @description null — a draft.
+             */
+            publishedAt: string | null;
+            publishedBy: components["schemas"]["UserRefDto"] | null;
+            number: number;
+            /** @description Send it with the next save of the draft (PATCH). */
+            revision: number;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        TemplateDto: {
+            kind: components["schemas"]["TemplateKind"];
+            target: components["schemas"]["RecordType"] | null;
+            numberPrefix: string | null;
+            creators: components["schemas"]["TemplateCreators"];
+            /** @description Visibility of new documents. */
+            visibility: components["schemas"]["PaperVisibility"];
+            /** @description Number of the version new documents are made from; null — none published yet. */
+            currentVersion: number | null;
+            /** @description Number of the draft version; always null for members. */
+            draftVersion: number | null;
+            /** @description Newest first. Members get only the current version. */
+            versions: components["schemas"]["TemplateVersionItemDto"][];
+            id: string;
+            title: string;
+            autoFreeze: boolean;
+            archived: boolean;
+            /** @description The target's schema changed and a binding of the current version broke: no new documents until a new version is published. */
+            needsUpdate: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        UpdateTemplateDto: {
+            /** @description null — documents get no number. */
+            numberPrefix?: string | null;
+            creators?: components["schemas"]["TemplateCreators"];
+            visibility?: components["schemas"]["PaperVisibility"];
+            title?: string;
+            autoFreeze?: boolean;
+            /** @description true — to the archive (no new documents), false — back. */
+            archived?: boolean;
+        };
+        /**
+         * @description `author` — the author of the document; `staff` — a moderator or the admin.
+         * @enum {string}
+         */
+        TemplateFieldFiller: "author" | "staff";
+        TemplateFieldDto: {
+            /**
+             * @description `text`, `richtext`, `int`, …, `ref:<record type>` or `list<…>` of one of them.
+             * @enum {string}
+             */
+            type: "text" | "richtext" | "int" | "decimal" | "date" | "datetime" | "bool" | "enum" | "color" | "ref:user" | "ref:task" | "ref:project" | "ref:place" | "ref:inventory_item" | "ref:discipline_record" | "ref:points_entry" | "ref:session" | "ref:fault" | "ref:place_authorization" | "ref:document" | "ref:paper" | "list<text>" | "list<richtext>" | "list<int>" | "list<decimal>" | "list<date>" | "list<datetime>" | "list<bool>" | "list<enum>" | "list<color>" | "list<ref:user>" | "list<ref:task>" | "list<ref:project>" | "list<ref:place>" | "list<ref:inventory_item>" | "list<ref:discipline_record>" | "list<ref:points_entry>" | "list<ref:session>" | "list<ref:fault>" | "list<ref:place_authorization>" | "list<ref:document>" | "list<ref:paper>";
+            /** @description `author` — the author of the document; `staff` — a moderator or the admin. */
+            fill: components["schemas"]["TemplateFieldFiller"];
+            /** @description Key of a field of the target's schema (`/records/:type/schema`); null — not bound. */
+            binding?: string | null;
+            /** @description int, decimal. */
+            min?: number | null;
+            max?: number | null;
+            /** @description text, richtext, list<text>. */
+            maxLength?: number | null;
+            /** @description list<…>. */
+            maxItems?: number | null;
+            /** @description enum, list<enum> not bound: key of the dictionary of its values. */
+            dictionary?: string | null;
+            key: string;
+            label: string;
+            required: boolean;
+            /** @description May be changed after the document is published. */
+            editable: boolean;
+            /** @description Shown in the print. */
+            print: boolean;
+        };
+        TemplateVersionDto: {
+            /**
+             * Format: date-time
+             * @description null — a draft.
+             */
+            publishedAt: string | null;
+            publishedBy: components["schemas"]["UserRefDto"] | null;
+            /** @description ProseMirror document. */
+            body: {
+                [key: string]: unknown;
+            };
+            fields: components["schemas"]["TemplateFieldDto"][];
+            /** @description Version of the target's schema the bindings were checked against when published. */
+            schemaVersion: string | null;
+            templateId: string;
+            number: number;
+            /** @description Send it with the next save of the draft (PATCH). */
+            revision: number;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        UpdateTemplateVersionDto: {
+            /** @description ProseMirror document. */
+            body?: {
+                [key: string]: unknown;
+            };
+            /** @description Every field of the version, in order. */
+            fields?: components["schemas"]["TemplateFieldDto"][];
+            /** @description The revision the change is based on; another one — 409 PAPER_CONFLICT. */
+            revision: number;
+        };
+        /** @enum {string} */
+        PaperStatus: "draft" | "published" | "frozen" | "signed" | "cancelled";
         PaperItemDto: {
             status: components["schemas"]["PaperStatus"];
             visibility: components["schemas"]["PaperVisibility"];
@@ -5964,6 +6206,228 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrgSettingsDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateItemDto"][];
+                };
+            };
+        };
+    };
+    TemplatesController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTemplateDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTemplateDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_draft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateVersionDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_version: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                v: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateVersionDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_discard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                v: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                v: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTemplateVersionDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateVersionItemDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_publish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                v: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateDto"];
                 };
             };
         };

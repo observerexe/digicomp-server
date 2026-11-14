@@ -101,6 +101,10 @@ const MESSAGE_CODES: Record<string, string> = {
   'Signer is unknown or blocked': 'ORG_SIGNER_INVALID',
   'Paper was changed by someone else': 'PAPER_CONFLICT',
   'Paper is not a draft': 'PAPER_NOT_DRAFT',
+  'Template was changed by someone else': 'PAPER_CONFLICT',
+  'Template version is published': 'TEMPLATE_VERSION_PUBLISHED',
+  'Invalid template field': 'TEMPLATE_FIELD_INVALID',
+  'Invalid template kind': 'TEMPLATE_KIND_INVALID',
 };
 
 const STATUS_CODES: Record<number, string> = {

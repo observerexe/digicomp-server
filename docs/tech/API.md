@@ -46,7 +46,8 @@
 `FAULT_REPORT_NOT_FOUND`, `DOCUMENT_NOT_FOUND`, `VERSION_NOT_FOUND`, `FILE_NOT_FOUND`, `ITEM_NOT_FOUND`, `PROJECT_NOT_FOUND`,
 `AUTHORIZATION_NOT_FOUND`, `POINTS_ENTRY_NOT_FOUND`, `DISCIPLINE_RECORD_NOT_FOUND`, `SMART_DEVICE_NOT_FOUND`, `AUDIT_CURSOR_NOT_FOUND`,
 `DICTIONARY_NOT_FOUND`, `DICTIONARY_ITEM_NOT_FOUND`, `RECORD_TYPE_NOT_FOUND`, `FIELD_DEF_NOT_FOUND`, `LINK_NOT_FOUND`,
-`RECORD_NOT_FOUND` (запису немає або людина його не бачить), `PAPER_NOT_FOUND` (документа редактора немає або людина його не бачить).
+`RECORD_NOT_FOUND` (запису немає або людина його не бачить), `PAPER_NOT_FOUND` (документа редактора немає або людина його не бачить),
+`TEMPLATE_NOT_FOUND` (шаблону немає або учасник його не бачить), `TEMPLATE_VERSION_NOT_FOUND`.
 
 | Код | Статус | Коли |
 |---|---|---|
@@ -132,6 +133,10 @@
 | **Документи редактора** | | |
 | `PAPER_CONFLICT` | 409 | Документ змінили після того, як його відкрили: `revision` у запиті вже не поточна |
 | `PAPER_NOT_DRAFT` | 409 | Назву, вміст змінити чи документ видалити можна лише в чернетці |
+| **Шаблони документів** | | |
+| `TEMPLATE_VERSION_PUBLISHED` | 409 | Версію вже опубліковано: її не змінюють і не відкидають; шаблон з опублікованою версією не видаляють |
+| `TEMPLATE_FIELD_INVALID` | 400 | Поле шаблону неправильне: повтор ключа, межі не для свого типу, немає довідника, прив'язка не до того поля чи типу, ширша за поле запису. `field` — ключ поля шаблону; `binding` — ключ поля запису, яке треба прив'язати |
+| `TEMPLATE_KIND_INVALID` | 400 | Призначення не підходить до типу запису або автофіксація не для шаблону, що створює запис |
 | **Розумна лабораторія** | | |
 | `SMART_NOT_CONFIGURED`, `SMART_UNAVAILABLE`, `SMART_AUTH_FAILED` | 503 | Немає `HA_TOKEN`, HA не відповідає за 5 с або відхилив токен |
 | `UNKNOWN_HA_ENTITY`, `ENTITY_KIND_MISMATCH`, `SMART_ENTITY_EXISTS` | 400/409 | Такого пристрою в HA немає, тип не збігається, або вже доданий |
@@ -300,9 +305,52 @@
   - Мітки: `bold`, `italic`, `underline`, `strike`, `textStyle` з `size` (10, 11, 12, 14, 16, 18, 20, 24, 28 pt), `color` (назва з палітри)
     і `font` (`serif`, `sans`); кожне — або `null`. Мітки лише на `text` і `hardBreak`.
   - Невідомі вузли, мітки й атрибути (зокрема `style` і `class`) не приймаються.
-  Тіло запиту до `/api/papers` — до 1 МБ (інакше 413).
+  Тіло запиту до `/api/papers` (зокрема шаблонів) — до 1 МБ (інакше 413).
 - Аудит: `paper.created`, `paper.deleted` завжди; `paper.updated` (`changes`: назва, видимість; `content: true`, якщо змінено вміст) —
   коли змінено видимість або документ змінює не автор. Автозбереження автором своєї чернетки в аудит не пишеться.
+
+### Шаблони документів
+
+- Шаблон — `{ id, title, kind, target, numberPrefix, autoFreeze, creators, visibility, archived, currentVersion, draftVersion, needsUpdate, createdAt, updatedAt }`;
+  окремий шаблон ще має `versions` — `{ number, revision, publishedAt, publishedBy, updatedAt }`, від нових.
+  - `kind`: `creates` (створює запис типу `target`), `report` (звіт про запис типу `target`), `free` (без запису, `target: null`).
+    `creates` — лише для типів, у схемі яких є поля зі `create: true`. Вид і тип запису задаються при створенні й більше не змінюються.
+  - `numberPrefix` — великі літери й цифри, до 10 знаків («ТЗ»); без нього документи без номера. `autoFreeze` — лише для `creates`.
+  - `creators`: `all` (документи з шаблону створюють усі) або `staff`. `visibility` — видимість нових документів.
+  - `currentVersion` — номер опублікованої версії, з якої створюються документи; `draftVersion` — номер чернетки (учасникові завжди `null`).
+  - `needsUpdate` — схема запису змінилась і прив'язка поточної версії зламалась (поле пішло в архів, змінились межі…):
+    потрібна нова версія. Рахується під час читання: якщо версія схеми та сама, що при публікації, перевірки немає.
+- Хто бачить: admin і moderator — усі шаблони й версії; учасник — лише опубліковані, не в архіві, з `creators: all`,
+  і лише їхню поточну версію. Інше — 404 `TEMPLATE_NOT_FOUND` / `TEMPLATE_VERSION_NOT_FOUND`. Змінюють лише admin і moderator.
+- `GET /api/papers/templates` — за назвою. `GET /api/papers/templates/:id` — з версіями.
+- `POST /api/papers/templates { title, kind, target?, numberPrefix?, autoFreeze?, creators?, visibility? }` — разом із порожньою чернеткою версії 1.
+  Неправильне поєднання виду, типу запису й автофіксації — 400 `TEMPLATE_KIND_INVALID`. За замовчуванням `creators: staff`, `visibility: author`.
+- `PATCH /api/papers/templates/:id { title?, numberPrefix?, autoFreeze?, creators?, visibility?, archived? }` — лише передане;
+  `numberPrefix: null` прибирає номер. Шаблон в архіві не показується учасникам.
+- `DELETE /api/papers/templates/:id` — лише поки жодної версії не опубліковано (інакше 409 `TEMPLATE_VERSION_PUBLISHED`).
+- Версія — `{ templateId, number, revision, publishedAt, publishedBy, updatedAt, body, fields, schemaVersion }`.
+  `body` — документ ProseMirror, перевіряється так само, як вміст документа. `schemaVersion` — версія схеми запису, з якою версію опубліковано.
+  - `GET /api/papers/templates/:id/versions/:v` — версія з вмістом.
+  - `POST /api/papers/templates/:id/versions` — чернетка: наявна або нова (наступний номер), копія поточної версії. Чернетка в шаблону одна.
+  - `PATCH /api/papers/templates/:id/versions/:v { revision, body?, fields? }` — лише чернетка (інакше 409 `TEMPLATE_VERSION_PUBLISHED`);
+    `revision` — як у документів (інша — 409 `PAPER_CONFLICT`), `fields` — усі поля версії, по порядку. Відповідь — без `body` і `fields`.
+    Тут перевіряється лише форма полів і повтор ключів: конструктор зберігає й недоналаштовані поля.
+  - `DELETE /api/papers/templates/:id/versions/:v` — відкинути чернетку.
+  - `POST /api/papers/templates/:id/versions/:v/publish` — повна перевірка полів за схемою запису на цю мить; версія стає поточною й більше не змінюється.
+- Поле версії — `{ key, label, type, required, fill, editable, print, binding, min, max, maxLength, maxItems, dictionary }` (до 200 полів):
+  - `key` — латиницею з малої літери, до 40 знаків, унікальний у версії; значення документів зберігаються за ним.
+  - `type` — тип поля зі схем записів: `text`, `richtext`, `int`, `decimal`, `date`, `datetime`, `bool`, `enum`, `color`, `ref:<тип запису>` або `list<…>`.
+  - `fill`: `author` (автор документа) або `staff` (модератор, адмін). `editable` — можна змінити після публікації документа. `print` — показувати в друці.
+  - Межі: `min`, `max` — лише `int` і `decimal` (`int` — цілі); `maxLength` — `text`, `richtext`, `list<text>`; `maxItems` — `list<…>`.
+  - `dictionary` — лише `enum` і `list<enum>` без прив'язки (обов'язковий, довідник має існувати). Прив'язане поле бере значення з поля запису.
+  - `binding` — ключ поля схеми `target` (`GET /api/records/:type/schema`), до кожного — не більше одного поля. `report` прив'язується до будь-якого
+    поля, `creates` — лише до полів зі `create: true`, `free` — ні до чого. Тип той самий, що в поля запису; виняток — `richtext` до `text`
+    (вільна зона в текстове поле: лише текст з абзацами). Межі — не ширші, ніж у поля запису. Поле в архіві не прив'язується.
+    У `creates` кожне поле запису з `required` має бути прив'язане полем із `required: true`.
+  Помилка — 400 `TEMPLATE_FIELD_INVALID` з `field` (ключ поля шаблону) або `binding` (ключ поля запису, якого бракує).
+- Довідник, з якого бере значення поле опублікованої версії, не видаляється (`DICTIONARY_IN_USE`).
+- Аудит (`entity: paper_template`): `paper_template.created`, `paper_template.updated` (`changes`), `paper_template.deleted`,
+  `paper_template.published` (`version`), `paper_template.draft_discarded` (`version`). Збереження чернетки версії не пишеться.
 
 ### Розумна лабораторія
 

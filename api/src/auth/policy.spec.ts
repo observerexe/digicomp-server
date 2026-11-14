@@ -530,6 +530,22 @@ const ROWS: Record<string, Case[]> = {
     ['moderator', mod, Action.PapersVisibility, undefined, true],
     ['member', member, Action.PapersVisibility, undefined, Deny.Forbidden],
   ],
+  // Учасник бачить лише опубліковані шаблони, відкриті для всіх, —
+  // test/paper-templates.e2e-spec.ts.
+  'Шаблон документа: створити, змінити, опублікувати версію (перегляд — усі)': [
+    ['admin: керувати', admin, Action.PaperTemplatesManage, undefined, true],
+    ['moderator: керувати', mod, Action.PaperTemplatesManage, undefined, true],
+    [
+      'member: керувати',
+      member,
+      Action.PaperTemplatesManage,
+      undefined,
+      Deny.Forbidden,
+    ],
+    ['admin: перегляд', admin, Action.PaperTemplatesRead, undefined, true],
+    ['moderator: перегляд', mod, Action.PaperTemplatesRead, undefined, true],
+    ['member: перегляд', member, Action.PaperTemplatesRead, undefined, true],
+  ],
   'Сеанс роботи з обладнанням': [
     ['admin', admin, Action.SessionsStart, { authorized: false }, true],
     ['moderator', mod, Action.SessionsStart, { authorized: false }, true],

@@ -114,6 +114,8 @@ export enum Action {
   PapersCreate = 'papers.create',
   PapersEdit = 'papers.edit',
   PapersVisibility = 'papers.visibility',
+  PaperTemplatesRead = 'paper_templates.read',
+  PaperTemplatesManage = 'paper_templates.manage',
 
   // Work sessions, bookings, faults
   SessionsStart = 'sessions.start',
@@ -221,6 +223,9 @@ export const ROLES: Record<Action, readonly Role[]> = {
   [Action.PapersCreate]: ALL,
   [Action.PapersEdit]: ALL,
   [Action.PapersVisibility]: STAFF,
+  // Members see only published templates open to all (service).
+  [Action.PaperTemplatesRead]: ALL,
+  [Action.PaperTemplatesManage]: STAFF,
 
   [Action.SessionsStart]: ALL,
   [Action.SessionsReadAll]: STAFF,
