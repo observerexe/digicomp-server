@@ -4509,6 +4509,56 @@
         ]
       }
     },
+    "/api/org-settings": {
+      "get": {
+        "operationId": "OrgController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrgSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Org"
+        ]
+      },
+      "patch": {
+        "operationId": "OrgController_update",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrgSettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrgSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Org"
+        ]
+      }
+    },
     "/api/admin-panel/overview": {
       "get": {
         "operationId": "AdminPanelController_overview",
@@ -8870,6 +8920,86 @@
           },
           "enabled": {
             "type": "boolean"
+          }
+        }
+      },
+      "OrgSignerDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "false — blocked: staff should pick another signer."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "active"
+        ]
+      },
+      "OrgSettingsDto": {
+        "type": "object",
+        "properties": {
+          "signer": {
+            "nullable": true,
+            "description": "Default signer of documents; null — not chosen.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrgSignerDto"
+              }
+            ]
+          },
+          "institution": {
+            "type": "string",
+            "description": "Document header, printed as stored."
+          },
+          "groupName": {
+            "type": "string"
+          },
+          "signerPosition": {
+            "type": "string",
+            "description": "Printed under the signature."
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signer",
+          "institution",
+          "groupName",
+          "signerPosition",
+          "updatedAt"
+        ]
+      },
+      "UpdateOrgSettingsDto": {
+        "type": "object",
+        "properties": {
+          "institution": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "groupName": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "signerId": {
+            "type": "string",
+            "nullable": true,
+            "description": "An active user; null — no default signer.",
+            "format": "uuid"
+          },
+          "signerPosition": {
+            "type": "string",
+            "maxLength": 200
           }
         }
       },

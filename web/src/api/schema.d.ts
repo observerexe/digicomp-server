@@ -1606,6 +1606,22 @@ export interface paths {
         patch: operations["SmartController_update"];
         trace?: never;
     };
+    "/api/org-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["OrgController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["OrgController_update"];
+        trace?: never;
+    };
     "/api/admin-panel/overview": {
         parameters: {
             query?: never;
@@ -2866,6 +2882,33 @@ export interface components {
             label?: string;
             room?: string;
             enabled?: boolean;
+        };
+        OrgSignerDto: {
+            id: string;
+            name: string;
+            /** @description false — blocked: staff should pick another signer. */
+            active: boolean;
+        };
+        OrgSettingsDto: {
+            /** @description Default signer of documents; null — not chosen. */
+            signer: components["schemas"]["OrgSignerDto"] | null;
+            /** @description Document header, printed as stored. */
+            institution: string;
+            groupName: string;
+            /** @description Printed under the signature. */
+            signerPosition: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        UpdateOrgSettingsDto: {
+            institution?: string;
+            groupName?: string;
+            /**
+             * Format: uuid
+             * @description An active user; null — no default signer.
+             */
+            signerId?: string | null;
+            signerPosition?: string;
         };
         ContainerDto: {
             /** @description healthy, unhealthy, starting or null (no healthcheck). */
@@ -5766,6 +5809,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SmartAllowedDto"];
+                };
+            };
+        };
+    };
+    OrgController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgSettingsDto"];
+                };
+            };
+        };
+    };
+    OrgController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateOrgSettingsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgSettingsDto"];
                 };
             };
         };

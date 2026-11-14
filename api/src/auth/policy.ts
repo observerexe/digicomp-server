@@ -102,6 +102,10 @@ export enum Action {
   LinksRead = 'links.read',
   LinksManage = 'links.manage',
 
+  // Requisites for documents (institution, group, default signer)
+  OrgRead = 'org.read',
+  OrgManage = 'org.manage',
+
   // Work sessions, bookings, faults
   SessionsStart = 'sessions.start',
   SessionsReadAll = 'sessions.read_all',
@@ -198,6 +202,9 @@ export const ROLES: Record<Action, readonly Role[]> = {
   // Further checks: the source record's own edit rule, both records visible.
   [Action.LinksRead]: ALL,
   [Action.LinksManage]: ALL,
+
+  [Action.OrgRead]: ALL,
+  [Action.OrgManage]: STAFF,
 
   [Action.SessionsStart]: ALL,
   [Action.SessionsReadAll]: STAFF,

@@ -98,6 +98,7 @@ const MESSAGE_CODES: Record<string, string> = {
   'Record type cannot be linked': 'LINK_TYPE_INVALID',
   'Cannot link a record to itself': 'LINK_SELF',
   'Link already exists': 'LINK_DUPLICATE',
+  'Signer is unknown or blocked': 'ORG_SIGNER_INVALID',
 };
 
 const STATUS_CODES: Record<number, string> = {

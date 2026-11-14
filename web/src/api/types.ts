@@ -27,6 +27,8 @@ export type Dictionary = S['DictionaryDto'];
 export type DictionaryItem = S['DictionaryItemDto'];
 export type PaletteColor = S['PaletteColor'];
 
+export type OrgSettings = S['OrgSettingsDto'];
+
 export type FieldDef = S['FieldDefDto'];
 export type ExtraFieldType = S['ExtraFieldType'];
 

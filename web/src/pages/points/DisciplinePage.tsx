@@ -8,7 +8,7 @@ import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { formatDate } from '../../lib/format';
 import { disciplineTitle } from '../../lib/labels';
-import { MemberSelect } from './MemberSelect';
+import { MemberSelect } from '../../components/MemberSelect';
 import s from './points.module.css';
 
 const TYPES: { value: DisciplineType; label: string }[] = [
@@ -88,7 +88,7 @@ export function DisciplinePage() {
             }}
           >
             <h2 className={s.caption}>Видати</h2>
-            <MemberSelect id="dc-user" label="Кому" value={form.userId} onChange={(id) => setForm({ ...form, userId: id })} />
+            <MemberSelect excludeSelf id="dc-user" label="Кому" value={form.userId} onChange={(id) => setForm({ ...form, userId: id })} />
             <fieldset className={s.types}>
               <legend>Тип</legend>
               {TYPES.map((t) => (
@@ -117,7 +117,7 @@ export function DisciplinePage() {
         </Card>
         <Card>
           <div className={s.filters}>
-            <MemberSelect id="dc-filter" label="Учасник" allowAll value={filterUser} onChange={(id) => setParams(id ? { user: id } : {}, { replace: true })} />
+            <MemberSelect excludeSelf id="dc-filter" label="Учасник" allowAll value={filterUser} onChange={(id) => setParams(id ? { user: id } : {}, { replace: true })} />
             <div className="field">
               <label htmlFor="dc-state">Стан</label>
               <select id="dc-state" value={state} onChange={(e) => setState(e.target.value as State)}>

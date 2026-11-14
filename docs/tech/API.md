@@ -127,6 +127,8 @@
 | `LINK_TYPE_INVALID` | 400 | Записи цього типу не пов'язуються |
 | `LINK_SELF` | 400 | Запис пов'язують сам із собою |
 | `LINK_DUPLICATE` | 409 | Ці записи вже пов'язані з тією самою роллю (у будь-якому напрямку) |
+| **Реквізити** | | |
+| `ORG_SIGNER_INVALID` | 400 | Підписанта немає або його заблоковано |
 | **Розумна лабораторія** | | |
 | `SMART_NOT_CONFIGURED`, `SMART_UNAVAILABLE`, `SMART_AUTH_FAILED` | 503 | Немає `HA_TOKEN`, HA не відповідає за 5 с або відхилив токен |
 | `UNKNOWN_HA_ENTITY`, `ENTITY_KIND_MISMATCH`, `SMART_ENTITY_EXISTS` | 400/409 | Такого пристрою в HA немає, тип не збігається, або вже доданий |
@@ -253,6 +255,17 @@
   Пов'язані вже записи не відкидаються — це робить клієнт.
 - `DELETE /api/links/:id` — той, хто може редагувати джерело.
 - Видалене ТЗ забирає свої зв'язки. Аудит: `link.created`, `link.removed` на записі-джерелі.
+
+### Реквізити
+
+- Дані для документів: `GET /api/org-settings` — `{ institution, groupName, signer, signerPosition, updatedAt }`, читають усі ролі.
+  `institution` і `groupName` — шапка документа (друкуються як записані), `signer` — підписант за замовчуванням
+  `{ id, name, active }` або `null`, `signerPosition` — посада під підписом (окремо від посади в профілі).
+- `PATCH /api/org-settings { institution?, groupName?, signerId?, signerPosition? }` — admin і moderator; змінюються лише передані поля,
+  пробіли по краях обрізаються, порожній текст — 400 `VALIDATION_ERROR`. Підписант — активний учасник будь-якої ролі
+  (модератор може вибрати й себе), інакше 400 `ORG_SIGNER_INVALID`; `signerId: null` — без підписанта.
+- Заблокований підписант лишається (`active: false`), поки його не замінять; видалений — очищається.
+  Аудит: `org_settings.updated` з тим, що змінилось (`changes`: було → стало); без змін запису немає.
 
 ### Розумна лабораторія
 

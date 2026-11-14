@@ -466,6 +466,14 @@ const ROWS: Record<string, Case[]> = {
     ['moderator: зв’язати', mod, Action.LinksManage, undefined, true],
     ['member: зв’язати', member, Action.LinksManage, undefined, true],
   ],
+  'Реквізити: керувати (перегляд — усі)': [
+    ['admin: керувати', admin, Action.OrgManage, undefined, true],
+    ['moderator: керувати', mod, Action.OrgManage, undefined, true],
+    ['member: керувати', member, Action.OrgManage, undefined, Deny.Forbidden],
+    ['admin: перегляд', admin, Action.OrgRead, undefined, true],
+    ['moderator: перегляд', mod, Action.OrgRead, undefined, true],
+    ['member: перегляд', member, Action.OrgRead, undefined, true],
+  ],
   'Сеанс роботи з обладнанням': [
     ['admin', admin, Action.SessionsStart, { authorized: false }, true],
     ['moderator', mod, Action.SessionsStart, { authorized: false }, true],

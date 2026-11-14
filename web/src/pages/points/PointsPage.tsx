@@ -9,7 +9,7 @@ import { errorOf } from '../../errors/messages';
 import { formatDate, formatPoints } from '../../lib/format';
 import { pointsReason } from '../../lib/labels';
 import { mergeReversals } from '../profile/ProfilePage';
-import { MemberSelect } from './MemberSelect';
+import { MemberSelect } from '../../components/MemberSelect';
 import s from './points.module.css';
 
 /** Manual award can be revoked: admin any, moderator own (API: PointsRevoke). */
@@ -71,6 +71,7 @@ export function PointsPage() {
           >
             <h2 className={s.caption}>Нарахувати</h2>
             <MemberSelect
+              excludeSelf
               id="pt-user"
               label="Кому"
               value={userId}
