@@ -1,0 +1,79 @@
+import { enumOptions, RecordSchemaDef } from '../records/field-types';
+import { CreateTaskDto, UpdateTaskDto } from './dto';
+import { Task, TaskStatus } from './task.entities';
+
+export const TASK_SCHEMA: RecordSchemaDef = {
+  type: 'task',
+  label: 'ТЗ',
+  entity: Task,
+  dto: { create: CreateTaskDto, update: UpdateTaskDto },
+  fields: [
+    {
+      key: 'title',
+      label: 'Назва',
+      type: 'text',
+      required: true,
+      create: true,
+      update: true,
+      minLength: 1,
+      maxLength: 200,
+    },
+    {
+      key: 'description',
+      label: 'Мета',
+      type: 'text',
+      nullable: true,
+      create: true,
+      update: true,
+      maxLength: 5000,
+    },
+    {
+      key: 'points',
+      label: 'Бали',
+      type: 'int',
+      required: true,
+      create: true,
+      update: true,
+      min: 0,
+      max: 1000,
+    },
+    {
+      key: 'maxAssignees',
+      label: 'Кількість виконавців',
+      type: 'int',
+      create: true,
+      update: true,
+      min: 1,
+      max: 20,
+    },
+    {
+      key: 'dueDate',
+      label: 'Термін',
+      type: 'datetime',
+      nullable: true,
+      create: true,
+      update: true,
+    },
+    {
+      key: 'status',
+      label: 'Статус',
+      type: 'enum',
+      options: enumOptions<TaskStatus>({
+        todo: 'Вільне',
+        queued: 'У черзі',
+        in_progress: 'В роботі',
+        review: 'На перевірці',
+        done: 'Виконано',
+      }),
+    },
+    {
+      key: 'assignees',
+      label: 'Виконавці',
+      type: 'list<ref:user>',
+      source: 'relation',
+    },
+    { key: 'createdById', label: 'Автор', type: 'ref:user' },
+    { key: 'createdAt', label: 'Створено', type: 'datetime' },
+    { key: 'completedAt', label: 'Виконано', type: 'datetime', nullable: true },
+  ],
+};

@@ -21,6 +21,7 @@ import { InventoryModule } from './inventory/inventory.module';
 import { ProjectsModule } from './projects/projects.module';
 import { PlacesModule } from './places/places.module';
 import { PointsModule } from './points/points.module';
+import { RecordsModule } from './records/records.module';
 import { SmartModule } from './smart/smart.module';
 import { TasksModule } from './tasks/tasks.module';
 import { UsersModule } from './users/users.module';
@@ -49,6 +50,7 @@ import { UsersModule } from './users/users.module';
     ProjectsModule,
     SmartModule,
     DictionariesModule,
+    RecordsModule,
     DocsModule,
     AdminPanelModule,
   ],

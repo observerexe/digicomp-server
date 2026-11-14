@@ -137,6 +137,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   DICTIONARY_NOT_FOUND: 'Довідник не знайдено. Можливо, його видалили.',
   DICTIONARY_ITEM_NOT_FOUND: 'Пункт не знайдено. Можливо, його видалили.',
   DICTIONARY_ITEM_INVALID: 'Такого пункту в довіднику немає або його перенесли в архів. Виберіть інший.',
+  RECORD_TYPE_NOT_FOUND: 'Такого типу записів немає.',
 
   // Розширена панель
   AGENT_UNAVAILABLE: 'Агент на сервері не відповідає. Решта застосунку працює.',

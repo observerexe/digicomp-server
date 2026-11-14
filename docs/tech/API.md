@@ -45,7 +45,7 @@
 «Не знайдено» для конкретних об'єктів: `USER_NOT_FOUND`, `TASK_NOT_FOUND`, `PLACE_NOT_FOUND`, `SESSION_NOT_FOUND`, `BOOKING_NOT_FOUND`,
 `FAULT_REPORT_NOT_FOUND`, `DOCUMENT_NOT_FOUND`, `VERSION_NOT_FOUND`, `FILE_NOT_FOUND`, `ITEM_NOT_FOUND`, `PROJECT_NOT_FOUND`,
 `AUTHORIZATION_NOT_FOUND`, `POINTS_ENTRY_NOT_FOUND`, `DISCIPLINE_RECORD_NOT_FOUND`, `SMART_DEVICE_NOT_FOUND`, `AUDIT_CURSOR_NOT_FOUND`,
-`DICTIONARY_NOT_FOUND`, `DICTIONARY_ITEM_NOT_FOUND`.
+`DICTIONARY_NOT_FOUND`, `DICTIONARY_ITEM_NOT_FOUND`, `RECORD_TYPE_NOT_FOUND`.
 
 | Код | Статус | Коли |
 |---|---|---|
@@ -191,6 +191,20 @@
 - Довідники модулів — категорії: `place_category` (обладнання), `document_category` (архів), `inventory_category` (склад).
   Поле `category` у `/places`, `/documents`, `/inventory/items` — ключ пункту; фільтр `?category=` — теж ключ,
   а `?search=` шукає за назвою пункту. У CSV складу — назва категорії.
+
+### Схеми записів
+
+- `GET /api/records/:type/schema` — поля типу записів: ключ (той самий, що в API запису), назва, тип, межі. Даних записів немає;
+  читають усі ролі. Невідомий тип — 404 `RECORD_TYPE_NOT_FOUND`.
+- Типи: `user`, `task`, `project`, `place`, `inventory_item`, `discipline_record`, `points_entry`, `place_authorization`;
+  `session`, `fault`, `document` — лише для читання (жодне поле не має `create` чи `update`).
+- Тип поля: `text`, `richtext`, `int`, `decimal` (`scale` — знаків після коми), `date` (`YYYY-MM-DD`), `datetime`, `bool`,
+  `enum`, `color`, `ref:<тип запису>` (UUID) або `list<…>` з одного з них. `enum` має або `options` (фіксовані значення з назвами),
+  або `dictionary` (значення — ключі пунктів довідника).
+- `required` — обов'язкове при створенні; `create` / `update` — поле можна задати при створенні / змінити потім;
+  `nullable` — можна очистити; `source` — `column` (за замовчуванням), `relation` (окрема таблиця: виконавці ТЗ, учасники проєкту)
+  або `computed`.
+- `version` — короткий хеш опису; змінюється з будь-якою зміною схеми.
 
 ### Розумна лабораторія
 

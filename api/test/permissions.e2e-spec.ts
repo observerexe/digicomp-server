@@ -770,6 +770,16 @@ describe('Матриця прав (e2e)', () => {
     });
   });
 
+  describe('Схеми записів (поля типів записів): перегляд', () => {
+    it.each([
+      ['admin', () => admin],
+      ['moderator', () => mod],
+      ['member', () => member],
+    ])('%s так', async (_r, who) => {
+      allowed(await as(app, who()).get('/api/records/task/schema'));
+    });
+  });
+
   describe('Склад: взяти або поповнити', () => {
     let itemId: string;
     beforeEach(async () => {

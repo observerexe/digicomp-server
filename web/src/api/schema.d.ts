@@ -1487,6 +1487,23 @@ export interface paths {
         patch: operations["SmartController_update"];
         trace?: never;
     };
+    "/api/records/{type}/schema": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fields of a record type: what templates may bind to. No record data. */
+        get: operations["RecordsController_schema"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin-panel/overview": {
         parameters: {
             query?: never;
@@ -2612,6 +2629,58 @@ export interface components {
             label?: string;
             room?: string;
             enabled?: boolean;
+        };
+        /** @enum {string} */
+        RecordType: "user" | "task" | "project" | "place" | "inventory_item" | "discipline_record" | "points_entry" | "session" | "fault" | "place_authorization" | "document";
+        EnumOptionDto: {
+            key: string;
+            label: string;
+        };
+        /**
+         * @description Where the value lives; default `column`.
+         * @enum {string}
+         */
+        FieldSource: "column" | "relation" | "computed";
+        RecordFieldDto: {
+            /** @description enum: fixed values. */
+            options?: components["schemas"]["EnumOptionDto"][];
+            /** @description Where the value lives; default `column`. */
+            source?: components["schemas"]["FieldSource"];
+            /** @description Same key as in the API of the record. */
+            key: string;
+            label: string;
+            /**
+             * @description `text`, `richtext`, `int`, `decimal`, `date`, `datetime`, `bool`, `enum`, `color`,
+             *     `ref:<record type>` or `list<…>` of one of them.
+             */
+            type: string;
+            /** @description Must be given when the record is created. */
+            required?: boolean;
+            /** @description May be empty (null). */
+            nullable?: boolean;
+            /** @description May be set when the record is created. */
+            create?: boolean;
+            /** @description May be changed later. */
+            update?: boolean;
+            min?: number;
+            max?: number;
+            /** @description decimal: digits after the point. */
+            scale?: number;
+            /** @description text: length bounds (for a list — of each item). */
+            minLength?: number;
+            maxLength?: number;
+            /** @description text: the whole value must match this regex. */
+            pattern?: string;
+            maxItems?: number;
+            /** @description enum: key of the dictionary whose item keys are the values. */
+            dictionary?: string;
+        };
+        RecordSchemaDto: {
+            type: components["schemas"]["RecordType"];
+            fields: components["schemas"]["RecordFieldDto"][];
+            label: string;
+            /** @description Changes with any change of the schema. */
+            version: string;
         };
         ContainerDto: {
             /** @description healthy, unhealthy, starting or null (no healthcheck). */
@@ -5280,6 +5349,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SmartAllowedDto"];
+                };
+            };
+        };
+    };
+    RecordsController_schema: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordSchemaDto"];
                 };
             };
         };

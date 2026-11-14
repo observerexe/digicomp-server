@@ -4131,6 +4131,37 @@
         ]
       }
     },
+    "/api/records/{type}/schema": {
+      "get": {
+        "operationId": "RecordsController_schema",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordSchemaDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Fields of a record type: what templates may bind to. No record data.",
+        "tags": [
+          "Records"
+        ]
+      }
+    },
     "/api/admin-panel/overview": {
       "get": {
         "operationId": "AdminPanelController_overview",
@@ -8087,6 +8118,157 @@
             "type": "boolean"
           }
         }
+      },
+      "RecordType": {
+        "type": "string",
+        "enum": [
+          "user",
+          "task",
+          "project",
+          "place",
+          "inventory_item",
+          "discipline_record",
+          "points_entry",
+          "session",
+          "fault",
+          "place_authorization",
+          "document"
+        ]
+      },
+      "EnumOptionDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label"
+        ]
+      },
+      "FieldSource": {
+        "type": "string",
+        "enum": [
+          "column",
+          "relation",
+          "computed"
+        ],
+        "description": "Where the value lives; default `column`."
+      },
+      "RecordFieldDto": {
+        "type": "object",
+        "properties": {
+          "options": {
+            "description": "enum: fixed values.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnumOptionDto"
+            }
+          },
+          "source": {
+            "description": "Where the value lives; default `column`.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FieldSource"
+              }
+            ]
+          },
+          "key": {
+            "type": "string",
+            "description": "Same key as in the API of the record."
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "description": "`text`, `richtext`, `int`, `decimal`, `date`, `datetime`, `bool`, `enum`, `color`,\n`ref:<record type>` or `list<…>` of one of them."
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Must be given when the record is created."
+          },
+          "nullable": {
+            "type": "boolean",
+            "description": "May be empty (null)."
+          },
+          "create": {
+            "type": "boolean",
+            "description": "May be set when the record is created."
+          },
+          "update": {
+            "type": "boolean",
+            "description": "May be changed later."
+          },
+          "min": {
+            "type": "number"
+          },
+          "max": {
+            "type": "number"
+          },
+          "scale": {
+            "type": "number",
+            "description": "decimal: digits after the point."
+          },
+          "minLength": {
+            "type": "number",
+            "description": "text: length bounds (for a list — of each item)."
+          },
+          "maxLength": {
+            "type": "number"
+          },
+          "pattern": {
+            "type": "string",
+            "description": "text: the whole value must match this regex."
+          },
+          "maxItems": {
+            "type": "number"
+          },
+          "dictionary": {
+            "type": "string",
+            "description": "enum: key of the dictionary whose item keys are the values."
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type"
+        ]
+      },
+      "RecordSchemaDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecordFieldDto"
+            }
+          },
+          "label": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string",
+            "description": "Changes with any change of the schema."
+          }
+        },
+        "required": [
+          "type",
+          "fields",
+          "label",
+          "version"
+        ]
       },
       "ContainerDto": {
         "type": "object",

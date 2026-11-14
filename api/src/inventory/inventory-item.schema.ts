@@ -1,0 +1,86 @@
+import { RecordSchemaDef } from '../records/field-types';
+import { CreateItemDto, UpdateItemDto } from './dto';
+import { INVENTORY_CATEGORY, InventoryItem } from './inventory.entities';
+
+export const INVENTORY_ITEM_SCHEMA: RecordSchemaDef = {
+  type: 'inventory_item',
+  label: 'Позиція складу',
+  entity: InventoryItem,
+  dto: { create: CreateItemDto, update: UpdateItemDto },
+  fields: [
+    {
+      key: 'code',
+      label: 'Код',
+      type: 'text',
+      required: true,
+      create: true,
+      pattern: '^[A-Za-z0-9_-]{2,60}$',
+    },
+    {
+      key: 'title',
+      label: 'Назва',
+      type: 'text',
+      required: true,
+      create: true,
+      update: true,
+      minLength: 1,
+      maxLength: 200,
+    },
+    {
+      key: 'category',
+      label: 'Категорія',
+      type: 'enum',
+      dictionary: INVENTORY_CATEGORY,
+      required: true,
+      create: true,
+      update: true,
+    },
+    {
+      key: 'unit',
+      label: 'Одиниця',
+      type: 'text',
+      create: true,
+      update: true,
+      minLength: 1,
+      maxLength: 20,
+    },
+    // Changes later only through stock movements.
+    {
+      key: 'quantity',
+      label: 'Кількість',
+      type: 'decimal',
+      create: true,
+      min: 0,
+      max: 1000000,
+      scale: 3,
+    },
+    {
+      key: 'minQuantity',
+      label: 'Мінімальний залишок',
+      type: 'decimal',
+      create: true,
+      update: true,
+      min: 0,
+      max: 1000000,
+      scale: 3,
+    },
+    {
+      key: 'location',
+      label: 'Місце зберігання',
+      type: 'text',
+      create: true,
+      update: true,
+      maxLength: 200,
+    },
+    {
+      key: 'notes',
+      label: 'Примітки',
+      type: 'text',
+      create: true,
+      update: true,
+      maxLength: 5000,
+    },
+    { key: 'createdById', label: 'Додав', type: 'ref:user', nullable: true },
+    { key: 'createdAt', label: 'Додано', type: 'datetime' },
+  ],
+};

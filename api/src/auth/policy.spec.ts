@@ -446,6 +446,11 @@ const ROWS: Record<string, Case[]> = {
     ['moderator: перегляд', mod, Action.DictionariesRead, undefined, true],
     ['member: перегляд', member, Action.DictionariesRead, undefined, true],
   ],
+  'Схеми записів (поля типів записів): перегляд': [
+    ['admin', admin, Action.RecordsRead, undefined, true],
+    ['moderator', mod, Action.RecordsRead, undefined, true],
+    ['member', member, Action.RecordsRead, undefined, true],
+  ],
   'Сеанс роботи з обладнанням': [
     ['admin', admin, Action.SessionsStart, { authorized: false }, true],
     ['moderator', mod, Action.SessionsStart, { authorized: false }, true],
