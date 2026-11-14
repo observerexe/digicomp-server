@@ -10,12 +10,6 @@ export class DocDto {
   @ApiProperty({ enum: AccessScope, enumName: 'AccessScope' })
   accessScope: AccessScope;
 
-  @ApiProperty({ type: String, nullable: true })
-  placeId: string | null;
-
-  @ApiProperty({ type: String, nullable: true })
-  inventoryItemId: string | null;
-
   authorId: string;
   createdAt: Date;
   updatedAt: Date;

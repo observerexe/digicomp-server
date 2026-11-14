@@ -18,6 +18,7 @@ import { DocumentsModule } from './documents/documents.module';
 import { FaultsModule } from './faults/faults.module';
 import { FilesModule } from './files/files.module';
 import { InventoryModule } from './inventory/inventory.module';
+import { LinksModule } from './links/links.module';
 import { ProjectsModule } from './projects/projects.module';
 import { PlacesModule } from './places/places.module';
 import { PointsModule } from './points/points.module';
@@ -51,6 +52,7 @@ import { UsersModule } from './users/users.module';
     SmartModule,
     DictionariesModule,
     RecordsModule,
+    LinksModule,
     DocsModule,
     AdminPanelModule,
   ],

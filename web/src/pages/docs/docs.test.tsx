@@ -6,7 +6,7 @@ import { dictionary, json, member, mockApi, moderator, renderApp } from '../../t
 
 const staff: Me = { ...moderator, permissions: [...moderator.permissions, 'documents.manage'] };
 const doc = (over: Partial<Doc> = {}): Doc => ({
-  id: 'd1', title: 'Паспорт фрезера', category: 'pasporty', description: '', accessScope: 'members', placeId: null, inventoryItemId: null,
+  id: 'd1', title: 'Паспорт фрезера', category: 'pasporty', description: '', accessScope: 'members',
   authorId: 'm1', createdAt: '', updatedAt: '2026-11-01T10:00:00Z', archived: false, version: 2, fileName: 'pass.pdf', mimeType: 'application/pdf',
   size: 4_400_000, versionsCount: 2, ...over,
 });
@@ -19,8 +19,6 @@ const base = (me: Me, extra: Record<string, (r: Request) => Response | Promise<R
   'GET /api/work-sessions': () => json(200, { items: [], total: 0, page: 1, limit: 1 }),
   'GET /api/documents': () => json(200, { items: [doc(), doc({ id: 'd2', title: 'Порядок дій', category: 'instruktsii', accessScope: 'supervisors', fileName: 'a.docx', mimeType: 'x' })], total: 2, page: 1, limit: 100 }),
   'GET /api/documents/d1/versions': () => json(200, [{ id: 'v2', version: 2, fileName: 'pass.pdf', mimeType: 'application/pdf', size: 10, sha256: '', changeNote: 'Нова схема', uploadedById: 'm1', createdAt: '' }]),
-  'GET /api/places': () => json(200, []),
-  'GET /api/inventory/items': () => json(200, { items: [], total: 0, page: 1, limit: 100 }),
   ...extra,
 });
 

@@ -10,6 +10,8 @@ import {
   Between,
   DataSource,
   FindOptionsWhere,
+  In,
+  IsNull,
   LessThanOrEqual,
   MoreThanOrEqual,
   Repository,
@@ -22,6 +24,7 @@ import {
   itemTitles,
 } from '../dictionaries/dictionary-usage';
 import { AccessScope, Doc } from '../documents/doc.entity';
+import { linkedPairs } from '../links/links.sql';
 import {
   CreateItemDto,
   ListItemsQuery,
@@ -154,13 +157,7 @@ export class InventoryService {
         : { code: idOrCode.toUpperCase() },
     );
     if (!i) throw new NotFoundException('Item not found');
-    const qb = this.docs
-      .createQueryBuilder('d')
-      .where('d.inventoryItemId = :id AND d.archivedAt IS NULL', { id: i.id });
-    if (!can(actor, Action.DocumentsManage)) {
-      qb.andWhere('d.accessScope = :s', { s: AccessScope.Members });
-    }
-    const docs = await qb.orderBy('d.title', 'ASC').getMany();
+    const docs = (await this.linkedDocs([i.id], actor)).get(i.id) ?? [];
     return {
       ...itemView(i, docs.length),
       documents: docs.map((d) => ({
@@ -402,21 +399,35 @@ export class InventoryService {
 
   private async docCounts(ids: string[], actor: Actor) {
     const map = new Map<string, number>();
-    if (!ids.length) return map;
-    const qb = this.docs
-      .createQueryBuilder('d')
-      .select('d.inventoryItemId', 'id')
-      .addSelect('COUNT(*)', 'n')
-      .where('d.inventoryItemId IN (:...ids) AND d.archivedAt IS NULL', {
-        ids,
-      });
-    if (!can(actor, Action.DocumentsManage)) {
-      qb.andWhere('d.accessScope = :s', { s: AccessScope.Members });
+    for (const [id, docs] of await this.linkedDocs(ids, actor)) {
+      map.set(id, docs.length);
     }
-    const raw = await qb
-      .groupBy('d.inventoryItemId')
-      .getRawMany<{ id: string; n: string }>();
-    for (const r of raw) map.set(r.id, Number(r.n));
+    return map;
+  }
+
+  /** Documents linked with the items that the actor sees, by item, by title. */
+  private async linkedDocs(ids: string[], actor: Actor) {
+    const pairs = await linkedPairs(
+      this.ds.manager,
+      'inventory_item',
+      ids,
+      'document',
+    );
+    const map = new Map<string, Doc[]>();
+    if (!pairs.length) return map;
+    const where = {
+      id: In([...new Set(pairs.map((p) => p.otherId))]),
+      archivedAt: IsNull(),
+      ...(can(actor, Action.DocumentsManage)
+        ? {}
+        : { accessScope: AccessScope.Members }),
+    };
+    const docs = await this.docs.find({ where, order: { title: 'ASC' } });
+    for (const d of docs) {
+      for (const p of pairs) {
+        if (p.otherId === d.id) map.set(p.id, [...(map.get(p.id) ?? []), d]);
+      }
+    }
     return map;
   }
 }

@@ -98,6 +98,10 @@ export enum Action {
   RecordsRead = 'records.read',
   RecordsFieldsManage = 'records.fields_manage',
 
+  // Links between records (who edits the source record — see LinkRegistry)
+  LinksRead = 'links.read',
+  LinksManage = 'links.manage',
+
   // Work sessions, bookings, faults
   SessionsStart = 'sessions.start',
   SessionsReadAll = 'sessions.read_all',
@@ -190,6 +194,10 @@ export const ROLES: Record<Action, readonly Role[]> = {
 
   [Action.RecordsRead]: ALL,
   [Action.RecordsFieldsManage]: STAFF,
+
+  // Further checks: the source record's own edit rule, both records visible.
+  [Action.LinksRead]: ALL,
+  [Action.LinksManage]: ALL,
 
   [Action.SessionsStart]: ALL,
   [Action.SessionsReadAll]: STAFF,

@@ -37,13 +37,6 @@ function DocForm({ doc }: { doc?: Doc }) {
     category: doc?.category ?? '',
     description: doc?.description ?? '',
     accessScope: (doc?.accessScope ?? 'members') as AccessScope,
-    placeId: doc?.placeId ?? '',
-    inventoryItemId: doc?.inventoryItemId ?? '',
-  });
-  const places = useQuery({ queryKey: ['places', 'list'], queryFn: () => unwrap(api.GET('/api/places')) });
-  const items = useQuery({
-    queryKey: ['inventory', 'items'],
-    queryFn: () => unwrap(api.GET('/api/inventory/items', { params: { query: { limit: '100' } } })),
   });
 
   const invalid = !f.title.trim() || !f.category ? 'Вкажіть назву й виберіть категорію.' : !doc && !file ? 'Додайте файл.' : null;
@@ -58,8 +51,6 @@ function DocForm({ doc }: { doc?: Doc }) {
               category: f.category,
               description: f.description,
               accessScope: f.accessScope,
-              placeId: f.placeId || null,
-              inventoryItemId: f.inventoryItemId || null,
             },
           }),
         );
@@ -71,8 +62,6 @@ function DocForm({ doc }: { doc?: Doc }) {
       body.append('category', f.category);
       if (f.description) body.append('description', f.description);
       body.append('accessScope', f.accessScope);
-      if (f.placeId) body.append('placeId', f.placeId);
-      if (f.inventoryItemId) body.append('inventoryItemId', f.inventoryItemId);
       return unwrap(api.POST('/api/documents', { body: body as never }));
     },
     onSuccess: (d) => {
@@ -141,30 +130,6 @@ function DocForm({ doc }: { doc?: Doc }) {
               Лише модератори й адмін
             </label>
           </fieldset>
-          <div className={s.row}>
-            <div className="field">
-              <label htmlFor="df-place">Обладнання</label>
-              <select id="df-place" value={f.placeId} onChange={set('placeId')}>
-                <option value="">Не прив’язано</option>
-                {places.data?.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.title} ({p.code})
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="field">
-              <label htmlFor="df-item">Позиція складу</label>
-              <select id="df-item" value={f.inventoryItemId} onChange={set('inventoryItemId')}>
-                <option value="">Не прив’язано</option>
-                {items.data?.items.map((i) => (
-                  <option key={i.id} value={i.id}>
-                    {i.title} ({i.code})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
           <ErrorMessage text={invalid && (f.title || file) ? invalid : save.isError ? errorOf(save.error) : null} />
           <div className={s.actions}>
             <button type="submit" className="btn btn-primary" disabled={!!invalid || save.isPending}>

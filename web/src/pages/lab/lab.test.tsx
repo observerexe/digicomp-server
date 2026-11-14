@@ -221,6 +221,26 @@ describe('Сторінка обладнання: сеанс', () => {
     expect(within(recent).getByText('1:46')).toBeInTheDocument();
   });
 
+  it('документи обладнання — пов’язані з ним документи архіву', async () => {
+    const { handlers } = labApi(member);
+    let query = '';
+    mockApi({
+      ...handlers,
+      'GET /api/documents': (req) => {
+        query = new URL(req.url).search;
+        return json(200, {
+          items: [{ id: 'd1', title: 'Паспорт фрезера', category: 'pasporty', description: '', accessScope: 'members', authorId: 'm1', createdAt: '', updatedAt: NOW.toISOString(), archived: false, version: 1, fileName: 'pass.pdf', mimeType: 'application/pdf', size: 10, versionsCount: 1 }],
+          total: 1,
+          page: 1,
+          limit: 50,
+        });
+      },
+    });
+    renderApp('/lab/CNC-1');
+    expect(await screen.findByRole('link', { name: /Паспорт фрезера/ })).toHaveAttribute('href', '/docs/d1');
+    expect(Object.fromEntries(new URLSearchParams(query))).toEqual({ linkedType: 'place', linkedId: place().id });
+  });
+
   it('обладнання немає — зрозумілий текст', async () => {
     mockApi({ ...labApi(member).handlers, 'GET /api/places/NOPE': () => json(404, { errorCode: 'PLACE_NOT_FOUND' }) });
     renderApp('/lab/NOPE');

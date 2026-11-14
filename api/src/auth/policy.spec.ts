@@ -456,6 +456,16 @@ const ROWS: Record<string, Case[]> = {
     ['moderator', mod, Action.RecordsFieldsManage, undefined, true],
     ['member', member, Action.RecordsFieldsManage, undefined, Deny.Forbidden],
   ],
+  // Далі вирішує правило редагування вихідного запису (його рядок тут)
+  // і видимість обох записів — test/links.e2e-spec.ts.
+  "Зв'язки між записами: перегляд, зв'язати, прибрати": [
+    ['admin: перегляд', admin, Action.LinksRead, undefined, true],
+    ['moderator: перегляд', mod, Action.LinksRead, undefined, true],
+    ['member: перегляд', member, Action.LinksRead, undefined, true],
+    ['admin: зв’язати', admin, Action.LinksManage, undefined, true],
+    ['moderator: зв’язати', mod, Action.LinksManage, undefined, true],
+    ['member: зв’язати', member, Action.LinksManage, undefined, true],
+  ],
   'Сеанс роботи з обладнанням': [
     ['admin', admin, Action.SessionsStart, { authorized: false }, true],
     ['moderator', mod, Action.SessionsStart, { authorized: false }, true],

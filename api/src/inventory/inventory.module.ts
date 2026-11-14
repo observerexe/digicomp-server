@@ -4,12 +4,15 @@ import { AuditModule } from '../audit/audit.module';
 import { DictionariesModule } from '../dictionaries/dictionaries.module';
 import { DictionaryUsageRegistry } from '../dictionaries/dictionary-usage';
 import { Doc } from '../documents/doc.entity';
+import { LinkRegistry } from '../links/link-registry';
+import { LinksModule } from '../links/links.module';
 import { InventoryController } from './inventory.controller';
 import {
   INVENTORY_CATEGORY,
   InventoryItem,
   InventoryMovement,
 } from './inventory.entities';
+import { INVENTORY_ITEM_LINKS } from './inventory-item.links';
 import { InventoryService } from './inventory.service';
 
 @Module({
@@ -17,12 +20,16 @@ import { InventoryService } from './inventory.service';
     TypeOrmModule.forFeature([InventoryItem, InventoryMovement, Doc]),
     AuditModule,
     DictionariesModule,
+    LinksModule,
   ],
   controllers: [InventoryController],
   providers: [InventoryService],
 })
 export class InventoryModule implements OnModuleInit {
-  constructor(private dictionaries: DictionaryUsageRegistry) {}
+  constructor(
+    private dictionaries: DictionaryUsageRegistry,
+    private links: LinkRegistry,
+  ) {}
 
   onModuleInit() {
     this.dictionaries.registerColumn(
@@ -30,5 +37,6 @@ export class InventoryModule implements OnModuleInit {
       InventoryItem,
       'category',
     );
+    this.links.register('inventory_item', INVENTORY_ITEM_LINKS);
   }
 }

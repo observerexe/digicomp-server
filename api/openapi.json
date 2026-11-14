@@ -2019,6 +2019,111 @@
         ]
       }
     },
+    "/api/links": {
+      "get": {
+        "operationId": "LinksController_list",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "query",
+            "description": "Type of the record whose links are listed.",
+            "schema": {
+              "$ref": "#/components/schemas/RecordType"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LinkDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Links of a record, both directions; only records the caller sees.",
+        "tags": [
+          "Links"
+        ]
+      },
+      "post": {
+        "operationId": "LinksController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLinkDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Whoever edits the source record; both records must be visible.",
+        "tags": [
+          "Links"
+        ]
+      }
+    },
+    "/api/links/{id}": {
+      "delete": {
+        "operationId": "LinksController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Whoever edits the source record.",
+        "tags": [
+          "Links"
+        ]
+      }
+    },
     "/api/discipline/me": {
       "get": {
         "operationId": "DisciplineController_mine",
@@ -3170,6 +3275,15 @@
         "operationId": "DocumentsController_list",
         "parameters": [
           {
+            "name": "linkedType",
+            "required": false,
+            "in": "query",
+            "description": "With `linkedId`: only documents linked with this record (`/links`).",
+            "schema": {
+              "$ref": "#/components/schemas/RecordType"
+            }
+          },
+          {
             "name": "search",
             "required": false,
             "in": "query",
@@ -3189,16 +3303,7 @@
             }
           },
           {
-            "name": "placeId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          },
-          {
-            "name": "inventoryItemId",
+            "name": "linkedId",
             "required": false,
             "in": "query",
             "schema": {
@@ -6271,6 +6376,114 @@
           }
         }
       },
+      "LinkDirection": {
+        "type": "string",
+        "enum": [
+          "out",
+          "in"
+        ],
+        "description": "`out` — this record is the source, `in` — the other record is."
+      },
+      "LinkDto": {
+        "type": "object",
+        "properties": {
+          "direction": {
+            "description": "`out` — this record is the source, `in` — the other record is.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LinkDirection"
+              }
+            ]
+          },
+          "type": {
+            "description": "Type of the record on the other side.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "recordId": {
+            "type": "string",
+            "description": "Id of the record on the other side."
+          },
+          "title": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "The other record is in the archive."
+          },
+          "role": {
+            "type": "string",
+            "description": "What the link means for the source; empty — just related."
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "canRemove": {
+            "type": "boolean",
+            "description": "The actor may remove the link (edits its source)."
+          }
+        },
+        "required": [
+          "direction",
+          "type",
+          "id",
+          "recordId",
+          "title",
+          "archived",
+          "role",
+          "createdById",
+          "createdAt",
+          "canRemove"
+        ]
+      },
+      "CreateLinkDto": {
+        "type": "object",
+        "properties": {
+          "fromType": {
+            "description": "The source: the actor must be able to edit it.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "toType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "fromId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "toId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "role": {
+            "type": "string",
+            "description": "What the link means for the source; empty — just related."
+          }
+        },
+        "required": [
+          "fromType",
+          "toType",
+          "fromId",
+          "toId"
+        ]
+      },
       "DisciplineType": {
         "type": "string",
         "enum": [
@@ -7345,14 +7558,6 @@
               }
             ]
           },
-          "placeId": {
-            "type": "string",
-            "nullable": true
-          },
-          "inventoryItemId": {
-            "type": "string",
-            "nullable": true
-          },
           "version": {
             "type": "number",
             "nullable": true,
@@ -7402,8 +7607,6 @@
         },
         "required": [
           "accessScope",
-          "placeId",
-          "inventoryItemId",
           "version",
           "fileName",
           "mimeType",
@@ -7513,14 +7716,6 @@
               "members",
               "supervisors"
             ]
-          },
-          "placeId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "inventoryItemId": {
-            "type": "string",
-            "format": "uuid"
           }
         },
         "required": [
@@ -7561,16 +7756,6 @@
               "members",
               "supervisors"
             ]
-          },
-          "placeId": {
-            "type": "string",
-            "nullable": true,
-            "format": "uuid"
-          },
-          "inventoryItemId": {
-            "type": "string",
-            "nullable": true,
-            "format": "uuid"
           }
         }
       },

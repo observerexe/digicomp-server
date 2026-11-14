@@ -8,7 +8,7 @@
 - **Адреси.** Усе API — під `/api` (`/api/tasks`, `/api/auth/login`). У корені лише `/health`; решту адрес займають сторінки застосунку.
 - **Дати** — ISO 8601 в UTC. Дні, місяці й дедлайни сервер рахує за київським часом.
 - **Статуси успіху.** `POST`, що створює об'єкт, — 201; дії й решта запитів — 200; дії розширеної панелі — 202.
-- **Списки** — `{ items, total, page, limit }` з `page` і `limit` у query. Масивом відповідають `/places`, `/tasks`, `/discipline/me`, `/audit`, `/bookings/me`, рейтинг.
+- **Списки** — `{ items, total, page, limit }` з `page` і `limit` у query. Масивом відповідають `/places`, `/tasks`, `/discipline/me`, `/audit`, `/bookings/me`, `/links`, рейтинг.
 - **`:id` або код.** Для обладнання й позицій складу в шляху можна передати uuid або код з QR-наліпки (без різниці в регістрі).
 - **Файли** — `multipart/form-data`, поле `file`. Документи й матеріали до 20 МБ, фото несправності до 5 МБ, аватар до 2 МБ (png, jpg, webp).
   Тип перевіряється за вмістом. Файли віддаються лише авторизованим.
@@ -45,7 +45,8 @@
 «Не знайдено» для конкретних об'єктів: `USER_NOT_FOUND`, `TASK_NOT_FOUND`, `PLACE_NOT_FOUND`, `SESSION_NOT_FOUND`, `BOOKING_NOT_FOUND`,
 `FAULT_REPORT_NOT_FOUND`, `DOCUMENT_NOT_FOUND`, `VERSION_NOT_FOUND`, `FILE_NOT_FOUND`, `ITEM_NOT_FOUND`, `PROJECT_NOT_FOUND`,
 `AUTHORIZATION_NOT_FOUND`, `POINTS_ENTRY_NOT_FOUND`, `DISCIPLINE_RECORD_NOT_FOUND`, `SMART_DEVICE_NOT_FOUND`, `AUDIT_CURSOR_NOT_FOUND`,
-`DICTIONARY_NOT_FOUND`, `DICTIONARY_ITEM_NOT_FOUND`, `RECORD_TYPE_NOT_FOUND`, `FIELD_DEF_NOT_FOUND`.
+`DICTIONARY_NOT_FOUND`, `DICTIONARY_ITEM_NOT_FOUND`, `RECORD_TYPE_NOT_FOUND`, `FIELD_DEF_NOT_FOUND`, `LINK_NOT_FOUND`,
+`RECORD_NOT_FOUND` (запису немає або людина його не бачить).
 
 | Код | Статус | Коли |
 |---|---|---|
@@ -122,6 +123,10 @@
 | `FIELD_DEF_DUPLICATE` | 409 | У цього типу записів уже є поле з такою назвою — додаткове чи звичайне (без різниці великих і малих літер) |
 | `FIELD_DEF_IN_USE` | 409 | Поле заповнене в записах: його не видаляють, а переносять в архів |
 | `RECORD_EXTRA_INVALID` | 400 | Значення в `extra` неправильне: невідомий ключ, не той тип, поза межами, пункт довідника не існує чи в архіві, обов'язкове пропущене чи очищене, нове значення в архівному полі. `field` — ключ поля |
+| **Зв'язки** | | |
+| `LINK_TYPE_INVALID` | 400 | Записи цього типу не пов'язуються |
+| `LINK_SELF` | 400 | Запис пов'язують сам із собою |
+| `LINK_DUPLICATE` | 409 | Ці записи вже пов'язані з тією самою роллю (у будь-якому напрямку) |
 | **Розумна лабораторія** | | |
 | `SMART_NOT_CONFIGURED`, `SMART_UNAVAILABLE`, `SMART_AUTH_FAILED` | 503 | Немає `HA_TOKEN`, HA не відповідає за 5 с або відхилив токен |
 | `UNKNOWN_HA_ENTITY`, `ENTITY_KIND_MISMATCH`, `SMART_ENTITY_EXISTS` | 400/409 | Такого пристрою в HA немає, тип не збігається, або вже доданий |
@@ -183,6 +188,8 @@
   Брати й поповнювати можуть усі; `?lowStock=true` — позиції з низьким залишком.
 - Документ: нова версія не змінює попередні; `DELETE` лише архівує. `download?inline=1` показує PDF у застосунку
   (вбудувати можуть лише його сторінки); інші типи лише завантажуються. Доступ `members` або `supervisors`.
+  `?linkedType=place&linkedId=…` — лише документи, пов'язані з цим записом (див. «Зв'язки»); параметри йдуть лише парою.
+- Позиція складу: `documents` і `documentsCount` — пов'язані з нею документи архіву, які людина бачить.
 - Проєкт: етапи `idea`, `planning`, `execution`, `review`, `done`; архів — `DELETE`. member редагує лише свої проєкти і не змінює склад учасників.
 
 ### Довідники
@@ -229,6 +236,20 @@
 - `PUT …/field-defs/order { keys }` — новий порядок, у списку всі поля разом з архівними.
 - `DELETE …/field-defs/:key` — лише якщо жоден запис не має значення в полі, інакше 409 `FIELD_DEF_IN_USE`.
 - Довідник, з якого бере значення поле, не видаляється (`required: true`); пункт, що стоїть в `extra`, теж (`DICTIONARY_ITEM_IN_USE`).
+
+### Зв'язки
+
+- Пов'язати можна записи типів `task`, `project`, `place`, `inventory_item`, `document`; інші — 400 `LINK_TYPE_INVALID`.
+- `GET /api/links?type=&id=` — зв'язки запису в обидва боки, від найстаріших. У кожному: `direction` (`out` — запис є джерелом,
+  `in` — джерело інший запис), `type`, `recordId`, `title`, `archived` другого запису, `role`, хто й коли створив,
+  `canRemove`. Записи, яких людина не бачить (документ «лише модератори», архівне обладнання для учасника, архівний проєкт), не потрапляють
+  у список; якщо людина не бачить сам запис — 404 `RECORD_NOT_FOUND`.
+- `POST /api/links { fromType, fromId, toType, toId, role? }` — зв'язує той, хто може редагувати джерело (`from`): ТЗ, обладнання,
+  склад, документи архіву — admin і moderator; проєкт — ще й учасник проєкту (інакше 403 `PROJECT_EDIT_FORBIDDEN`).
+  Обидва записи мають бути видимі цій людині. `role` — ключ (`a-z`, цифри, `_`, до 40 знаків), за замовчуванням порожній.
+  Та сама пара з тією самою роллю — один раз, у будь-якому напрямку (`LINK_DUPLICATE`).
+- `DELETE /api/links/:id` — той, хто може редагувати джерело.
+- Видалене ТЗ забирає свої зв'язки. Аудит: `link.created`, `link.removed` на записі-джерелі.
 
 ### Розумна лабораторія
 

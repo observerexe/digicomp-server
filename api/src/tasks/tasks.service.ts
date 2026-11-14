@@ -24,6 +24,7 @@ import {
   ListTasksQuery,
   UpdateTaskDto,
 } from './dto';
+import { removeLinksOf } from '../links/links.sql';
 import { splitPoints } from './split-points';
 import {
   Task,
@@ -244,6 +245,7 @@ export class TasksService {
         throw new ConflictException(TaskErrors.HasAssignees);
       }
       const files = await m.find(TaskFile, { where: { taskId: id } });
+      await removeLinksOf(m, 'task', id);
       await m.delete(Task, { id });
       await this.log(m, actor, 'task.deleted', id, { title: task.title });
       return files.map((f) => f.storedName);

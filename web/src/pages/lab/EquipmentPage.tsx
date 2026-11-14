@@ -320,7 +320,7 @@ function RecentSessions({ code }: { code: string }) {
 function PlaceDocs({ placeId }: { placeId: string }) {
   const q = useQuery({
     queryKey: keys.docs(placeId),
-    queryFn: () => unwrap(api.GET('/api/documents', { params: { query: { placeId } } })),
+    queryFn: () => unwrap(api.GET('/api/documents', { params: { query: { linkedType: 'place', linkedId: placeId } } })),
   });
   const docs = q.data?.items.filter((d) => !d.archived && d.version !== null) ?? [];
   if (q.isPending || q.isError || docs.length === 0) return null;

@@ -780,6 +780,45 @@ describe('Матриця прав (e2e)', () => {
     });
   });
 
+  describe("Зв'язати записи: хто редагує вихідний запис", () => {
+    let taskId: string;
+    let projectId: string;
+    beforeEach(async () => {
+      taskId = (
+        await as(app, admin).post('/api/tasks').send({ title: 'ТЗ', points: 1 })
+      ).body.id;
+      projectId = (
+        await as(app, admin)
+          .post('/api/projects')
+          .send({ title: 'Проєкт', memberIds: [member.id] })
+      ).body.id;
+    });
+    const link = (who: TestUser, fromType: string, fromId: string) =>
+      as(app, who)
+        .post('/api/links')
+        .send(
+          fromType === 'task'
+            ? { fromType, fromId, toType: 'project', toId: projectId }
+            : { fromType, fromId, toType: 'task', toId: taskId },
+        );
+
+    it('admin так', async () => {
+      allowed(await link(admin, 'task', taskId));
+    });
+    it('moderator так', async () => {
+      allowed(await link(mod, 'task', taskId));
+    });
+    it('member: від проєкту, де учасник; не від ТЗ', async () => {
+      denied(await link(member, 'task', taskId));
+      denied(
+        await link(member2, 'project', projectId),
+        'PROJECT_EDIT_FORBIDDEN',
+      );
+      allowed(await link(member, 'project', projectId));
+      allowed(await as(app, member).get(`/api/links?type=task&id=${taskId}`));
+    });
+  });
+
   describe('Склад: взяти або поповнити', () => {
     let itemId: string;
     beforeEach(async () => {

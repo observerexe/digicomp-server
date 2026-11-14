@@ -9,7 +9,6 @@ import {
   Unique,
   UpdateDateColumn,
 } from 'typeorm';
-import { Place } from '../places/place.entity';
 
 export enum AccessScope {
   Members = 'members',
@@ -41,16 +40,6 @@ export class Doc {
     default: AccessScope.Members,
   })
   accessScope: AccessScope;
-
-  @Column({ name: 'place_id', type: 'uuid', nullable: true })
-  placeId: string | null;
-
-  @ManyToOne(() => Place, { onDelete: 'SET NULL', nullable: true })
-  @JoinColumn({ name: 'place_id' })
-  place: Place | null;
-
-  @Column({ name: 'inventory_item_id', type: 'uuid', nullable: true })
-  inventoryItemId: string | null;
 
   @Column({ name: 'author_id', type: 'uuid' })
   authorId: string;

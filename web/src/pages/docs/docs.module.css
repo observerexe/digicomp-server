@@ -154,12 +154,6 @@
   font-weight: 500;
   margin-bottom: 4px;
 }
-.form .row {
-  display: grid;
-  min-height: 0;
-  padding: 0;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-}
 .versions .sub {
   display: block;
 }

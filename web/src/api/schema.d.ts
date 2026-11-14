@@ -791,6 +791,41 @@ export interface paths {
         patch: operations["DictionariesController_updateItem"];
         trace?: never;
     };
+    "/api/links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Links of a record, both directions; only records the caller sees. */
+        get: operations["LinksController_list"];
+        put?: never;
+        /** Whoever edits the source record; both records must be visible. */
+        post: operations["LinksController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/links/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Whoever edits the source record. */
+        delete: operations["LinksController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/discipline/me": {
         parameters: {
             query?: never;
@@ -2145,6 +2180,41 @@ export interface components {
             /** @description true — to the archive, false — back. */
             archived?: boolean;
         };
+        /**
+         * @description `out` — this record is the source, `in` — the other record is.
+         * @enum {string}
+         */
+        LinkDirection: "out" | "in";
+        LinkDto: {
+            /** @description `out` — this record is the source, `in` — the other record is. */
+            direction: components["schemas"]["LinkDirection"];
+            /** @description Type of the record on the other side. */
+            type: components["schemas"]["RecordType"];
+            id: string;
+            /** @description Id of the record on the other side. */
+            recordId: string;
+            title: string;
+            /** @description The other record is in the archive. */
+            archived: boolean;
+            /** @description What the link means for the source; empty — just related. */
+            role: string;
+            createdById: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** @description The actor may remove the link (edits its source). */
+            canRemove: boolean;
+        };
+        CreateLinkDto: {
+            /** @description The source: the actor must be able to edit it. */
+            fromType: components["schemas"]["RecordType"];
+            toType: components["schemas"]["RecordType"];
+            /** Format: uuid */
+            fromId: string;
+            /** Format: uuid */
+            toId: string;
+            /** @description What the link means for the source; empty — just related. */
+            role?: string;
+        };
         /** @enum {string} */
         DisciplineType: "warning" | "fine" | "reprimand";
         DisciplineRecordDto: {
@@ -2437,8 +2507,6 @@ export interface components {
         AccessScope: "members" | "supervisors";
         DocDto: {
             accessScope: components["schemas"]["AccessScope"];
-            placeId: string | null;
-            inventoryItemId: string | null;
             /** @description Latest version; null for a document without files. */
             version: number | null;
             fileName: string | null;
@@ -2481,10 +2549,6 @@ export interface components {
             description?: string;
             /** @enum {string} */
             accessScope?: "members" | "supervisors";
-            /** Format: uuid */
-            placeId?: string;
-            /** Format: uuid */
-            inventoryItemId?: string;
         };
         AddVersionDto: {
             changeNote?: string;
@@ -2496,10 +2560,6 @@ export interface components {
             description?: string;
             /** @enum {string} */
             accessScope?: "members" | "supervisors";
-            /** Format: uuid */
-            placeId?: string | null;
-            /** Format: uuid */
-            inventoryItemId?: string | null;
         };
         InventoryItemDto: {
             createdById: string | null;
@@ -4214,6 +4274,73 @@ export interface operations {
             };
         };
     };
+    LinksController_list: {
+        parameters: {
+            query: {
+                /** @description Type of the record whose links are listed. */
+                type: components["schemas"]["RecordType"];
+                id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkDto"][];
+                };
+            };
+        };
+    };
+    LinksController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLinkDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkDto"];
+                };
+            };
+        };
+    };
+    LinksController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
     DisciplineController_mine: {
         parameters: {
             query?: never;
@@ -4877,11 +5004,12 @@ export interface operations {
     DocumentsController_list: {
         parameters: {
             query?: {
+                /** @description With `linkedId`: only documents linked with this record (`/links`). */
+                linkedType?: components["schemas"]["RecordType"];
                 search?: string;
                 /** @description Item key of the «document_category» dictionary. */
                 category?: string;
-                placeId?: string;
-                inventoryItemId?: string;
+                linkedId?: string;
                 archived?: "true";
                 page?: string;
                 limit?: string;

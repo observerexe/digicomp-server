@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import {
   IsEnum,
   IsIn,
@@ -7,7 +8,9 @@ import {
   IsUUID,
   MaxLength,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
+import { RECORD_TYPES, type RecordType } from '../records/field-types';
 import { AccessScope } from './doc.entity';
 
 export class CreateDocDto {
@@ -30,14 +33,6 @@ export class CreateDocDto {
   @IsOptional()
   @IsEnum(AccessScope)
   accessScope?: AccessScope;
-
-  @IsOptional()
-  @IsUUID()
-  placeId?: string;
-
-  @IsOptional()
-  @IsUUID()
-  inventoryItemId?: string;
 }
 
 export class UpdateDocDto {
@@ -62,14 +57,6 @@ export class UpdateDocDto {
   @IsOptional()
   @IsEnum(AccessScope)
   accessScope?: AccessScope;
-
-  @IsOptional()
-  @IsUUID()
-  placeId?: string | null;
-
-  @IsOptional()
-  @IsUUID()
-  inventoryItemId?: string | null;
 }
 
 export class AddVersionDto {
@@ -91,13 +78,15 @@ export class ListDocsQuery {
   @MaxLength(40)
   category?: string;
 
-  @IsOptional()
-  @IsUUID()
-  placeId?: string;
+  /** With `linkedId`: only documents linked with this record (`/links`). */
+  @ApiProperty({ enum: RECORD_TYPES, enumName: 'RecordType', required: false })
+  @ValidateIf((q: ListDocsQuery) => q.linkedId !== undefined)
+  @IsIn(RECORD_TYPES)
+  linkedType?: RecordType;
 
-  @IsOptional()
+  @ValidateIf((q: ListDocsQuery) => q.linkedType !== undefined)
   @IsUUID()
-  inventoryItemId?: string;
+  linkedId?: string;
 
   @IsOptional()
   @IsIn(['true'])

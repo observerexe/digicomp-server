@@ -95,6 +95,9 @@ const MESSAGE_CODES: Record<string, string> = {
   'Field def label already used': 'FIELD_DEF_DUPLICATE',
   'Field def is in use': 'FIELD_DEF_IN_USE',
   'Invalid extra field': 'RECORD_EXTRA_INVALID',
+  'Record type cannot be linked': 'LINK_TYPE_INVALID',
+  'Cannot link a record to itself': 'LINK_SELF',
+  'Link already exists': 'LINK_DUPLICATE',
 };
 
 const STATUS_CODES: Record<number, string> = {

@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { createHash, randomUUID } from 'crypto';
 import { DataSource, In, Repository } from 'typeorm';
@@ -18,7 +14,7 @@ import {
   assertDictionaryItem,
   itemTitleLike,
 } from '../dictionaries/dictionary-usage';
-import { Place } from '../places/place.entity';
+import { linkedWithSql } from '../links/links.sql';
 import {
   AddVersionDto,
   CreateDocDto,
@@ -60,8 +56,6 @@ function docView(
     category: d.category,
     description: d.description,
     accessScope: d.accessScope,
-    placeId: d.placeId,
-    inventoryItemId: d.inventoryItemId,
     authorId: d.authorId,
     createdAt: d.createdAt,
     updatedAt: d.updatedAt,
@@ -79,7 +73,6 @@ export class DocumentsService {
   constructor(
     @InjectRepository(Doc) private docs: Repository<Doc>,
     @InjectRepository(DocVersion) private versions: Repository<DocVersion>,
-    @InjectRepository(Place) private places: Repository<Place>,
     @InjectDataSource() private ds: DataSource,
     private storage: StorageService,
     private audit: AuditService,
@@ -98,9 +91,11 @@ export class DocumentsService {
       qb.andWhere('d.archivedAt IS NULL');
     }
     if (q.category) qb.andWhere('d.category = :cat', { cat: q.category });
-    if (q.placeId) qb.andWhere('d.placeId = :pid', { pid: q.placeId });
-    if (q.inventoryItemId) {
-      qb.andWhere('d.inventoryItemId = :iid', { iid: q.inventoryItemId });
+    if (q.linkedType && q.linkedId) {
+      qb.andWhere(linkedWithSql('document', 'd.id'), {
+        linkedType: q.linkedType,
+        linkedId: q.linkedId,
+      });
     }
     if (q.search) {
       qb.andWhere(
@@ -155,7 +150,6 @@ export class DocumentsService {
       DOCUMENT_CATEGORY,
       dto.category,
     );
-    if (dto.placeId) await this.requirePlace(dto.placeId);
     const storedName = randomUUID();
     await this.storage.save(`documents/${storedName}`, file!.buffer);
     try {
@@ -167,8 +161,6 @@ export class DocumentsService {
             category: dto.category,
             description: dto.description ?? '',
             accessScope: dto.accessScope ?? AccessScope.Members,
-            placeId: dto.placeId ?? null,
-            inventoryItemId: dto.inventoryItemId ?? null,
             authorId: actor.id,
             archivedAt: null,
           }),
@@ -272,15 +264,12 @@ export class DocumentsService {
         d.category,
       );
     }
-    if (dto.placeId) await this.requirePlace(dto.placeId);
     const changed: string[] = [];
     for (const k of [
       'title',
       'category',
       'description',
       'accessScope',
-      'placeId',
-      'inventoryItemId',
     ] as const) {
       const v = dto[k];
       if (v !== undefined && v !== d[k]) {
@@ -347,11 +336,5 @@ export class DocumentsService {
       throw new NotFoundException('Document not found');
     }
     return d;
-  }
-
-  private async requirePlace(id: string) {
-    if (!(await this.places.existsBy({ id }))) {
-      throw new BadRequestException('Unknown place');
-    }
   }
 }

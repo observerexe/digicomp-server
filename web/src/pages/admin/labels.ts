@@ -94,6 +94,7 @@ export const AUDIT_GROUPS: { value: string; label: string }[] = [
   { value: 'document.', label: 'Документи' },
   { value: 'smart.', label: 'Розумна лабораторія' },
   { value: 'dictionary.', label: 'Довідники' },
+  { value: 'link.', label: 'Зв’язки' },
   { value: 'panel.', label: 'Розширена панель' },
 ];
 
@@ -166,6 +167,8 @@ export const AUDIT_ACTION: Record<string, string> = {
   'dictionary.item_updated': 'Змінив пункт довідника',
   'dictionary.items_reordered': 'Змінив порядок пунктів довідника',
   'dictionary.item_deleted': 'Видалив пункт довідника',
+  'link.created': 'Пов’язав записи',
+  'link.removed': 'Прибрав зв’язок',
   'panel.action': 'Дія розширеної панелі',
 };
 
