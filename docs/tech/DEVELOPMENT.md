@@ -47,6 +47,18 @@ Home Assistant і агент для локальної роботи не пот�
 - **Фронт з гарячим оновленням:** `cd web && npm ci && npm run dev` → `http://localhost:5173`; запити `/api` проксуються на API `:3000`.
 - **Усе разом, як на сервері:** `docker compose up -d --build` — образ збирає і фронт, і API.
 
+### Спільний опис редактора
+
+`shared/editor-schema/index.ts` — опис документа редактора, спільний для фронту й бекенду. Він не має залежностей і не є пакетом:
+обидва пакети компілюють його як свій код, через відносний імпорт.
+- **api:** `rootDir` у `tsconfig` — корінь репо, тож збірка лягає в `dist/api/src/` (точка входу `dist/api/src/main`) і `dist/shared/`.
+- **web:** `tsconfig.app.json` включає `../shared`, Vite дозволяє її в `server.fs.allow`.
+- **Docker:** обидва етапи збірки копіюють `shared/` поруч із пакетом, як у репо.
+- Лінтер `shared/` запускає `npm run lint` у `web`. Тести опису — `api/src/paperwork/content.spec.ts` (перевірка вмісту)
+  і `web/src/editor/schema.test.ts` (TipTap збігається з описом).
+- Новий вузол чи атрибут додається в опис, у розширення `web/src/editor/extensions.ts` і, якщо це клас, — правилом у `editor/format.css`;
+  тести підкажуть, якщо щось пропущено.
+
 ## Перевірки перед комітом
 
 Мають бути зеленими всі:
@@ -91,7 +103,7 @@ Swagger з усіма ендпоінтами: `http://127.0.0.1:3000/api/docs` (
 4. Напишіть `down`, що повертає схему назад.
 5. Перевірте, що схема збігається з кодом: `./scripts/schema-check.sh` (або `migration:generate --check` на тестовій базі).
 
-Відкотити останню міграцію: `npx typeorm migration:revert -d dist/data-source.js` (з `DATABASE_URL`). На сервері надійніше
+Відкотити останню міграцію: `npx typeorm migration:revert -d dist/api/src/data-source.js` (з `DATABASE_URL`). На сервері надійніше
 відновити базу з бекапу і відкотити код — див. [OPERATIONS.md](OPERATIONS.md).
 
 ## Правила, які не можна ламати

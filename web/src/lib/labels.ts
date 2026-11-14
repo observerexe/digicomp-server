@@ -1,4 +1,4 @@
-import type { DisciplineRecord, PointsHistoryEntry, ProjectStage, Role, TaskStatus } from '../api/types';
+import type { DisciplineRecord, PaperStatus, PointsHistoryEntry, ProjectStage, Role, TaskStatus } from '../api/types';
 
 export const ROLE_LABEL: Record<Role, string> = {
   admin: 'Адміністратор',
@@ -12,6 +12,14 @@ export const TASK_STATUS_LABEL: Record<TaskStatus, string> = {
   in_progress: 'В роботі',
   review: 'На перевірці',
   done: 'Виконано',
+};
+
+export const PAPER_STATUS_LABEL: Record<PaperStatus, string> = {
+  draft: 'Чернетка',
+  published: 'Опубліковано',
+  frozen: 'Зафіксовано',
+  signed: 'Підписано',
+  cancelled: 'Скасовано',
 };
 
 export const PROJECT_STAGE_LABEL: Record<ProjectStage, string> = {

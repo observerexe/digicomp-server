@@ -14,7 +14,8 @@ async function main() {
     logger: false,
   });
   applyGlobalPrefix(app);
-  const out = join(__dirname, '..', 'openapi.json');
+  // dist/api/src/ → api/openapi.json
+  const out = join(__dirname, '..', '..', '..', 'openapi.json');
   writeFileSync(out, JSON.stringify(buildOpenApi(app), null, 2) + '\n');
   await app.close();
   console.log(`OpenAPI: ${out}`);

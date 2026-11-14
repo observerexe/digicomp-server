@@ -287,8 +287,15 @@
   Назву й вміст змінює автор (admin — будь-чий документ), лише в чернетці (інакше 409 `PAPER_NOT_DRAFT`); модератор чужу чернетку
   лише читає (403 `NOT_OWNER`). `visibility` змінюють admin і moderator; вона діє, коли документ опубліковано.
 - `DELETE /api/papers/:id` — лише чернетку (інакше 409 `PAPER_NOT_DRAFT`), автор або admin.
-- Вміст перевіряється за формою: корінь `doc`, вузли `{ type, attrs?, content?, text?, marks? }` без інших ключів, мітки `{ type, attrs? }`,
-  атрибути — рядки, числа, `true`/`false`, `null` або плоскі списки з них; до 40 рівнів вкладеності й 50 000 вузлів. Інакше 400 `VALIDATION_ERROR`.
+- Вміст перевіряється за спільним описом редактора (`shared/editor-schema/`): корінь `doc`, вузли `{ type, attrs?, content?, text?, marks? }`
+  без інших ключів, мітки `{ type, attrs? }`; до 40 рівнів вкладеності й 50 000 вузлів. Інакше 400 `VALIDATION_ERROR`.
+  - Вузли: `paragraph`, `heading` (`level` 1–3), `bulletList`, `orderedList` (`start`), `listItem`, `table`, `tableRow`, `tableCell` і
+    `tableHeader` (`colspan`, `rowspan`, `colwidth` — лише `null`), `pageBreak`, `text`, `hardBreak`. Кожен — лише в дозволеному місці:
+    `text` і `hardBreak` — в абзаці й заголовку, `listItem` — у списку, клітинки — у рядку, рядки — в таблиці; решта — блоки.
+  - `paragraph` і `heading` мають `align` (`center`, `right`, `justify` або `null`) і `indent` (0–6, крок 5 мм).
+  - Мітки: `bold`, `italic`, `underline`, `strike`, `textStyle` з `size` (10, 11, 12, 14, 16, 18, 20, 24, 28 pt), `color` (назва з палітри)
+    і `font` (`serif`, `sans`); кожне — або `null`. Мітки лише на `text` і `hardBreak`.
+  - Невідомі вузли, мітки й атрибути (зокрема `style` і `class`) не приймаються.
   Тіло запиту до `/api/papers` — до 1 МБ (інакше 413).
 - Аудит: `paper.created`, `paper.deleted` завжди; `paper.updated` (`changes`: назва, видимість; `content: true`, якщо змінено вміст) —
   коли змінено видимість або документ змінює не автор. Автозбереження автором своєї чернетки в аудит не пишеться.

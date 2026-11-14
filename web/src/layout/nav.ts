@@ -23,6 +23,7 @@ export const MORE: NavItem[] = [
   { to: '/inventory', label: 'Склад', icon: 'box' },
   { to: '/smart', label: 'Розумна лабораторія', icon: 'bulb', permission: 'smart.read' },
   { to: '/docs', label: 'Архів', icon: 'file' },
+  { to: '/editor', label: 'Редактор', icon: 'pen', permission: 'papers.read' },
   { to: '/rating', label: 'Рейтинг', icon: 'star' },
 ];
 

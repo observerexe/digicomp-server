@@ -17,6 +17,7 @@
 - `docs/tech/` — технічна документація; `README.md` — користувацька.
 - `ops/agent/` — агент на сервері для розширеної панелі (Python, systemd).
 - `web/` — фронт: React + TypeScript + Vite, PWA. Його роздає NestJS; API — під `/api`.
+- `shared/editor-schema/` — спільний опис документа редактора; компілюється і в `api`, і в `web` (див. `docs/tech/DEVELOPMENT.md`).
 - `docs/design/` — затверджений дизайн: `tokens.json` (кольори, шрифт, розміри) і правила.
 
 ## Команди

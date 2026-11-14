@@ -100,6 +100,30 @@ describe('Документи редактора (e2e)', () => {
       ['задовга назва', { title: 'x'.repeat(201) }],
       ['вміст не документ', { content: { type: 'paragraph' } }],
       ['атрибут style у вузлі', { content: { type: 'doc', style: 'x' } }],
+      [
+        'вузол не зі спільного опису',
+        { content: { type: 'doc', content: [{ type: 'image' }] } },
+      ],
+      [
+        'розмір шрифту не з набору',
+        {
+          content: {
+            type: 'doc',
+            content: [
+              {
+                type: 'paragraph',
+                content: [
+                  {
+                    type: 'text',
+                    text: 'x',
+                    marks: [{ type: 'textStyle', attrs: { size: 99 } }],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
       ['зайве поле', { status: 'published' }],
     ])('%s — 400', async (_l, body) => {
       const res = await as(app, member).post('/api/papers').send(body);

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import type { RouteObject } from 'react-router';
 import { RequireAuth, RequirePermission } from './auth/RequireAuth';
 import { AppShell } from './layout/AppShell';
@@ -18,6 +19,7 @@ import { UsersPage } from './pages/panel/UsersPage';
 import { DocFormPage } from './pages/docs/DocFormPage';
 import { DocPage } from './pages/docs/DocPage';
 import { DocsPage } from './pages/docs/DocsPage';
+import { PapersPage } from './pages/editor/PapersPage';
 import { InventoryPage } from './pages/inventory/InventoryPage';
 import { ItemFormPage } from './pages/inventory/ItemFormPage';
 import { ItemPage } from './pages/inventory/ItemPage';
@@ -46,6 +48,10 @@ import { SmartPage } from './pages/smart/SmartPage';
 import { ForbiddenPage, NotFoundPage } from './pages/sections';
 import { TeamPage } from './pages/team/TeamPage';
 import { UserPage } from './pages/team/UserPage';
+import { Skeleton } from './components/ui';
+
+// TipTap is loaded only when a document is opened.
+const PaperPage = lazy(() => import('./pages/editor/PaperPage').then((m) => ({ default: m.PaperPage })));
 
 export const routes: RouteObject[] = [
   { path: '/login', element: <LoginPage /> },
@@ -160,6 +166,15 @@ export const routes: RouteObject[] = [
         ),
       },
       { path: 'docs/:id', element: <DocPage /> },
+      { path: 'editor', element: <PapersPage /> },
+      {
+        path: 'editor/:id',
+        element: (
+          <Suspense fallback={<Skeleton height={480} />}>
+            <PaperPage />
+          </Suspense>
+        ),
+      },
       { path: 'rating', element: <RatingPage /> },
       {
         path: 'points',

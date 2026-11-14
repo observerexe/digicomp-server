@@ -43,6 +43,16 @@
   --pal-purple-solid: #8250DF;
   --pal-purple-soft: #EFE7FD;
   --pal-purple-text: #6B3FC2;
+  --sheet-paper: #FFFFFF;
+  --sheet-ink: #0E1A2B;
+  --sheet-gray: #46566E;
+  --sheet-red: #B42828;
+  --sheet-orange: #A4480A;
+  --sheet-yellow: #7D5A00;
+  --sheet-green: #17784A;
+  --sheet-teal: #0E6E73;
+  --sheet-blue: #1A54BF;
+  --sheet-purple: #6B3FC2;
   --radius-card: 16px;
   --radius-card-large: 20px;
   --radius-control: 12px;

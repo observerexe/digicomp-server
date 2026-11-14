@@ -51,3 +51,6 @@ export type LinkCandidate = S['LinkCandidateDto'];
 export type InventoryMovement = S['InventoryMovementDto'];
 export type DocVersion = S['DocVersionDto'];
 export type AccessScope = S['AccessScope'];
+export type Paper = S['PaperDto'];
+export type PaperItem = S['PaperItemDto'];
+export type PaperStatus = S['PaperStatus'];

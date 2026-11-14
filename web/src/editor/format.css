@@ -1,0 +1,184 @@
+/*
+ * The document sheet: always white, Times New Roman 14 pt, 1.5 lines,
+ * paragraph indent 10 mm (ДСТУ 4163:2020). Format classes — shared/editor-schema
+ * (schema.test.ts checks that each has a rule here). Global: the classes come from the content.
+ */
+
+.paper {
+  background: var(--sheet-paper);
+  color: var(--sheet-ink);
+  font-family: 'Times New Roman', Tinos, serif;
+  font-size: 14pt;
+  line-height: 1.5;
+}
+.paper p {
+  margin: 0;
+  text-indent: 10mm;
+}
+.paper h1,
+.paper h2,
+.paper h3 {
+  margin: 12pt 0 6pt;
+  font-family: inherit;
+  font-weight: 700;
+  line-height: 1.3;
+  text-indent: 0;
+}
+.paper h1 {
+  font-size: 16pt;
+}
+.paper h2,
+.paper h3 {
+  font-size: 14pt;
+}
+.paper h3 {
+  font-style: italic;
+}
+.paper ul,
+.paper ol {
+  margin: 0;
+  padding-left: 10mm;
+}
+.paper li p,
+.paper td p,
+.paper th p {
+  text-indent: 0;
+}
+.paper table {
+  width: 100%;
+  margin: 6pt 0;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.paper td,
+.paper th {
+  padding: 1mm 2mm;
+  border: 1px solid var(--sheet-ink);
+  vertical-align: top;
+}
+.paper th {
+  font-weight: 700;
+}
+.paper .page-break {
+  margin: 12pt 0;
+  border-top: 1px dashed var(--sheet-gray);
+  color: var(--sheet-gray);
+  font-family: var(--font-body);
+  font-size: 11px;
+  line-height: 1;
+  text-align: center;
+}
+.paper .page-break::after {
+  content: 'Розрив сторінки';
+  position: relative;
+  top: -0.6em;
+  padding: 0 8px;
+  background: var(--sheet-paper);
+}
+
+/* Sizes */
+.paper .fs-10 { font-size: 10pt; }
+.paper .fs-11 { font-size: 11pt; }
+.paper .fs-12 { font-size: 12pt; }
+.paper .fs-14 { font-size: 14pt; }
+.paper .fs-16 { font-size: 16pt; }
+.paper .fs-18 { font-size: 18pt; }
+.paper .fs-20 { font-size: 20pt; }
+.paper .fs-24 { font-size: 24pt; }
+.paper .fs-28 { font-size: 28pt; }
+
+/* Colours: the palette's light text (the sheet is white in both themes) */
+.paper .tc-gray { color: var(--sheet-gray); }
+.paper .tc-red { color: var(--sheet-red); }
+.paper .tc-orange { color: var(--sheet-orange); }
+.paper .tc-yellow { color: var(--sheet-yellow); }
+.paper .tc-green { color: var(--sheet-green); }
+.paper .tc-teal { color: var(--sheet-teal); }
+.paper .tc-blue { color: var(--sheet-blue); }
+.paper .tc-purple { color: var(--sheet-purple); }
+
+/* Fonts */
+.paper .ff-serif { font-family: 'Times New Roman', Tinos, serif; }
+.paper .ff-sans { font-family: var(--font-body); }
+
+/* Alignment: centred and right-aligned lines have no paragraph indent */
+.paper .ta-center { text-align: center; text-indent: 0; }
+.paper .ta-right { text-align: right; text-indent: 0; }
+.paper .ta-justify { text-align: justify; }
+
+/* Left indent, 5 mm a step */
+.paper .in-1 { margin-left: 5mm; }
+.paper .in-2 { margin-left: 10mm; }
+.paper .in-3 { margin-left: 15mm; }
+.paper .in-4 { margin-left: 20mm; }
+.paper .in-5 { margin-left: 25mm; }
+.paper .in-6 { margin-left: 30mm; }
+
+/* ProseMirror's own rules (TipTap would inject them as <style>, which CSP blocks: injectCSS: false) */
+.ProseMirror {
+  position: relative;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  white-space: break-spaces;
+  font-variant-ligatures: none;
+  font-feature-settings: 'liga' 0;
+  outline: none;
+}
+.ProseMirror [contenteditable='false'] {
+  white-space: normal;
+}
+.ProseMirror [contenteditable='false'] [contenteditable='true'] {
+  white-space: pre-wrap;
+}
+img.ProseMirror-separator {
+  display: inline !important;
+  border: none !important;
+  margin: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.ProseMirror-gapcursor {
+  display: none;
+  pointer-events: none;
+  position: absolute;
+  margin: 0;
+}
+.ProseMirror-gapcursor::after {
+  content: '';
+  display: block;
+  position: absolute;
+  top: -2px;
+  width: 20px;
+  border-top: 1px solid var(--sheet-ink);
+  animation: ProseMirror-cursor-blink 1.1s steps(2, start) infinite;
+}
+@keyframes ProseMirror-cursor-blink {
+  to {
+    visibility: hidden;
+  }
+}
+.ProseMirror-hideselection *::selection {
+  background: transparent;
+}
+.ProseMirror-hideselection * {
+  caret-color: transparent;
+}
+.ProseMirror-focused .ProseMirror-gapcursor {
+  display: block;
+}
+.ProseMirror-selectednode {
+  outline: 2px solid var(--c-primary);
+}
+.paper .selectedCell {
+  background: var(--c-primary-soft);
+}
+
+@media print {
+  .paper .page-break {
+    break-after: page;
+    border: 0;
+  }
+  .paper .page-break::after {
+    content: none;
+  }
+}
