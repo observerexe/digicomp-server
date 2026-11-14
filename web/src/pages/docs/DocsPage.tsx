@@ -3,10 +3,11 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { api, unwrap } from '../../api/client';
 import { useAuth } from '../../auth/AuthProvider';
-import { Chips, distinct, SearchField } from '../../components/Filters';
+import { Chips, SearchField } from '../../components/Filters';
 import { Icon } from '../../components/Icon';
 import { ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
+import { CATEGORY, itemTitle, useDictionary, usedItems } from '../../lib/dictionaries';
 import { formatDate, formatSize } from '../../lib/format';
 import { useDebounced } from '../../lib/useDebounced';
 import s from './docs.module.css';
@@ -14,7 +15,7 @@ import s from './docs.module.css';
 /** File type for the list: «PDF», «DOCX». */
 export const fileKind = (name: string | null) => name?.split('.').pop()?.toUpperCase() ?? '';
 
-/** Archive: search on the server (titles), categories, archived for staff. */
+/** Archive: search on the server (titles, descriptions, categories), categories, archived for staff. */
 export function DocsPage() {
   const { can } = useAuth();
   const [search, setSearch] = useState('');
@@ -27,7 +28,8 @@ export function DocsPage() {
       unwrap(api.GET('/api/documents', { params: { query: { limit: '100', ...(q ? { search: q } : {}), ...(archived ? { archived: 'true' } : {}) } } })),
   });
   const items = docs.data?.items ?? [];
-  const categories = useMemo(() => distinct(items.map((d) => d.category)), [items]);
+  const dict = useDictionary(CATEGORY.document).data;
+  const categories = useMemo(() => usedItems(dict, items.map((d) => d.category)), [dict, items]);
   const shown = items.filter((d) => !category || d.category === category);
 
   return (
@@ -41,7 +43,7 @@ export function DocsPage() {
       </PageHeader>
       <div className={s.tools}>
         <SearchField value={search} onChange={setSearch} placeholder="Назва документа" />
-        <Chips label="Категорія" values={categories} value={category} onChange={setCategory} />
+        <Chips label="Категорія" options={categories} value={category} onChange={setCategory} />
         {can('documents.manage') && (
           <label className={s.check}>
             <input type="checkbox" checked={archived} onChange={(e) => setArchived(e.target.checked)} />
@@ -71,7 +73,7 @@ export function DocsPage() {
                     {d.archived && <span className={s.tag}>в архіві</span>}
                   </span>
                   <span className={s.sub}>
-                    {[d.category, d.version !== null && `версія ${d.version}`, d.size !== null && formatSize(d.size), `оновлено ${formatDate(d.updatedAt)}`]
+                    {[itemTitle(dict, d.category), d.version !== null && `версія ${d.version}`, d.size !== null && formatSize(d.size), `оновлено ${formatDate(d.updatedAt)}`]
                       .filter(Boolean)
                       .join(' · ')}
                   </span>

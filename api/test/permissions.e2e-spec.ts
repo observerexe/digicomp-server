@@ -6,6 +6,7 @@ import { AuditLog } from '../src/audit/audit-log.entity';
 import { Role } from '../src/users/user.entity';
 import {
   as,
+  category,
   createTestApp,
   makeUser,
   PNG_1PX,
@@ -54,6 +55,12 @@ describe('Матриця прав (e2e)', () => {
     mod2 = await makeUser(app, Role.Moderator);
     member = await makeUser(app, Role.Member);
     member2 = await makeUser(app, Role.Member);
+    for (const t of ['Верстати', 'Друк', 'Відео']) {
+      await category(app, 'place_category', t);
+    }
+    await category(app, 'document_category', 'Інструкції');
+    await category(app, 'document_category', 'Паспорти');
+    await category(app, 'inventory_category', 'Матеріали');
   });
 
   const audit = (action: string, entityId: string) =>
@@ -640,16 +647,16 @@ describe('Матриця прав (e2e)', () => {
       as(app, who)
         .post('/api/documents')
         .field('title', 'Інструкція')
-        .field('category', 'Інструкції')
+        .field('category', 'instruktsii')
         .attach('file', Buffer.from('текст'), 'a.txt');
     const place = (who: TestUser) =>
       as(app, who)
         .post('/api/places')
-        .send({ code: `PLACE-${++n}`, title: 'Лазер', category: 'Верстати' });
+        .send({ code: `PLACE-${++n}`, title: 'Лазер', category: 'verstaty' });
     const item = (who: TestUser) =>
       as(app, who)
         .post('/api/inventory/items')
-        .send({ code: `ITEM-${++n}`, title: 'Фанера', category: 'Матеріали' });
+        .send({ code: `ITEM-${++n}`, title: 'Фанера', category: 'materialy' });
 
     it('admin так', async () => {
       expect((await doc(admin)).status).toBe(201);
@@ -667,7 +674,7 @@ describe('Матриця прав (e2e)', () => {
       const pdf = await as(app, mod)
         .post('/api/documents')
         .field('title', 'Паспорт')
-        .field('category', 'Паспорти')
+        .field('category', 'pasporty')
         .attach('file', Buffer.from('%PDF-1.4\n%%EOF\n'), 'pass.pdf');
       expect(pdf.status).toBe(201);
       const view = await as(app, member)
@@ -712,7 +719,7 @@ describe('Матриця прав (e2e)', () => {
       const p = await as(app, admin).post('/api/places').send({
         code: 'LASER-1',
         title: 'Лазер',
-        category: 'Верстати',
+        category: 'verstaty',
         needsAuthorization: true,
       });
       placeId = p.body.id;
@@ -769,7 +776,7 @@ describe('Матриця прав (e2e)', () => {
       const i = await as(app, admin).post('/api/inventory/items').send({
         code: 'ITEM-1',
         title: 'Фанера',
-        category: 'Матеріали',
+        category: 'materialy',
         quantity: 10,
       });
       itemId = i.body.id;
@@ -804,7 +811,7 @@ describe('Матриця прав (e2e)', () => {
       const p = await as(app, admin).post('/api/places').send({
         code: 'LASER-1',
         title: 'Лазер',
-        category: 'Верстати',
+        category: 'verstaty',
         needsAuthorization: true,
       });
       placeId = p.body.id;
@@ -836,7 +843,7 @@ describe('Матриця прав (e2e)', () => {
       const p = await as(app, admin).post('/api/places').send({
         code: 'PRINTER-1',
         title: 'Принтер',
-        category: 'Друк',
+        category: 'druk',
         needsAuthorization: false,
       });
       const s = await as(app, member2)
@@ -869,7 +876,7 @@ describe('Матриця прав (e2e)', () => {
       const p = await as(app, admin).post('/api/places').send({
         code: 'CAM-1',
         title: 'Камера',
-        category: 'Відео',
+        category: 'video',
         needsAuthorization: false,
       });
       placeId = p.body.id;
@@ -916,7 +923,7 @@ describe('Матриця прав (e2e)', () => {
       const p = await as(app, admin).post('/api/places').send({
         code: 'LASER-B',
         title: 'Лазер',
-        category: 'Верстати',
+        category: 'verstaty',
         needsAuthorization: true,
       });
       const start = Date.now() + 48 * 3600_000;
@@ -941,7 +948,7 @@ describe('Матриця прав (e2e)', () => {
       const p = await as(app, admin).post('/api/places').send({
         code: 'PRN-1',
         title: 'Принтер',
-        category: 'Друк',
+        category: 'druk',
       });
       placeId = p.body.id;
     });

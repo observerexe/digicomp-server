@@ -16,9 +16,10 @@ export class CreateDocDto {
   @MaxLength(200)
   title: string;
 
+  /** Item key of the «document_category» dictionary. */
   @IsString()
   @MinLength(1)
-  @MaxLength(100)
+  @MaxLength(40)
   category: string;
 
   @IsOptional()
@@ -46,10 +47,11 @@ export class UpdateDocDto {
   @MaxLength(200)
   title?: string;
 
+  /** Item key of the «document_category» dictionary. */
   @IsOptional()
   @IsString()
   @MinLength(1)
-  @MaxLength(100)
+  @MaxLength(40)
   category?: string;
 
   @IsOptional()
@@ -83,9 +85,10 @@ export class ListDocsQuery {
   @MaxLength(100)
   search?: string;
 
+  /** Item key of the «document_category» dictionary. */
   @IsOptional()
   @IsString()
-  @MaxLength(100)
+  @MaxLength(40)
   category?: string;
 
   @IsOptional()

@@ -9,6 +9,7 @@ import { Icon } from '../../components/Icon';
 import { QrCode } from '../../components/QrCode';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
+import { CATEGORY, itemTitle, useDictionary } from '../../lib/dictionaries';
 import { formatDate, formatDateTime, formatDuration, formatSize, formatTime } from '../../lib/format';
 import { kyivDay, kyivParts, addDays } from '../../lib/kyiv';
 import { placeUrl } from '../../lib/scan';
@@ -27,6 +28,7 @@ export function EquipmentPage() {
   const { code = '' } = useParams();
   const { user, can } = useAuth();
   const place = usePlace(code);
+  const categories = useDictionary(CATEGORY.place);
   const [showQr, setShowQr] = useState(false);
 
   const today = kyivParts(new Date()).date;
@@ -83,7 +85,7 @@ export function EquipmentPage() {
         <PlaceState place={p} />
       </PageHeader>
       <p className={s.meta}>
-        {[p.category, p.location, `код ${p.code}`, p.needsAuthorization ? 'потрібен допуск' : 'без допуску'].filter(Boolean).join(' · ')}
+        {[itemTitle(categories.data, p.category), p.location, `код ${p.code}`, p.needsAuthorization ? 'потрібен допуск' : 'без допуску'].filter(Boolean).join(' · ')}
       </p>
       {p.description && <p className={s.description}>{p.description}</p>}
       <div className={s.actions}>

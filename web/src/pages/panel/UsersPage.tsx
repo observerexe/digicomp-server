@@ -29,7 +29,8 @@ export async function fetchStaffUsers() {
 }
 
 const STATE = { active: 'Активні', blocked: 'Заблоковані' } as const;
-const ROLE_BY_LABEL = Object.fromEntries(Object.entries(ROLE_LABEL).map(([k, v]) => [v, k])) as Record<string, Role>;
+const ROLE_OPTIONS = (Object.keys(ROLE_LABEL) as Role[]).map((r) => ({ value: r, label: ROLE_LABEL[r] }));
+const STATE_OPTIONS = (Object.keys(STATE) as (keyof typeof STATE)[]).map((k) => ({ value: k, label: STATE[k] }));
 
 export function filterUsers(items: UserListItem[], search: string, role: Role | null, state: keyof typeof STATE | null) {
   const q = norm(search);
@@ -65,12 +66,12 @@ export function UsersPage() {
       </PageHeader>
       <div className={s.tools}>
         <SearchField value={search} onChange={setSearch} placeholder="Ім’я, email, посада" />
-        <Chips label="Роль" values={Object.values(ROLE_LABEL)} value={role ? ROLE_LABEL[role] : null} onChange={(v) => setRole(v ? ROLE_BY_LABEL[v]! : null)} />
+        <Chips label="Роль" options={ROLE_OPTIONS} value={role} onChange={(v) => setRole(v as Role | null)} />
         <Chips
           label="Стан"
-          values={Object.values(STATE)}
-          value={state ? STATE[state] : null}
-          onChange={(v) => setState(v === STATE.active ? 'active' : v === STATE.blocked ? 'blocked' : null)}
+          options={STATE_OPTIONS}
+          value={state}
+          onChange={(v) => setState(v as keyof typeof STATE | null)}
         />
       </div>
       {q.isPending ? (

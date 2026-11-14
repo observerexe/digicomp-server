@@ -859,6 +859,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/dictionaries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DictionariesController_list"];
+        put?: never;
+        post: operations["DictionariesController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dictionaries/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DictionariesController_get"];
+        put?: never;
+        post?: never;
+        delete: operations["DictionariesController_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["DictionariesController_update"];
+        trace?: never;
+    };
+    "/api/dictionaries/{key}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["DictionariesController_addItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dictionaries/{key}/items/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["DictionariesController_reorder"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dictionaries/{key}/items/{itemKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["DictionariesController_removeItem"];
+        options?: never;
+        head?: never;
+        patch: operations["DictionariesController_updateItem"];
+        trace?: never;
+    };
     "/api/bookings": {
         parameters: {
             query?: never;
@@ -1407,86 +1487,6 @@ export interface paths {
         patch: operations["SmartController_update"];
         trace?: never;
     };
-    "/api/dictionaries": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["DictionariesController_list"];
-        put?: never;
-        post: operations["DictionariesController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/dictionaries/{key}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["DictionariesController_get"];
-        put?: never;
-        post?: never;
-        delete: operations["DictionariesController_remove"];
-        options?: never;
-        head?: never;
-        patch: operations["DictionariesController_update"];
-        trace?: never;
-    };
-    "/api/dictionaries/{key}/items": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["DictionariesController_addItem"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/dictionaries/{key}/items/order": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations["DictionariesController_reorder"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/dictionaries/{key}/items/{itemKey}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["DictionariesController_removeItem"];
-        options?: never;
-        head?: never;
-        patch: operations["DictionariesController_updateItem"];
-        trace?: never;
-    };
     "/api/admin-panel/overview": {
         parameters: {
             query?: never;
@@ -1981,6 +1981,7 @@ export interface components {
         CreatePlaceDto: {
             code: string;
             title: string;
+            /** @description Item key of the «place_category» dictionary. */
             category: string;
             location?: string;
             description?: string;
@@ -1989,6 +1990,7 @@ export interface components {
         };
         UpdatePlaceDto: {
             title?: string;
+            /** @description Item key of the «place_category» dictionary. */
             category?: string;
             location?: string;
             description?: string;
@@ -2085,6 +2087,57 @@ export interface components {
             /** Format: date-time */
             grantedAt: string;
             note: string;
+        };
+        /** @enum {string} */
+        PaletteColor: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
+        DictionaryItemDto: {
+            color: components["schemas"]["PaletteColor"];
+            id: string;
+            /** @description Stored in records; never changes. */
+            key: string;
+            title: string;
+            position: number;
+            /** @description Not offered for new values; old records keep it. */
+            archived: boolean;
+        };
+        DictionaryDto: {
+            /** @description In display order, archived included. */
+            items: components["schemas"]["DictionaryItemDto"][];
+            id: string;
+            /** @description Modules and templates refer to the dictionary by key; never changes. */
+            key: string;
+            title: string;
+            /** @description A module relies on it: it cannot be deleted. */
+            required: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        CreateDictionaryDto: {
+            title: string;
+        };
+        UpdateDictionaryDto: {
+            title: string;
+        };
+        CreateDictionaryItemDto: {
+            title: string;
+            /**
+             * @description Default gray.
+             * @enum {string}
+             */
+            color?: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
+        };
+        ReorderDictionaryItemsDto: {
+            /** @description Every item key of the dictionary (archived too), in the new order. */
+            keys: string[];
+        };
+        UpdateDictionaryItemDto: {
+            title?: string;
+            /** @enum {string} */
+            color?: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
+            /** @description true — to the archive, false — back. */
+            archived?: boolean;
         };
         CreateBookingDto: {
             /** Format: uuid */
@@ -2234,6 +2287,7 @@ export interface components {
         };
         CreateDocDto: {
             title: string;
+            /** @description Item key of the «document_category» dictionary. */
             category: string;
             description?: string;
             /** @enum {string} */
@@ -2248,6 +2302,7 @@ export interface components {
         };
         UpdateDocDto: {
             title?: string;
+            /** @description Item key of the «document_category» dictionary. */
             category?: string;
             description?: string;
             /** @enum {string} */
@@ -2314,6 +2369,7 @@ export interface components {
         CreateItemDto: {
             code: string;
             title: string;
+            /** @description Item key of the «inventory_category» dictionary. */
             category: string;
             unit?: string;
             quantity?: number;
@@ -2323,6 +2379,7 @@ export interface components {
         };
         UpdateItemDto: {
             title?: string;
+            /** @description Item key of the «inventory_category» dictionary. */
             category?: string;
             unit?: string;
             minQuantity?: number;
@@ -2555,57 +2612,6 @@ export interface components {
             label?: string;
             room?: string;
             enabled?: boolean;
-        };
-        /** @enum {string} */
-        PaletteColor: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
-        DictionaryItemDto: {
-            color: components["schemas"]["PaletteColor"];
-            id: string;
-            /** @description Stored in records; never changes. */
-            key: string;
-            title: string;
-            position: number;
-            /** @description Not offered for new values; old records keep it. */
-            archived: boolean;
-        };
-        DictionaryDto: {
-            /** @description In display order, archived included. */
-            items: components["schemas"]["DictionaryItemDto"][];
-            id: string;
-            /** @description Modules and templates refer to the dictionary by key; never changes. */
-            key: string;
-            title: string;
-            /** @description A module relies on it: it cannot be deleted. */
-            required: boolean;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        CreateDictionaryDto: {
-            title: string;
-        };
-        UpdateDictionaryDto: {
-            title: string;
-        };
-        CreateDictionaryItemDto: {
-            title: string;
-            /**
-             * @description Default gray.
-             * @enum {string}
-             */
-            color?: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
-        };
-        ReorderDictionaryItemsDto: {
-            /** @description Every item key of the dictionary (archived too), in the new order. */
-            keys: string[];
-        };
-        UpdateDictionaryItemDto: {
-            title?: string;
-            /** @enum {string} */
-            color?: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
-            /** @description true — to the archive, false — back. */
-            archived?: boolean;
         };
         ContainerDto: {
             /** @description healthy, unhealthy, starting or null (no healthcheck). */
@@ -3768,6 +3774,7 @@ export interface operations {
         parameters: {
             query?: {
                 search?: string;
+                /** @description Item key of the «place_category» dictionary. */
                 category?: string;
                 status?: "active" | "maintenance" | "archived";
             };
@@ -4064,6 +4071,213 @@ export interface operations {
             };
         };
     };
+    DictionariesController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryDto"][];
+                };
+            };
+        };
+    };
+    DictionariesController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDictionaryDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryDto"];
+                };
+            };
+        };
+    };
+    DictionariesController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryDto"];
+                };
+            };
+        };
+    };
+    DictionariesController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    DictionariesController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDictionaryDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryDto"];
+                };
+            };
+        };
+    };
+    DictionariesController_addItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDictionaryItemDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryItemDto"];
+                };
+            };
+        };
+    };
+    DictionariesController_reorder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderDictionaryItemsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryDto"];
+                };
+            };
+        };
+    };
+    DictionariesController_removeItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+                itemKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    DictionariesController_updateItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+                itemKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDictionaryItemDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryItemDto"];
+                };
+            };
+        };
+    };
     BookingsController_create: {
         parameters: {
             query?: never;
@@ -4335,6 +4549,7 @@ export interface operations {
         parameters: {
             query?: {
                 search?: string;
+                /** @description Item key of the «document_category» dictionary. */
                 category?: string;
                 placeId?: string;
                 inventoryItemId?: string;
@@ -4521,6 +4736,7 @@ export interface operations {
         parameters: {
             query?: {
                 search?: string;
+                /** @description Item key of the «inventory_category» dictionary. */
                 category?: string;
                 lowStock?: "true";
                 page?: string;
@@ -5064,213 +5280,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SmartAllowedDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DictionaryDto"][];
-                };
-            };
-        };
-    };
-    DictionariesController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateDictionaryDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DictionaryDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DictionaryDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_remove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OkDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateDictionaryDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DictionaryDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_addItem: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateDictionaryItemDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DictionaryItemDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_reorder: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReorderDictionaryItemsDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DictionaryDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_removeItem: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-                itemKey: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OkDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_updateItem: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-                itemKey: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateDictionaryItemDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DictionaryItemDto"];
                 };
             };
         };

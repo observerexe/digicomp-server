@@ -2,18 +2,22 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import type { Doc, Me } from '../../api/types';
-import { json, member, mockApi, moderator, renderApp } from '../../test/render';
+import { dictionary, json, member, mockApi, moderator, renderApp } from '../../test/render';
 
 const staff: Me = { ...moderator, permissions: [...moderator.permissions, 'documents.manage'] };
 const doc = (over: Partial<Doc> = {}): Doc => ({
-  id: 'd1', title: 'Паспорт фрезера', category: 'Паспорти', description: '', accessScope: 'members', placeId: null, inventoryItemId: null,
+  id: 'd1', title: 'Паспорт фрезера', category: 'pasporty', description: '', accessScope: 'members', placeId: null, inventoryItemId: null,
   authorId: 'm1', createdAt: '', updatedAt: '2026-11-01T10:00:00Z', archived: false, version: 2, fileName: 'pass.pdf', mimeType: 'application/pdf',
   size: 4_400_000, versionsCount: 2, ...over,
 });
 const base = (me: Me, extra: Record<string, (r: Request) => Response | Promise<Response>> = {}) => ({
   'GET /api/auth/me': () => json(200, me),
+  ...dictionary('document_category', [
+    { key: 'instruktsii', title: 'Інструкції' },
+    { key: 'pasporty', title: 'Паспорти' },
+  ]),
   'GET /api/work-sessions': () => json(200, { items: [], total: 0, page: 1, limit: 1 }),
-  'GET /api/documents': () => json(200, { items: [doc(), doc({ id: 'd2', title: 'Порядок дій', category: 'Інструкції', accessScope: 'supervisors', fileName: 'a.docx', mimeType: 'x' })], total: 2, page: 1, limit: 100 }),
+  'GET /api/documents': () => json(200, { items: [doc(), doc({ id: 'd2', title: 'Порядок дій', category: 'instruktsii', accessScope: 'supervisors', fileName: 'a.docx', mimeType: 'x' })], total: 2, page: 1, limit: 100 }),
   'GET /api/documents/d1/versions': () => json(200, [{ id: 'v2', version: 2, fileName: 'pass.pdf', mimeType: 'application/pdf', size: 10, sha256: '', changeNote: 'Нова схема', uploadedById: 'm1', createdAt: '' }]),
   'GET /api/places': () => json(200, []),
   'GET /api/inventory/items': () => json(200, { items: [], total: 0, page: 1, limit: 100 }),
@@ -27,6 +31,8 @@ describe('Архів', () => {
     const list = await screen.findByRole('list', { name: 'Документи' });
     expect(within(list).getByText('PDF')).toBeInTheDocument();
     expect(within(list).getByText('лише модератори')).toBeInTheDocument();
+    // Category by its title from the dictionary.
+    expect(await within(list).findByText(/^Паспорти · версія 2/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Інструкції' }));
     expect(within(list).getAllByRole('link')).toHaveLength(1);
     expect(screen.queryByRole('link', { name: 'Новий документ' })).not.toBeInTheDocument();
@@ -73,14 +79,16 @@ describe('Архів', () => {
     fireEvent.drop(zone, { dataTransfer: { files: [file] } });
     expect(within(zone).getByText(/Інструкція з безпеки.pdf/)).toBeInTheDocument();
     expect(screen.getByLabelText('Назва')).toHaveValue('Інструкція з безпеки');
-    await userEvent.type(screen.getByLabelText('Категорія'), 'Інструкції');
+    const select = screen.getByLabelText('Категорія');
+    await waitFor(() => expect(select).toBeEnabled());
+    await userEvent.selectOptions(select, 'Інструкції');
     await userEvent.click(screen.getByLabelText('Лише модератори й адмін'));
     await userEvent.click(screen.getByRole('button', { name: 'Додати документ' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/docs/n1'));
     const post = calls.find((c) => c.method === 'POST')!;
     expect(post.headers.get('content-type')).toMatch(/^multipart\/form-data/);
     expect(post.body).toContain('supervisors');
-    expect(post.body).toContain('Інструкції');
+    expect(post.body).toMatch(/name="category"\r\n\r\ninstruktsii\r\n/);
   });
 
   it('учаснику форма закрита', async () => {

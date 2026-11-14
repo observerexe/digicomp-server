@@ -2,7 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Booking, Me, Place, WorkSession } from '../../api/types';
-import { json, member, mockApi, moderator, renderApp } from '../../test/render';
+import { dictionary, json, member, mockApi, moderator, renderApp } from '../../test/render';
 import { daySlots } from './BookingsSection';
 
 // 10:05 in Kyiv on Tuesday, 10 November 2026 (free time starts at 10:15).
@@ -27,7 +27,7 @@ const place = (over: Partial<Place> = {}): Place => ({
   id: '11111111-1111-4111-8111-111111111111',
   code: 'CNC-1',
   title: 'Фрезер ЧПК',
-  category: 'Верстати',
+  category: 'verstaty',
   location: 'Майстерня',
   description: '',
   status: 'active',
@@ -77,10 +77,16 @@ function labApi(me: Me, opts: { place?: Place; bookings?: Booking[]; active?: Wo
   const state = { active: opts.active ?? null, place: opts.place ?? place() };
   const handlers = {
     'GET /api/auth/me': () => json(200, me),
+    ...dictionary('place_category', [
+      { key: 'verstaty', title: 'Верстати' },
+      { key: 'media', title: 'Медіа' },
+      { key: 'vymiriuvannia', title: 'Вимірювання' },
+      { key: 'staroie', title: 'Старе', archived: true },
+    ]),
     'GET /api/places': () =>
       json(200, [
         state.place,
-        place({ id: 'p2', code: 'CAM-2', title: 'Камера', category: 'Медіа', needsAuthorization: false, myAuthorization: null, inUse: true, activeSessions: [{ id: 's9', startedAt: at(9), user: andrii }] }),
+        place({ id: 'p2', code: 'CAM-2', title: 'Камера', category: 'media', needsAuthorization: false, myAuthorization: null, inUse: true, activeSessions: [{ id: 's9', startedAt: at(9), user: andrii }] }),
         place({ id: 'p3', code: 'LAS-1', title: 'Лазер', status: 'maintenance', myAuthorization: null }),
       ]),
     'GET /api/places/CNC-1': () => json(200, state.place),
@@ -104,11 +110,22 @@ describe('Лабораторія: список', () => {
     expect(within(list).getByText('На обслуговуванні')).toBeInTheDocument();
     expect(within(list).getByText(/є допуск/)).toBeInTheDocument();
 
+    // Filters: only categories in use, in the dictionary order, by title.
+    const chips = screen.getByRole('group', { name: 'Категорія' });
+    await waitFor(() => expect(within(chips).getAllByRole('button').map((b) => b.textContent)).toEqual(['Усі', 'Верстати', 'Медіа']));
+    expect(within(list).getAllByText(/^Верстати · Майстерня$/)).toHaveLength(2);
     await userEvent.click(screen.getByRole('button', { name: 'Медіа' }));
     expect(within(list).getAllByRole('link')).toHaveLength(1);
     await userEvent.click(screen.getByRole('button', { name: 'Усі' }));
     await userEvent.type(screen.getByRole('searchbox'), 'las');
     expect(within(list).getByRole('link')).toHaveAttribute('href', '/lab/LAS-1');
+    // Search finds the category title, not the key.
+    await userEvent.clear(screen.getByRole('searchbox'));
+    await userEvent.type(screen.getByRole('searchbox'), 'медіа');
+    expect(within(list).getByRole('link')).toHaveAttribute('href', '/lab/CAM-2');
+    await userEvent.clear(screen.getByRole('searchbox'));
+    await userEvent.type(screen.getByRole('searchbox'), 'media');
+    expect(screen.getByText(/Нічого не знайдено/)).toBeInTheDocument();
   });
 });
 
@@ -374,7 +391,11 @@ describe('Обладнання: керування (staff)', () => {
     });
     const { router } = renderApp('/lab/new');
     await userEvent.type(await screen.findByLabelText('Назва'), 'Осцилограф');
-    await userEvent.type(screen.getByLabelText('Категорія'), 'Вимірювання');
+    const select = screen.getByLabelText('Категорія');
+    await waitFor(() => expect(select).toBeEnabled());
+    // Archived items are not offered.
+    expect(within(select).queryByRole('option', { name: /Старе/ })).not.toBeInTheDocument();
+    await userEvent.selectOptions(select, 'Вимірювання');
     expect(screen.getByRole('button', { name: 'Додати' })).toBeDisabled();
     await userEvent.type(screen.getByLabelText('Код (для QR)'), 'OSC-2');
     await userEvent.click(screen.getByLabelText(/Лише один користувач/));
@@ -383,12 +404,50 @@ describe('Обладнання: керування (staff)', () => {
     expect(JSON.parse(calls.find((c) => c.method === 'POST')!.body)).toEqual({
       code: 'OSC-2',
       title: 'Осцилограф',
-      category: 'Вимірювання',
+      category: 'vymiriuvannia',
       location: '',
       description: '',
       needsAuthorization: true,
       exclusive: false,
     });
+  });
+
+  it('категорію можна додати прямо з вибору', async () => {
+    const { handlers } = labApi({ ...staff, permissions: [...staff.permissions, 'dictionaries.manage'] });
+    const { calls } = mockApi({
+      ...handlers,
+      'POST /api/dictionaries/place_category/items': () => json(201, { id: 'n', key: 'drukarky', title: 'Принтери', color: 'gray', position: 4, archived: false }),
+    });
+    renderApp('/lab/new');
+    const select = await screen.findByLabelText('Категорія');
+    await waitFor(() => expect(select).toBeEnabled());
+    await userEvent.selectOptions(select, '+ Нова категорія…');
+    const name = screen.getByLabelText('Категорія');
+    expect(name.tagName).toBe('INPUT');
+    // Enter adds the item, it does not submit the form.
+    await userEvent.type(name, 'Принтери{Enter}');
+    await waitFor(() => expect(screen.getByLabelText('Категорія').tagName).toBe('SELECT'));
+    expect(JSON.parse(calls.find((c) => c.path === '/api/dictionaries/place_category/items')!.body)).toEqual({ title: 'Принтери' });
+    expect(calls.some((c) => c.method === 'POST' && c.path === '/api/places')).toBe(false);
+  });
+
+  it('без права на довідники нової категорії у виборі немає', async () => {
+    mockApi(labApi(staff).handlers);
+    renderApp('/lab/new');
+    const select = await screen.findByLabelText('Категорія');
+    await waitFor(() => expect(select).toBeEnabled());
+    expect(within(select).queryByRole('option', { name: '+ Нова категорія…' })).not.toBeInTheDocument();
+  });
+
+  it('архівна категорія лишається в записі й показана з позначкою', async () => {
+    const { handlers } = labApi(staff, { place: place({ category: 'staroie' }) });
+    const { calls } = mockApi({ ...handlers, [`PATCH /api/places/${place().id}`]: async (req) => json(200, place((await req.json()) as Partial<Place>)) });
+    renderApp('/lab/CNC-1/edit');
+    const select = await screen.findByLabelText('Категорія');
+    await waitFor(() => expect(select).toHaveDisplayValue('Старе (в архіві)'));
+    await userEvent.click(screen.getByRole('button', { name: 'Зберегти' }));
+    await waitFor(() => expect(calls.some((c) => c.method === 'PATCH')).toBe(true));
+    expect(JSON.parse(calls.find((c) => c.method === 'PATCH')!.body)).toMatchObject({ category: 'staroie' });
   });
 
   it('редагування: код не змінюється, стан — у PATCH', async () => {

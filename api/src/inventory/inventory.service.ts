@@ -16,6 +16,11 @@ import {
 } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { Action, can } from '../auth/policy';
+import {
+  assertDictionaryItem,
+  itemTitleLike,
+  itemTitles,
+} from '../dictionaries/dictionary-usage';
 import { AccessScope, Doc } from '../documents/doc.entity';
 import {
   CreateItemDto,
@@ -24,7 +29,11 @@ import {
   MovementDto,
   UpdateItemDto,
 } from './dto';
-import { InventoryItem, InventoryMovement } from './inventory.entities';
+import {
+  INVENTORY_CATEGORY,
+  InventoryItem,
+  InventoryMovement,
+} from './inventory.entities';
 import { csvCell } from '../common/csv';
 import type { Plain } from '../common/responses.dto';
 import { isUUID } from 'class-validator';
@@ -116,8 +125,8 @@ export class InventoryService {
     }
     if (q.search) {
       qb.andWhere(
-        '(i.title ILIKE :s OR i.code ILIKE :s OR i.category ILIKE :s OR i.location ILIKE :s)',
-        { s: `%${escapeLike(q.search)}%` },
+        `(i.title ILIKE :s OR i.code ILIKE :s OR i.location ILIKE :s OR ${itemTitleLike('i.category', 'dict', 's')})`,
+        { s: `%${escapeLike(q.search)}%`, dict: INVENTORY_CATEGORY },
       );
     }
     qb.orderBy('i.title', 'ASC')
@@ -178,6 +187,7 @@ export class InventoryService {
       throw new ConflictException('Item code already used');
     }
     return this.ds.transaction(async (m) => {
+      await assertDictionaryItem(m, INVENTORY_CATEGORY, dto.category);
       const item = await m.save(
         InventoryItem,
         m.create(InventoryItem, {
@@ -227,6 +237,14 @@ export class InventoryService {
         lock: { mode: 'pessimistic_write' },
       });
       if (!item) throw new NotFoundException('Item not found');
+      if (dto.category !== undefined) {
+        await assertDictionaryItem(
+          m,
+          INVENTORY_CATEGORY,
+          dto.category,
+          item.category,
+        );
+      }
       const unit = dto.unit ?? item.unit;
       const min = dto.minQuantity ?? item.minQuantity;
       if (isIntegerUnit(unit)) {
@@ -351,8 +369,10 @@ export class InventoryService {
     return { items: rows.map(movementView), total, page, limit };
   }
 
+  /** Categories as titles: the file is read by people and spreadsheets. */
   async exportCsv() {
     const rows = await this.items.find({ order: { title: 'ASC' } });
+    const titles = await itemTitles(this.ds.manager, INVENTORY_CATEGORY);
     const head = [
       'code',
       'title',
@@ -367,7 +387,7 @@ export class InventoryService {
       [
         r.code,
         r.title,
-        r.category,
+        titles.get(r.category) ?? r.category,
         r.quantity,
         r.unit,
         r.minQuantity,

@@ -1652,8 +1652,9 @@
             "name": "category",
             "required": false,
             "in": "query",
+            "description": "Item key of the «place_category» dictionary.",
             "schema": {
-              "maxLength": 100,
+              "maxLength": 40,
               "type": "string"
             }
           },
@@ -2190,6 +2191,319 @@
         ]
       }
     },
+    "/api/dictionaries": {
+      "get": {
+        "operationId": "DictionariesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DictionaryDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      },
+      "post": {
+        "operationId": "DictionariesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDictionaryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      }
+    },
+    "/api/dictionaries/{key}": {
+      "get": {
+        "operationId": "DictionariesController_get",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      },
+      "patch": {
+        "operationId": "DictionariesController_update",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDictionaryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      },
+      "delete": {
+        "operationId": "DictionariesController_remove",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      }
+    },
+    "/api/dictionaries/{key}/items": {
+      "post": {
+        "operationId": "DictionariesController_addItem",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDictionaryItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryItemDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      }
+    },
+    "/api/dictionaries/{key}/items/order": {
+      "put": {
+        "operationId": "DictionariesController_reorder",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderDictionaryItemsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      }
+    },
+    "/api/dictionaries/{key}/items/{itemKey}": {
+      "patch": {
+        "operationId": "DictionariesController_updateItem",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDictionaryItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryItemDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      },
+      "delete": {
+        "operationId": "DictionariesController_removeItem",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      }
+    },
     "/api/bookings": {
       "post": {
         "operationId": "BookingsController_create",
@@ -2637,8 +2951,9 @@
             "name": "category",
             "required": false,
             "in": "query",
+            "description": "Item key of the «document_category» dictionary.",
             "schema": {
-              "maxLength": 100,
+              "maxLength": 40,
               "type": "string"
             }
           },
@@ -2966,8 +3281,9 @@
             "name": "category",
             "required": false,
             "in": "query",
+            "description": "Item key of the «inventory_category» dictionary.",
             "schema": {
-              "maxLength": 100,
+              "maxLength": 40,
               "type": "string"
             }
           },
@@ -3812,319 +4128,6 @@
         },
         "tags": [
           "Smart"
-        ]
-      }
-    },
-    "/api/dictionaries": {
-      "get": {
-        "operationId": "DictionariesController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/DictionaryDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      },
-      "post": {
-        "operationId": "DictionariesController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateDictionaryDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DictionaryDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      }
-    },
-    "/api/dictionaries/{key}": {
-      "get": {
-        "operationId": "DictionariesController_get",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DictionaryDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      },
-      "patch": {
-        "operationId": "DictionariesController_update",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateDictionaryDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DictionaryDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      },
-      "delete": {
-        "operationId": "DictionariesController_remove",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      }
-    },
-    "/api/dictionaries/{key}/items": {
-      "post": {
-        "operationId": "DictionariesController_addItem",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateDictionaryItemDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DictionaryItemDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      }
-    },
-    "/api/dictionaries/{key}/items/order": {
-      "put": {
-        "operationId": "DictionariesController_reorder",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReorderDictionaryItemsDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DictionaryDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      }
-    },
-    "/api/dictionaries/{key}/items/{itemKey}": {
-      "patch": {
-        "operationId": "DictionariesController_updateItem",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "itemKey",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateDictionaryItemDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DictionaryItemDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      },
-      "delete": {
-        "operationId": "DictionariesController_removeItem",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "itemKey",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
         ]
       }
     },
@@ -5777,8 +5780,9 @@
           },
           "category": {
             "type": "string",
+            "description": "Item key of the «place_category» dictionary.",
             "minLength": 1,
-            "maxLength": 100
+            "maxLength": 40
           },
           "location": {
             "type": "string",
@@ -5811,8 +5815,9 @@
           },
           "category": {
             "type": "string",
+            "description": "Item key of the «place_category» dictionary.",
             "minLength": 1,
-            "maxLength": 100
+            "maxLength": 40
           },
           "location": {
             "type": "string",
@@ -6141,6 +6146,192 @@
           "grantedAt",
           "note"
         ]
+      },
+      "PaletteColor": {
+        "type": "string",
+        "enum": [
+          "gray",
+          "red",
+          "orange",
+          "yellow",
+          "green",
+          "teal",
+          "blue",
+          "purple"
+        ]
+      },
+      "DictionaryItemDto": {
+        "type": "object",
+        "properties": {
+          "color": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaletteColor"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string",
+            "description": "Stored in records; never changes."
+          },
+          "title": {
+            "type": "string"
+          },
+          "position": {
+            "type": "number"
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "Not offered for new values; old records keep it."
+          }
+        },
+        "required": [
+          "color",
+          "id",
+          "key",
+          "title",
+          "position",
+          "archived"
+        ]
+      },
+      "DictionaryDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "In display order, archived included.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DictionaryItemDto"
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string",
+            "description": "Modules and templates refer to the dictionary by key; never changes."
+          },
+          "title": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean",
+            "description": "A module relies on it: it cannot be deleted."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "id",
+          "key",
+          "title",
+          "required",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateDictionaryDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "UpdateDictionaryDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "CreateDictionaryItemDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "color": {
+            "type": "string",
+            "description": "Default gray.",
+            "enum": [
+              "gray",
+              "red",
+              "orange",
+              "yellow",
+              "green",
+              "teal",
+              "blue",
+              "purple"
+            ]
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "ReorderDictionaryItemsDto": {
+        "type": "object",
+        "properties": {
+          "keys": {
+            "description": "Every item key of the dictionary (archived too), in the new order.",
+            "maxItems": 500,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 40
+            }
+          }
+        },
+        "required": [
+          "keys"
+        ]
+      },
+      "UpdateDictionaryItemDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "color": {
+            "type": "string",
+            "enum": [
+              "gray",
+              "red",
+              "orange",
+              "yellow",
+              "green",
+              "teal",
+              "blue",
+              "purple"
+            ]
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "true — to the archive, false — back."
+          }
+        }
       },
       "CreateBookingDto": {
         "type": "object",
@@ -6706,8 +6897,9 @@
           },
           "category": {
             "type": "string",
+            "description": "Item key of the «document_category» dictionary.",
             "minLength": 1,
-            "maxLength": 100
+            "maxLength": 40
           },
           "description": {
             "type": "string",
@@ -6753,8 +6945,9 @@
           },
           "category": {
             "type": "string",
+            "description": "Item key of the «document_category» dictionary.",
             "minLength": 1,
-            "maxLength": 100
+            "maxLength": 40
           },
           "description": {
             "type": "string",
@@ -6983,8 +7176,9 @@
           },
           "category": {
             "type": "string",
+            "description": "Item key of the «inventory_category» dictionary.",
             "minLength": 1,
-            "maxLength": 100
+            "maxLength": 40
           },
           "unit": {
             "type": "string",
@@ -7026,8 +7220,9 @@
           },
           "category": {
             "type": "string",
+            "description": "Item key of the «inventory_category» dictionary.",
             "minLength": 1,
-            "maxLength": 100
+            "maxLength": 40
           },
           "unit": {
             "type": "string",
@@ -7890,192 +8085,6 @@
           },
           "enabled": {
             "type": "boolean"
-          }
-        }
-      },
-      "PaletteColor": {
-        "type": "string",
-        "enum": [
-          "gray",
-          "red",
-          "orange",
-          "yellow",
-          "green",
-          "teal",
-          "blue",
-          "purple"
-        ]
-      },
-      "DictionaryItemDto": {
-        "type": "object",
-        "properties": {
-          "color": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PaletteColor"
-              }
-            ]
-          },
-          "id": {
-            "type": "string"
-          },
-          "key": {
-            "type": "string",
-            "description": "Stored in records; never changes."
-          },
-          "title": {
-            "type": "string"
-          },
-          "position": {
-            "type": "number"
-          },
-          "archived": {
-            "type": "boolean",
-            "description": "Not offered for new values; old records keep it."
-          }
-        },
-        "required": [
-          "color",
-          "id",
-          "key",
-          "title",
-          "position",
-          "archived"
-        ]
-      },
-      "DictionaryDto": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "description": "In display order, archived included.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DictionaryItemDto"
-            }
-          },
-          "id": {
-            "type": "string"
-          },
-          "key": {
-            "type": "string",
-            "description": "Modules and templates refer to the dictionary by key; never changes."
-          },
-          "title": {
-            "type": "string"
-          },
-          "required": {
-            "type": "boolean",
-            "description": "A module relies on it: it cannot be deleted."
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "items",
-          "id",
-          "key",
-          "title",
-          "required",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "CreateDictionaryDto": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "maxLength": 100
-          }
-        },
-        "required": [
-          "title"
-        ]
-      },
-      "UpdateDictionaryDto": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "maxLength": 100
-          }
-        },
-        "required": [
-          "title"
-        ]
-      },
-      "CreateDictionaryItemDto": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "maxLength": 100
-          },
-          "color": {
-            "type": "string",
-            "description": "Default gray.",
-            "enum": [
-              "gray",
-              "red",
-              "orange",
-              "yellow",
-              "green",
-              "teal",
-              "blue",
-              "purple"
-            ]
-          }
-        },
-        "required": [
-          "title"
-        ]
-      },
-      "ReorderDictionaryItemsDto": {
-        "type": "object",
-        "properties": {
-          "keys": {
-            "description": "Every item key of the dictionary (archived too), in the new order.",
-            "maxItems": 500,
-            "type": "array",
-            "items": {
-              "type": "string",
-              "maxLength": 40
-            }
-          }
-        },
-        "required": [
-          "keys"
-        ]
-      },
-      "UpdateDictionaryItemDto": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "maxLength": 100
-          },
-          "color": {
-            "type": "string",
-            "enum": [
-              "gray",
-              "red",
-              "orange",
-              "yellow",
-              "green",
-              "teal",
-              "blue",
-              "purple"
-            ]
-          },
-          "archived": {
-            "type": "boolean",
-            "description": "true — to the archive, false — back."
           }
         }
       },

@@ -4,17 +4,19 @@ import { Link } from 'react-router';
 import { api, unwrap } from '../../api/client';
 import type { Place } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
-import { Chips, distinct, norm, SearchField } from '../../components/Filters';
+import { Chips, norm, SearchField } from '../../components/Filters';
 import { Icon } from '../../components/Icon';
 import { ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
+import { CATEGORY, itemTitle, useDictionary, usedItems } from '../../lib/dictionaries';
 import { keys } from './queries';
 import s from './lab.module.css';
 
-export function matchesPlace(p: Place, search: string, category: string | null) {
+/** `categoryTitle` — the category as people see it, so the search finds it. */
+export function matchesPlace(p: Place, search: string, category: string | null, categoryTitle: string) {
   if (category && p.category !== category) return false;
   const q = norm(search);
-  return !q || [p.title, p.code, p.category, p.location].some((f) => norm(f).includes(q));
+  return !q || [p.title, p.code, categoryTitle, p.location].some((f) => norm(f).includes(q));
 }
 
 /** «Лабораторія»: equipment with its state; smart devices live on /smart. */
@@ -26,8 +28,9 @@ export function LabPage() {
   // Staff can open the archive to restore a piece of equipment.
   const [archive, setArchive] = useState(false);
   const items = useMemo(() => (places.data ?? []).filter((p) => (p.status === 'archived') === archive), [places.data, archive]);
-  const categories = useMemo(() => distinct(items.map((p) => p.category)), [items]);
-  const shown = items.filter((p) => matchesPlace(p, search, category));
+  const dict = useDictionary(CATEGORY.place).data;
+  const categories = useMemo(() => usedItems(dict, items.map((p) => p.category)), [dict, items]);
+  const shown = items.filter((p) => matchesPlace(p, search, category, itemTitle(dict, p.category)));
 
   return (
     <>
@@ -58,7 +61,7 @@ export function LabPage() {
       </PageHeader>
       <div className={s.tools}>
         <SearchField value={search} onChange={setSearch} placeholder="Назва, код чи місце" />
-        <Chips label="Категорія" values={categories} value={category} onChange={setCategory} />
+        <Chips label="Категорія" options={categories} value={category} onChange={setCategory} />
       </div>
       {places.isPending ? (
         <div className={s.grid}>
@@ -79,7 +82,7 @@ export function LabPage() {
                   <span className={s.cardTitle}>{p.title}</span>
                   <PlaceState place={p} />
                 </span>
-                <span className={s.meta}>{[p.category, p.location].filter(Boolean).join(' · ')}</span>
+                <span className={s.meta}>{[itemTitle(dict, p.category), p.location].filter(Boolean).join(' · ')}</span>
                 <span className={s.cardBottom}>
                   <span className={s.code}>{p.code}</span>
                   {p.needsAuthorization &&

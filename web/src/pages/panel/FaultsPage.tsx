@@ -38,9 +38,9 @@ export function FaultsPage() {
       <div className={s.tools}>
         <Chips
           label="Стан"
-          values={OPEN.map((st) => FAULT_STATUS_LABEL[st])}
-          value={status ? FAULT_STATUS_LABEL[status] : null}
-          onChange={(v) => setStatus(OPEN.find((st) => FAULT_STATUS_LABEL[st] === v) ?? null)}
+          options={OPEN.map((st) => ({ value: st, label: FAULT_STATUS_LABEL[st] }))}
+          value={status}
+          onChange={(v) => setStatus(v as Open | null)}
         />
       </div>
       {q.isPending ? (

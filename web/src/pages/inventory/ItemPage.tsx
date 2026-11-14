@@ -7,6 +7,7 @@ import { useAuth } from '../../auth/AuthProvider';
 import { Icon } from '../../components/Icon';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
+import { CATEGORY, itemTitle, useDictionary } from '../../lib/dictionaries';
 import { formatDateTime } from '../../lib/format';
 import { newActionKey } from '../lab/queries';
 import { qty } from './InventoryPage';
@@ -58,6 +59,7 @@ export function ItemPage() {
 function ItemView({ item }: { item: InventoryItemDetail }) {
   const { can } = useAuth();
   const qc = useQueryClient();
+  const categories = useDictionary(CATEGORY.inventory);
   const [mode, setMode] = useState<'take' | 'restock'>('take');
   const [amount, setAmount] = useState('1');
   const [touched, setTouched] = useState(false);
@@ -116,7 +118,7 @@ function ItemView({ item }: { item: InventoryItemDetail }) {
         <span className={`${s.qtyBig} ${low ? s.low : ''}`}>{qty(item.quantity, item.unit)}</span>
       </PageHeader>
       <p className={s.sub}>
-        {[item.category, item.location && `місце: ${item.location}`, `код ${item.code}`, item.minQuantity > 0 && `мінімум ${qty(item.minQuantity, item.unit)}`]
+        {[itemTitle(categories.data, item.category), item.location && `місце: ${item.location}`, `код ${item.code}`, item.minQuantity > 0 && `мінімум ${qty(item.minQuantity, item.unit)}`]
           .filter(Boolean)
           .join(' · ')}
       </p>

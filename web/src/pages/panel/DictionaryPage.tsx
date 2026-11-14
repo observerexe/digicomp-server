@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { api, unwrap } from '../../api/client';
@@ -7,16 +7,14 @@ import { Icon } from '../../components/Icon';
 import { ColorPicker, DictChip } from '../../components/Palette';
 import { Card, ConfirmButton, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
-import { DICTIONARIES_KEY, TitleForm } from './DictionariesPage';
+import { DICTIONARIES_KEY, useDictionary } from '../../lib/dictionaries';
+import { TitleForm } from './DictionariesPage';
 import s from './dictionaries.module.css';
 
 /** /panel/dictionaries/:key: items with colours, order and archive (staff). */
 export function DictionaryPage() {
   const { key = '' } = useParams();
-  const q = useQuery({
-    queryKey: [...DICTIONARIES_KEY, key],
-    queryFn: () => unwrap(api.GET('/api/dictionaries/{key}', { params: { path: { key } } })),
-  });
+  const q = useDictionary(key);
 
   return (
     <>

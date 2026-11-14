@@ -19,9 +19,10 @@ export class ListItemsQuery {
   @MaxLength(100)
   search?: string;
 
+  /** Item key of the «inventory_category» dictionary. */
   @IsOptional()
   @IsString()
-  @MaxLength(100)
+  @MaxLength(40)
   category?: string;
 
   @IsOptional()
@@ -48,9 +49,10 @@ export class CreateItemDto {
   @MaxLength(200)
   title: string;
 
+  /** Item key of the «inventory_category» dictionary. */
   @IsString()
   @MinLength(1)
-  @MaxLength(100)
+  @MaxLength(40)
   category: string;
 
   @IsOptional()
@@ -89,10 +91,11 @@ export class UpdateItemDto {
   @MaxLength(200)
   title?: string;
 
+  /** Item key of the «inventory_category» dictionary. */
   @IsOptional()
   @IsString()
   @MinLength(1)
-  @MaxLength(100)
+  @MaxLength(40)
   category?: string;
 
   @IsOptional()

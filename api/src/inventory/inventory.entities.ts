@@ -16,6 +16,9 @@ const numeric = {
   from: (v: string | null) => (v === null ? null : Number(v)),
 };
 
+/** Dictionary whose item keys `inventory_items.category` holds. */
+export const INVENTORY_CATEGORY = 'inventory_category';
+
 @Entity('inventory_items')
 @Check('"quantity" >= 0')
 @Check('"min_quantity" >= 0')
@@ -29,7 +32,8 @@ export class InventoryItem {
   @Column({ type: 'varchar', length: 200 })
   title: string;
 
-  @Column({ type: 'varchar', length: 100 })
+  /** Item key of the INVENTORY_CATEGORY dictionary. */
+  @Column({ type: 'varchar', length: 40 })
   category: string;
 
   @Column({

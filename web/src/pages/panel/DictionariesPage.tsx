@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { api, unwrap } from '../../api/client';
@@ -6,18 +6,9 @@ import { Icon } from '../../components/Icon';
 import { DictChip } from '../../components/Palette';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
+import { DICTIONARIES_KEY, useDictionaries } from '../../lib/dictionaries';
 import { plural } from '../../lib/format';
 import s from './dictionaries.module.css';
-
-export const DICTIONARIES_KEY = ['dictionaries'] as const;
-
-/** All dictionaries: every role reads them (labels on cards, pickers). */
-export function useDictionaries() {
-  return useQuery({
-    queryKey: DICTIONARIES_KEY,
-    queryFn: () => unwrap(api.GET('/api/dictionaries')),
-  });
-}
 
 /** /panel/dictionaries: lists of values with colours (staff). */
 export function DictionariesPage() {

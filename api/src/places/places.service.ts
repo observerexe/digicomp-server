@@ -8,6 +8,10 @@ import { isUUID } from 'class-validator';
 import { DataSource, EntityManager, In, IsNull, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { Action, can } from '../auth/policy';
+import {
+  assertDictionaryItem,
+  itemTitleLike,
+} from '../dictionaries/dictionary-usage';
 import { User } from '../users/user.entity';
 import {
   CreatePlaceDto,
@@ -17,7 +21,7 @@ import {
   UpdatePlaceDto,
 } from './dto';
 import { PlaceAuthorization } from './place-authorization.entity';
-import { Place, PlaceStatus } from './place.entity';
+import { Place, PLACE_CATEGORY, PlaceStatus } from './place.entity';
 import { WorkSession } from './work-session.entity';
 import type {
   AuthorizationDto,
@@ -66,8 +70,8 @@ export class PlacesService {
     if (q.category) qb.andWhere('p.category = :cat', { cat: q.category });
     if (q.search) {
       qb.andWhere(
-        '(p.title ILIKE :s OR p.code ILIKE :s OR p.location ILIKE :s OR p.category ILIKE :s)',
-        { s: `%${escapeLike(q.search)}%` },
+        `(p.title ILIKE :s OR p.code ILIKE :s OR p.location ILIKE :s OR ${itemTitleLike('p.category', 'dict', 's')})`,
+        { s: `%${escapeLike(q.search)}%`, dict: PLACE_CATEGORY },
       );
     }
     qb.orderBy('p.title', 'ASC').addOrderBy('p.id', 'ASC');
@@ -91,6 +95,7 @@ export class PlacesService {
     if (await this.places.findOneBy({ code })) {
       throw new ConflictException('Place code already used');
     }
+    await assertDictionaryItem(this.ds.manager, PLACE_CATEGORY, dto.category);
     const place = await this.places.save(
       this.places.create({
         code,
@@ -114,6 +119,14 @@ export class PlacesService {
 
   async update(idOrCode: string, dto: UpdatePlaceDto, actor: Actor) {
     const place = await this.resolve(idOrCode);
+    if (dto.category !== undefined) {
+      await assertDictionaryItem(
+        this.ds.manager,
+        PLACE_CATEGORY,
+        dto.category,
+        place.category,
+      );
+    }
     const changed: string[] = [];
     for (const k of [
       'title',

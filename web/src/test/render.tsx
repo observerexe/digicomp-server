@@ -53,3 +53,19 @@ export function renderApp(path: string) {
   );
   return { router, qc };
 }
+
+/** Handler for GET /api/dictionaries/:key with items in the given order. */
+export function dictionary(key: string, items: { key: string; title: string; archived?: boolean }[]): Record<string, Handler> {
+  return {
+    [`GET /api/dictionaries/${key}`]: () =>
+      json(200, {
+        id: key,
+        key,
+        title: key,
+        required: true,
+        items: items.map((i, position) => ({ id: i.key, color: 'gray', position, archived: false, ...i })),
+        createdAt: '',
+        updatedAt: '',
+      }),
+  };
+}

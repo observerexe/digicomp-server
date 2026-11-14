@@ -37,7 +37,7 @@ export function TeamPage() {
       <PageHeader title="Команда" />
       <div className={s.tools}>
         <SearchField value={search} onChange={setSearch} placeholder="Ім’я, посада чи спеціальність" />
-        <Chips label="Спеціальність" values={specialties} value={specialty} onChange={setSpecialty} />
+        <Chips label="Спеціальність" options={specialties} value={specialty} onChange={setSpecialty} />
       </div>
 
       {team.isPending ? (

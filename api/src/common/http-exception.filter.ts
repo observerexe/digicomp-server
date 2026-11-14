@@ -91,6 +91,7 @@ const MESSAGE_CODES: Record<string, string> = {
   'Dictionary is in use': 'DICTIONARY_IN_USE',
   'Dictionary is not empty': 'DICTIONARY_NOT_EMPTY',
   'Dictionary item is in use': 'DICTIONARY_ITEM_IN_USE',
+  'Unknown dictionary item': 'DICTIONARY_ITEM_INVALID',
 };
 
 const STATUS_CODES: Record<number, string> = {

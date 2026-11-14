@@ -14,6 +14,10 @@ import {
   validateUpload,
 } from '../files/file-validation';
 import { StorageService } from '../files/storage.service';
+import {
+  assertDictionaryItem,
+  itemTitleLike,
+} from '../dictionaries/dictionary-usage';
 import { Place } from '../places/place.entity';
 import {
   AddVersionDto,
@@ -21,7 +25,7 @@ import {
   ListDocsQuery,
   UpdateDocDto,
 } from './dto';
-import { AccessScope, Doc, DocVersion } from './doc.entity';
+import { AccessScope, Doc, DOCUMENT_CATEGORY, DocVersion } from './doc.entity';
 import type { OkDto, Plain } from '../common/responses.dto';
 import type { DocDto, DocListDto, DocVersionDto } from './responses.dto';
 
@@ -100,8 +104,8 @@ export class DocumentsService {
     }
     if (q.search) {
       qb.andWhere(
-        '(d.title ILIKE :s OR d.category ILIKE :s OR d.description ILIKE :s)',
-        { s: `%${escapeLike(q.search)}%` },
+        `(d.title ILIKE :s OR d.description ILIKE :s OR ${itemTitleLike('d.category', 'dict', 's')})`,
+        { s: `%${escapeLike(q.search)}%`, dict: DOCUMENT_CATEGORY },
       );
     }
     qb.orderBy('d.updatedAt', 'DESC')
@@ -146,6 +150,11 @@ export class DocumentsService {
     actor: Actor,
   ) {
     const info = validateUpload(file, DOCUMENT_EXTENSIONS);
+    await assertDictionaryItem(
+      this.ds.manager,
+      DOCUMENT_CATEGORY,
+      dto.category,
+    );
     if (dto.placeId) await this.requirePlace(dto.placeId);
     const storedName = randomUUID();
     await this.storage.save(`documents/${storedName}`, file!.buffer);
@@ -255,6 +264,14 @@ export class DocumentsService {
 
   async update(id: string, dto: UpdateDocDto, actor: Actor): Promise<DocDto> {
     const d = await this.accessible(id, actor);
+    if (dto.category !== undefined) {
+      await assertDictionaryItem(
+        this.ds.manager,
+        DOCUMENT_CATEGORY,
+        dto.category,
+        d.category,
+      );
+    }
     if (dto.placeId) await this.requirePlace(dto.placeId);
     const changed: string[] = [];
     for (const k of [

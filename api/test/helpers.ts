@@ -6,6 +6,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../src/app.module';
+import { slugify } from '../src/dictionaries/keys';
 import { setupApp } from '../src/setup-app';
 import { Role, User } from '../src/users/user.entity';
 
@@ -90,4 +91,38 @@ export async function mfaToken(app: INestApplication, user: TestUser) {
   return app
     .get(JwtService)
     .signAsync({ sub: user.id, role: user.role, mfa: true });
+}
+
+const CATEGORY_DICTIONARIES = {
+  place_category: 'Категорія обладнання',
+  document_category: 'Категорія архіву',
+  inventory_category: 'Категорія складу',
+};
+
+/**
+ * Key of a category item, created if missing. The migration makes the
+ * category dictionaries, but resetDb empties them.
+ */
+export async function category(
+  app: INestApplication,
+  dictionaryKey: keyof typeof CATEGORY_DICTIONARIES,
+  title: string,
+): Promise<string> {
+  const ds = app.get(DataSource);
+  await ds.query(
+    `INSERT INTO dictionaries (key, title) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING`,
+    [dictionaryKey, CATEGORY_DICTIONARIES[dictionaryKey]],
+  );
+  const [{ id }] = await ds.query<{ id: string }[]>(
+    `SELECT id FROM dictionaries WHERE key = $1`,
+    [dictionaryKey],
+  );
+  const key = slugify(title);
+  await ds.query(
+    `INSERT INTO dictionary_items (dictionary_id, key, title, position)
+     VALUES ($1, $2, $3, (SELECT count(*) FROM dictionary_items WHERE dictionary_id = $1))
+     ON CONFLICT (dictionary_id, key) DO NOTHING`,
+    [id, key, title],
+  );
+  return key;
 }

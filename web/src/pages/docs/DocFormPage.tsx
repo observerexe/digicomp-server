@@ -3,10 +3,12 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { api, ApiError, unwrap } from '../../api/client';
 import type { AccessScope, Doc } from '../../api/types';
+import { DictSelect } from '../../components/DictSelect';
 import { DropZone } from '../../components/DropZone';
 import { Icon } from '../../components/Icon';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
+import { CATEGORY } from '../../lib/dictionaries';
 import { docKey } from './DocPage';
 import s from './docs.module.css';
 
@@ -44,7 +46,7 @@ function DocForm({ doc }: { doc?: Doc }) {
     queryFn: () => unwrap(api.GET('/api/inventory/items', { params: { query: { limit: '100' } } })),
   });
 
-  const invalid = !f.title.trim() || !f.category.trim() ? 'Вкажіть назву й категорію.' : !doc && !file ? 'Додайте файл.' : null;
+  const invalid = !f.title.trim() || !f.category ? 'Вкажіть назву й виберіть категорію.' : !doc && !file ? 'Додайте файл.' : null;
   const save = useMutation({
     mutationFn: () => {
       if (doc) {
@@ -53,7 +55,7 @@ function DocForm({ doc }: { doc?: Doc }) {
             params: { path: { id: doc.id } },
             body: {
               title: f.title.trim(),
-              category: f.category.trim(),
+              category: f.category,
               description: f.description,
               accessScope: f.accessScope,
               placeId: f.placeId || null,
@@ -66,7 +68,7 @@ function DocForm({ doc }: { doc?: Doc }) {
       const body = new FormData();
       body.append('file', file!);
       body.append('title', f.title.trim());
-      body.append('category', f.category.trim());
+      body.append('category', f.category);
       if (f.description) body.append('description', f.description);
       body.append('accessScope', f.accessScope);
       if (f.placeId) body.append('placeId', f.placeId);
@@ -116,7 +118,13 @@ function DocForm({ doc }: { doc?: Doc }) {
           </div>
           <div className="field">
             <label htmlFor="df-cat">Категорія</label>
-            <input id="df-cat" maxLength={100} placeholder="Інструкції, паспорти, шаблони…" value={f.category} onChange={set('category')} />
+            <DictSelect
+              id="df-cat"
+              dictionary={CATEGORY.document}
+              value={f.category}
+              onChange={(category) => setF((v) => ({ ...v, category }))}
+              newLabel="+ Нова категорія…"
+            />
           </div>
           <div className="field">
             <label htmlFor="df-desc">Опис</label>

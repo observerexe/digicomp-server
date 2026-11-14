@@ -4,9 +4,10 @@ import { Link } from 'react-router';
 import { api, unwrap } from '../../api/client';
 import type { InventoryItem } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
-import { Chips, distinct, norm, SearchField } from '../../components/Filters';
+import { Chips, norm, SearchField } from '../../components/Filters';
 import { ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
+import { CATEGORY, itemTitle, useDictionary, usedItems } from '../../lib/dictionaries';
 import s from './inventory.module.css';
 
 export const itemsKey = ['inventory', 'items'] as const;
@@ -16,11 +17,12 @@ export function qty(n: number, unit: string): string {
   return `${n.toLocaleString('uk-UA', { maximumFractionDigits: 3 })} ${unit}`;
 }
 
-export function matchesItem(i: InventoryItem, search: string, category: string | null, low: boolean) {
+/** `categoryTitle` — the category as people see it, so the search finds it. */
+export function matchesItem(i: InventoryItem, search: string, category: string | null, low: boolean, categoryTitle: string) {
   if (low && !i.lowStock) return false;
   if (category && i.category !== category) return false;
   const q = norm(search);
-  return !q || [i.title, i.code, i.category, i.location].some((f) => norm(f).includes(q));
+  return !q || [i.title, i.code, categoryTitle, i.location].some((f) => norm(f).includes(q));
 }
 
 export function InventoryPage() {
@@ -33,8 +35,9 @@ export function InventoryPage() {
   const [category, setCategory] = useState<string | null>(null);
   const [low, setLow] = useState(false);
   const items = q.data?.items ?? [];
-  const categories = useMemo(() => distinct(items.map((i) => i.category)), [items]);
-  const shown = items.filter((i) => matchesItem(i, search, category, low));
+  const dict = useDictionary(CATEGORY.inventory).data;
+  const categories = useMemo(() => usedItems(dict, items.map((i) => i.category)), [dict, items]);
+  const shown = items.filter((i) => matchesItem(i, search, category, low, itemTitle(dict, i.category)));
   const lowCount = items.filter((i) => i.lowStock).length;
 
   return (
@@ -56,7 +59,7 @@ export function InventoryPage() {
       </PageHeader>
       <div className={s.tools}>
         <SearchField value={search} onChange={setSearch} placeholder="Назва, код чи місце" />
-        <Chips label="Категорія" values={categories} value={category} onChange={setCategory} />
+        <Chips label="Категорія" options={categories} value={category} onChange={setCategory} />
         {lowCount > 0 && (
           <label className={s.check}>
             <input type="checkbox" checked={low} onChange={(e) => setLow(e.target.checked)} />
@@ -77,7 +80,7 @@ export function InventoryPage() {
               <Link to={`/inventory/${encodeURIComponent(i.code)}`} className={s.row}>
                 <span className={s.main}>
                   <span className={s.title}>{i.title}</span>
-                  <span className={s.sub}>{[i.category, i.location, i.code].filter(Boolean).join(' · ')}</span>
+                  <span className={s.sub}>{[itemTitle(dict, i.category), i.location, i.code].filter(Boolean).join(' · ')}</span>
                 </span>
                 <span className={`${s.qty} ${i.lowStock ? s.low : ''}`}>
                   {qty(i.quantity, i.unit)}

@@ -6,6 +6,7 @@ import { WorkSessionsService } from '../src/places/work-sessions.service';
 import { Role } from '../src/users/user.entity';
 import {
   as,
+  category,
   createTestApp,
   makeUser,
   PNG_1PX,
@@ -50,10 +51,11 @@ describe('Лабораторія і проєкти (e2e)', () => {
     mod = await makeUser(app, Role.Moderator, { name: 'Модератор' });
     a = await makeUser(app, Role.Member, { name: 'Андрій' });
     b = await makeUser(app, Role.Member, { name: 'Богдана' });
+    await category(app, 'place_category', 'Верстати');
     const p = await as(app, admin).post('/api/places').send({
       code: 'CNC-1',
       title: 'Фрезер',
-      category: 'Верстати',
+      category: 'verstaty',
       needsAuthorization: false,
     });
     placeId = p.body.id;
@@ -125,7 +127,7 @@ describe('Лабораторія і проєкти (e2e)', () => {
       const p = await as(app, admin).post('/api/places').send({
         code: 'LASER-2',
         title: 'Лазер',
-        category: 'Верстати',
+        category: 'verstaty',
         needsAuthorization: true,
       });
       await as(app, mod)

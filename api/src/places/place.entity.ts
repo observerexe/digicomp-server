@@ -12,6 +12,9 @@ export enum PlaceStatus {
   Archived = 'archived',
 }
 
+/** Dictionary whose item keys `places.category` holds. */
+export const PLACE_CATEGORY = 'place_category';
+
 @Entity('places')
 export class Place {
   @PrimaryGeneratedColumn('uuid')
@@ -23,7 +26,8 @@ export class Place {
   @Column({ type: 'varchar', length: 200 })
   title: string;
 
-  @Column({ type: 'varchar', length: 100 })
+  /** Item key of the PLACE_CATEGORY dictionary. */
+  @Column({ type: 'varchar', length: 40 })
   category: string;
 
   @Column({ type: 'varchar', length: 200, default: '' })

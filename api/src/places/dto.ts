@@ -19,9 +19,10 @@ export class ListPlacesQuery {
   @MaxLength(100)
   search?: string;
 
+  /** Item key of the «place_category» dictionary. */
   @IsOptional()
   @IsString()
-  @MaxLength(100)
+  @MaxLength(40)
   category?: string;
 
   @IsOptional()
@@ -38,9 +39,10 @@ export class CreatePlaceDto {
   @MaxLength(200)
   title: string;
 
+  /** Item key of the «place_category» dictionary. */
   @IsString()
   @MinLength(1)
-  @MaxLength(100)
+  @MaxLength(40)
   category: string;
 
   @IsOptional()
@@ -69,10 +71,11 @@ export class UpdatePlaceDto {
   @MaxLength(200)
   title?: string;
 
+  /** Item key of the «place_category» dictionary. */
   @IsOptional()
   @IsString()
   @MinLength(1)
-  @MaxLength(100)
+  @MaxLength(40)
   category?: string;
 
   @IsOptional()

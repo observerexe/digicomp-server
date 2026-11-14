@@ -3,9 +3,11 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { api, unwrap } from '../../api/client';
 import type { InventoryItemDetail } from '../../api/types';
+import { DictSelect } from '../../components/DictSelect';
 import { Icon } from '../../components/Icon';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
+import { CATEGORY } from '../../lib/dictionaries';
 import { isIntegerUnit, itemKey } from './ItemPage';
 import s from './inventory.module.css';
 
@@ -40,8 +42,8 @@ function ItemForm({ item }: { item?: InventoryItemDetail }) {
   const bad = (v: string) => !Number.isFinite(num(v)) || num(v) < 0 || (whole && !Number.isInteger(num(v)));
   const invalid = !item && !/^[A-Za-z0-9_-]{2,60}$/.test(f.code)
     ? 'Код — 2–60 латинських літер, цифр, «-» або «_».'
-    : !f.title.trim() || !f.category.trim() || !f.unit.trim()
-      ? 'Заповніть назву, категорію й одиницю.'
+    : !f.title.trim() || !f.category || !f.unit.trim()
+      ? 'Заповніть назву й одиницю, виберіть категорію.'
       : (!item && bad(f.quantity)) || bad(f.minQuantity)
         ? whole
           ? `Для «${f.unit}» кількість — ціле число від 0.`
@@ -52,7 +54,7 @@ function ItemForm({ item }: { item?: InventoryItemDetail }) {
     mutationFn: () => {
       const common = {
         title: f.title.trim(),
-        category: f.category.trim(),
+        category: f.category,
         unit: f.unit.trim(),
         minQuantity: num(f.minQuantity),
         location: f.location.trim(),
@@ -99,7 +101,13 @@ function ItemForm({ item }: { item?: InventoryItemDetail }) {
           <div className={s.row}>
             <div className="field">
               <label htmlFor="it-cat">Категорія</label>
-              <input id="it-cat" maxLength={100} value={f.category} onChange={set('category')} />
+              <DictSelect
+                id="it-cat"
+                dictionary={CATEGORY.inventory}
+                value={f.category}
+                onChange={(category) => setF((v) => ({ ...v, category }))}
+                newLabel="+ Нова категорія…"
+              />
             </div>
             <div className="field">
               <label htmlFor="it-unit">Одиниця</label>

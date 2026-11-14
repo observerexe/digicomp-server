@@ -11,26 +11,28 @@ export function SearchField({ value, onChange, placeholder }: { value: string; o
   );
 }
 
-/** «Усі» + one chip per value; pressing the active chip again clears it. */
-export function Chips({ label, values, value, onChange }: { label: string; values: string[]; value: string | null; onChange: (v: string | null) => void }) {
-  if (values.length < 2) return null;
+export type ChipOption = { value: string; label: string };
+
+/** «Усі» + one chip per option; pressing the active chip again clears it. */
+export function Chips({ label, options, value, onChange }: { label: string; options: ChipOption[]; value: string | null; onChange: (v: string | null) => void }) {
+  if (options.length < 2) return null;
   return (
     <div className={s.chips} role="group" aria-label={label}>
       <button type="button" className={s.chip} aria-pressed={value === null} onClick={() => onChange(null)}>
         Усі
       </button>
-      {values.map((v) => (
-        <button key={v} type="button" className={s.chip} aria-pressed={value === v} onClick={() => onChange(value === v ? null : v)}>
-          {v}
+      {options.map((o) => (
+        <button key={o.value} type="button" className={s.chip} aria-pressed={value === o.value} onClick={() => onChange(value === o.value ? null : o.value)}>
+          {o.label}
         </button>
       ))}
     </div>
   );
 }
 
-/** Distinct non-empty values, sorted the Ukrainian way. */
-export function distinct(values: string[]): string[] {
-  return [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b, 'uk'));
+/** Distinct non-empty values as chips, sorted the Ukrainian way. */
+export function distinct(values: string[]): ChipOption[] {
+  return [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b, 'uk')).map((v) => ({ value: v, label: v }));
 }
 
 export const norm = (v: string) => v.toLocaleLowerCase('uk-UA').trim();

@@ -1,13 +1,14 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { api, unwrap } from '../../api/client';
 import type { Place, PlaceStatus } from '../../api/types';
-import { distinct } from '../../components/Filters';
+import { DictSelect } from '../../components/DictSelect';
 import { Icon } from '../../components/Icon';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
-import { keys, usePlace } from './queries';
+import { CATEGORY } from '../../lib/dictionaries';
+import { usePlace } from './queries';
 import s from './lab.module.css';
 
 export const PLACE_STATUS_LABEL: Record<PlaceStatus, string> = {
@@ -31,8 +32,6 @@ export function PlaceFormPage() {
 function PlaceForm({ place }: { place?: Place }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const all = useQuery({ queryKey: keys.places, queryFn: () => unwrap(api.GET('/api/places')) });
-  const categories = useMemo(() => distinct((all.data ?? []).map((p) => p.category)), [all.data]);
   const [f, setF] = useState({
     code: place?.code ?? '',
     title: place?.title ?? '',
@@ -47,14 +46,14 @@ function PlaceForm({ place }: { place?: Place }) {
     !place && !PLACE_CODE.test(f.code.trim())
       ? 'Код — 3–60 латинських літер, цифр, «-» або «_». Його друкують на QR-наліпці.'
       : !f.title.trim() || !f.category.trim()
-        ? 'Заповніть назву й категорію.'
+        ? 'Заповніть назву й виберіть категорію.'
         : null;
 
   const save = useMutation({
     mutationFn: () => {
       const common = {
         title: f.title.trim(),
-        category: f.category.trim(),
+        category: f.category,
         location: f.location.trim(),
         description: f.description,
         needsAuthorization: f.needsAuthorization,
@@ -69,7 +68,7 @@ function PlaceForm({ place }: { place?: Place }) {
       void navigate(`/lab/${encodeURIComponent(saved.code)}`);
     },
   });
-  const set = (k: 'code' | 'title' | 'category' | 'location' | 'description') => (e: { target: { value: string } }) =>
+  const set = (k: 'code' | 'title' | 'location' | 'description') => (e: { target: { value: string } }) =>
     setF((v) => ({ ...v, [k]: e.target.value }));
   const back = place ? `/lab/${encodeURIComponent(place.code)}` : '/lab';
 
@@ -103,12 +102,13 @@ function PlaceForm({ place }: { place?: Place }) {
           </div>
           <div className="field">
             <label htmlFor="pl-cat">Категорія</label>
-            <input id="pl-cat" maxLength={100} list="place-categories" value={f.category} onChange={set('category')} />
-            <datalist id="place-categories">
-              {categories.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
+            <DictSelect
+              id="pl-cat"
+              dictionary={CATEGORY.place}
+              value={f.category}
+              onChange={(category) => setF((v) => ({ ...v, category }))}
+              newLabel="+ Нова категорія…"
+            />
           </div>
           <div className="field">
             <label htmlFor="pl-loc">Місце</label>

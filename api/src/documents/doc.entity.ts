@@ -16,6 +16,9 @@ export enum AccessScope {
   Supervisors = 'supervisors',
 }
 
+/** Dictionary whose item keys `documents.category` holds. */
+export const DOCUMENT_CATEGORY = 'document_category';
+
 @Entity('documents')
 export class Doc {
   @PrimaryGeneratedColumn('uuid')
@@ -24,7 +27,8 @@ export class Doc {
   @Column({ type: 'varchar', length: 200 })
   title: string;
 
-  @Column({ type: 'varchar', length: 100 })
+  /** Item key of the DOCUMENT_CATEGORY dictionary. */
+  @Column({ type: 'varchar', length: 40 })
   category: string;
 
   @Column({ type: 'text', default: '' })

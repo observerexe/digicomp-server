@@ -8,6 +8,7 @@ import { DropZone } from '../../components/DropZone';
 import { Icon } from '../../components/Icon';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
+import { CATEGORY, itemTitle, useDictionary } from '../../lib/dictionaries';
 import { formatDateTime, formatSize } from '../../lib/format';
 import { fileKind } from './DocsPage';
 import s from './docs.module.css';
@@ -85,6 +86,7 @@ function Preview({ doc }: { doc: Doc }) {
 function DocView({ doc }: { doc: Doc }) {
   const { can } = useAuth();
   const staff = can('documents.manage');
+  const categories = useDictionary(CATEGORY.document);
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
@@ -125,7 +127,7 @@ function DocView({ doc }: { doc: Doc }) {
         </a>
       </PageHeader>
       <p className={s.sub}>
-        {[doc.category, doc.version !== null && `версія ${doc.version}`, doc.size !== null && formatSize(doc.size), doc.accessScope === 'supervisors' && 'лише модератори', doc.archived && 'в архіві']
+        {[itemTitle(categories.data, doc.category), doc.version !== null && `версія ${doc.version}`, doc.size !== null && formatSize(doc.size), doc.accessScope === 'supervisors' && 'лише модератори', doc.archived && 'в архіві']
           .filter(Boolean)
           .join(' · ')}
       </p>

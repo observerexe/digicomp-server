@@ -2,15 +2,19 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import type { InventoryItemDetail, Me } from '../../api/types';
-import { json, member, mockApi, moderator, renderApp } from '../../test/render';
+import { dictionary, json, member, mockApi, moderator, renderApp } from '../../test/render';
 
 const staff: Me = { ...moderator, permissions: [...moderator.permissions, 'inventory.manage', 'places.manage'] };
 const item = (over: Partial<InventoryItemDetail> = {}): InventoryItemDetail => ({
-  id: 'i1', code: 'PLY-3', title: 'Фанера 3 мм', category: 'Матеріали', quantity: 5, unit: 'шт', minQuantity: 0, lowStock: false,
+  id: 'i1', code: 'PLY-3', title: 'Фанера 3 мм', category: 'materialy', quantity: 5, unit: 'шт', minQuantity: 0, lowStock: false,
   location: 'Шафа 2', notes: '', documentsCount: 0, createdById: null, createdAt: '', updatedAt: '', documents: [], ...over,
 });
 const base = (me: Me, extra: Record<string, (r: Request) => Response | Promise<Response>> = {}) => ({
   'GET /api/auth/me': () => json(200, me),
+  ...dictionary('inventory_category', [
+    { key: 'materialy', title: 'Матеріали' },
+    { key: 'khimiia', title: 'Хімія' },
+  ]),
   'GET /api/work-sessions': () => json(200, { items: [], total: 0, page: 1, limit: 1 }),
   'GET /api/projects': () => json(200, { items: [], total: 0, page: 1, limit: 100 }),
   'GET /api/inventory/movements': () => json(200, { items: [], total: 0, page: 1, limit: 20 }),
@@ -28,6 +32,7 @@ describe('Склад', () => {
     const list = await screen.findByRole('list', { name: 'Позиції складу' });
     expect(within(list).getByText('0,4 кг')).toBeInTheDocument();
     expect(within(list).getByText('мало')).toBeInTheDocument();
+    expect(await within(list).findByText('Матеріали · Шафа 2 · PLY-3')).toBeInTheDocument();
     await userEvent.click(screen.getByLabelText('Лише ті, яких мало (1)'));
     expect(within(list).getAllByRole('link')).toHaveLength(1);
     expect(screen.queryByRole('link', { name: 'Нова позиція' })).not.toBeInTheDocument();
@@ -90,10 +95,11 @@ describe('Склад', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Код — 2–60 латинських');
     await userEvent.clear(screen.getByLabelText('Код (для QR)'));
     await userEvent.type(screen.getByLabelText('Код (для QR)'), 'NEW-1');
-    await userEvent.type(screen.getByLabelText('Категорія'), 'Хімія');
+    await waitFor(() => expect(screen.getByLabelText('Категорія')).toBeEnabled());
+    await userEvent.selectOptions(screen.getByLabelText('Категорія'), 'Хімія');
     await userEvent.click(screen.getByRole('button', { name: 'Створити' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/inventory/NEW-1'));
-    expect(JSON.parse(calls.find((c) => c.method === 'POST')!.body)).toMatchObject({ code: 'NEW-1', title: 'Клей', unit: 'шт', quantity: 0 });
+    expect(JSON.parse(calls.find((c) => c.method === 'POST')!.body)).toMatchObject({ code: 'NEW-1', title: 'Клей', category: 'khimiia', unit: 'шт', quantity: 0 });
   });
 
   it('учаснику форма закрита', async () => {
