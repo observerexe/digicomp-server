@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsIn, IsOptional, IsUUID, Matches } from 'class-validator';
+import {
+  IsIn,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+  MaxLength,
+} from 'class-validator';
 import { RECORD_TYPES, type RecordType } from '../records/field-types';
 
 /** Role key: lower-case latin, digits, `_`; up to 40 characters. */
@@ -13,6 +20,19 @@ export class ListLinksQuery {
 
   @IsUUID()
   id: string;
+}
+
+export class LinkCandidatesQuery {
+  /** Type of the records to find. */
+  @ApiProperty({ enum: RECORD_TYPES, enumName: 'RecordType' })
+  @IsIn(RECORD_TYPES)
+  type: RecordType;
+
+  /** Part of the title (or code); empty — the first ones by title. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  q?: string;
 }
 
 export class CreateLinkDto {

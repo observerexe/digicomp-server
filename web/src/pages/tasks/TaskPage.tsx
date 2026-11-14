@@ -7,6 +7,7 @@ import { useAuth } from '../../auth/AuthProvider';
 import { Avatar } from '../../components/Avatar';
 import { ExtraFacts } from '../../components/ExtraFields';
 import { Icon } from '../../components/Icon';
+import { Related } from '../../components/Related';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { useFieldDefs } from '../../lib/fields';
@@ -182,6 +183,7 @@ function TaskView({ task: t, me }: { task: TaskDetail; me: Me }) {
             )}
           </Card>
           <Files task={t} me={me} />
+          <Related type="task" id={t.id} />
           {can('tasks.manage') && t.status !== 'done' && (
             <Card>
               <div className={s.cardActions}>

@@ -2,9 +2,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router';
 import { api, ApiError, unwrap } from '../../api/client';
-import type { InventoryItemDetail } from '../../api/types';
+import type { InventoryItem } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
 import { Icon } from '../../components/Icon';
+import { Related } from '../../components/Related';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { CATEGORY, itemTitle, useDictionary } from '../../lib/dictionaries';
@@ -56,7 +57,7 @@ export function ItemPage() {
   );
 }
 
-function ItemView({ item }: { item: InventoryItemDetail }) {
+function ItemView({ item }: { item: InventoryItem }) {
   const { can } = useAuth();
   const qc = useQueryClient();
   const categories = useDictionary(CATEGORY.inventory);
@@ -92,7 +93,7 @@ function ItemView({ item }: { item: InventoryItemDetail }) {
     },
     onSuccess: (m) => {
       // The new balance at once; the list and history refresh in the background.
-      qc.setQueryData<InventoryItemDetail>(itemKey(item.code), (old) => (old ? { ...old, quantity: m.quantityAfter } : old));
+      qc.setQueryData<InventoryItem>(itemKey(item.code), (old) => (old ? { ...old, quantity: m.quantityAfter } : old));
       setDone(`${mode === 'take' ? 'Взято' : 'Поповнено'}: ${qty(Math.abs(m.delta), item.unit)}. Залишок ${qty(m.quantityAfter, item.unit)}.`);
       setNote('');
       void qc.invalidateQueries({ queryKey: ['inventory'] });
@@ -214,18 +215,7 @@ function ItemView({ item }: { item: InventoryItemDetail }) {
               </ul>
             )}
           </Card>
-          {item.documents.length > 0 && (
-            <Card>
-              <h2 className={s.caption}>Документи</h2>
-              <ul className={s.moves}>
-                {item.documents.map((d) => (
-                  <li key={d.id}>
-                    <Link to={`/docs/${d.id}`}>{d.title}</Link>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
+          <Related type="inventory_item" id={item.id} />
           {can('inventory.manage') && (
             <Link to={`/inventory/${encodeURIComponent(item.code)}/edit`} className="btn">
               Редагувати позицію

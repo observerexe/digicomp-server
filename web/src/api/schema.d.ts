@@ -809,6 +809,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/links/candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Records of a type the caller sees, by title: what may be linked. */
+        get: operations["LinksController_candidates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/links/{id}": {
         parameters: {
             query?: never;
@@ -2190,6 +2207,8 @@ export interface components {
             direction: components["schemas"]["LinkDirection"];
             /** @description Type of the record on the other side. */
             type: components["schemas"]["RecordType"];
+            /** @description QR code of the other record, for records opened by it (equipment, inventory). */
+            code?: string;
             id: string;
             /** @description Id of the record on the other side. */
             recordId: string;
@@ -2203,6 +2222,20 @@ export interface components {
             createdAt: string;
             /** @description The actor may remove the link (edits its source). */
             canRemove: boolean;
+        };
+        LinkListDto: {
+            items: components["schemas"]["LinkDto"][];
+            /** @description The actor edits this record, so may link it to others. */
+            canLink: boolean;
+        };
+        LinkCandidateDto: {
+            type: components["schemas"]["RecordType"];
+            /** @description QR code, for records opened by it (equipment, inventory). */
+            code?: string;
+            id: string;
+            title: string;
+            /** @description The record is in the archive. */
+            archived: boolean;
         };
         CreateLinkDto: {
             /** @description The source: the actor must be able to edit it. */
@@ -2576,7 +2609,6 @@ export interface components {
             lowStock: boolean;
             location: string;
             notes: string;
-            documentsCount: number;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -2587,33 +2619,6 @@ export interface components {
             total: number;
             page: number;
             limit: number;
-        };
-        ItemDocRefDto: {
-            id: string;
-            title: string;
-            category: string;
-        };
-        InventoryItemDetailDto: {
-            createdById: string | null;
-            documents: components["schemas"]["ItemDocRefDto"][];
-            id: string;
-            /** @description QR code of the item, upper case. */
-            code: string;
-            title: string;
-            category: string;
-            quantity: number;
-            /** @description шт, уп and pcs take whole numbers only. */
-            unit: string;
-            minQuantity: number;
-            /** @description quantity ≤ minQuantity (when a minimum is set). */
-            lowStock: boolean;
-            location: string;
-            notes: string;
-            documentsCount: number;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
         };
         CreateItemDto: {
             code: string;
@@ -4292,7 +4297,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LinkDto"][];
+                    "application/json": components["schemas"]["LinkListDto"];
                 };
             };
         };
@@ -4316,6 +4321,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LinkDto"];
+                };
+            };
+        };
+    };
+    LinksController_candidates: {
+        parameters: {
+            query: {
+                /** @description Type of the records to find. */
+                type: components["schemas"]["RecordType"];
+                /** @description Part of the title (or code); empty — the first ones by title. */
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkCandidateDto"][];
                 };
             };
         };
@@ -5254,7 +5283,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["InventoryItemDetailDto"];
+                    "application/json": components["schemas"]["InventoryItemDto"];
                 };
             };
         };

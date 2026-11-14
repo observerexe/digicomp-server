@@ -16,6 +16,7 @@ const detail = (over: Partial<ProjectDetail> = {}): ProjectDetail => ({ ...proje
 function api(me: Me, list: ProjectListItem[], extra: Record<string, (r: Request) => Response | Promise<Response>> = {}) {
   return {
     'GET /api/auth/me': () => json(200, me),
+    'GET /api/links': () => json(200, { canLink: false, items: [] }),
     'GET /api/work-sessions': () => json(200, { items: [], total: 0, page: 1, limit: 1 }),
     'GET /api/projects': () => json(200, { items: list, total: list.length, page: 1, limit: 100 }),
     'GET /api/users': () => json(200, { items: [], total: 0, page: 1, limit: 100 }),

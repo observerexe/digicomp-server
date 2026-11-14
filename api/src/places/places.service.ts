@@ -29,15 +29,12 @@ import type {
   PlaceDto,
 } from './responses.dto';
 import type { OkDto } from '../common/responses.dto';
+import { escapeLike } from '../common/like';
 
 type Actor = { id: string; role: string };
 
 export function authIsValid(a: PlaceAuthorization | null | undefined) {
   return !!a && (!a.expiresAt || a.expiresAt.getTime() > Date.now());
-}
-
-function escapeLike(s: string) {
-  return s.replace(/[\\%_]/g, (c) => '\\' + c);
 }
 
 @Injectable()

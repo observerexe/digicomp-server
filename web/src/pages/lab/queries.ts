@@ -11,7 +11,6 @@ export const keys = {
   bookings: (placeId: string, from: string) => ['bookings', 'place', placeId, from] as const,
   faults: (placeId: string) => ['faults', 'place', placeId] as const,
   fault: (id: string) => ['faults', 'one', id] as const,
-  docs: (placeId: string) => ['documents', 'place', placeId] as const,
 };
 
 /** My running session (any equipment), or null. */

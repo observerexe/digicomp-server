@@ -31,12 +31,9 @@ import type {
   ProjectHistoryDto,
   ProjectListDto,
 } from './responses.dto';
+import { escapeLike } from '../common/like';
 
 type Actor = { id: string; role: string };
-
-function escapeLike(s: string) {
-  return s.replace(/[\\%_]/g, (c) => '\\' + c);
-}
 
 /** Deadline cannot be earlier than the start date (YYYY-MM-DD compare). */
 function checkDates(startDate: string | null, deadline: string | null) {

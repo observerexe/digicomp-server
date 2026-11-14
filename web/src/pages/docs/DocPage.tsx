@@ -6,6 +6,7 @@ import type { Doc } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
 import { DropZone } from '../../components/DropZone';
 import { Icon } from '../../components/Icon';
+import { Related } from '../../components/Related';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { CATEGORY, itemTitle, useDictionary } from '../../lib/dictionaries';
@@ -159,6 +160,7 @@ function DocView({ doc }: { doc: Doc }) {
               </ol>
             )}
           </Card>
+          <Related type="document" id={doc.id} />
           {staff && !doc.archived && (
             <Card>
               <form

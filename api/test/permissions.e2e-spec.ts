@@ -816,6 +816,7 @@ describe('Матриця прав (e2e)', () => {
       );
       allowed(await link(member, 'project', projectId));
       allowed(await as(app, member).get(`/api/links?type=task&id=${taskId}`));
+      allowed(await as(app, member).get('/api/links/candidates?type=task'));
     });
   });
 
@@ -848,7 +849,6 @@ describe('Матриця прав (e2e)', () => {
         .get('/api/inventory/items/item-1')
         .expect(200);
       expect(byCode.body).toMatchObject({ id: itemId, code: 'ITEM-1' });
-      expect(byCode.body.documents).toEqual([]);
       await as(app, member).get('/api/inventory/items/NOPE-9').expect(404);
       await as(app, member).get(`/api/inventory/items/${itemId}`).expect(200);
     });

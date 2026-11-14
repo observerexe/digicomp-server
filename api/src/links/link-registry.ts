@@ -4,7 +4,15 @@ import type { Actor } from '../auth/policy';
 import type { RecordType } from '../records/field-types';
 
 /** What a link shows about the record on the other side. */
-export type LinkedRecord = { title: string; archived: boolean };
+export type LinkedRecord = {
+  title: string;
+  archived: boolean;
+  /** The record's QR code, for records opened by it (equipment, inventory). */
+  code?: string;
+};
+
+/** A record found by search, to be linked. */
+export type LinkCandidate = LinkedRecord & { id: string };
 
 /**
  * What a module tells the links about its record type. A module whose
@@ -24,6 +32,16 @@ export type LinkableType = {
     actor: Actor,
     m: EntityManager,
   ): Promise<Map<string, LinkedRecord>>;
+  /**
+   * Records the actor may see whose title (or code) contains `q`, by title,
+   * at most `limit`; empty `q` — the first ones. Same visibility as `find`.
+   */
+  search(
+    q: string,
+    limit: number,
+    actor: Actor,
+    m: EntityManager,
+  ): Promise<LinkCandidate[]>;
 };
 
 @Injectable()

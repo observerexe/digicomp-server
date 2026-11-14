@@ -11,10 +11,10 @@ import { AuditService } from '../audit/audit.service';
 import type { Actor } from '../auth/policy';
 import type { OkDto } from '../common/responses.dto';
 import type { RecordType } from '../records/field-types';
-import { CreateLinkDto, ListLinksQuery } from './dto';
-import { LinkableType, LinkRegistry } from './link-registry';
+import { CreateLinkDto, LinkCandidatesQuery, ListLinksQuery } from './dto';
+import { LinkableType, LinkedRecord, LinkRegistry } from './link-registry';
 import { RecordLink } from './record-link.entity';
-import type { LinkDto } from './responses.dto';
+import type { LinkCandidateDto, LinkDto, LinkListDto } from './responses.dto';
 
 export const LinkErrors = {
   TypeInvalid: 'Record type cannot be linked',
@@ -23,6 +23,9 @@ export const LinkErrors = {
 } as const;
 
 const UNIQUE_VIOLATION = '23505';
+
+/** How many records the link search returns. */
+export const CANDIDATES_LIMIT = 20;
 
 @Injectable()
 export class LinksService {
@@ -33,7 +36,7 @@ export class LinksService {
   ) {}
 
   /** Links of a record in both directions; records the actor cannot see are left out. */
-  async list(q: ListLinksQuery, actor: Actor): Promise<LinkDto[]> {
+  async list(q: ListLinksQuery, actor: Actor): Promise<LinkListDto> {
     const m = this.ds.manager;
     await this.visible(this.linkable(q.type), q.id, actor, m);
     const rows = await m
@@ -54,10 +57,7 @@ export class LinksService {
     const byType = new Map<string, string[]>();
     for (const s of sides)
       byType.set(s.type, [...(byType.get(s.type) ?? []), s.id]);
-    const found = new Map<
-      string,
-      Map<string, { title: string; archived: boolean }>
-    >();
+    const found = new Map<string, Map<string, LinkedRecord>>();
     for (const [type, ids] of byType) {
       const reg = this.registry.get(type);
       if (reg) found.set(type, await reg.find([...new Set(ids)], actor, m));
@@ -73,24 +73,38 @@ export class LinksService {
       return edit.get(key)!;
     };
 
-    const out: LinkDto[] = [];
+    const items: LinkDto[] = [];
     for (const s of sides) {
       const rec = found.get(s.type)?.get(s.id);
       if (!rec) continue;
-      out.push({
+      items.push({
         id: s.l.id,
         direction: s.out ? 'out' : 'in',
         type: s.type as RecordType,
         recordId: s.id,
         title: rec.title,
         archived: rec.archived,
+        code: rec.code,
         role: s.l.role,
         createdById: s.l.createdById,
         createdAt: s.l.createdAt,
         canRemove: await canEdit(s.l.fromType, s.l.fromId),
       });
     }
-    return out;
+    return { canLink: await canEdit(q.type, q.id), items };
+  }
+
+  async candidates(
+    q: LinkCandidatesQuery,
+    actor: Actor,
+  ): Promise<LinkCandidateDto[]> {
+    const found = await this.linkable(q.type).search(
+      (q.q ?? '').trim(),
+      CANDIDATES_LIMIT,
+      actor,
+      this.ds.manager,
+    );
+    return found.map((r) => ({ ...r, type: q.type }));
   }
 
   async create(dto: CreateLinkDto, actor: Actor): Promise<LinkDto> {
@@ -133,6 +147,7 @@ export class LinksService {
           recordId: dto.toId,
           title: target.title,
           archived: target.archived,
+          code: target.code,
           role,
           createdById: actor.id,
           createdAt: link.createdAt,

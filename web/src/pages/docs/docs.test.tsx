@@ -18,6 +18,7 @@ const base = (me: Me, extra: Record<string, (r: Request) => Response | Promise<R
   ]),
   'GET /api/work-sessions': () => json(200, { items: [], total: 0, page: 1, limit: 1 }),
   'GET /api/documents': () => json(200, { items: [doc(), doc({ id: 'd2', title: 'Порядок дій', category: 'instruktsii', accessScope: 'supervisors', fileName: 'a.docx', mimeType: 'x' })], total: 2, page: 1, limit: 100 }),
+  'GET /api/links': () => json(200, { canLink: false, items: [] }),
   'GET /api/documents/d1/versions': () => json(200, [{ id: 'v2', version: 2, fileName: 'pass.pdf', mimeType: 'application/pdf', size: 10, sha256: '', changeNote: 'Нова схема', uploadedById: 'm1', createdAt: '' }]),
   ...extra,
 });
@@ -87,6 +88,38 @@ describe('Архів', () => {
     expect(post.headers.get('content-type')).toMatch(/^multipart\/form-data/);
     expect(post.body).toContain('supervisors');
     expect(post.body).toMatch(/name="category"\r\n\r\ninstruktsii\r\n/);
+  });
+
+  it('новий документ пов’язується з вибраними записами після завантаження', async () => {
+    const { calls } = mockApi(
+      base(staff, {
+        'POST /api/documents': () => json(201, doc({ id: 'n1' })),
+        'GET /api/documents/n1': () => json(200, doc({ id: 'n1' })),
+        'GET /api/documents/n1/versions': () => json(200, []),
+        'GET /api/links/candidates': (req) =>
+          json(200, new URL(req.url).searchParams.get('type') === 'place' ? [{ id: 'p1', type: 'place', title: 'Фрезер', archived: false, code: 'CNC-1' }] : []),
+        'POST /api/links': () => json(201, {}),
+      }),
+    );
+    const { router } = renderApp('/docs/new');
+    fireEvent.drop(await screen.findByTestId('dropzone'), { dataTransfer: { files: [new File(['x'], 'Паспорт.pdf', { type: 'application/pdf' })] } });
+    const select = screen.getByLabelText('Категорія');
+    await waitFor(() => expect(select).toBeEnabled());
+    await userEvent.selectOptions(select, 'Паспорти');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Вибрати запис' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Обладнання' }));
+    // Enter in the search does not submit the form.
+    await userEvent.type(screen.getByRole('searchbox'), 'cnc{Enter}');
+    await userEvent.click(await screen.findByRole('button', { name: /Фрезер/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Готово' }));
+    expect(within(screen.getByRole('list', { name: 'Вибрані записи' })).getByText('Обладнання: Фрезер')).toBeInTheDocument();
+    expect(calls.some((c) => c.method === 'POST')).toBe(false);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Додати документ' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/docs/n1'));
+    const post = calls.find((c) => c.method === 'POST' && c.path === '/api/links')!;
+    expect(JSON.parse(post.body)).toEqual({ fromType: 'document', fromId: 'n1', toType: 'place', toId: 'p1' });
   });
 
   it('учаснику форма закрита', async () => {

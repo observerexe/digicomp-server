@@ -20,24 +20,6 @@ export function linkedWithSql(type: RecordType, idColumn: string): string {
       WHERE l.to_type = '${type}' AND l.from_type = :linkedType AND l.from_id = :linkedId)`;
 }
 
-/** Pairs (record of `type` among `ids`, linked record of `otherType`). */
-export async function linkedPairs(
-  m: EntityManager,
-  type: RecordType,
-  ids: string[],
-  otherType: RecordType,
-): Promise<{ id: string; otherId: string }[]> {
-  if (!ids.length) return [];
-  return m.query<{ id: string; otherId: string }[]>(
-    `SELECT from_id AS "id", to_id AS "otherId" FROM record_links
-       WHERE from_type = $1 AND from_id = ANY($2::uuid[]) AND to_type = $3
-     UNION
-     SELECT to_id, from_id FROM record_links
-       WHERE to_type = $1 AND to_id = ANY($2::uuid[]) AND from_type = $3`,
-    [type, ids, otherType],
-  );
-}
-
 /** Drops every link of a record that is being deleted. */
 export async function removeLinksOf(
   m: EntityManager,

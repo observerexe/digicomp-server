@@ -2,10 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { api, ApiError, unwrap } from '../../api/client';
-import type { AccessScope, Doc } from '../../api/types';
+import type { AccessScope, Doc, LinkCandidate } from '../../api/types';
 import { DictSelect } from '../../components/DictSelect';
 import { DropZone } from '../../components/DropZone';
 import { Icon } from '../../components/Icon';
+import { LinkPicker, linkTypeLabel } from '../../components/Related';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { CATEGORY } from '../../lib/dictionaries';
@@ -32,6 +33,9 @@ function DocForm({ doc }: { doc?: Doc }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
+  // New document only: records to link it with once it is uploaded.
+  const [linked, setLinked] = useState<LinkCandidate[]>([]);
+  const [picking, setPicking] = useState(false);
   const [f, setF] = useState({
     title: doc?.title ?? '',
     category: doc?.category ?? '',
@@ -41,7 +45,7 @@ function DocForm({ doc }: { doc?: Doc }) {
 
   const invalid = !f.title.trim() || !f.category ? 'Вкажіть назву й виберіть категорію.' : !doc && !file ? 'Додайте файл.' : null;
   const save = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       if (doc) {
         return unwrap(
           api.PATCH('/api/documents/{id}', {
@@ -62,10 +66,16 @@ function DocForm({ doc }: { doc?: Doc }) {
       body.append('category', f.category);
       if (f.description) body.append('description', f.description);
       body.append('accessScope', f.accessScope);
-      return unwrap(api.POST('/api/documents', { body: body as never }));
+      const created = await unwrap(api.POST('/api/documents', { body: body as never }));
+      // The document is there already: a link that failed is added on its page.
+      await Promise.allSettled(
+        linked.map((r) => unwrap(api.POST('/api/links', { body: { fromType: 'document', fromId: created.id, toType: r.type, toId: r.id } }))),
+      );
+      return created;
     },
     onSuccess: (d) => {
       void qc.invalidateQueries({ queryKey: ['documents'] });
+      void qc.invalidateQueries({ queryKey: ['links'] });
       void navigate(`/docs/${d.id}`);
     },
   });
@@ -119,6 +129,38 @@ function DocForm({ doc }: { doc?: Doc }) {
             <label htmlFor="df-desc">Опис</label>
             <textarea id="df-desc" maxLength={5000} value={f.description} onChange={set('description')} />
           </div>
+          {!doc && (
+            <fieldset className={s.access}>
+              <legend>Пов’язати з</legend>
+              {linked.length > 0 && (
+                <ul className={s.linked} aria-label="Вибрані записи">
+                  {linked.map((r) => (
+                    <li key={`${r.type}:${r.id}`}>
+                      <span>
+                        {linkTypeLabel(r.type)}: {r.title}
+                      </span>
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        aria-label={`Не пов’язувати з «${r.title}»`}
+                        onClick={() => setLinked((v) => v.filter((x) => x !== r))}
+                      >
+                        ×
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {picking ? (
+                <LinkPicker exclude={linked} onPick={(c) => setLinked((v) => [...v, c])} onClose={() => setPicking(false)} />
+              ) : (
+                <button type="button" className="btn btn-ghost" onClick={() => setPicking(true)}>
+                  {linked.length ? 'Додати ще' : 'Вибрати запис'}
+                </button>
+              )}
+              <p className="hint">Документ з’явиться в блоці «Пов’язане» вибраного обладнання, позиції складу, ТЗ чи проєкту.</p>
+            </fieldset>
+          )}
           <fieldset className={s.access}>
             <legend>Хто бачить</legend>
             <label className={s.check}>

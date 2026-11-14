@@ -20,7 +20,6 @@ export class InventoryItemDto {
 
   location: string;
   notes: string;
-  documentsCount: number;
 
   @ApiProperty({ type: String, nullable: true })
   createdById: string | null;
@@ -36,17 +35,6 @@ export class InventoryItemListDto {
   total: number;
   page: number;
   limit: number;
-}
-
-export class ItemDocRefDto {
-  id: string;
-  title: string;
-  category: string;
-}
-
-export class InventoryItemDetailDto extends InventoryItemDto {
-  @ApiProperty({ type: [ItemDocRefDto] })
-  documents: ItemDocRefDto[];
 }
 
 export class MovementItemDto {

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { api, unwrap } from '../../api/client';
-import type { InventoryItemDetail } from '../../api/types';
+import type { InventoryItem } from '../../api/types';
 import { DictSelect } from '../../components/DictSelect';
 import { Icon } from '../../components/Icon';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
@@ -24,7 +24,7 @@ export function ItemFormPage() {
   return <ItemForm item={q.data} />;
 }
 
-function ItemForm({ item }: { item?: InventoryItemDetail }) {
+function ItemForm({ item }: { item?: InventoryItem }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [f, setF] = useState({

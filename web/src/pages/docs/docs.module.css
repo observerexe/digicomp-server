@@ -154,6 +154,22 @@
   font-weight: 500;
   margin-bottom: 4px;
 }
+.linked {
+  list-style: none;
+  margin: 0 0 4px;
+  padding: 0;
+}
+.linked li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: var(--size-touch-min);
+  border-top: 1px solid var(--c-border);
+}
+.linked li:first-child {
+  border-top: 0;
+}
 .versions .sub {
   display: block;
 }

@@ -1,4 +1,5 @@
-import { In, IsNull } from 'typeorm';
+import { ILike, In, IsNull } from 'typeorm';
+import { containsLike } from '../common/like';
 import { Action, check } from '../auth/policy';
 import type { LinkableType } from '../links/link-registry';
 import { Project, ProjectMember } from './project.entities';
@@ -20,5 +21,13 @@ export const PROJECT_LINKS: LinkableType = {
     return new Map(
       rows.map((p) => [p.id, { title: p.title, archived: false }]),
     );
+  },
+  async search(q, limit, _actor, m) {
+    const rows = await m.find(Project, {
+      where: { title: ILike(containsLike(q)), archivedAt: IsNull() },
+      order: { title: 'ASC', id: 'ASC' },
+      take: limit,
+    });
+    return rows.map((p) => ({ id: p.id, title: p.title, archived: false }));
   },
 };

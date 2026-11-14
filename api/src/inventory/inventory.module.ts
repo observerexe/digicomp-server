@@ -3,7 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditModule } from '../audit/audit.module';
 import { DictionariesModule } from '../dictionaries/dictionaries.module';
 import { DictionaryUsageRegistry } from '../dictionaries/dictionary-usage';
-import { Doc } from '../documents/doc.entity';
 import { LinkRegistry } from '../links/link-registry';
 import { LinksModule } from '../links/links.module';
 import { InventoryController } from './inventory.controller';
@@ -17,7 +16,7 @@ import { InventoryService } from './inventory.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([InventoryItem, InventoryMovement, Doc]),
+    TypeOrmModule.forFeature([InventoryItem, InventoryMovement]),
     AuditModule,
     DictionariesModule,
     LinksModule,

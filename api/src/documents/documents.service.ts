@@ -24,12 +24,9 @@ import {
 import { AccessScope, Doc, DOCUMENT_CATEGORY, DocVersion } from './doc.entity';
 import type { OkDto, Plain } from '../common/responses.dto';
 import type { DocDto, DocListDto, DocVersionDto } from './responses.dto';
+import { escapeLike } from '../common/like';
 
 type Actor = { id: string; role: string };
-
-function escapeLike(s: string) {
-  return s.replace(/[\\%_]/g, (c) => '\\' + c);
-}
 
 function versionView(v: DocVersion): DocVersionDto {
   return {

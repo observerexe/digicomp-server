@@ -7,10 +7,11 @@ import { useAuth } from '../../auth/AuthProvider';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
 import { QrCode } from '../../components/QrCode';
+import { Related } from '../../components/Related';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { CATEGORY, itemTitle, useDictionary } from '../../lib/dictionaries';
-import { formatDate, formatDateTime, formatDuration, formatSize, formatTime } from '../../lib/format';
+import { formatDate, formatDateTime, formatDuration, formatTime } from '../../lib/format';
 import { kyivDay, kyivParts, addDays } from '../../lib/kyiv';
 import { placeUrl } from '../../lib/scan';
 import { AuthorizationsSection } from './AuthorizationsSection';
@@ -23,7 +24,7 @@ import s from './lab.module.css';
 /** Days of bookings loaded with the page: today and the next 7. */
 export const BOOKING_DAYS = 8;
 
-/** Equipment page (approved mockup): state, start/end, bookings, faults, history, documents. */
+/** Equipment page (approved mockup): state, start/end, bookings, faults, history, related records. */
 export function EquipmentPage() {
   const { code = '' } = useParams();
   const { user, can } = useAuth();
@@ -120,7 +121,7 @@ export function EquipmentPage() {
           <FaultsSection place={p} />
           {can('places.authorize') && p.needsAuthorization && <AuthorizationsSection place={p} />}
           <RecentSessions code={p.code} />
-          <PlaceDocs placeId={p.id} />
+          <Related type="place" id={p.id} />
         </div>
       </div>
     </>
@@ -313,34 +314,6 @@ function RecentSessions({ code }: { code: string }) {
           ))}
         </ul>
       )}
-    </Card>
-  );
-}
-
-function PlaceDocs({ placeId }: { placeId: string }) {
-  const q = useQuery({
-    queryKey: keys.docs(placeId),
-    queryFn: () => unwrap(api.GET('/api/documents', { params: { query: { linkedType: 'place', linkedId: placeId } } })),
-  });
-  const docs = q.data?.items.filter((d) => !d.archived && d.version !== null) ?? [];
-  if (q.isPending || q.isError || docs.length === 0) return null;
-  return (
-    <Card>
-      <h2 className={s.caption}>Документи</h2>
-      <ul className={s.rows}>
-        {docs.map((d) => (
-          <li key={d.id}>
-            <Link className={s.linkRow} to={`/docs/${d.id}`}>
-              <span className={s.rowTitle}>{d.title}</span>
-              <span className={s.rowSub}>
-                {[d.fileName?.split('.').pop()?.toUpperCase(), `версія ${d.version}`, d.size !== null && formatSize(d.size), `оновлено ${formatDate(d.updatedAt)}`]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
     </Card>
   );
 }

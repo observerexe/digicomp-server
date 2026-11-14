@@ -12,7 +12,7 @@ import {
   TestUser,
 } from './helpers';
 
-// Зв'язки між записами (0.4а): record_links, /api/links, фільтр Архіву й склад через зв'язки.
+// Зв'язки між записами (0.4а, 0.4б): record_links, /api/links, пошук записів для зв'язку, фільтр Архіву.
 
 type Link = {
   id: string;
@@ -104,9 +104,21 @@ describe("Зв'язки між записами (e2e)", () => {
       .post('/api/links')
       .send({ fromType, fromId, toType, toId, ...(role ? { role } : {}) });
 
-  const links = async (who: TestUser, type: string, id: string) =>
+  const list = async (who: TestUser, type: string, id: string) =>
     (await as(app, who).get(`/api/links?type=${type}&id=${id}`).expect(200))
-      .body as Link[];
+      .body as { canLink: boolean; items: Link[] };
+  const links = async (who: TestUser, type: string, id: string) =>
+    (await list(who, type, id)).items;
+
+  const candidates = async (who: TestUser, type: string, q = '') =>
+    (
+      (
+        await as(app, who)
+          .get('/api/links/candidates')
+          .query({ type, q })
+          .expect(200)
+      ).body as { id: string; type: string; title: string; archived: boolean }[]
+    ).map((c) => c.title);
 
   const audit = (action: string) =>
     app.get(DataSource).getRepository(AuditLog).findBy({ action });
@@ -267,23 +279,59 @@ describe("Зв'язки між записами (e2e)", () => {
     await as(app, member).get(`/api/documents?linkedType=place`).expect(400);
   });
 
-  it('склад: документи позиції й лічильник — через зв’язки, з урахуванням доступу', async () => {
+  it('обладнання й склад приходять із кодом — за ним відкривається сторінка', async () => {
+    await link(mod, 'document', docId, 'place', placeId).expect(201);
     await link(mod, 'document', docId, 'inventory_item', itemId).expect(201);
-    await link(mod, 'inventory_item', itemId, 'document', hiddenDocId).expect(
-      201,
-    );
-    const asMember = await as(app, member)
-      .get(`/api/inventory/items/${itemId}`)
-      .expect(200);
-    expect(asMember.body.documents.map((d: { id: string }) => d.id)).toEqual([
-      docId,
+    expect(await links(member, 'document', docId)).toMatchObject([
+      { type: 'place', code: 'CNC-1' },
+      { type: 'inventory_item', code: 'PLY-1' },
     ]);
-    const asMod = await as(app, mod)
-      .get(`/api/inventory/items/${itemId}`)
-      .expect(200);
-    expect(asMod.body.documents).toHaveLength(2);
+    const [doc] = await links(member, 'place', placeId);
+    expect(doc.code).toBeUndefined();
+  });
 
-    const list = await as(app, member).get('/api/inventory/items').expect(200);
-    expect(list.body.items[0].documentsCount).toBe(1);
+  it('canLink: хто редагує запис — той і зв’язує', async () => {
+    expect((await list(mod, 'task', taskId)).canLink).toBe(true);
+    expect((await list(member, 'task', taskId)).canLink).toBe(false);
+    // Учасник проєкту редагує його, тож і зв'язує.
+    expect((await list(member, 'project', projectId)).canLink).toBe(true);
+    const outsider = await makeUser(app, Role.Member);
+    expect((await list(outsider, 'project', projectId)).canLink).toBe(false);
+    expect((await list(member, 'place', placeId)).canLink).toBe(false);
+    expect((await list(admin, 'document', docId)).canLink).toBe(true);
+  });
+
+  it('candidates: пошук за назвою й кодом, лише видимі записи', async () => {
+    expect(await candidates(member, 'task', 'корп')).toEqual(['Корпус']);
+    expect(await candidates(member, 'task', 'немає')).toEqual([]);
+    expect(await candidates(member, 'place', 'cnc')).toEqual(['Фрезер']);
+    expect(await candidates(member, 'inventory_item', 'ply')).toEqual([
+      'Фанера',
+    ]);
+    expect(await candidates(member, 'project')).toEqual(['Робот']);
+    // Символи LIKE шукаються як текст.
+    expect(await candidates(member, 'task', '%')).toEqual([]);
+
+    expect(await candidates(member, 'document')).toEqual(['Паспорт фрезера']);
+    expect(await candidates(mod, 'document')).toEqual([
+      'Акт для модераторів',
+      'Паспорт фрезера',
+    ]);
+
+    await as(app, mod)
+      .patch(`/api/places/${placeId}`)
+      .send({ status: 'archived' })
+      .expect(200);
+    expect(await candidates(member, 'place')).toEqual([]);
+    const staff = await as(app, mod)
+      .get('/api/links/candidates?type=place')
+      .expect(200);
+    expect(staff.body).toMatchObject([
+      { id: placeId, type: 'place', title: 'Фрезер', archived: true },
+    ]);
+
+    const bad = await as(app, member).get('/api/links/candidates?type=user');
+    expect(bad.status).toBe(400);
+    expect(bad.body.errorCode).toBe('LINK_TYPE_INVALID');
   });
 });

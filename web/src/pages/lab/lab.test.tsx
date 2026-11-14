@@ -94,7 +94,7 @@ function labApi(me: Me, opts: { place?: Place; bookings?: Booking[]; active?: Wo
     'GET /api/places/CNC-1/sessions/recent': () =>
       json(200, [{ id: 'r1', startedAt: at(8, 2), endedAt: at(9, 48), autoClosed: false, user: { ...andrii, avatarUrl: null } }]),
     'GET /api/faults': () => json(200, { items: [], total: 0, page: 1, limit: 20 }),
-    'GET /api/documents': () => json(200, { items: [], total: 0, page: 1, limit: 50 }),
+    'GET /api/links': () => json(200, { canLink: false, items: [] }),
     'GET /api/work-sessions': () => json(200, { items: state.active ? [state.active] : [], total: state.active ? 1 : 0, page: 1, limit: 1 }),
   };
   return { state, handlers };
@@ -221,24 +221,23 @@ describe('Сторінка обладнання: сеанс', () => {
     expect(within(recent).getByText('1:46')).toBeInTheDocument();
   });
 
-  it('документи обладнання — пов’язані з ним документи архіву', async () => {
+  it('«Пов’язане» на обладнанні: документи архіву за кодом обладнання', async () => {
     const { handlers } = labApi(member);
     let query = '';
     mockApi({
       ...handlers,
-      'GET /api/documents': (req) => {
+      'GET /api/links': (req) => {
         query = new URL(req.url).search;
         return json(200, {
-          items: [{ id: 'd1', title: 'Паспорт фрезера', category: 'pasporty', description: '', accessScope: 'members', authorId: 'm1', createdAt: '', updatedAt: NOW.toISOString(), archived: false, version: 1, fileName: 'pass.pdf', mimeType: 'application/pdf', size: 10, versionsCount: 1 }],
-          total: 1,
-          page: 1,
-          limit: 50,
+          canLink: false,
+          items: [{ id: 'l1', direction: 'in', type: 'document', recordId: 'd1', title: 'Паспорт фрезера', archived: false, role: '', createdById: 'm1', createdAt: '', canRemove: false }],
         });
       },
     });
     renderApp('/lab/CNC-1');
-    expect(await screen.findByRole('link', { name: /Паспорт фрезера/ })).toHaveAttribute('href', '/docs/d1');
-    expect(Object.fromEntries(new URLSearchParams(query))).toEqual({ linkedType: 'place', linkedId: place().id });
+    const related = await screen.findByRole('region', { name: 'Документи' });
+    expect(within(related).getByRole('link', { name: 'Паспорт фрезера' })).toHaveAttribute('href', '/docs/d1');
+    expect(Object.fromEntries(new URLSearchParams(query))).toEqual({ type: 'place', id: place().id });
   });
 
   it('обладнання немає — зрозумілий текст', async () => {

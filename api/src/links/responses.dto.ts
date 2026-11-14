@@ -20,6 +20,10 @@ export class LinkDto {
   /** The other record is in the archive. */
   archived: boolean;
 
+  /** QR code of the other record, for records opened by it (equipment, inventory). */
+  @ApiProperty({ required: false })
+  code?: string;
+
   /** What the link means for the source; empty — just related. */
   role: string;
 
@@ -28,4 +32,29 @@ export class LinkDto {
 
   /** The actor may remove the link (edits its source). */
   canRemove: boolean;
+}
+
+/** Links of a record and whether the actor may add more. */
+export class LinkListDto {
+  /** The actor edits this record, so may link it to others. */
+  canLink: boolean;
+
+  @ApiProperty({ type: [LinkDto] })
+  items: LinkDto[];
+}
+
+/** A record that may be linked. */
+export class LinkCandidateDto {
+  id: string;
+
+  @ApiProperty({ enum: RECORD_TYPES, enumName: 'RecordType' })
+  type: RecordType;
+
+  title: string;
+  /** The record is in the archive. */
+  archived: boolean;
+
+  /** QR code, for records opened by it (equipment, inventory). */
+  @ApiProperty({ required: false })
+  code?: string;
 }

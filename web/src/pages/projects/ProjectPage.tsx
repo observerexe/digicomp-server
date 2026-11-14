@@ -6,6 +6,7 @@ import type { ProjectDetail, ProjectHistory, ProjectStage } from '../../api/type
 import { useAuth } from '../../auth/AuthProvider';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
+import { Related } from '../../components/Related';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { formatDate, formatDateTime, formatSize } from '../../lib/format';
@@ -192,6 +193,7 @@ function ProjectView({ p }: { p: ProjectDetail }) {
             )}
           </Card>
           <Files p={p} />
+          <Related type="project" id={p.id} />
           {(p.canEdit || can('projects.manage')) && (
             <Card>
               <div className={s.actions}>

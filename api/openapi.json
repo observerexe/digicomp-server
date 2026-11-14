@@ -2048,10 +2048,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/LinkDto"
-                  }
+                  "$ref": "#/components/schemas/LinkListDto"
                 }
               }
             }
@@ -2088,6 +2085,51 @@
           }
         },
         "summary": "Whoever edits the source record; both records must be visible.",
+        "tags": [
+          "Links"
+        ]
+      }
+    },
+    "/api/links/candidates": {
+      "get": {
+        "operationId": "LinksController_candidates",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "query",
+            "description": "Type of the records to find.",
+            "schema": {
+              "$ref": "#/components/schemas/RecordType"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Part of the title (or code); empty — the first ones by title.",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LinkCandidateDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Records of a type the caller sees, by title: what may be linked.",
         "tags": [
           "Links"
         ]
@@ -3718,7 +3760,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/InventoryItemDetailDto"
+                  "$ref": "#/components/schemas/InventoryItemDto"
                 }
               }
             }
@@ -6403,6 +6445,10 @@
               }
             ]
           },
+          "code": {
+            "type": "string",
+            "description": "QR code of the other record, for records opened by it (equipment, inventory)."
+          },
           "id": {
             "type": "string"
           },
@@ -6444,6 +6490,57 @@
           "createdById",
           "createdAt",
           "canRemove"
+        ]
+      },
+      "LinkListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkDto"
+            }
+          },
+          "canLink": {
+            "type": "boolean",
+            "description": "The actor edits this record, so may link it to others."
+          }
+        },
+        "required": [
+          "items",
+          "canLink"
+        ]
+      },
+      "LinkCandidateDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "code": {
+            "type": "string",
+            "description": "QR code, for records opened by it (equipment, inventory)."
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "The record is in the archive."
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "title",
+          "archived"
         ]
       },
       "CreateLinkDto": {
@@ -7799,9 +7896,6 @@
           "notes": {
             "type": "string"
           },
-          "documentsCount": {
-            "type": "number"
-          },
           "createdAt": {
             "format": "date-time",
             "type": "string"
@@ -7823,7 +7917,6 @@
           "lowStock",
           "location",
           "notes",
-          "documentsCount",
           "createdAt",
           "updatedAt"
         ]
@@ -7852,101 +7945,6 @@
           "total",
           "page",
           "limit"
-        ]
-      },
-      "ItemDocRefDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "category": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "title",
-          "category"
-        ]
-      },
-      "InventoryItemDetailDto": {
-        "type": "object",
-        "properties": {
-          "createdById": {
-            "type": "string",
-            "nullable": true
-          },
-          "documents": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ItemDocRefDto"
-            }
-          },
-          "id": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string",
-            "description": "QR code of the item, upper case."
-          },
-          "title": {
-            "type": "string"
-          },
-          "category": {
-            "type": "string"
-          },
-          "quantity": {
-            "type": "number"
-          },
-          "unit": {
-            "type": "string",
-            "description": "шт, уп and pcs take whole numbers only."
-          },
-          "minQuantity": {
-            "type": "number"
-          },
-          "lowStock": {
-            "type": "boolean",
-            "description": "quantity ≤ minQuantity (when a minimum is set)."
-          },
-          "location": {
-            "type": "string"
-          },
-          "notes": {
-            "type": "string"
-          },
-          "documentsCount": {
-            "type": "number"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "createdById",
-          "documents",
-          "id",
-          "code",
-          "title",
-          "category",
-          "quantity",
-          "unit",
-          "minQuantity",
-          "lowStock",
-          "location",
-          "notes",
-          "documentsCount",
-          "createdAt",
-          "updatedAt"
         ]
       },
       "CreateItemDto": {

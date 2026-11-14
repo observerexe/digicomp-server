@@ -1,13 +1,13 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import type { InventoryItemDetail, Me } from '../../api/types';
+import type { InventoryItem, Me } from '../../api/types';
 import { dictionary, json, member, mockApi, moderator, renderApp } from '../../test/render';
 
 const staff: Me = { ...moderator, permissions: [...moderator.permissions, 'inventory.manage', 'places.manage'] };
-const item = (over: Partial<InventoryItemDetail> = {}): InventoryItemDetail => ({
+const item = (over: Partial<InventoryItem> = {}): InventoryItem => ({
   id: 'i1', code: 'PLY-3', title: 'Фанера 3 мм', category: 'materialy', quantity: 5, unit: 'шт', minQuantity: 0, lowStock: false,
-  location: 'Шафа 2', notes: '', documentsCount: 0, createdById: null, createdAt: '', updatedAt: '', documents: [], ...over,
+  location: 'Шафа 2', notes: '', createdById: null, createdAt: '', updatedAt: '', ...over,
 });
 const base = (me: Me, extra: Record<string, (r: Request) => Response | Promise<Response>> = {}) => ({
   'GET /api/auth/me': () => json(200, me),
@@ -18,6 +18,7 @@ const base = (me: Me, extra: Record<string, (r: Request) => Response | Promise<R
   'GET /api/work-sessions': () => json(200, { items: [], total: 0, page: 1, limit: 1 }),
   'GET /api/projects': () => json(200, { items: [], total: 0, page: 1, limit: 100 }),
   'GET /api/inventory/movements': () => json(200, { items: [], total: 0, page: 1, limit: 20 }),
+  'GET /api/links': () => json(200, { canLink: false, items: [] }),
   'GET /api/inventory/items': () =>
     json(200, { items: [item(), item({ id: 'i2', code: 'PLA-1', title: 'PLA пластик', unit: 'кг', quantity: 0.4, minQuantity: 1, lowStock: true })], total: 2, page: 1, limit: 100 }),
   'GET /api/inventory/items/PLY-3': () => json(200, item()),

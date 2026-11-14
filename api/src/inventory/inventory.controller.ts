@@ -1,6 +1,5 @@
 import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
 import {
-  InventoryItemDetailDto,
   InventoryItemDto,
   InventoryItemListDto,
   InventoryMovementDto,
@@ -42,15 +41,15 @@ export class InventoryController {
   @Can(Action.InventoryRead)
   @ApiOkResponse({ type: InventoryItemListDto })
   @Get('items')
-  list(@Query() q: ListItemsQuery, @Req() req: Req) {
-    return this.inv.list(q, req.user);
+  list(@Query() q: ListItemsQuery) {
+    return this.inv.list(q);
   }
 
   @Can(Action.InventoryRead)
-  @ApiOkResponse({ type: InventoryItemDetailDto })
+  @ApiOkResponse({ type: InventoryItemDto })
   @Get('items/:id')
-  get(@Param('id') id: string, @Req() req: Req) {
-    return this.inv.get(id, req.user);
+  get(@Param('id') id: string) {
+    return this.inv.get(id);
   }
 
   @Can(Action.InventoryManage)

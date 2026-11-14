@@ -1,4 +1,5 @@
-import { In } from 'typeorm';
+import { ILike, In, IsNull, type FindOptionsWhere } from 'typeorm';
+import { containsLike } from '../common/like';
 import { Action, can, check } from '../auth/policy';
 import type { LinkableType } from '../links/link-registry';
 import { AccessScope, Doc } from './doc.entity';
@@ -20,5 +21,20 @@ export const DOCUMENT_LINKS: LinkableType = {
         )
         .map((d) => [d.id, { title: d.title, archived: !!d.archivedAt }]),
     );
+  },
+  async search(q, limit, actor, m) {
+    const scope: FindOptionsWhere<Doc> = can(actor, Action.DocumentsManage)
+      ? {}
+      : { archivedAt: IsNull(), accessScope: AccessScope.Members };
+    const rows = await m.find(Doc, {
+      where: { ...scope, title: ILike(containsLike(q)) },
+      order: { title: 'ASC', id: 'ASC' },
+      take: limit,
+    });
+    return rows.map((d) => ({
+      id: d.id,
+      title: d.title,
+      archived: !!d.archivedAt,
+    }));
   },
 };

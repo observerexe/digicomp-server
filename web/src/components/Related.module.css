@@ -1,0 +1,109 @@
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.caption {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--c-text3);
+}
+.group {
+  margin-top: 12px;
+}
+.groupTitle {
+  margin: 0 0 4px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--c-text2);
+}
+.rows,
+.found {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--size-touch-min);
+  border-top: 1px solid var(--c-border);
+}
+.row:first-child {
+  border-top: 0;
+}
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 6px 0;
+}
+.title {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.sub {
+  color: var(--c-text2);
+  font-size: 14px;
+  line-height: 20px;
+}
+.picker {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: var(--radius-control);
+  background: var(--c-surface2);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip {
+  min-height: var(--size-touch-min);
+  padding: 0 16px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  color: var(--c-text2);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.chip[aria-pressed='true'] {
+  border-color: var(--c-primary-soft);
+  background: var(--c-primary-soft);
+  color: var(--c-primary-text);
+}
+.pick {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: var(--size-touch-min);
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.pick:hover:not(:disabled) {
+  background: var(--c-surface);
+}
+.pick:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}

@@ -29,6 +29,7 @@ import type {
 } from './responses.dto';
 import type { OkDto, Plain } from '../common/responses.dto';
 import { Role, User } from './user.entity';
+import { escapeLike } from '../common/like';
 
 export type Actor = { id: string; role: string };
 
@@ -64,10 +65,6 @@ function roleChangeAction(from: Role, to: Role): Action {
   if (from === Role.Admin || to === Role.Admin) return Action.UsersGrantAdmin;
   if (from === Role.Member && to === Role.Moderator) return Action.UsersPromote;
   return Action.UsersManageModerator;
-}
-
-function escapeLike(s: string) {
-  return s.replace(/[\\%_]/g, (c) => '\\' + c);
 }
 
 @Injectable()

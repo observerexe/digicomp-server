@@ -15,6 +15,7 @@ function boardApi(me: Me, tasks: Task[], extra: Record<string, (req: Request) =>
     'GET /api/auth/me': () => json(200, me),
     'GET /api/work-sessions': () => json(200, { items: [], total: 0, page: 1, limit: 1 }),
     'GET /api/records/task/field-defs': () => json(200, []),
+    'GET /api/links': () => json(200, { canLink: false, items: [] }),
     'GET /api/tasks': (req: Request) => {
       const q = new URL(req.url).searchParams;
       let list = tasks.filter((t) => t.status === q.get('status'));

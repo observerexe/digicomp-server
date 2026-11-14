@@ -10,8 +10,6 @@ import {
   Between,
   DataSource,
   FindOptionsWhere,
-  In,
-  IsNull,
   LessThanOrEqual,
   MoreThanOrEqual,
   Repository,
@@ -23,8 +21,6 @@ import {
   itemTitleLike,
   itemTitles,
 } from '../dictionaries/dictionary-usage';
-import { AccessScope, Doc } from '../documents/doc.entity';
-import { linkedPairs } from '../links/links.sql';
 import {
   CreateItemDto,
   ListItemsQuery,
@@ -41,12 +37,12 @@ import { csvCell } from '../common/csv';
 import type { Plain } from '../common/responses.dto';
 import { isUUID } from 'class-validator';
 import type {
-  InventoryItemDetailDto,
   InventoryItemDto,
   InventoryItemListDto,
   InventoryMovementDto,
   InventoryMovementListDto,
 } from './responses.dto';
+import { escapeLike } from '../common/like';
 
 type Actor = { id: string; role: string };
 
@@ -60,14 +56,7 @@ function round3(n: number) {
   return Math.round(n * 1000) / 1000;
 }
 
-function escapeLike(s: string) {
-  return s.replace(/[\\%_]/g, (c) => '\\' + c);
-}
-
-function itemView(
-  i: InventoryItem,
-  documentsCount = 0,
-): Plain<InventoryItemDto> {
+function itemView(i: InventoryItem): Plain<InventoryItemDto> {
   return {
     id: i.id,
     code: i.code,
@@ -79,7 +68,6 @@ function itemView(
     lowStock: i.minQuantity > 0 && i.quantity <= i.minQuantity,
     location: i.location,
     notes: i.notes,
-    documentsCount,
     createdById: i.createdById,
     createdAt: i.createdAt,
     updatedAt: i.updatedAt,
@@ -113,12 +101,11 @@ export class InventoryService {
     @InjectRepository(InventoryItem) private items: Repository<InventoryItem>,
     @InjectRepository(InventoryMovement)
     private moves: Repository<InventoryMovement>,
-    @InjectRepository(Doc) private docs: Repository<Doc>,
     @InjectDataSource() private ds: DataSource,
     private audit: AuditService,
   ) {}
 
-  async list(q: ListItemsQuery, actor: Actor): Promise<InventoryItemListDto> {
+  async list(q: ListItemsQuery): Promise<InventoryItemListDto> {
     const page = Math.max(1, Number(q.page ?? 1));
     const limit = Math.min(200, Math.max(1, Number(q.limit ?? 100)));
     const qb = this.items.createQueryBuilder('i');
@@ -137,12 +124,8 @@ export class InventoryService {
       .skip((page - 1) * limit)
       .take(limit);
     const [rows, total] = await qb.getManyAndCount();
-    const counts = await this.docCounts(
-      rows.map((r) => r.id),
-      actor,
-    );
     return {
-      items: rows.map((r) => itemView(r, counts.get(r.id) ?? 0)),
+      items: rows.map(itemView),
       total,
       page,
       limit,
@@ -150,22 +133,14 @@ export class InventoryService {
   }
 
   /** By id or by the QR code printed on the sticker. */
-  async get(idOrCode: string, actor: Actor): Promise<InventoryItemDetailDto> {
+  async get(idOrCode: string): Promise<Plain<InventoryItemDto>> {
     const i = await this.items.findOneBy(
       isUUID(idOrCode, 'all')
         ? { id: idOrCode }
         : { code: idOrCode.toUpperCase() },
     );
     if (!i) throw new NotFoundException('Item not found');
-    const docs = (await this.linkedDocs([i.id], actor)).get(i.id) ?? [];
-    return {
-      ...itemView(i, docs.length),
-      documents: docs.map((d) => ({
-        id: d.id,
-        title: d.title,
-        category: d.category,
-      })),
-    };
+    return itemView(i);
   }
 
   async create(dto: CreateItemDto, actor: Actor) {
@@ -223,7 +198,7 @@ export class InventoryService {
         },
         m,
       );
-      return itemView(item, 0);
+      return itemView(item);
     });
   }
 
@@ -395,39 +370,5 @@ export class InventoryService {
         .join(','),
     );
     return '\ufeff' + [head.join(','), ...lines].join('\r\n') + '\r\n';
-  }
-
-  private async docCounts(ids: string[], actor: Actor) {
-    const map = new Map<string, number>();
-    for (const [id, docs] of await this.linkedDocs(ids, actor)) {
-      map.set(id, docs.length);
-    }
-    return map;
-  }
-
-  /** Documents linked with the items that the actor sees, by item, by title. */
-  private async linkedDocs(ids: string[], actor: Actor) {
-    const pairs = await linkedPairs(
-      this.ds.manager,
-      'inventory_item',
-      ids,
-      'document',
-    );
-    const map = new Map<string, Doc[]>();
-    if (!pairs.length) return map;
-    const where = {
-      id: In([...new Set(pairs.map((p) => p.otherId))]),
-      archivedAt: IsNull(),
-      ...(can(actor, Action.DocumentsManage)
-        ? {}
-        : { accessScope: AccessScope.Members }),
-    };
-    const docs = await this.docs.find({ where, order: { title: 'ASC' } });
-    for (const d of docs) {
-      for (const p of pairs) {
-        if (p.otherId === d.id) map.set(p.id, [...(map.get(p.id) ?? []), d]);
-      }
-    }
-    return map;
   }
 }
