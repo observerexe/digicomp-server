@@ -7,6 +7,7 @@ import { MorePage } from './pages/MorePage';
 import { DictionariesPage } from './pages/panel/DictionariesPage';
 import { DictionaryPage } from './pages/panel/DictionaryPage';
 import { FaultsPage } from './pages/panel/FaultsPage';
+import { FieldsPage } from './pages/panel/FieldsPage';
 import { ManageUserPage } from './pages/panel/ManageUserPage';
 import { NewUserPage } from './pages/panel/NewUserPage';
 import { PanelPage } from './pages/panel/PanelPage';
@@ -236,6 +237,14 @@ export const routes: RouteObject[] = [
         element: (
           <RequirePermission action="dictionaries.manage" fallback={<ForbiddenPage />}>
             <DictionaryPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'panel/fields/:type',
+        element: (
+          <RequirePermission action="records.fields_manage" fallback={<ForbiddenPage />}>
+            <FieldsPage />
           </RequirePermission>
         ),
       },

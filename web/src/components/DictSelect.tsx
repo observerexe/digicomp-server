@@ -14,7 +14,15 @@ const NEW = '__new__';
  * Choice of a dictionary item for a form field. Archived items are not offered,
  * except the current value. Staff can add a missing item right from the list.
  */
-export function DictSelect(props: { id: string; dictionary: string; value: string; onChange: (key: string) => void; newLabel: string }) {
+export function DictSelect(props: {
+  id: string;
+  dictionary: string;
+  value: string;
+  onChange: (key: string) => void;
+  newLabel: string;
+  /** The value may be empty: «Не вибрано» can be chosen. */
+  clearable?: boolean;
+}) {
   const { can } = useAuth();
   const qc = useQueryClient();
   const dict = useDictionary(props.dictionary);
@@ -79,8 +87,8 @@ export function DictSelect(props: { id: string; dictionary: string; value: strin
         disabled={dict.isPending}
         onChange={(e) => (e.target.value === NEW ? setAdding(true) : props.onChange(e.target.value))}
       >
-        <option value="" disabled>
-          {dict.isPending ? 'Завантаження…' : 'Виберіть…'}
+        <option value="" disabled={!props.clearable}>
+          {dict.isPending ? 'Завантаження…' : props.clearable ? 'Не вибрано' : 'Виберіть…'}
         </option>
         {items
           .filter((i) => !i.archived)

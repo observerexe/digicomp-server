@@ -5,9 +5,11 @@ import { api, ApiError, unwrap } from '../../api/client';
 import type { Me, TaskDetail } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
 import { Avatar } from '../../components/Avatar';
+import { ExtraFacts } from '../../components/ExtraFields';
 import { Icon } from '../../components/Icon';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
+import { useFieldDefs } from '../../lib/fields';
 import { formatDate, formatDateTime, formatSize, plural } from '../../lib/format';
 import { TASK_STATUS_LABEL } from '../../lib/labels';
 import { ACTION_LABEL, actionsFor, dueState, isAssignee, splitPoints, type ActionKind } from './logic';
@@ -67,6 +69,7 @@ function TaskView({ task: t, me }: { task: TaskDetail; me: Me }) {
   const actions = actionsFor(t, me, can);
   const due = dueState(t);
   const split = splitPoints(t.points, t.assignees.length);
+  const defs = useFieldDefs('task');
 
   const remove = useMutation({
     mutationFn: () => unwrap(api.DELETE('/api/tasks/{id}', { params: { path: { id: t.id } } })),
@@ -112,6 +115,7 @@ function TaskView({ task: t, me }: { task: TaskDetail; me: Me }) {
                   {t.assignees.length} з {t.maxAssignees}
                 </dd>
               </div>
+              <ExtraFacts defs={defs.data ?? []} extra={t.extra} />
             </dl>
             {t.description ? <p className={s.description}>{t.description}</p> : <p className="hint">Опису немає.</p>}
             {actions.length > 0 && !returning && (

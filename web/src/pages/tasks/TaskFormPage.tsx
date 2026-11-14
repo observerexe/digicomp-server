@@ -2,10 +2,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { api, unwrap } from '../../api/client';
-import type { TaskDetail } from '../../api/types';
+import type { FieldDef, TaskDetail } from '../../api/types';
+import { ExtraInputs } from '../../components/ExtraFields';
 import { Icon } from '../../components/Icon';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
+import { extraBody, fieldProblem, toForm, useFieldDefs, type FormValue } from '../../lib/fields';
 import { kyivParts, kyivToDate } from '../../lib/kyiv';
 import { DUE_TIME } from './logic';
 import { taskKey } from './queries';
@@ -29,16 +31,21 @@ export function TaskFormPage() {
     enabled: !!id,
     queryFn: () => unwrap(api.GET('/api/tasks/{id}', { params: { path: { id: id! } } })),
   });
-  if (id && q.isPending) return <Skeleton height={320} />;
+  const defs = useFieldDefs('task');
+  if ((id && q.isPending) || defs.isPending) return <Skeleton height={320} />;
   if (id && q.isError) return <ErrorMessage text={errorOf(q.error)} />;
-  return <TaskForm task={q.data} />;
+  if (defs.isError) return <ErrorMessage text={errorOf(defs.error)} />;
+  return <TaskForm task={q.data} defs={defs.data} />;
 }
 
-function TaskForm({ task }: { task?: TaskDetail }) {
+function TaskForm({ task, defs }: { task?: TaskDetail; defs: FieldDef[] }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [f, setF] = useState<Form>(
     task ? fromTask(task) : { title: '', description: '', points: '10', maxAssignees: '1', due: '' },
+  );
+  const [extra, setExtra] = useState<Record<string, FormValue>>(() =>
+    Object.fromEntries(defs.filter((d) => !d.archived).map((d) => [d.key, toForm(d, task?.extra[d.key])])),
   );
   const today = kyivParts(new Date()).date;
 
@@ -52,16 +59,18 @@ function TaskForm({ task }: { task?: TaskDetail }) {
         ? 'Виконавців — від 1 до 20.'
         : task && max < task.assignees.length
           ? `ТЗ уже взяли ${task.assignees.length}: ліміт не може бути меншим.`
-          : null;
+          : (defs.map((d) => (d.archived ? null : fieldProblem(d, extra[d.key] ?? ''))).find(Boolean) ?? null);
 
   const save = useMutation({
     mutationFn: () => {
       const dueDate = f.due ? kyivToDate(f.due, DUE_TIME).toISOString() : null;
       const body = { title: f.title.trim(), description: f.description, points, maxAssignees: max };
+      const ex = extraBody(defs, extra, task?.extra);
+      const withExtra = Object.keys(ex).length ? { extra: ex } : {};
       if (!task) {
-        return unwrap(api.POST('/api/tasks', { body: { ...body, ...(dueDate ? { dueDate } : {}) } }));
+        return unwrap(api.POST('/api/tasks', { body: { ...body, ...(dueDate ? { dueDate } : {}), ...withExtra } }));
       }
-      return unwrap(api.PATCH('/api/tasks/{id}', { params: { path: { id: task.id } }, body: { ...body, dueDate } }));
+      return unwrap(api.PATCH('/api/tasks/{id}', { params: { path: { id: task.id } }, body: { ...body, dueDate, ...withExtra } }));
     },
     onSuccess: (t) => {
       void qc.invalidateQueries({ queryKey: ['tasks'] });
@@ -107,6 +116,7 @@ function TaskForm({ task }: { task?: TaskDetail }) {
             </div>
           </div>
           <p className="hint">Бали діляться порівну між виконавцями після прийняття. Дедлайн — до кінця вибраного дня.</p>
+          <ExtraInputs idPrefix="t-extra" defs={defs} values={extra} onChange={(k, v) => setExtra((e) => ({ ...e, [k]: v }))} />
           <ErrorMessage text={invalid && f.title ? invalid : save.isError ? errorOf(save.error) : null} />
           <div className={s.cardActions}>
             <button type="submit" className="btn btn-primary" disabled={!!invalid || save.isPending}>

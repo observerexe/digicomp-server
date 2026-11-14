@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { vi } from 'vitest';
-import type { Me } from '../api/types';
+import type { FieldDef, Me, PaletteColor } from '../api/types';
 import { AuthProvider } from '../auth/AuthProvider';
 import { routes } from '../routes';
 
@@ -55,7 +55,7 @@ export function renderApp(path: string) {
 }
 
 /** Handler for GET /api/dictionaries/:key with items in the given order. */
-export function dictionary(key: string, items: { key: string; title: string; archived?: boolean }[]): Record<string, Handler> {
+export function dictionary(key: string, items: { key: string; title: string; archived?: boolean; color?: PaletteColor }[]): Record<string, Handler> {
   return {
     [`GET /api/dictionaries/${key}`]: () =>
       json(200, {
@@ -69,3 +69,20 @@ export function dictionary(key: string, items: { key: string; title: string; arc
       }),
   };
 }
+
+/** An extra field of tasks («Налаштування полів»): «Тип» from the dictionary typ_tz. */
+export const fieldDef = (over: Partial<FieldDef> = {}): FieldDef => ({
+  id: 'f1',
+  key: 'typ',
+  label: 'Тип',
+  type: 'enum',
+  required: false,
+  dictionary: 'typ_tz',
+  min: null,
+  max: null,
+  maxLength: null,
+  maxItems: null,
+  position: 0,
+  archived: false,
+  ...over,
+});

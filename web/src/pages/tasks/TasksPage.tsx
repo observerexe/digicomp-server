@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import type { Task } from '../../api/types';
+import type { FieldDef, Task } from '../../api/types';
 import { Board } from '../../components/Board';
 import { useAuth } from '../../auth/AuthProvider';
+import { Chips } from '../../components/Filters';
 import { ErrorMessage, PageHeader } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
+import { useDictionary, usedItems } from '../../lib/dictionaries';
+import { choiceKeys, filterFields, matchesFilters, stripeField, useFieldDefs } from '../../lib/fields';
 import { COLUMNS, dropAction, type ActionKind } from './logic';
 import { DONE_PAGE, useBoard, useTaskAction } from './queries';
 import { TaskCard } from './TaskCard';
@@ -19,11 +22,25 @@ export function TasksPage() {
   const [mine, setMine] = useState(false);
   const [doneLimit, setDoneLimit] = useState(DONE_PAGE);
   const [returning, setReturning] = useState<string | null>(null);
+  const [filters, setFilters] = useState<Record<string, string | null>>({});
   const board = useBoard(mine, doneLimit);
   const action = useTaskAction(user);
+  const defs = useFieldDefs('task').data;
+  const stripe = stripeField(defs);
+  const stripeDict = useDictionary(stripe?.dictionary).data;
 
   if (!user) return null;
   const run = (task: Task, kind: ActionKind, body?: string) => action.mutate({ task, kind, body });
+  const tasks = board.data?.tasks;
+  const fields = filterFields(defs);
+  const used = (key: string) => (tasks ?? []).flatMap((t) => choiceKeys(t.extra[key]));
+  // A chosen item no task holds any more (other tab, «Мої») stops filtering.
+  const active = Object.fromEntries(fields.map((f) => [f.key, used(f.key).includes(filters[f.key] ?? '') ? filters[f.key]! : null]));
+  const shown = tasks?.filter((t) => matchesFilters(t.extra, active));
+  const stripeOf = (t: Task) => {
+    const key = stripe && t.extra[stripe.key];
+    return typeof key === 'string' ? stripeDict?.items.find((i) => i.key === key) : undefined;
+  };
 
   return (
     <>
@@ -44,10 +61,17 @@ export function TasksPage() {
           )}
         </div>
       </PageHeader>
+      {fields.length > 0 && (
+        <div className={s.filters}>
+          {fields.map((f) => (
+            <FieldChips key={f.key} def={f} used={used(f.key)} value={active[f.key] ?? null} onChange={(v) => setFilters((x) => ({ ...x, [f.key]: v }))} />
+          ))}
+        </div>
+      )}
       <ErrorMessage text={action.isError ? errorOf(action.error) : board.isError ? errorOf(board.error) : null} />
       <Board
         columns={COLUMNS.map((c) => ({ key: c.status, title: c.title }))}
-        items={board.data?.tasks}
+        items={shown}
         columnOf={(t) => t.status}
         canDrop={(t, to) => !!dropAction(t, to, user, can)}
         onDrop={(t, to) => {
@@ -61,7 +85,7 @@ export function TasksPage() {
             'Перетягніть картку, щоб змінити статус.' +
             (can('tasks.accept') ? ' Прийняти чи повернути можна лише чуже ТЗ; бали діляться порівну між виконавцями.' : ''),
         }}
-        empty={(k) => (k === 'todo' ? 'Вільних ТЗ немає.' : 'Порожньо.')}
+        empty={(k) => (Object.values(active).some(Boolean) ? 'Нічого не знайдено.' : k === 'todo' ? 'Вільних ТЗ немає.' : 'Порожньо.')}
         footer={(k) =>
           k === 'done' && board.data?.moreDone ? (
             <button type="button" className="btn btn-ghost" onClick={() => setDoneLimit((n) => n + DONE_PAGE)}>
@@ -79,9 +103,16 @@ export function TasksPage() {
             drag={drag}
             returning={returning === t.id}
             setReturning={(v) => setReturning(v ? t.id : null)}
+            stripe={stripeOf(t)}
           />
         )}
       />
     </>
   );
+}
+
+/** Filter by a choice field: the items tasks on the board hold, in the dictionary order. */
+function FieldChips(props: { def: FieldDef; used: string[]; value: string | null; onChange: (v: string | null) => void }) {
+  const dict = useDictionary(props.def.dictionary).data;
+  return <Chips label={props.def.label} options={usedItems(dict, props.used)} value={props.value} onChange={props.onChange} />;
 }

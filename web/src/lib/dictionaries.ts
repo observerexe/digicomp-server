@@ -19,11 +19,12 @@ export function useDictionaries() {
   });
 }
 
-/** One dictionary; items rarely change, so it is kept for a few minutes. */
-export function useDictionary(key: string) {
+/** One dictionary; items rarely change, so it is kept for a few minutes. No key — nothing to load. */
+export function useDictionary(key: string | null | undefined) {
   return useQuery({
-    queryKey: [...DICTIONARIES_KEY, key],
-    queryFn: () => unwrap(api.GET('/api/dictionaries/{key}', { params: { path: { key } } })),
+    queryKey: [...DICTIONARIES_KEY, key ?? ''],
+    enabled: !!key,
+    queryFn: () => unwrap(api.GET('/api/dictionaries/{key}', { params: { path: { key: key! } } })),
     staleTime: 5 * 60_000,
   });
 }

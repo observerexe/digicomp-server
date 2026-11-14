@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
-import type { Me, Task } from '../../api/types';
+import type { DictionaryItem, Me, Task } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
 import { Avatar } from '../../components/Avatar';
 import type { DragProps } from '../../components/Board';
+import { DictChip } from '../../components/Palette';
 import { formatDate, formatTime, plural } from '../../lib/format';
 import { kyivParts } from '../../lib/kyiv';
 import { actionLabel, actionsFor, dueState, splitPoints, type ActionKind } from './logic';
@@ -39,6 +40,8 @@ export function TaskCard(props: {
   drag: DragProps;
   returning: boolean;
   setReturning: (v: boolean) => void;
+  /** Item of the colouring field («Налаштування полів»): stripe and label. */
+  stripe?: DictionaryItem;
 }) {
   const { task: t, me } = props;
   const { can } = useAuth();
@@ -57,7 +60,7 @@ export function TaskCard(props: {
 
   return (
     <article
-      className={`${s.card} ${t.status === 'review' ? s.cardReview : ''}`}
+      className={`${s.card} ${t.status === 'review' ? s.cardReview : ''} ${props.stripe ? `${s.stripe} pal-${props.stripe.color}` : ''}`}
       draggable={props.drag.draggable}
       onDragStart={props.drag.onDragStart}
       onDragEnd={props.drag.onDragEnd}
@@ -71,6 +74,7 @@ export function TaskCard(props: {
           {t.points} {plural(t.points, ['бал', 'бали', 'балів'])}
         </span>
         <span className={`${s.due} ${s[`due_${due.tone}`] ?? ''}`}>{due.label}</span>
+        {props.stripe && <DictChip title={props.stripe.title} color={props.stripe.color} />}
       </div>
       <div className={s.people}>
         <span className={s.faces}>

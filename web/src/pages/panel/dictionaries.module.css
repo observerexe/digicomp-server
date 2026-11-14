@@ -83,3 +83,24 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+.fieldMain {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.pair {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--size-touch-min);
+}
+.check input {
+  width: 20px;
+  height: 20px;
+}

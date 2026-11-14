@@ -26,6 +26,12 @@
   color: var(--c-text);
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
 }
+/* Filters by choice fields («Налаштування полів») */
+.filters {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
 /* Card */
 .card {
   display: flex;
@@ -46,6 +52,10 @@
 }
 .cardReview {
   border-color: var(--c-warning);
+}
+/* Colour of the first «Вибір з довідника» field; a label on the card says the same in words. */
+.stripe {
+  border-left: 4px solid var(--pal-solid);
 }
 .cardTitle {
   color: var(--c-text);

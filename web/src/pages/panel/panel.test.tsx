@@ -23,6 +23,7 @@ describe('Панель керування', () => {
     expect(within(sections).getByRole('link', { name: /Бали/ })).toBeInTheDocument();
     expect(within(sections).getByRole('link', { name: /Довідники/ })).toHaveAttribute('href', '/panel/dictionaries');
     expect(within(sections).queryByRole('link', { name: /Журнал/ })).not.toBeInTheDocument();
+    expect(within(sections).queryByRole('link', { name: /Налаштування полів/ })).not.toBeInTheDocument();
     expect(await screen.findByLabelText('2 ТЗ на перевірці')).toBeInTheDocument();
   });
 

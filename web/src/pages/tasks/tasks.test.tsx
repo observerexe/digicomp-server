@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import type { Me, Task, TaskDetail } from '../../api/types';
-import { json, member, mockApi, moderator, renderApp } from '../../test/render';
+import { dictionary, fieldDef, json, member, mockApi, moderator, renderApp } from '../../test/render';
 import { task } from './logic.test';
 
 const staff: Me = { ...moderator, permissions: [...moderator.permissions, 'tasks.accept', 'tasks.create', 'tasks.manage'] };
@@ -14,6 +14,7 @@ function boardApi(me: Me, tasks: Task[], extra: Record<string, (req: Request) =>
   return {
     'GET /api/auth/me': () => json(200, me),
     'GET /api/work-sessions': () => json(200, { items: [], total: 0, page: 1, limit: 1 }),
+    'GET /api/records/task/field-defs': () => json(200, []),
     'GET /api/tasks': (req: Request) => {
       const q = new URL(req.url).searchParams;
       let list = tasks.filter((t) => t.status === q.get('status'));
@@ -150,6 +151,50 @@ describe('Дошка ТЗ', () => {
     expect(within(col).queryByRole('button', { name: 'Показати ще' })).not.toBeInTheDocument();
   });
 
+  it('додаткові поля: смужка з першого поля вибору, фільтри за пунктами', async () => {
+    const level = fieldDef({ key: 'level', label: 'Складність', dictionary: 'level' });
+    const tags = fieldDef({ key: 'tags', label: 'Теги', type: 'list<enum>', dictionary: 'tags' });
+    mockApi(
+      boardApi(
+        member,
+        [
+          task({ id: 't1', title: 'Банер', extra: { typ: 'dyzain', level: 'easy', tags: ['print'] } }),
+          task({ id: 't2', title: 'Ролик', extra: { typ: 'video', tags: ['web', 'print'] } }),
+          task({ id: 't3', title: 'Без типу' }),
+        ],
+        {
+          'GET /api/records/task/field-defs': () => json(200, [fieldDef({ key: 'old', archived: true }), fieldDef(), level, tags]),
+          ...dictionary('typ_tz', [
+            { key: 'dyzain', title: 'Дизайн', color: 'purple' },
+            { key: 'video', title: 'Відео', color: 'blue' },
+          ]),
+          ...dictionary('level', [{ key: 'easy', title: 'Легке' }]),
+          ...dictionary('tags', [
+            { key: 'web', title: 'Сайт' },
+            { key: 'print', title: 'Друк' },
+          ]),
+        },
+      ),
+    );
+    renderApp('/tasks');
+    const banner = (await within(await screen.findByRole('region', { name: 'Вільне' })).findByText('Банер')).closest('article')!;
+    await waitFor(() => expect(banner).toHaveClass('pal-purple'));
+    expect(within(banner).getByText('Дизайн')).toBeInTheDocument();
+    expect(within(column('Вільне')).getByText('Без типу').closest('article')).not.toHaveClass('pal-purple');
+
+    const byType = screen.getByRole('group', { name: 'Тип' });
+    // «Складність»: one item on the board — nothing to choose between.
+    expect(screen.queryByRole('group', { name: 'Складність' })).not.toBeInTheDocument();
+    expect(within(screen.getByRole('group', { name: 'Теги' })).getAllByRole('button').map((b) => b.textContent)).toEqual(['Усі', 'Сайт', 'Друк']);
+    await userEvent.click(within(byType).getByRole('button', { name: 'Відео' }));
+    expect(within(column('Вільне')).queryByText('Банер')).not.toBeInTheDocument();
+    expect(within(column('Вільне')).getByText('Ролик')).toBeInTheDocument();
+    await userEvent.click(within(screen.getByRole('group', { name: 'Теги' })).getByRole('button', { name: 'Сайт' }));
+    expect(within(column('Вільне')).getByText('Ролик')).toBeInTheDocument();
+    await userEvent.click(within(byType).getByRole('button', { name: 'Дизайн' }));
+    expect(within(column('Вільне')).getByText('Нічого не знайдено.')).toBeInTheDocument();
+  });
+
   it('«Нове ТЗ» бачить лише модератор', async () => {
     mockApi(boardApi(member, []));
     renderApp('/tasks');
@@ -182,6 +227,27 @@ describe('Сторінка ТЗ', () => {
     await waitFor(() => expect(calls.some((c) => c.path === '/api/tasks/t1/comments')).toBe(true));
     await userEvent.click(screen.getByRole('button', { name: 'Відмовитися' }));
     await waitFor(() => expect(calls.some((c) => c.path === '/api/tasks/t1/leave')).toBe(true));
+  });
+
+  it('додаткові поля: заповнені видно, порожні й невідомі — ні', async () => {
+    mockApi({
+      ...boardApi(member, []),
+      'GET /api/records/task/field-defs': () =>
+        json(200, [
+          fieldDef(),
+          fieldDef({ key: 'hours', label: 'Години', type: 'int', dictionary: null }),
+          fieldDef({ key: 'urgent', label: 'Терміново', type: 'bool', dictionary: null }),
+          fieldDef({ key: 'old', label: 'Старе', type: 'text', dictionary: null, archived: true }),
+        ]),
+      ...dictionary('typ_tz', [{ key: 'dyzain', title: 'Дизайн', color: 'purple' }]),
+      'GET /api/tasks/t1': () => json(200, detail({ id: 't1', extra: { typ: 'dyzain', urgent: true, old: 'Було' } })),
+    });
+    renderApp('/tasks/t1');
+    const typ = (await screen.findByText('Тип')).closest('div')!;
+    await waitFor(() => expect(within(typ).getByText('Дизайн')).toHaveClass('pal-purple'));
+    expect((screen.getByText('Терміново').closest('div')!).textContent).toBe('ТерміновоТак');
+    expect((screen.getByText('Старе').closest('div')!).textContent).toBe('СтареБуло');
+    expect(screen.queryByText('Години')).not.toBeInTheDocument();
   });
 
   it('модератор видаляє вільне ТЗ після підтвердження', async () => {
@@ -223,6 +289,59 @@ describe('Нове ТЗ', () => {
       maxAssignees: 2,
       dueDate: '2026-12-15T21:59:00.000Z',
     });
+  });
+
+  it('додаткові поля у формі: обов’язкове, межі; при зміні — лише змінене', async () => {
+    const t = detail({ id: 't1', title: 'Банер', extra: { typ: 'dyzain', hours: 5, old: 'Було' } });
+    const { calls } = mockApi({
+      ...boardApi(staff, []),
+      'GET /api/records/task/field-defs': () =>
+        json(200, [
+          fieldDef({ required: true }),
+          fieldDef({ key: 'hours', label: 'Години', type: 'int', dictionary: null, min: 1, max: 40 }),
+          fieldDef({ key: 'old', label: 'Старе', type: 'text', dictionary: null, archived: true }),
+        ]),
+      ...dictionary('typ_tz', [
+        { key: 'dyzain', title: 'Дизайн' },
+        { key: 'video', title: 'Відео' },
+      ]),
+      'GET /api/tasks/t1': () => json(200, t),
+      'PATCH /api/tasks/t1': () => json(200, t),
+    });
+    const { router } = renderApp('/tasks/t1/edit');
+    const select = await screen.findByLabelText('Тип *');
+    await waitFor(() => expect(select).toHaveValue('dyzain'));
+    expect(screen.queryByLabelText('Старе')).not.toBeInTheDocument();
+    const hours = screen.getByLabelText('Години');
+    expect(hours).toHaveValue(5);
+    await userEvent.clear(hours);
+    await userEvent.type(hours, '50');
+    expect(screen.getByRole('alert')).toHaveTextContent('«Години»: ціле число від 1 до 40.');
+    await userEvent.clear(hours);
+    await userEvent.selectOptions(select, 'video');
+    await userEvent.click(screen.getByRole('button', { name: 'Зберегти' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/tasks/t1'));
+    expect(JSON.parse(calls.find((c) => c.method === 'PATCH')!.body).extra).toEqual({ typ: 'video', hours: null });
+  });
+
+  it('нове ТЗ: обов’язкове додаткове поле треба заповнити', async () => {
+    const { calls } = mockApi({
+      ...boardApi(staff, []),
+      'GET /api/records/task/field-defs': () => json(200, [fieldDef({ required: true })]),
+      ...dictionary('typ_tz', [{ key: 'dyzain', title: 'Дизайн' }]),
+      'POST /api/tasks': async (req) => json(201, { ...task(), ...(await req.json()), id: 'new1' }),
+      'GET /api/tasks/new1': () => json(200, detail({ id: 'new1' })),
+    });
+    const { router } = renderApp('/tasks/new');
+    await userEvent.type(await screen.findByLabelText('Назва'), 'Банер');
+    expect(screen.getByRole('alert')).toHaveTextContent('Заповніть поле «Тип».');
+    expect(screen.getByRole('button', { name: 'Створити' })).toBeDisabled();
+    const select = screen.getByLabelText('Тип *');
+    await waitFor(() => expect(within(select).getByRole('option', { name: 'Дизайн' })).toBeInTheDocument());
+    await userEvent.selectOptions(select, 'dyzain');
+    await userEvent.click(screen.getByRole('button', { name: 'Створити' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/tasks/new1'));
+    expect(JSON.parse(calls.find((c) => c.method === 'POST')!.body).extra).toEqual({ typ: 'dyzain' });
   });
 
   it('учаснику форма закрита', async () => {
