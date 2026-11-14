@@ -1,0 +1,229 @@
+.ribbon {
+  border-bottom: 1px solid var(--c-border);
+  background: var(--c-surface);
+}
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--c-border);
+}
+.tab {
+  min-height: var(--size-touch-min);
+  padding: 0 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--c-text2);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.tab:hover {
+  color: var(--c-text);
+}
+.tab[aria-selected='true'] {
+  border-bottom-color: var(--c-primary);
+  color: var(--c-primary-text);
+}
+.panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 0;
+  min-height: 56px;
+  padding: 6px 12px;
+}
+.group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px;
+}
+.group + .group {
+  border-left: 1px solid var(--c-border);
+}
+.group:first-child {
+  padding-left: 0;
+}
+
+.button,
+.wide {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--c-text);
+  font: inherit;
+  cursor: pointer;
+}
+.button {
+  width: 40px;
+}
+.wide {
+  padding: 0 10px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.button:hover:not(:disabled),
+.wide:hover {
+  background: var(--c-surface2);
+}
+.button[aria-pressed='true'] {
+  background: var(--c-primary-soft);
+  color: var(--c-primary-text);
+}
+.button:disabled {
+  color: var(--c-text3);
+  opacity: 0.5;
+  cursor: default;
+}
+.button:focus-visible,
+.wide:focus-visible,
+.tab:focus-visible,
+.select:focus-visible,
+.cell:focus-visible,
+.swatch:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 1px;
+}
+
+/* Ж К П З — in the sheet's font, the way they change the text */
+.letter {
+  font-family: 'Times New Roman', 'Liberation Serif', serif;
+  font-size: 18px;
+}
+.bold {
+  font-weight: 700;
+}
+.italic {
+  font-style: italic;
+}
+.underline {
+  text-decoration: underline;
+}
+.strike {
+  text-decoration: line-through;
+}
+
+.select {
+  min-height: 40px;
+  padding: 0 8px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-control);
+  background: var(--c-surface);
+  color: var(--c-text);
+  font: inherit;
+  font-size: 14px;
+}
+.style {
+  width: 150px;
+}
+.font {
+  width: 170px;
+}
+.size {
+  width: 70px;
+}
+
+/* Drop-downs: colour and table size */
+.dropdown {
+  position: relative;
+}
+.popup {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 30;
+  padding: 10px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-control);
+  background: var(--c-surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.16);
+}
+.colors {
+  display: grid;
+  grid-template-columns: repeat(3, 32px);
+  gap: 6px;
+}
+.swatch {
+  width: 32px;
+  height: 32px;
+  /* The border keeps black visible in the dark theme */
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  background: currentColor;
+  cursor: pointer;
+}
+.swatch[aria-pressed='true'] {
+  box-shadow:
+    0 0 0 2px var(--c-surface),
+    0 0 0 4px var(--c-primary);
+}
+.colorA {
+  padding: 0 2px;
+  border-bottom: 4px solid currentColor;
+  line-height: 1.1;
+}
+.colorA.ink-black {
+  color: var(--c-text);
+}
+
+/* The sheet's colours: the ribbon shows exactly what the white sheet gets */
+.ink-black {
+  color: var(--sheet-ink);
+}
+.ink-gray {
+  color: var(--sheet-gray);
+}
+.ink-red {
+  color: var(--sheet-red);
+}
+.ink-orange {
+  color: var(--sheet-orange);
+}
+.ink-yellow {
+  color: var(--sheet-yellow);
+}
+.ink-green {
+  color: var(--sheet-green);
+}
+.ink-teal {
+  color: var(--sheet-teal);
+}
+.ink-blue {
+  color: var(--sheet-blue);
+}
+.ink-purple {
+  color: var(--sheet-purple);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(8, 20px);
+  gap: 3px;
+}
+.cell {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--c-border);
+  border-radius: 3px;
+  background: var(--c-surface);
+  cursor: pointer;
+}
+.cell[data-on='true'] {
+  border-color: var(--c-primary);
+  background: var(--c-primary-soft);
+}
+.gridSize {
+  margin: 8px 0 0;
+  color: var(--c-text2);
+  font-size: 13px;
+  text-align: center;
+}

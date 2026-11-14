@@ -5,3 +5,9 @@ https://creativecommons.org/licenses/by/4.0/deed.uk
 
 Джерело: https://thedigital.gov.ua/fonts (версія 1.062).
 Зміни: оригінальні файли OTF перетворено у формат WOFF2 без зміни гліфів.
+
+Гарнітура Liberation Serif 2.1.5 (шрифт аркуша в редакторі документів)
+© 2010 Google Corporation, © 2012 Red Hat, Inc.
+Ліцензія: SIL Open Font License 1.1 — повний текст у LiberationSerif-OFL.txt
+Джерело: https://github.com/liberationfonts/liberation-fonts
+Зміни: оригінальні файли TTF перетворено у формат WOFF2 без зміни гліфів.

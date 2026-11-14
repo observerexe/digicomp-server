@@ -1,0 +1,24 @@
+/* The ruler is as wide as the sheet; its height follows from the 210 × 7 mm view box. */
+.ruler {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.margin {
+  fill: var(--c-surface2);
+}
+.body {
+  fill: var(--c-surface);
+}
+.tick {
+  stroke: var(--c-text3);
+  stroke-width: 0.25;
+}
+.label {
+  fill: var(--c-text2);
+  font-family: var(--font-body);
+  font-size: 2.6px;
+}
+.marker {
+  fill: var(--c-primary);
+}

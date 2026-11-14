@@ -6,6 +6,13 @@ import { afterEach, vi } from 'vitest';
 URL.createObjectURL ??= () => 'blob:test';
 URL.revokeObjectURL ??= () => undefined;
 
+// jsdom has no layout; ProseMirror asks for it on clicks and when scrolling to the cursor.
+const noRect = () => new DOMRect(0, 0, 0, 0);
+const noRects = () => Object.assign([] as DOMRect[], { item: () => null }) as unknown as DOMRectList;
+Range.prototype.getBoundingClientRect ??= noRect;
+Range.prototype.getClientRects ??= noRects;
+document.elementFromPoint ??= () => null;
+
 afterEach(() => {
   cleanup();
   localStorage.clear();

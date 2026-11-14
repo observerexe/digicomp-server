@@ -1,3 +1,33 @@
+/* The sheet's font: Liberation Serif (SIL OFL 1.1, metrics of Times New Roman) for computers without Times New Roman. */
+@font-face {
+  font-family: 'Liberation Serif';
+  src: url('/fonts/LiberationSerif-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Liberation Serif';
+  src: url('/fonts/LiberationSerif-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Liberation Serif';
+  src: url('/fonts/LiberationSerif-Italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Liberation Serif';
+  src: url('/fonts/LiberationSerif-BoldItalic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
 /*
  * The document sheet: always white, Times New Roman 14 pt, 1.5 lines,
  * paragraph indent 10 mm (ДСТУ 4163:2020). Format classes — shared/editor-schema
@@ -7,7 +37,7 @@
 .paper {
   background: var(--sheet-paper);
   color: var(--sheet-ink);
-  font-family: 'Times New Roman', Tinos, serif;
+  font-family: 'Times New Roman', 'Liberation Serif', serif;
   font-size: 14pt;
   line-height: 1.5;
 }
@@ -98,7 +128,7 @@
 .paper .tc-purple { color: var(--sheet-purple); }
 
 /* Fonts */
-.paper .ff-serif { font-family: 'Times New Roman', Tinos, serif; }
+.paper .ff-serif { font-family: 'Times New Roman', 'Liberation Serif', serif; }
 .paper .ff-sans { font-family: var(--font-body); }
 
 /* Alignment: centred and right-aligned lines have no paragraph indent */

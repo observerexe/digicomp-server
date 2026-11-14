@@ -33,6 +33,17 @@ export function AboutPage() {
             </a>
             .
           </p>
+          <p className="hint">
+            Гарнітура аркуша в редакторі — Liberation Serif © Google Corporation, Red Hat, Inc., ліцензія{' '}
+            <a href="https://openfontlicense.org" rel="noopener noreferrer">
+              SIL Open Font License 1.1
+            </a>
+            . Джерело:{' '}
+            <a href="https://github.com/liberationfonts/liberation-fonts" rel="noopener noreferrer">
+              github.com/liberationfonts
+            </a>
+            .
+          </p>
         </Card>
       </div>
     </>

@@ -1,0 +1,82 @@
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 20px;
+  min-height: 36px;
+  padding: 4px 16px;
+  border-top: 1px solid var(--c-border);
+  background: var(--c-surface);
+  color: var(--c-text2);
+  font-size: 13px;
+}
+.zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.zoom input {
+  width: 120px;
+  accent-color: var(--c-primary);
+}
+.step {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--c-text);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.step:hover:not(:disabled) {
+  background: var(--c-surface2);
+}
+.step:disabled {
+  color: var(--c-text3);
+  cursor: default;
+}
+.percent {
+  min-width: 40px;
+  text-align: right;
+}
+
+/* Pages, the sheet format and the zoom mean something only for the A4 sheet (from 900 px) */
+@media (max-width: 899px) {
+  .wide {
+    display: none;
+  }
+}
+
+/* Zoom of the sheet with its ruler (useZoom gives the class) */
+@media (min-width: 900px) {
+  .z50 {
+    zoom: 0.5;
+  }
+  .z75 {
+    zoom: 0.75;
+  }
+  .z90 {
+    zoom: 0.9;
+  }
+  .z100 {
+    zoom: 1;
+  }
+  .z110 {
+    zoom: 1.1;
+  }
+  .z125 {
+    zoom: 1.25;
+  }
+  .z150 {
+    zoom: 1.5;
+  }
+  .z175 {
+    zoom: 1.75;
+  }
+  .z200 {
+    zoom: 2;
+  }
+}

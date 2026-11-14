@@ -16,7 +16,7 @@ export const DEFAULT_FONT_SIZE = 14;
 /** Text colours: names from the palette in docs/design/tokens.json (the sheet takes light.text). */
 export const COLORS = ['gray', 'red', 'orange', 'yellow', 'green', 'teal', 'blue', 'purple'] as const;
 
-/** Fonts. Without a font — serif (Times New Roman, Tinos). */
+/** Fonts. Without a font — serif (Times New Roman, Liberation Serif). */
 export const FONTS = ['serif', 'sans'] as const;
 
 /** Paragraph alignment. Without it — left. */
