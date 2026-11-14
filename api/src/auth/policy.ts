@@ -94,8 +94,9 @@ export enum Action {
   DictionariesRead = 'dictionaries.read',
   DictionariesManage = 'dictionaries.manage',
 
-  // Record schemas (fields of record types for the editor)
+  // Record schemas (fields of record types for the editor), extra fields
   RecordsRead = 'records.read',
+  RecordsFieldsManage = 'records.fields_manage',
 
   // Work sessions, bookings, faults
   SessionsStart = 'sessions.start',
@@ -188,6 +189,7 @@ export const ROLES: Record<Action, readonly Role[]> = {
   [Action.DictionariesManage]: STAFF,
 
   [Action.RecordsRead]: ALL,
+  [Action.RecordsFieldsManage]: STAFF,
 
   [Action.SessionsStart]: ALL,
   [Action.SessionsReadAll]: STAFF,

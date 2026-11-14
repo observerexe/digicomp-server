@@ -41,12 +41,16 @@ export class DictionariesService {
     private audit: AuditService,
   ) {}
 
-  private view(d: Dictionary, items: DictionaryItem[]): DictionaryDto {
+  private view(
+    d: Dictionary,
+    items: DictionaryItem[],
+    required: Set<string>,
+  ): DictionaryDto {
     return {
       id: d.id,
       key: d.key,
       title: d.title,
-      required: this.usage.required(d.key),
+      required: required.has(d.key),
       items: [...items].sort((a, b) => a.position - b.position).map(itemView),
       createdAt: d.createdAt,
       updatedAt: d.updatedAt,
@@ -58,12 +62,17 @@ export class DictionariesService {
       relations: { items: true },
       order: { title: 'ASC' },
     });
-    return rows.map((d) => this.view(d, d.items ?? []));
+    const required = await this.usage.required(this.ds.manager);
+    return rows.map((d) => this.view(d, d.items ?? [], required));
   }
 
   async get(key: string): Promise<DictionaryDto> {
     const d = await this.find(this.ds.manager, key);
-    return this.view(d, await this.itemsOf(this.ds.manager, d.id));
+    return this.view(
+      d,
+      await this.itemsOf(this.ds.manager, d.id),
+      await this.usage.required(this.ds.manager),
+    );
   }
 
   async create(dto: CreateDictionaryDto, actor: Actor): Promise<DictionaryDto> {
@@ -88,7 +97,7 @@ export class DictionariesService {
         },
         m,
       );
-      return this.view(d, []);
+      return this.view(d, [], await this.usage.required(m));
     });
   }
 
@@ -116,14 +125,18 @@ export class DictionariesService {
           m,
         );
       }
-      return this.view(d, await this.itemsOf(m, d.id));
+      return this.view(
+        d,
+        await this.itemsOf(m, d.id),
+        await this.usage.required(m),
+      );
     });
   }
 
   async remove(key: string, actor: Actor): Promise<OkDto> {
     return this.ds.transaction(async (m) => {
       const d = await this.find(m, key, true);
-      if (this.usage.required(key)) {
+      if ((await this.usage.required(m)).has(key)) {
         throw new ConflictException('Dictionary is in use');
       }
       if (await m.existsBy(DictionaryItem, { dictionaryId: d.id })) {
@@ -254,7 +267,7 @@ export class DictionariesService {
         },
         m,
       );
-      return this.view(d, items);
+      return this.view(d, items, await this.usage.required(m));
     });
   }
 

@@ -45,7 +45,7 @@
 «Не знайдено» для конкретних об'єктів: `USER_NOT_FOUND`, `TASK_NOT_FOUND`, `PLACE_NOT_FOUND`, `SESSION_NOT_FOUND`, `BOOKING_NOT_FOUND`,
 `FAULT_REPORT_NOT_FOUND`, `DOCUMENT_NOT_FOUND`, `VERSION_NOT_FOUND`, `FILE_NOT_FOUND`, `ITEM_NOT_FOUND`, `PROJECT_NOT_FOUND`,
 `AUTHORIZATION_NOT_FOUND`, `POINTS_ENTRY_NOT_FOUND`, `DISCIPLINE_RECORD_NOT_FOUND`, `SMART_DEVICE_NOT_FOUND`, `AUDIT_CURSOR_NOT_FOUND`,
-`DICTIONARY_NOT_FOUND`, `DICTIONARY_ITEM_NOT_FOUND`, `RECORD_TYPE_NOT_FOUND`.
+`DICTIONARY_NOT_FOUND`, `DICTIONARY_ITEM_NOT_FOUND`, `RECORD_TYPE_NOT_FOUND`, `FIELD_DEF_NOT_FOUND`.
 
 | Код | Статус | Коли |
 |---|---|---|
@@ -118,6 +118,10 @@
 | `DICTIONARY_IN_USE` | 409 | На довідник спирається модуль застосунку: його не видаляють |
 | `DICTIONARY_ITEM_IN_USE` | 409 | Пункт зберігається в записах: його не видаляють, а переносять в архів |
 | `DICTIONARY_ITEM_INVALID` | 400 | У полі запису — ключ, якого в його довіднику немає, або пункт в архіві (архівний можна лише лишити, якщо він уже стоїть у записі) |
+| **Додаткові поля** | | |
+| `FIELD_DEF_DUPLICATE` | 409 | У цього типу записів уже є поле з такою назвою — додаткове чи звичайне (без різниці великих і малих літер) |
+| `FIELD_DEF_IN_USE` | 409 | Поле заповнене в записах: його не видаляють, а переносять в архів |
+| `RECORD_EXTRA_INVALID` | 400 | Значення в `extra` неправильне: невідомий ключ, не той тип, поза межами, пункт довідника не існує чи в архіві, обов'язкове пропущене чи очищене, нове значення в архівному полі. `field` — ключ поля |
 | **Розумна лабораторія** | | |
 | `SMART_NOT_CONFIGURED`, `SMART_UNAVAILABLE`, `SMART_AUTH_FAILED` | 503 | Немає `HA_TOKEN`, HA не відповідає за 5 с або відхилив токен |
 | `UNKNOWN_HA_ENTITY`, `ENTITY_KIND_MISMATCH`, `SMART_ENTITY_EXISTS` | 400/409 | Такого пристрою в HA немає, тип не збігається, або вже доданий |
@@ -149,6 +153,7 @@
 - `submit` → `review`; `return { body }` → `in_progress` з обов'язковим коментарем; `accept` → `done` і бали.
 - Бали діляться порівну, остача — по балу тим, хто взяв раніше; нульові частки не записуються.
 - `GET /api/tasks?status=&mine=true&limit=` — масив; для `done` спершу останні виконані.
+- `extra` — додаткові поля ТЗ (див. «Додаткові поля»): у `POST` — усі обов'язкові; у `PATCH` змінюються лише передані ключі, `null` очищає.
 
 ### Бали й дисципліна
 
@@ -203,8 +208,27 @@
   або `dictionary` (значення — ключі пунктів довідника).
 - `required` — обов'язкове при створенні; `create` / `update` — поле можна задати при створенні / змінити потім;
   `nullable` — можна очистити; `source` — `column` (за замовчуванням), `relation` (окрема таблиця: виконавці ТЗ, учасники проєкту)
-  або `computed`.
-- `version` — короткий хеш опису; змінюється з будь-якою зміною схеми.
+  `computed` або `extra` (додаткове поле, значення в `extra` запису).
+- `extensible: true` — тип має додаткові поля (зараз лише `task`); вони йдуть у кінці `fields` у своєму порядку.
+  Архівне додаткове поле має `archived: true` і не має `create` / `update`.
+- `version` — короткий хеш опису; змінюється з будь-якою зміною схеми, зокрема додаткових полів.
+
+### Додаткові поля
+
+- Описові поля записів, які додають admin і moderator без коду («Налаштування полів»). Значення — в `extra` запису: `{ "typ": "dyzain" }`.
+- `GET /api/records/:type/field-defs` — поля типу разом з архівними, по порядку; читають усі ролі. Тип без додаткових полів — 404 `RECORD_TYPE_NOT_FOUND`.
+- `POST …/field-defs { label, type, required?, dictionary?, min?, max?, maxLength?, maxItems? }`. Ключ сервер створює з назви
+  (як у довідниках) і не дає йому збігтися з ключами звичайних полів (`Points` → `points_2`); ключ, тип і довідник потім не змінюються.
+- Типи й межі: `text` (`maxLength` 1–1000, за замовчуванням 200; пробіли по краях обрізаються), `int` і `decimal` (2 знаки після коми;
+  `min`, `max` у межах ±10⁹), `date` (`YYYY-MM-DD`), `bool`, `enum` і `list<enum>` (обов'язковий `dictionary`; у списку — без повторів,
+  `maxItems` 1–50, за замовчуванням 10; порожній список очищає поле). Межі, що не пасують типу, — 400 `VALIDATION_ERROR`;
+  невідомий довідник — 404 `DICTIONARY_NOT_FOUND`.
+- `PATCH …/field-defs/:key { label?, required?, min?, max?, maxLength?, maxItems?, archived? }`. Нові межі й обов'язковість
+  діють для нових значень; уже збережені значення не перевіряються наново.
+- Архівне поле: старі значення лишаються, нове не приймається (те саме значення надіслати знову можна, очистити — теж).
+- `PUT …/field-defs/order { keys }` — новий порядок, у списку всі поля разом з архівними.
+- `DELETE …/field-defs/:key` — лише якщо жоден запис не має значення в полі, інакше 409 `FIELD_DEF_IN_USE`.
+- Довідник, з якого бере значення поле, не видаляється (`required: true`); пункт, що стоїть в `extra`, теж (`DICTIONARY_ITEM_IN_USE`).
 
 ### Розумна лабораторія
 

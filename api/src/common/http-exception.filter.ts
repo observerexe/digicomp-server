@@ -92,6 +92,9 @@ const MESSAGE_CODES: Record<string, string> = {
   'Dictionary is not empty': 'DICTIONARY_NOT_EMPTY',
   'Dictionary item is in use': 'DICTIONARY_ITEM_IN_USE',
   'Unknown dictionary item': 'DICTIONARY_ITEM_INVALID',
+  'Field def label already used': 'FIELD_DEF_DUPLICATE',
+  'Field def is in use': 'FIELD_DEF_IN_USE',
+  'Invalid extra field': 'RECORD_EXTRA_INVALID',
 };
 
 const STATUS_CODES: Record<number, string> = {

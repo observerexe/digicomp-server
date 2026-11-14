@@ -11,7 +11,7 @@ import { POINTS_ENTRY_SCHEMA } from '../points/points-entry.schema';
 import { PROJECT_SCHEMA } from '../projects/project.schema';
 import { TASK_SCHEMA } from '../tasks/task.schema';
 import { USER_SCHEMA } from '../users/user.schema';
-import { RecordSchema, RecordSchemaDef } from './field-types';
+import { FieldSchema, RecordSchema, RecordSchemaDef } from './field-types';
 
 /** All record schemas; each module describes its own types. */
 export const SCHEMA_DEFS: readonly RecordSchemaDef[] = [
@@ -31,22 +31,31 @@ export const SCHEMA_DEFS: readonly RecordSchemaDef[] = [
 /** What clients get: the schema and its version. */
 export type PublishedSchema = RecordSchema & { version: string };
 
-function publish({ type, label, fields }: RecordSchemaDef): PublishedSchema {
-  const schema: RecordSchema = { type, label, fields };
+const DEFS = new Map<string, RecordSchemaDef>(
+  SCHEMA_DEFS.map((d) => [d.type, d]),
+);
+
+export function schemaDef(type: string): RecordSchemaDef {
+  const def = DEFS.get(type);
+  if (!def) throw new NotFoundException('Record type not found');
+  return def;
+}
+
+/** The schema for clients; `extra` — the type's extra fields, in order. */
+export function publishSchema(
+  def: RecordSchemaDef,
+  extra: FieldSchema[] = [],
+): PublishedSchema {
+  const schema: RecordSchema = {
+    type: def.type,
+    label: def.label,
+    extensible: !!def.extensible,
+    fields: [...def.fields, ...extra],
+  };
   // Changes whenever the description changes; templates remember it.
   const version = createHash('sha256')
     .update(JSON.stringify(schema))
     .digest('hex')
     .slice(0, 12);
   return { ...schema, version };
-}
-
-const PUBLISHED = new Map<string, PublishedSchema>(
-  SCHEMA_DEFS.map((d) => [d.type, publish(d)]),
-);
-
-export function recordSchema(type: string): PublishedSchema {
-  const schema = PUBLISHED.get(type);
-  if (!schema) throw new NotFoundException('Record type not found');
-  return schema;
 }

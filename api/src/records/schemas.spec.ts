@@ -2,15 +2,19 @@ import { getMetadataStorage } from 'class-validator';
 import type { ValidationMetadata } from 'class-validator/types/metadata/ValidationMetadata';
 import { getMetadataArgsStorage } from 'typeorm';
 import { NOT_BLANK } from '../points/dto';
+import { extraFieldSchema } from './extra-values';
 import {
   DATE_ONLY,
+  EXTRA_TYPES,
   FieldSchema,
   ItemType,
   RECORD_TYPES,
   RecordSchemaDef,
   SCALAR_TYPES,
 } from './field-types';
-import { recordSchema, SCHEMA_DEFS } from './records.registry';
+import { publishSchema, schemaDef, SCHEMA_DEFS } from './records.registry';
+
+const recordSchema = (type: string) => publishSchema(schemaDef(type));
 
 // Схема описує те саме, що перевіряють DTO і що лежить у таблиці.
 // Якщо змінили DTO чи сутність і забули схему (або навпаки) — тут червоне.
@@ -142,6 +146,23 @@ function compare(field: FieldSchema, metas: ValidationMetadata[]): string[] {
   return diffs;
 }
 
+/** Rules every schema field follows: valid type, limits that suit it. */
+function checkField(ctx: string, f: FieldSchema) {
+  expect([ctx, validType(f.type)]).toEqual([ctx, true]);
+  const { item, list } = parseType(f.type);
+  const isEnum = item === 'enum';
+  expect([ctx, isEnum && !!f.options === !!f.dictionary]).toEqual([ctx, false]);
+  if (!isEnum) {
+    expect([ctx, f.options, f.dictionary]).toEqual([ctx, undefined, undefined]);
+  }
+  if (f.required) expect([ctx, f.create]).toEqual([ctx, true]);
+  if (!list) expect([ctx, f.maxItems]).toEqual([ctx, undefined]);
+  if (item !== 'decimal') expect([ctx, f.scale]).toEqual([ctx, undefined]);
+  if (f.source === 'computed') {
+    expect([ctx, !!(f.create || f.update)]).toEqual([ctx, false]);
+  }
+}
+
 describe('Схеми записів', () => {
   it('є схема для кожного типу запису, по одній', () => {
     expect(SCHEMA_DEFS.map((d) => d.type).sort()).toEqual(
@@ -159,13 +180,36 @@ describe('Схеми записів', () => {
   it('клієнт не бачить сутностей і DTO', () => {
     const s = recordSchema('task') as unknown as Record<string, unknown>;
     expect(Object.keys(s).sort()).toEqual(
-      ['fields', 'label', 'type', 'version'].sort(),
+      ['extensible', 'fields', 'label', 'type', 'version'].sort(),
     );
   });
 
   it('невідомий тип — 404 RECORD_TYPE_NOT_FOUND', () => {
     expect(() => recordSchema('paper')).toThrow('Record type not found');
   });
+
+  it.each(EXTRA_TYPES.map((t) => [t]))(
+    'додаткове поле %s — за тими самими правилами',
+    (type) => {
+      for (const archived of [false, true]) {
+        const f = extraFieldSchema({
+          key: 'k',
+          label: 'Поле',
+          type,
+          required: true,
+          dictionary: type.includes('enum') ? 'typ_tz' : null,
+          min: null,
+          max: null,
+          maxLength: type === 'text' ? 200 : null,
+          maxItems: type === 'list<enum>' ? 10 : null,
+          archived,
+        });
+        checkField(`${type}${archived ? ' (архів)' : ''}`, f);
+        expect(f.source).toBe('extra');
+        expect(!!f.required).toBe(!archived);
+      }
+    },
+  );
 
   describe.each(SCHEMA_DEFS.map((d) => [d.type, d] as const))(
     '%s',
@@ -175,29 +219,21 @@ describe('Схеми записів', () => {
 
       it('ключі унікальні, типи й межі коректні', () => {
         expect(byKey.size).toBe(fields.length);
-        for (const f of fields) {
-          const ctx = `${def.type}.${f.key}`;
-          expect([ctx, validType(f.type)]).toEqual([ctx, true]);
-          const { item, list } = parseType(f.type);
-          const isEnum = item === 'enum';
-          expect([ctx, isEnum && !!f.options === !!f.dictionary]).toEqual([
-            ctx,
-            false,
+        for (const f of fields) checkField(`${def.type}.${f.key}`, f);
+      });
+
+      it('доповнюваний тип: колонка extra jsonb і extra в DTO', () => {
+        const column = getMetadataArgsStorage().columns.find(
+          (c) => c.target === def.entity && c.propertyName === 'extra',
+        );
+        expect(column?.options.type === 'jsonb').toBe(!!def.extensible);
+        for (const kind of ['create', 'update'] as const) {
+          const dto = def.dto?.[kind];
+          const metas = dto ? dtoMetas(dto).get('extra') : undefined;
+          expect([kind, !!metas?.some((m) => m.name === 'isObject')]).toEqual([
+            kind,
+            !!def.extensible,
           ]);
-          if (!isEnum) {
-            expect([ctx, f.options, f.dictionary]).toEqual([
-              ctx,
-              undefined,
-              undefined,
-            ]);
-          }
-          if (f.required) expect([ctx, f.create]).toEqual([ctx, true]);
-          if (!list) expect([ctx, f.maxItems]).toEqual([ctx, undefined]);
-          if (item !== 'decimal')
-            expect([ctx, f.scale]).toEqual([ctx, undefined]);
-          if (f.source === 'computed') {
-            expect([ctx, !!(f.create || f.update)]).toEqual([ctx, false]);
-          }
         }
       });
 
@@ -213,7 +249,11 @@ describe('Схеми записів', () => {
         it(`${kind}: поля збігаються з DTO`, () => {
           const dto = def.dto?.[kind];
           const metas = dto ? dtoMetas(dto) : new Map<string, never>();
-          const hidden = new Set(def.dto?.hidden ?? []);
+          const hidden = new Set([
+            ...(def.dto?.hidden ?? []),
+            // Checked by RecordFieldsService against the extra fields.
+            ...(def.extensible ? ['extra'] : []),
+          ]);
           const inDto = [...metas.keys()].filter((k) => !hidden.has(k)).sort();
           const inSchema = fields
             .filter((f) => f[kind])

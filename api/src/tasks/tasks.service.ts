@@ -16,6 +16,7 @@ import {
 } from '../files/file-validation';
 import { StorageService } from '../files/storage.service';
 import { PointsEntry, PointsKind } from '../points/points-entry.entity';
+import { RecordFieldsService } from '../records/record-fields.service';
 import { User } from '../users/user.entity';
 import {
   CommentDto,
@@ -75,6 +76,7 @@ function taskView(t: Task): Plain<TaskDto> {
     maxAssignees: t.maxAssignees,
     dueDate: t.dueDate,
     createdById: t.createdById,
+    extra: t.extra,
     createdAt: t.createdAt,
     updatedAt: t.updatedAt,
     completedAt: t.completedAt,
@@ -117,6 +119,7 @@ export class TasksService {
     @InjectDataSource() private ds: DataSource,
     private storage: StorageService,
     private audit: AuditService,
+    private fields: RecordFieldsService,
   ) {}
 
   async list(q: ListTasksQuery, actor: Actor): Promise<TaskDto[]> {
@@ -164,25 +167,32 @@ export class TasksService {
     };
   }
 
-  async create(dto: CreateTaskDto, actor: Actor): Promise<TaskDto> {
-    const task = await this.tasks.save(
-      this.tasks.create({
-        title: dto.title.trim(),
-        description: dto.description ?? null,
-        points: dto.points,
-        maxAssignees: dto.maxAssignees ?? 1,
-        dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
-        createdById: actor.id,
-      }),
-    );
-    await this.audit.log({
-      actorId: actor.id,
-      action: 'task.created',
-      entity: 'task',
-      entityId: task.id,
-      meta: { title: task.title, points: task.points },
+  create(dto: CreateTaskDto, actor: Actor): Promise<TaskDto> {
+    return this.ds.transaction(async (m) => {
+      const { extra } = await this.fields.applyExtra(
+        m,
+        'task',
+        dto.extra,
+        null,
+      );
+      const task = await m.save(
+        m.create(Task, {
+          title: dto.title.trim(),
+          description: dto.description ?? null,
+          points: dto.points,
+          maxAssignees: dto.maxAssignees ?? 1,
+          dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
+          createdById: actor.id,
+          extra,
+        }),
+      );
+      await this.log(m, actor, 'task.created', task.id, {
+        title: task.title,
+        points: task.points,
+        ...(Object.keys(extra).length ? { extra } : {}),
+      });
+      return taskView(task);
     });
-    return taskView(task);
   }
 
   update(id: string, dto: UpdateTaskDto, actor: Actor): Promise<TaskDto> {
@@ -210,6 +220,16 @@ export class TasksService {
       if (dto.dueDate !== undefined) {
         task.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
         changes.dueDate = dto.dueDate;
+      }
+      if (dto.extra !== undefined) {
+        const { extra, changed } = await this.fields.applyExtra(
+          m,
+          'task',
+          dto.extra,
+          task.extra,
+        );
+        task.extra = extra;
+        if (Object.keys(changed).length) changes.extra = changed;
       }
       await m.save(Task, task);
       await this.log(m, actor, 'task.updated', task.id, changes);

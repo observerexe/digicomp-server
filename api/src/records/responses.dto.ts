@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { RECORD_TYPES, type FieldSource, type RecordType } from './field-types';
+import {
+  EXTRA_TYPES,
+  RECORD_TYPES,
+  type ExtraType,
+  type FieldSource,
+  type RecordType,
+} from './field-types';
 
 export class EnumOptionDto {
   key: string;
@@ -43,13 +49,16 @@ export class RecordFieldDto {
   /** enum: key of the dictionary whose item keys are the values. */
   dictionary?: string;
 
-  /** Where the value lives; default `column`. */
+  /** Where the value lives; default `column`. `extra` — an extra field (field-defs). */
   @ApiProperty({
-    enum: ['column', 'relation', 'computed'],
+    enum: ['column', 'relation', 'computed', 'extra'],
     enumName: 'FieldSource',
     required: false,
   })
   source?: FieldSource;
+
+  /** Extra field in the archive: old values stay, new ones are not taken. */
+  archived?: boolean;
 }
 
 export class RecordSchemaDto {
@@ -58,9 +67,43 @@ export class RecordSchemaDto {
 
   label: string;
 
-  /** Changes with any change of the schema. */
+  /** Staff may add extra fields (`/records/:type/field-defs`). */
+  extensible: boolean;
+
+  /** Changes with any change of the schema, extra fields included. */
   version: string;
 
   @ApiProperty({ type: [RecordFieldDto] })
   fields: RecordFieldDto[];
+}
+
+/** An extra field of a record type (values in the record's `extra`). */
+export class FieldDefDto {
+  id: string;
+  /** Made from the label at creation; never changes. */
+  key: string;
+  label: string;
+
+  @ApiProperty({ enum: EXTRA_TYPES, enumName: 'ExtraFieldType' })
+  type: ExtraType;
+
+  required: boolean;
+
+  @ApiProperty({ type: String, nullable: true })
+  dictionary: string | null;
+
+  @ApiProperty({ type: Number, nullable: true })
+  min: number | null;
+
+  @ApiProperty({ type: Number, nullable: true })
+  max: number | null;
+
+  @ApiProperty({ type: Number, nullable: true })
+  maxLength: number | null;
+
+  @ApiProperty({ type: Number, nullable: true })
+  maxItems: number | null;
+
+  position: number;
+  archived: boolean;
 }

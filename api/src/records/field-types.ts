@@ -41,9 +41,10 @@ export type EnumOption = { key: string; label: string };
 
 /**
  * Where the value lives: a column of the record's table, a related table
- * (task assignees, project members) or computed by the module.
+ * (task assignees, project members), computed by the module, or the record's
+ * `extra` jsonb (fields that staff add in «Налаштування полів»).
  */
-export type FieldSource = 'column' | 'relation' | 'computed';
+export type FieldSource = 'column' | 'relation' | 'computed' | 'extra';
 
 export interface FieldSchema {
   /** Same key as in the API (DTO and responses). */
@@ -76,21 +77,39 @@ export interface FieldSchema {
   dictionary?: string;
   /** Default `column`. */
   source?: FieldSource;
+  /** Extra field in the archive: old values stay, new ones are not taken. */
+  archived?: boolean;
 }
 
 export interface RecordSchema {
   type: RecordType;
   label: string;
+  /** Staff may add extra fields (stored in the record's `extra` jsonb). */
+  extensible: boolean;
   fields: FieldSchema[];
 }
+
+/** Types an extra field may have: short descriptive values only. */
+export const EXTRA_TYPES = [
+  'text',
+  'int',
+  'decimal',
+  'date',
+  'bool',
+  'enum',
+  'list<enum>',
+] as const satisfies readonly FieldType[];
+export type ExtraType = (typeof EXTRA_TYPES)[number];
 
 type Ctor = new (...args: never[]) => object;
 
 /**
- * Server side of a schema: the entity and DTOs it describes. Only for the
- * consistency test (records/schemas.spec.ts); never sent to clients.
+ * Server side of a schema: the entity and DTOs it describes (checked by
+ * records/schemas.spec.ts). Never sent to clients.
  */
-export interface RecordSchemaDef extends RecordSchema {
+export interface RecordSchemaDef extends Omit<RecordSchema, 'extensible'> {
+  /** The entity has an `extra` jsonb column and the DTOs take `extra`. */
+  extensible?: boolean;
   entity: Ctor;
   dto?: {
     create?: Ctor;

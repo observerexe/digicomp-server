@@ -19,7 +19,7 @@ describe('Довідники (e2e)', () => {
   beforeAll(async () => {
     app = await createTestApp();
     app.get(DictionaryUsageRegistry).register({
-      dictionaries: ['locked'],
+      dictionaries: () => Promise.resolve(['locked']),
       countItem: (_d, item) => Promise.resolve(used.has(item) ? 1 : 0),
     });
   });

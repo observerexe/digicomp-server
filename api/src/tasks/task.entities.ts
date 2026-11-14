@@ -10,6 +10,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import type { Extra } from '../records/extra-values';
 import { User } from '../users/user.entity';
 
 /**
@@ -49,6 +50,10 @@ export class Task {
 
   @Column({ name: 'created_by_id', type: 'uuid' })
   createdById: string;
+
+  /** Extra fields (records/record-field-defs): key → value. */
+  @Column({ type: 'jsonb', default: () => "'{}'" })
+  extra: Extra;
 
   @OneToMany(() => TaskAssignee, (a) => a.task)
   assignees: TaskAssignee[];

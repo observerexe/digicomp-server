@@ -1475,6 +1475,550 @@
         ]
       }
     },
+    "/api/records/{type}/schema": {
+      "get": {
+        "operationId": "RecordsController_schema",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordSchemaDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Fields of a record type (extra fields included): what templates may bind to. No record data.",
+        "tags": [
+          "Records"
+        ]
+      }
+    },
+    "/api/records/{type}/field-defs": {
+      "get": {
+        "operationId": "RecordsController_list",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FieldDefDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Extra fields of an extensible type, archived too, in order.",
+        "tags": [
+          "Records"
+        ]
+      },
+      "post": {
+        "operationId": "RecordsController_create",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFieldDefDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldDefDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Records"
+        ]
+      }
+    },
+    "/api/records/{type}/field-defs/order": {
+      "put": {
+        "operationId": "RecordsController_reorder",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderFieldDefsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FieldDefDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Records"
+        ]
+      }
+    },
+    "/api/records/{type}/field-defs/{key}": {
+      "patch": {
+        "operationId": "RecordsController_update",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFieldDefDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldDefDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Records"
+        ]
+      },
+      "delete": {
+        "operationId": "RecordsController_remove",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Only a field without values in records; otherwise archive it.",
+        "tags": [
+          "Records"
+        ]
+      }
+    },
+    "/api/dictionaries": {
+      "get": {
+        "operationId": "DictionariesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DictionaryDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      },
+      "post": {
+        "operationId": "DictionariesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDictionaryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      }
+    },
+    "/api/dictionaries/{key}": {
+      "get": {
+        "operationId": "DictionariesController_get",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      },
+      "patch": {
+        "operationId": "DictionariesController_update",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDictionaryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      },
+      "delete": {
+        "operationId": "DictionariesController_remove",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      }
+    },
+    "/api/dictionaries/{key}/items": {
+      "post": {
+        "operationId": "DictionariesController_addItem",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDictionaryItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryItemDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      }
+    },
+    "/api/dictionaries/{key}/items/order": {
+      "put": {
+        "operationId": "DictionariesController_reorder",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderDictionaryItemsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      }
+    },
+    "/api/dictionaries/{key}/items/{itemKey}": {
+      "patch": {
+        "operationId": "DictionariesController_updateItem",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDictionaryItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryItemDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      },
+      "delete": {
+        "operationId": "DictionariesController_removeItem",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      }
+    },
     "/api/discipline/me": {
       "get": {
         "operationId": "DisciplineController_mine",
@@ -2188,319 +2732,6 @@
         },
         "tags": [
           "Authorizations"
-        ]
-      }
-    },
-    "/api/dictionaries": {
-      "get": {
-        "operationId": "DictionariesController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/DictionaryDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      },
-      "post": {
-        "operationId": "DictionariesController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateDictionaryDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DictionaryDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      }
-    },
-    "/api/dictionaries/{key}": {
-      "get": {
-        "operationId": "DictionariesController_get",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DictionaryDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      },
-      "patch": {
-        "operationId": "DictionariesController_update",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateDictionaryDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DictionaryDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      },
-      "delete": {
-        "operationId": "DictionariesController_remove",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      }
-    },
-    "/api/dictionaries/{key}/items": {
-      "post": {
-        "operationId": "DictionariesController_addItem",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateDictionaryItemDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DictionaryItemDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      }
-    },
-    "/api/dictionaries/{key}/items/order": {
-      "put": {
-        "operationId": "DictionariesController_reorder",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReorderDictionaryItemsDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DictionaryDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      }
-    },
-    "/api/dictionaries/{key}/items/{itemKey}": {
-      "patch": {
-        "operationId": "DictionariesController_updateItem",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "itemKey",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateDictionaryItemDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DictionaryItemDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      },
-      "delete": {
-        "operationId": "DictionariesController_removeItem",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "itemKey",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
         ]
       }
     },
@@ -4131,37 +4362,6 @@
         ]
       }
     },
-    "/api/records/{type}/schema": {
-      "get": {
-        "operationId": "RecordsController_schema",
-        "parameters": [
-          {
-            "name": "type",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RecordSchemaDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Fields of a record type: what templates may bind to. No record data.",
-        "tags": [
-          "Records"
-        ]
-      }
-    },
     "/api/admin-panel/overview": {
       "get": {
         "operationId": "AdminPanelController_overview",
@@ -5210,6 +5410,11 @@
             "type": "string",
             "nullable": true
           },
+          "extra": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Extra fields: key → value (string, number, boolean or list of item keys)."
+          },
           "completedAt": {
             "format": "date-time",
             "type": "string",
@@ -5250,6 +5455,7 @@
           "description",
           "status",
           "dueDate",
+          "extra",
           "completedAt",
           "assignees",
           "id",
@@ -5375,6 +5581,11 @@
             "type": "string",
             "nullable": true
           },
+          "extra": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Extra fields: key → value (string, number, boolean or list of item keys)."
+          },
           "completedAt": {
             "format": "date-time",
             "type": "string",
@@ -5429,6 +5640,7 @@
           "description",
           "status",
           "dueDate",
+          "extra",
           "completedAt",
           "assignees",
           "comments",
@@ -5445,6 +5657,11 @@
       "CreateTaskDto": {
         "type": "object",
         "properties": {
+          "extra": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Extra fields: key → value (GET /records/task/field-defs)."
+          },
           "title": {
             "type": "string",
             "maxLength": 200
@@ -5476,6 +5693,11 @@
       "UpdateTaskDto": {
         "type": "object",
         "properties": {
+          "extra": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Only the keys given change; null clears a field."
+          },
           "title": {
             "type": "string",
             "maxLength": 200
@@ -5513,6 +5735,541 @@
         "required": [
           "body"
         ]
+      },
+      "RecordType": {
+        "type": "string",
+        "enum": [
+          "user",
+          "task",
+          "project",
+          "place",
+          "inventory_item",
+          "discipline_record",
+          "points_entry",
+          "session",
+          "fault",
+          "place_authorization",
+          "document"
+        ]
+      },
+      "EnumOptionDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label"
+        ]
+      },
+      "FieldSource": {
+        "type": "string",
+        "enum": [
+          "column",
+          "relation",
+          "computed",
+          "extra"
+        ],
+        "description": "Where the value lives; default `column`. `extra` — an extra field (field-defs)."
+      },
+      "RecordFieldDto": {
+        "type": "object",
+        "properties": {
+          "options": {
+            "description": "enum: fixed values.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnumOptionDto"
+            }
+          },
+          "source": {
+            "description": "Where the value lives; default `column`. `extra` — an extra field (field-defs).",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FieldSource"
+              }
+            ]
+          },
+          "key": {
+            "type": "string",
+            "description": "Same key as in the API of the record."
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "description": "`text`, `richtext`, `int`, `decimal`, `date`, `datetime`, `bool`, `enum`, `color`,\n`ref:<record type>` or `list<…>` of one of them."
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Must be given when the record is created."
+          },
+          "nullable": {
+            "type": "boolean",
+            "description": "May be empty (null)."
+          },
+          "create": {
+            "type": "boolean",
+            "description": "May be set when the record is created."
+          },
+          "update": {
+            "type": "boolean",
+            "description": "May be changed later."
+          },
+          "min": {
+            "type": "number"
+          },
+          "max": {
+            "type": "number"
+          },
+          "scale": {
+            "type": "number",
+            "description": "decimal: digits after the point."
+          },
+          "minLength": {
+            "type": "number",
+            "description": "text: length bounds (for a list — of each item)."
+          },
+          "maxLength": {
+            "type": "number"
+          },
+          "pattern": {
+            "type": "string",
+            "description": "text: the whole value must match this regex."
+          },
+          "maxItems": {
+            "type": "number"
+          },
+          "dictionary": {
+            "type": "string",
+            "description": "enum: key of the dictionary whose item keys are the values."
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "Extra field in the archive: old values stay, new ones are not taken."
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type"
+        ]
+      },
+      "RecordSchemaDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecordFieldDto"
+            }
+          },
+          "label": {
+            "type": "string"
+          },
+          "extensible": {
+            "type": "boolean",
+            "description": "Staff may add extra fields (`/records/:type/field-defs`)."
+          },
+          "version": {
+            "type": "string",
+            "description": "Changes with any change of the schema, extra fields included."
+          }
+        },
+        "required": [
+          "type",
+          "fields",
+          "label",
+          "extensible",
+          "version"
+        ]
+      },
+      "ExtraFieldType": {
+        "type": "string",
+        "enum": [
+          "text",
+          "int",
+          "decimal",
+          "date",
+          "bool",
+          "enum",
+          "list<enum>"
+        ]
+      },
+      "FieldDefDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExtraFieldType"
+              }
+            ]
+          },
+          "dictionary": {
+            "type": "string",
+            "nullable": true
+          },
+          "min": {
+            "type": "number",
+            "nullable": true
+          },
+          "max": {
+            "type": "number",
+            "nullable": true
+          },
+          "maxLength": {
+            "type": "number",
+            "nullable": true
+          },
+          "maxItems": {
+            "type": "number",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string",
+            "description": "Made from the label at creation; never changes."
+          },
+          "label": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "position": {
+            "type": "number"
+          },
+          "archived": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "type",
+          "dictionary",
+          "min",
+          "max",
+          "maxLength",
+          "maxItems",
+          "id",
+          "key",
+          "label",
+          "required",
+          "position",
+          "archived"
+        ]
+      },
+      "CreateFieldDefDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "description": "Cannot be changed later.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExtraFieldType"
+              }
+            ]
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Must be filled when a record is created. Default false."
+          },
+          "dictionary": {
+            "type": "string",
+            "description": "enum, list<enum>: key of the dictionary (required for them). Cannot be changed later.",
+            "maxLength": 40
+          },
+          "min": {
+            "type": "number",
+            "description": "int, decimal: the least value.",
+            "minimum": -1000000000,
+            "maximum": 1000000000
+          },
+          "max": {
+            "type": "number",
+            "description": "int, decimal: the greatest value.",
+            "minimum": -1000000000,
+            "maximum": 1000000000
+          },
+          "maxLength": {
+            "type": "number",
+            "description": "text: the longest value. Default 200.",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "maxItems": {
+            "type": "number",
+            "description": "list<enum>: at most this many items. Default 10.",
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "required": [
+          "type",
+          "label"
+        ]
+      },
+      "ReorderFieldDefsDto": {
+        "type": "object",
+        "properties": {
+          "keys": {
+            "description": "Every field key of the type (archived too), in the new order.",
+            "maxItems": 500,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 40
+            }
+          }
+        },
+        "required": [
+          "keys"
+        ]
+      },
+      "UpdateFieldDefDto": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "min": {
+            "type": "number",
+            "nullable": true,
+            "description": "null — no lower bound.",
+            "minimum": -1000000000,
+            "maximum": 1000000000
+          },
+          "max": {
+            "type": "number",
+            "nullable": true,
+            "description": "null — no upper bound.",
+            "minimum": -1000000000,
+            "maximum": 1000000000
+          },
+          "maxLength": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "maxItems": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "true — to the archive (values stay, new ones are not taken), false — back."
+          }
+        }
+      },
+      "PaletteColor": {
+        "type": "string",
+        "enum": [
+          "gray",
+          "red",
+          "orange",
+          "yellow",
+          "green",
+          "teal",
+          "blue",
+          "purple"
+        ]
+      },
+      "DictionaryItemDto": {
+        "type": "object",
+        "properties": {
+          "color": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaletteColor"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string",
+            "description": "Stored in records; never changes."
+          },
+          "title": {
+            "type": "string"
+          },
+          "position": {
+            "type": "number"
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "Not offered for new values; old records keep it."
+          }
+        },
+        "required": [
+          "color",
+          "id",
+          "key",
+          "title",
+          "position",
+          "archived"
+        ]
+      },
+      "DictionaryDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "In display order, archived included.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DictionaryItemDto"
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string",
+            "description": "Modules and templates refer to the dictionary by key; never changes."
+          },
+          "title": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean",
+            "description": "A module relies on it: it cannot be deleted."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "id",
+          "key",
+          "title",
+          "required",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateDictionaryDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "UpdateDictionaryDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "CreateDictionaryItemDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "color": {
+            "type": "string",
+            "description": "Default gray.",
+            "enum": [
+              "gray",
+              "red",
+              "orange",
+              "yellow",
+              "green",
+              "teal",
+              "blue",
+              "purple"
+            ]
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "ReorderDictionaryItemsDto": {
+        "type": "object",
+        "properties": {
+          "keys": {
+            "description": "Every item key of the dictionary (archived too), in the new order.",
+            "maxItems": 500,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 40
+            }
+          }
+        },
+        "required": [
+          "keys"
+        ]
+      },
+      "UpdateDictionaryItemDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "color": {
+            "type": "string",
+            "enum": [
+              "gray",
+              "red",
+              "orange",
+              "yellow",
+              "green",
+              "teal",
+              "blue",
+              "purple"
+            ]
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "true — to the archive, false — back."
+          }
+        }
       },
       "DisciplineType": {
         "type": "string",
@@ -6177,192 +6934,6 @@
           "grantedAt",
           "note"
         ]
-      },
-      "PaletteColor": {
-        "type": "string",
-        "enum": [
-          "gray",
-          "red",
-          "orange",
-          "yellow",
-          "green",
-          "teal",
-          "blue",
-          "purple"
-        ]
-      },
-      "DictionaryItemDto": {
-        "type": "object",
-        "properties": {
-          "color": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PaletteColor"
-              }
-            ]
-          },
-          "id": {
-            "type": "string"
-          },
-          "key": {
-            "type": "string",
-            "description": "Stored in records; never changes."
-          },
-          "title": {
-            "type": "string"
-          },
-          "position": {
-            "type": "number"
-          },
-          "archived": {
-            "type": "boolean",
-            "description": "Not offered for new values; old records keep it."
-          }
-        },
-        "required": [
-          "color",
-          "id",
-          "key",
-          "title",
-          "position",
-          "archived"
-        ]
-      },
-      "DictionaryDto": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "description": "In display order, archived included.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DictionaryItemDto"
-            }
-          },
-          "id": {
-            "type": "string"
-          },
-          "key": {
-            "type": "string",
-            "description": "Modules and templates refer to the dictionary by key; never changes."
-          },
-          "title": {
-            "type": "string"
-          },
-          "required": {
-            "type": "boolean",
-            "description": "A module relies on it: it cannot be deleted."
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "items",
-          "id",
-          "key",
-          "title",
-          "required",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "CreateDictionaryDto": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "maxLength": 100
-          }
-        },
-        "required": [
-          "title"
-        ]
-      },
-      "UpdateDictionaryDto": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "maxLength": 100
-          }
-        },
-        "required": [
-          "title"
-        ]
-      },
-      "CreateDictionaryItemDto": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "maxLength": 100
-          },
-          "color": {
-            "type": "string",
-            "description": "Default gray.",
-            "enum": [
-              "gray",
-              "red",
-              "orange",
-              "yellow",
-              "green",
-              "teal",
-              "blue",
-              "purple"
-            ]
-          }
-        },
-        "required": [
-          "title"
-        ]
-      },
-      "ReorderDictionaryItemsDto": {
-        "type": "object",
-        "properties": {
-          "keys": {
-            "description": "Every item key of the dictionary (archived too), in the new order.",
-            "maxItems": 500,
-            "type": "array",
-            "items": {
-              "type": "string",
-              "maxLength": 40
-            }
-          }
-        },
-        "required": [
-          "keys"
-        ]
-      },
-      "UpdateDictionaryItemDto": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "maxLength": 100
-          },
-          "color": {
-            "type": "string",
-            "enum": [
-              "gray",
-              "red",
-              "orange",
-              "yellow",
-              "green",
-              "teal",
-              "blue",
-              "purple"
-            ]
-          },
-          "archived": {
-            "type": "boolean",
-            "description": "true — to the archive, false — back."
-          }
-        }
       },
       "CreateBookingDto": {
         "type": "object",
@@ -8118,157 +8689,6 @@
             "type": "boolean"
           }
         }
-      },
-      "RecordType": {
-        "type": "string",
-        "enum": [
-          "user",
-          "task",
-          "project",
-          "place",
-          "inventory_item",
-          "discipline_record",
-          "points_entry",
-          "session",
-          "fault",
-          "place_authorization",
-          "document"
-        ]
-      },
-      "EnumOptionDto": {
-        "type": "object",
-        "properties": {
-          "key": {
-            "type": "string"
-          },
-          "label": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "key",
-          "label"
-        ]
-      },
-      "FieldSource": {
-        "type": "string",
-        "enum": [
-          "column",
-          "relation",
-          "computed"
-        ],
-        "description": "Where the value lives; default `column`."
-      },
-      "RecordFieldDto": {
-        "type": "object",
-        "properties": {
-          "options": {
-            "description": "enum: fixed values.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EnumOptionDto"
-            }
-          },
-          "source": {
-            "description": "Where the value lives; default `column`.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/FieldSource"
-              }
-            ]
-          },
-          "key": {
-            "type": "string",
-            "description": "Same key as in the API of the record."
-          },
-          "label": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "description": "`text`, `richtext`, `int`, `decimal`, `date`, `datetime`, `bool`, `enum`, `color`,\n`ref:<record type>` or `list<…>` of one of them."
-          },
-          "required": {
-            "type": "boolean",
-            "description": "Must be given when the record is created."
-          },
-          "nullable": {
-            "type": "boolean",
-            "description": "May be empty (null)."
-          },
-          "create": {
-            "type": "boolean",
-            "description": "May be set when the record is created."
-          },
-          "update": {
-            "type": "boolean",
-            "description": "May be changed later."
-          },
-          "min": {
-            "type": "number"
-          },
-          "max": {
-            "type": "number"
-          },
-          "scale": {
-            "type": "number",
-            "description": "decimal: digits after the point."
-          },
-          "minLength": {
-            "type": "number",
-            "description": "text: length bounds (for a list — of each item)."
-          },
-          "maxLength": {
-            "type": "number"
-          },
-          "pattern": {
-            "type": "string",
-            "description": "text: the whole value must match this regex."
-          },
-          "maxItems": {
-            "type": "number"
-          },
-          "dictionary": {
-            "type": "string",
-            "description": "enum: key of the dictionary whose item keys are the values."
-          }
-        },
-        "required": [
-          "key",
-          "label",
-          "type"
-        ]
-      },
-      "RecordSchemaDto": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RecordType"
-              }
-            ]
-          },
-          "fields": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/RecordFieldDto"
-            }
-          },
-          "label": {
-            "type": "string"
-          },
-          "version": {
-            "type": "string",
-            "description": "Changes with any change of the schema."
-          }
-        },
-        "required": [
-          "type",
-          "fields",
-          "label",
-          "version"
-        ]
       },
       "ContainerDto": {
         "type": "object",

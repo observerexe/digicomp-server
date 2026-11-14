@@ -644,6 +644,153 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/records/{type}/schema": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fields of a record type (extra fields included): what templates may bind to. No record data. */
+        get: operations["RecordsController_schema"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/records/{type}/field-defs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Extra fields of an extensible type, archived too, in order. */
+        get: operations["RecordsController_list"];
+        put?: never;
+        post: operations["RecordsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/records/{type}/field-defs/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["RecordsController_reorder"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/records/{type}/field-defs/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Only a field without values in records; otherwise archive it. */
+        delete: operations["RecordsController_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["RecordsController_update"];
+        trace?: never;
+    };
+    "/api/dictionaries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DictionariesController_list"];
+        put?: never;
+        post: operations["DictionariesController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dictionaries/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DictionariesController_get"];
+        put?: never;
+        post?: never;
+        delete: operations["DictionariesController_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["DictionariesController_update"];
+        trace?: never;
+    };
+    "/api/dictionaries/{key}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["DictionariesController_addItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dictionaries/{key}/items/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["DictionariesController_reorder"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dictionaries/{key}/items/{itemKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["DictionariesController_removeItem"];
+        options?: never;
+        head?: never;
+        patch: operations["DictionariesController_updateItem"];
+        trace?: never;
+    };
     "/api/discipline/me": {
         parameters: {
             query?: never;
@@ -857,86 +1004,6 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
-        trace?: never;
-    };
-    "/api/dictionaries": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["DictionariesController_list"];
-        put?: never;
-        post: operations["DictionariesController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/dictionaries/{key}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["DictionariesController_get"];
-        put?: never;
-        post?: never;
-        delete: operations["DictionariesController_remove"];
-        options?: never;
-        head?: never;
-        patch: operations["DictionariesController_update"];
-        trace?: never;
-    };
-    "/api/dictionaries/{key}/items": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["DictionariesController_addItem"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/dictionaries/{key}/items/order": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations["DictionariesController_reorder"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/dictionaries/{key}/items/{itemKey}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["DictionariesController_removeItem"];
-        options?: never;
-        head?: never;
-        patch: operations["DictionariesController_updateItem"];
         trace?: never;
     };
     "/api/bookings": {
@@ -1487,23 +1554,6 @@ export interface paths {
         patch: operations["SmartController_update"];
         trace?: never;
     };
-    "/api/records/{type}/schema": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Fields of a record type: what templates may bind to. No record data. */
-        get: operations["RecordsController_schema"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/admin-panel/overview": {
         parameters: {
             query?: never;
@@ -1837,6 +1887,10 @@ export interface components {
             status: components["schemas"]["TaskStatus"];
             /** Format: date-time */
             dueDate: string | null;
+            /** @description Extra fields: key → value (string, number, boolean or list of item keys). */
+            extra: {
+                [key: string]: unknown;
+            };
             /** Format: date-time */
             completedAt: string | null;
             /** @description In the order of taking. */
@@ -1885,6 +1939,10 @@ export interface components {
             status: components["schemas"]["TaskStatus"];
             /** Format: date-time */
             dueDate: string | null;
+            /** @description Extra fields: key → value (string, number, boolean or list of item keys). */
+            extra: {
+                [key: string]: unknown;
+            };
             /** Format: date-time */
             completedAt: string | null;
             /** @description In the order of taking. */
@@ -1904,6 +1962,10 @@ export interface components {
             updatedAt: string;
         };
         CreateTaskDto: {
+            /** @description Extra fields: key → value (GET /records/task/field-defs). */
+            extra?: {
+                [key: string]: unknown;
+            };
             title: string;
             description?: string;
             points: number;
@@ -1912,6 +1974,10 @@ export interface components {
             dueDate?: string;
         };
         UpdateTaskDto: {
+            /** @description Only the keys given change; null clears a field. */
+            extra?: {
+                [key: string]: unknown;
+            };
             title?: string;
             description?: string | null;
             points?: number;
@@ -1921,6 +1987,163 @@ export interface components {
         };
         CommentDto: {
             body: string;
+        };
+        /** @enum {string} */
+        RecordType: "user" | "task" | "project" | "place" | "inventory_item" | "discipline_record" | "points_entry" | "session" | "fault" | "place_authorization" | "document";
+        EnumOptionDto: {
+            key: string;
+            label: string;
+        };
+        /**
+         * @description Where the value lives; default `column`. `extra` — an extra field (field-defs).
+         * @enum {string}
+         */
+        FieldSource: "column" | "relation" | "computed" | "extra";
+        RecordFieldDto: {
+            /** @description enum: fixed values. */
+            options?: components["schemas"]["EnumOptionDto"][];
+            /** @description Where the value lives; default `column`. `extra` — an extra field (field-defs). */
+            source?: components["schemas"]["FieldSource"];
+            /** @description Same key as in the API of the record. */
+            key: string;
+            label: string;
+            /**
+             * @description `text`, `richtext`, `int`, `decimal`, `date`, `datetime`, `bool`, `enum`, `color`,
+             *     `ref:<record type>` or `list<…>` of one of them.
+             */
+            type: string;
+            /** @description Must be given when the record is created. */
+            required?: boolean;
+            /** @description May be empty (null). */
+            nullable?: boolean;
+            /** @description May be set when the record is created. */
+            create?: boolean;
+            /** @description May be changed later. */
+            update?: boolean;
+            min?: number;
+            max?: number;
+            /** @description decimal: digits after the point. */
+            scale?: number;
+            /** @description text: length bounds (for a list — of each item). */
+            minLength?: number;
+            maxLength?: number;
+            /** @description text: the whole value must match this regex. */
+            pattern?: string;
+            maxItems?: number;
+            /** @description enum: key of the dictionary whose item keys are the values. */
+            dictionary?: string;
+            /** @description Extra field in the archive: old values stay, new ones are not taken. */
+            archived?: boolean;
+        };
+        RecordSchemaDto: {
+            type: components["schemas"]["RecordType"];
+            fields: components["schemas"]["RecordFieldDto"][];
+            label: string;
+            /** @description Staff may add extra fields (`/records/:type/field-defs`). */
+            extensible: boolean;
+            /** @description Changes with any change of the schema, extra fields included. */
+            version: string;
+        };
+        /** @enum {string} */
+        ExtraFieldType: "text" | "int" | "decimal" | "date" | "bool" | "enum" | "list<enum>";
+        FieldDefDto: {
+            type: components["schemas"]["ExtraFieldType"];
+            dictionary: string | null;
+            min: number | null;
+            max: number | null;
+            maxLength: number | null;
+            maxItems: number | null;
+            id: string;
+            /** @description Made from the label at creation; never changes. */
+            key: string;
+            label: string;
+            required: boolean;
+            position: number;
+            archived: boolean;
+        };
+        CreateFieldDefDto: {
+            /** @description Cannot be changed later. */
+            type: components["schemas"]["ExtraFieldType"];
+            label: string;
+            /** @description Must be filled when a record is created. Default false. */
+            required?: boolean;
+            /** @description enum, list<enum>: key of the dictionary (required for them). Cannot be changed later. */
+            dictionary?: string;
+            /** @description int, decimal: the least value. */
+            min?: number;
+            /** @description int, decimal: the greatest value. */
+            max?: number;
+            /** @description text: the longest value. Default 200. */
+            maxLength?: number;
+            /** @description list<enum>: at most this many items. Default 10. */
+            maxItems?: number;
+        };
+        ReorderFieldDefsDto: {
+            /** @description Every field key of the type (archived too), in the new order. */
+            keys: string[];
+        };
+        UpdateFieldDefDto: {
+            label?: string;
+            required?: boolean;
+            /** @description null — no lower bound. */
+            min?: number | null;
+            /** @description null — no upper bound. */
+            max?: number | null;
+            maxLength?: number;
+            maxItems?: number;
+            /** @description true — to the archive (values stay, new ones are not taken), false — back. */
+            archived?: boolean;
+        };
+        /** @enum {string} */
+        PaletteColor: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
+        DictionaryItemDto: {
+            color: components["schemas"]["PaletteColor"];
+            id: string;
+            /** @description Stored in records; never changes. */
+            key: string;
+            title: string;
+            position: number;
+            /** @description Not offered for new values; old records keep it. */
+            archived: boolean;
+        };
+        DictionaryDto: {
+            /** @description In display order, archived included. */
+            items: components["schemas"]["DictionaryItemDto"][];
+            id: string;
+            /** @description Modules and templates refer to the dictionary by key; never changes. */
+            key: string;
+            title: string;
+            /** @description A module relies on it: it cannot be deleted. */
+            required: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        CreateDictionaryDto: {
+            title: string;
+        };
+        UpdateDictionaryDto: {
+            title: string;
+        };
+        CreateDictionaryItemDto: {
+            title: string;
+            /**
+             * @description Default gray.
+             * @enum {string}
+             */
+            color?: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
+        };
+        ReorderDictionaryItemsDto: {
+            /** @description Every item key of the dictionary (archived too), in the new order. */
+            keys: string[];
+        };
+        UpdateDictionaryItemDto: {
+            title?: string;
+            /** @enum {string} */
+            color?: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
+            /** @description true — to the archive, false — back. */
+            archived?: boolean;
         };
         /** @enum {string} */
         DisciplineType: "warning" | "fine" | "reprimand";
@@ -2104,57 +2327,6 @@ export interface components {
             /** Format: date-time */
             grantedAt: string;
             note: string;
-        };
-        /** @enum {string} */
-        PaletteColor: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
-        DictionaryItemDto: {
-            color: components["schemas"]["PaletteColor"];
-            id: string;
-            /** @description Stored in records; never changes. */
-            key: string;
-            title: string;
-            position: number;
-            /** @description Not offered for new values; old records keep it. */
-            archived: boolean;
-        };
-        DictionaryDto: {
-            /** @description In display order, archived included. */
-            items: components["schemas"]["DictionaryItemDto"][];
-            id: string;
-            /** @description Modules and templates refer to the dictionary by key; never changes. */
-            key: string;
-            title: string;
-            /** @description A module relies on it: it cannot be deleted. */
-            required: boolean;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        CreateDictionaryDto: {
-            title: string;
-        };
-        UpdateDictionaryDto: {
-            title: string;
-        };
-        CreateDictionaryItemDto: {
-            title: string;
-            /**
-             * @description Default gray.
-             * @enum {string}
-             */
-            color?: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
-        };
-        ReorderDictionaryItemsDto: {
-            /** @description Every item key of the dictionary (archived too), in the new order. */
-            keys: string[];
-        };
-        UpdateDictionaryItemDto: {
-            title?: string;
-            /** @enum {string} */
-            color?: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
-            /** @description true — to the archive, false — back. */
-            archived?: boolean;
         };
         CreateBookingDto: {
             /** Format: uuid */
@@ -2629,58 +2801,6 @@ export interface components {
             label?: string;
             room?: string;
             enabled?: boolean;
-        };
-        /** @enum {string} */
-        RecordType: "user" | "task" | "project" | "place" | "inventory_item" | "discipline_record" | "points_entry" | "session" | "fault" | "place_authorization" | "document";
-        EnumOptionDto: {
-            key: string;
-            label: string;
-        };
-        /**
-         * @description Where the value lives; default `column`.
-         * @enum {string}
-         */
-        FieldSource: "column" | "relation" | "computed";
-        RecordFieldDto: {
-            /** @description enum: fixed values. */
-            options?: components["schemas"]["EnumOptionDto"][];
-            /** @description Where the value lives; default `column`. */
-            source?: components["schemas"]["FieldSource"];
-            /** @description Same key as in the API of the record. */
-            key: string;
-            label: string;
-            /**
-             * @description `text`, `richtext`, `int`, `decimal`, `date`, `datetime`, `bool`, `enum`, `color`,
-             *     `ref:<record type>` or `list<…>` of one of them.
-             */
-            type: string;
-            /** @description Must be given when the record is created. */
-            required?: boolean;
-            /** @description May be empty (null). */
-            nullable?: boolean;
-            /** @description May be set when the record is created. */
-            create?: boolean;
-            /** @description May be changed later. */
-            update?: boolean;
-            min?: number;
-            max?: number;
-            /** @description decimal: digits after the point. */
-            scale?: number;
-            /** @description text: length bounds (for a list — of each item). */
-            minLength?: number;
-            maxLength?: number;
-            /** @description text: the whole value must match this regex. */
-            pattern?: string;
-            maxItems?: number;
-            /** @description enum: key of the dictionary whose item keys are the values. */
-            dictionary?: string;
-        };
-        RecordSchemaDto: {
-            type: components["schemas"]["RecordType"];
-            fields: components["schemas"]["RecordFieldDto"][];
-            label: string;
-            /** @description Changes with any change of the schema. */
-            version: string;
         };
         ContainerDto: {
             /** @description healthy, unhealthy, starting or null (no healthcheck). */
@@ -3747,6 +3867,353 @@ export interface operations {
             };
         };
     };
+    RecordsController_schema: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordSchemaDto"];
+                };
+            };
+        };
+    };
+    RecordsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldDefDto"][];
+                };
+            };
+        };
+    };
+    RecordsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateFieldDefDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldDefDto"];
+                };
+            };
+        };
+    };
+    RecordsController_reorder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderFieldDefsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldDefDto"][];
+                };
+            };
+        };
+    };
+    RecordsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    RecordsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateFieldDefDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldDefDto"];
+                };
+            };
+        };
+    };
+    DictionariesController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryDto"][];
+                };
+            };
+        };
+    };
+    DictionariesController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDictionaryDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryDto"];
+                };
+            };
+        };
+    };
+    DictionariesController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryDto"];
+                };
+            };
+        };
+    };
+    DictionariesController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    DictionariesController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDictionaryDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryDto"];
+                };
+            };
+        };
+    };
+    DictionariesController_addItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDictionaryItemDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryItemDto"];
+                };
+            };
+        };
+    };
+    DictionariesController_reorder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderDictionaryItemsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryDto"];
+                };
+            };
+        };
+    };
+    DictionariesController_removeItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+                itemKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    DictionariesController_updateItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+                itemKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDictionaryItemDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryItemDto"];
+                };
+            };
+        };
+    };
     DisciplineController_mine: {
         parameters: {
             query?: never;
@@ -4136,213 +4603,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OkDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DictionaryDto"][];
-                };
-            };
-        };
-    };
-    DictionariesController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateDictionaryDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DictionaryDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DictionaryDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_remove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OkDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateDictionaryDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DictionaryDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_addItem: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateDictionaryItemDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DictionaryItemDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_reorder: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReorderDictionaryItemsDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DictionaryDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_removeItem: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-                itemKey: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OkDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_updateItem: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-                itemKey: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateDictionaryItemDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DictionaryItemDto"];
                 };
             };
         };
@@ -5349,27 +5609,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SmartAllowedDto"];
-                };
-            };
-        };
-    };
-    RecordsController_schema: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                type: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecordSchemaDto"];
                 };
             };
         };

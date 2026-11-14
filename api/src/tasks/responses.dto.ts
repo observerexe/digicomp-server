@@ -24,6 +24,11 @@ export class TaskDto {
   dueDate: Date | null;
 
   createdById: string;
+
+  /** Extra fields: key → value (string, number, boolean or list of item keys). */
+  @ApiProperty({ type: 'object', additionalProperties: true })
+  extra: Record<string, unknown>;
+
   createdAt: Date;
   updatedAt: Date;
 

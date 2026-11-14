@@ -1,5 +1,7 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsNumberString,
+  IsObject,
   IsDateString,
   IsEnum,
   IsIn,
@@ -41,6 +43,12 @@ export class CreateTaskDto {
   @IsOptional()
   @IsDateString()
   dueDate?: string;
+
+  /** Extra fields: key → value (GET /records/task/field-defs). */
+  @ApiPropertyOptional({ type: 'object', additionalProperties: true })
+  @IsOptional()
+  @IsObject()
+  extra?: Record<string, unknown>;
 }
 
 export class UpdateTaskDto {
@@ -73,6 +81,12 @@ export class UpdateTaskDto {
   @ValidateIf((_o, v) => v !== null)
   @IsDateString()
   dueDate?: string | null;
+
+  /** Only the keys given change; null clears a field. */
+  @ApiPropertyOptional({ type: 'object', additionalProperties: true })
+  @IsOptional()
+  @IsObject()
+  extra?: Record<string, unknown>;
 }
 
 export class ListTasksQuery {

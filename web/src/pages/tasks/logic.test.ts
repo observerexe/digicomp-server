@@ -12,6 +12,7 @@ export const task = (over: Partial<Task> = {}): Task => ({
   maxAssignees: 3,
   dueDate: null,
   createdById: 'm1',
+  extra: {},
   createdAt: '2026-11-01T10:00:00Z',
   updatedAt: '2026-11-01T10:00:00Z',
   completedAt: null,

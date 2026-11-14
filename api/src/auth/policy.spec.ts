@@ -451,6 +451,11 @@ const ROWS: Record<string, Case[]> = {
     ['moderator', mod, Action.RecordsRead, undefined, true],
     ['member', member, Action.RecordsRead, undefined, true],
   ],
+  'Налаштування полів (додаткові поля записів): керувати': [
+    ['admin', admin, Action.RecordsFieldsManage, undefined, true],
+    ['moderator', mod, Action.RecordsFieldsManage, undefined, true],
+    ['member', member, Action.RecordsFieldsManage, undefined, Deny.Forbidden],
+  ],
   'Сеанс роботи з обладнанням': [
     ['admin', admin, Action.SessionsStart, { authorized: false }, true],
     ['moderator', mod, Action.SessionsStart, { authorized: false }, true],

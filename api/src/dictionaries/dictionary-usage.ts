@@ -8,7 +8,7 @@ import { Dictionary, DictionaryItem } from './dictionary.entities';
  */
 export type DictionaryUsage = {
   /** Dictionaries the module relies on: they cannot be deleted. */
-  dictionaries: readonly string[];
+  dictionaries(m: EntityManager): Promise<readonly string[]>;
   /** How many of the module's records hold this item (0 = free to delete). */
   countItem(
     dictionaryKey: string,
@@ -32,7 +32,7 @@ export class DictionaryUsageRegistry {
     property: keyof T & string,
   ) {
     this.register({
-      dictionaries: [dictionaryKey],
+      dictionaries: () => Promise.resolve([dictionaryKey]),
       countItem: (d, itemKey, m) =>
         d === dictionaryKey
           ? m.getRepository(entity).countBy({ [property]: itemKey } as never)
@@ -40,8 +40,13 @@ export class DictionaryUsageRegistry {
     });
   }
 
-  required(dictionaryKey: string) {
-    return this.usages.some((u) => u.dictionaries.includes(dictionaryKey));
+  /** Keys of dictionaries some module relies on. */
+  async required(m: EntityManager): Promise<Set<string>> {
+    const out = new Set<string>();
+    for (const u of this.usages) {
+      for (const key of await u.dictionaries(m)) out.add(key);
+    }
+    return out;
   }
 
   async itemUsed(dictionaryKey: string, itemKey: string, m: EntityManager) {
@@ -96,4 +101,23 @@ export async function itemTitles(m: EntityManager, dictionaryKey: string) {
     .where('d.key = :dictionaryKey', { dictionaryKey })
     .getMany();
   return new Map(rows.map((i) => [i.key, i.title]));
+}
+
+/** Which of these item keys are active (existing and not archived). */
+export async function activeItemKeys(
+  m: EntityManager,
+  dictionaryKey: string,
+  keys: readonly string[],
+): Promise<Set<string>> {
+  if (!keys.length) return new Set();
+  const rows = await m
+    .createQueryBuilder(DictionaryItem, 'i')
+    .innerJoin(Dictionary, 'd', 'd.id = i.dictionaryId')
+    .where('d.key = :dictionaryKey AND i.key IN (:...keys)', {
+      dictionaryKey,
+      keys,
+    })
+    .andWhere('i.archivedAt IS NULL')
+    .getMany();
+  return new Set(rows.map((i) => i.key));
 }
