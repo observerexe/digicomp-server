@@ -43,6 +43,7 @@ export function PanelPage() {
     { to: '/lab/journal', title: 'Журнал обладнання', note: 'Фільтри, CSV, друк', permission: 'sessions.export' },
     { to: '/lab/stickers', title: 'Наліпки QR', note: 'Обладнання й склад', permission: 'places.manage' },
     { to: '/docs', title: 'Документи', note: 'Архів і версії', permission: 'documents.manage' },
+    { to: '/panel/dictionaries', title: 'Довідники', note: 'Типи, категорії, кольори', permission: 'dictionaries.manage' },
     { to: '/team', title: 'Команда', note: 'Учасники й профілі' },
     { to: '/admin', title: 'Розширена панель', note: 'Сервер, логи, бекап, перезапуск', permission: 'admin.panel' },
     { to: '/admin/audit', title: 'Журнал дій', note: 'Хто що змінив', permission: 'audit.read' },

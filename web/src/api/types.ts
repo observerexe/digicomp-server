@@ -23,6 +23,10 @@ export type LoginResult =
   | { user: Me }
   | { twoFactorRequired: true; challengeToken: string };
 
+export type Dictionary = S['DictionaryDto'];
+export type DictionaryItem = S['DictionaryItemDto'];
+export type PaletteColor = S['PaletteColor'];
+
 export type Place = S['PlaceDto'];
 export type PlaceStatus = S['PlaceStatus'];
 export type WorkSession = S['WorkSessionDto'];

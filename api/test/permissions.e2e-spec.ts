@@ -733,6 +733,36 @@ describe('Матриця прав (e2e)', () => {
     });
   });
 
+  describe('Довідники: керувати (перегляд — усі)', () => {
+    const create = (u: TestUser, title: string) =>
+      as(app, u).post('/api/dictionaries').send({ title });
+    it('admin так', async () => {
+      const res = await create(admin, 'Тип ТЗ');
+      allowed(res);
+      expect(await audit('dictionary.created', res.body.id)).toBeTruthy();
+    });
+    it('moderator так', async () => {
+      allowed(await create(mod, 'Тип ТЗ'));
+      allowed(
+        await as(app, mod)
+          .post('/api/dictionaries/typ_tz/items')
+          .send({ title: 'Дизайн' }),
+      );
+    });
+    it('member ні, але бачить', async () => {
+      denied(await create(member, 'Тип ТЗ'));
+      await create(mod, 'Тип ТЗ');
+      denied(
+        await as(app, member)
+          .post('/api/dictionaries/typ_tz/items')
+          .send({ title: 'Дизайн' }),
+      );
+      denied(await as(app, member).delete('/api/dictionaries/typ_tz'));
+      allowed(await as(app, member).get('/api/dictionaries'));
+      allowed(await as(app, member).get('/api/dictionaries/typ_tz'));
+    });
+  });
+
   describe('Склад: взяти або поповнити', () => {
     let itemId: string;
     beforeEach(async () => {

@@ -86,6 +86,11 @@ const MESSAGE_CODES: Record<string, string> = {
   'Device is not available': 'DEVICE_UNAVAILABLE',
   'Brightness requires on=true': 'BRIGHTNESS_REQUIRES_ON',
   'Smart device not found': 'SMART_DEVICE_NOT_FOUND',
+  'Dictionary title already used': 'DICTIONARY_DUPLICATE',
+  'Dictionary item title already used': 'DICTIONARY_DUPLICATE',
+  'Dictionary is in use': 'DICTIONARY_IN_USE',
+  'Dictionary is not empty': 'DICTIONARY_NOT_EMPTY',
+  'Dictionary item is in use': 'DICTIONARY_ITEM_IN_USE',
 };
 
 const STATUS_CODES: Record<number, string> = {

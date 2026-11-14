@@ -90,6 +90,10 @@ export enum Action {
   InventoryTake = 'inventory.take',
   InventoryRestock = 'inventory.restock',
 
+  // Dictionaries (task types, categories…)
+  DictionariesRead = 'dictionaries.read',
+  DictionariesManage = 'dictionaries.manage',
+
   // Work sessions, bookings, faults
   SessionsStart = 'sessions.start',
   SessionsReadAll = 'sessions.read_all',
@@ -176,6 +180,9 @@ export const ROLES: Record<Action, readonly Role[]> = {
   [Action.InventoryManage]: STAFF,
   [Action.InventoryTake]: ALL,
   [Action.InventoryRestock]: ALL,
+
+  [Action.DictionariesRead]: ALL,
+  [Action.DictionariesManage]: STAFF,
 
   [Action.SessionsStart]: ALL,
   [Action.SessionsReadAll]: STAFF,

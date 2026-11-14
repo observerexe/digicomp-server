@@ -93,6 +93,7 @@ export const AUDIT_GROUPS: { value: string; label: string }[] = [
   { value: 'inventory.', label: 'Склад' },
   { value: 'document.', label: 'Документи' },
   { value: 'smart.', label: 'Розумна лабораторія' },
+  { value: 'dictionary.', label: 'Довідники' },
   { value: 'panel.', label: 'Розширена панель' },
 ];
 
@@ -158,6 +159,13 @@ export const AUDIT_ACTION: Record<string, string> = {
   'smart.entity_added': 'Додав пристрій до дозволених',
   'smart.entity_updated': 'Змінив дозволений пристрій',
   'smart.entity_removed': 'Прибрав пристрій із дозволених',
+  'dictionary.created': 'Створив довідник',
+  'dictionary.updated': 'Перейменував довідник',
+  'dictionary.deleted': 'Видалив довідник',
+  'dictionary.item_created': 'Додав пункт довідника',
+  'dictionary.item_updated': 'Змінив пункт довідника',
+  'dictionary.items_reordered': 'Змінив порядок пунктів довідника',
+  'dictionary.item_deleted': 'Видалив пункт довідника',
   'panel.action': 'Дія розширеної панелі',
 };
 

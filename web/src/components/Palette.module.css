@@ -1,0 +1,68 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--pal-soft);
+  color: var(--pal-text);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+}
+.chip::before {
+  content: '';
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pal-solid);
+}
+.picker {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.picker legend {
+  padding: 0;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.swatch {
+  position: relative;
+  width: var(--size-touch-min);
+  height: var(--size-touch-min);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.swatch input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--pal-solid);
+  box-shadow: 0 0 0 2px var(--c-surface), 0 0 0 2px var(--c-border);
+  transition: box-shadow var(--motion-fast);
+}
+.swatch input:checked + .dot {
+  box-shadow: 0 0 0 2px var(--c-surface), 0 0 0 4px var(--c-text);
+}
+.swatch input:focus-visible + .dot {
+  outline: 3px solid var(--c-primary);
+  outline-offset: 4px;
+}

@@ -10,6 +10,7 @@ import { HealthController } from './health/health.controller';
 import { AdminPanelModule } from './admin-panel/admin-panel.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
+import { DictionariesModule } from './dictionaries/dictionaries.module';
 import { DocsModule } from './docs/docs.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { DisciplineModule } from './discipline/discipline.module';
@@ -47,6 +48,7 @@ import { UsersModule } from './users/users.module';
     InventoryModule,
     ProjectsModule,
     SmartModule,
+    DictionariesModule,
     DocsModule,
     AdminPanelModule,
   ],

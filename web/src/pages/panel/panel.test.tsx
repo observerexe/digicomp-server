@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { Me } from '../../api/types';
 import { json, member, mockApi, moderator, renderApp } from '../../test/render';
 
-const staff: Me = { ...moderator, permissions: [...moderator.permissions, 'tasks.accept', 'points.award', 'discipline.issue'] };
+const staff: Me = { ...moderator, permissions: [...moderator.permissions, 'tasks.accept', 'points.award', 'discipline.issue', 'dictionaries.manage'] };
 const api = (me: Me) => ({
   'GET /api/auth/me': () => json(200, me),
   'GET /api/work-sessions': () => json(200, { items: [], total: 0, page: 1, limit: 1 }),
@@ -21,6 +21,7 @@ describe('Панель керування', () => {
     expect(within(hot).getByRole('link', { name: /несправності/ })).toHaveTextContent('1');
     const sections = screen.getByRole('list', { name: 'Розділи' });
     expect(within(sections).getByRole('link', { name: /Бали/ })).toBeInTheDocument();
+    expect(within(sections).getByRole('link', { name: /Довідники/ })).toHaveAttribute('href', '/panel/dictionaries');
     expect(within(sections).queryByRole('link', { name: /Журнал/ })).not.toBeInTheDocument();
     expect(await screen.findByLabelText('2 ТЗ на перевірці')).toBeInTheDocument();
   });

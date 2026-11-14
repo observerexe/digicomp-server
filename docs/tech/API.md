@@ -44,7 +44,8 @@
 `CONSTRAINT_VIOLATION` (409), `FILE_TOO_LARGE` (413), `RATE_LIMITED` (429), `INTERNAL_ERROR` (500), `SERVICE_UNAVAILABLE` (503).
 «Не знайдено» для конкретних об'єктів: `USER_NOT_FOUND`, `TASK_NOT_FOUND`, `PLACE_NOT_FOUND`, `SESSION_NOT_FOUND`, `BOOKING_NOT_FOUND`,
 `FAULT_REPORT_NOT_FOUND`, `DOCUMENT_NOT_FOUND`, `VERSION_NOT_FOUND`, `FILE_NOT_FOUND`, `ITEM_NOT_FOUND`, `PROJECT_NOT_FOUND`,
-`AUTHORIZATION_NOT_FOUND`, `POINTS_ENTRY_NOT_FOUND`, `DISCIPLINE_RECORD_NOT_FOUND`, `SMART_DEVICE_NOT_FOUND`, `AUDIT_CURSOR_NOT_FOUND`.
+`AUTHORIZATION_NOT_FOUND`, `POINTS_ENTRY_NOT_FOUND`, `DISCIPLINE_RECORD_NOT_FOUND`, `SMART_DEVICE_NOT_FOUND`, `AUDIT_CURSOR_NOT_FOUND`,
+`DICTIONARY_NOT_FOUND`, `DICTIONARY_ITEM_NOT_FOUND`.
 
 | Код | Статус | Коли |
 |---|---|---|
@@ -111,6 +112,11 @@
 | `PROJECT_EDIT_FORBIDDEN`, `PROJECT_MEMBERS_FORBIDDEN` | 403 | Немає права редагувати проєкт чи склад учасників |
 | `PROJECT_DATES_INVALID` | 400 | Дедлайн раніше дати початку |
 | `FILE_REQUIRED`, `FILE_TYPE_NOT_ALLOWED`, `FILE_CONTENT_MISMATCH` | 400 | Немає файлу, тип не дозволений або вміст не відповідає типу |
+| **Довідники** | | |
+| `DICTIONARY_DUPLICATE` | 409 | Довідник чи пункт у цьому довіднику з такою назвою вже є (без різниці великих і малих літер) |
+| `DICTIONARY_NOT_EMPTY` | 409 | Видалити можна лише довідник без пунктів |
+| `DICTIONARY_IN_USE` | 409 | На довідник спирається модуль застосунку: його не видаляють |
+| `DICTIONARY_ITEM_IN_USE` | 409 | Пункт зберігається в записах: його не видаляють, а переносять в архів |
 | **Розумна лабораторія** | | |
 | `SMART_NOT_CONFIGURED`, `SMART_UNAVAILABLE`, `SMART_AUTH_FAILED` | 503 | Немає `HA_TOKEN`, HA не відповідає за 5 с або відхилив токен |
 | `UNKNOWN_HA_ENTITY`, `ENTITY_KIND_MISMATCH`, `SMART_ENTITY_EXISTS` | 400/409 | Такого пристрою в HA немає, тип не збігається, або вже доданий |
@@ -172,6 +178,15 @@
 - Документ: нова версія не змінює попередні; `DELETE` лише архівує. `download?inline=1` показує PDF у застосунку
   (вбудувати можуть лише його сторінки); інші типи лише завантажуються. Доступ `members` або `supervisors`.
 - Проєкт: етапи `idea`, `planning`, `execution`, `review`, `done`; архів — `DELETE`. member редагує лише свої проєкти і не змінює склад учасників.
+
+### Довідники
+
+- `GET /api/dictionaries` — усі довідники з пунктами (архівні з `archived: true`), читають усі ролі; змінюють admin і moderator.
+- У шляху — `key` довідника й пункту (`/api/dictionaries/typ_tz/items/dyzain`). Ключ сервер створює з назви при створенні
+  й більше не змінює; записи зберігають саме ключ. `required: true` — на довідник спирається модуль, видалити його не можна.
+- Колір пункту — назва з палітри: `gray`, `red`, `orange`, `yellow`, `green`, `teal`, `blue`, `purple` (за замовчуванням `gray`).
+- Новий пункт стає в кінець. `PUT /api/dictionaries/:key/items/order { keys }` — новий порядок, у списку мають бути всі пункти, разом з архівними.
+- `PATCH …/items/:itemKey { archived: true }` — в архів: пункт не пропонують для нових записів, у старих він лишається.
 
 ### Розумна лабораторія
 

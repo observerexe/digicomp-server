@@ -432,6 +432,20 @@ const ROWS: Record<string, Case[]> = {
     ['moderator: поповнити', mod, Action.InventoryRestock, undefined, true],
     ['member: поповнити', member, Action.InventoryRestock, undefined, true],
   ],
+  'Довідники: керувати (перегляд — усі)': [
+    ['admin: керувати', admin, Action.DictionariesManage, undefined, true],
+    ['moderator: керувати', mod, Action.DictionariesManage, undefined, true],
+    [
+      'member: керувати',
+      member,
+      Action.DictionariesManage,
+      undefined,
+      Deny.Forbidden,
+    ],
+    ['admin: перегляд', admin, Action.DictionariesRead, undefined, true],
+    ['moderator: перегляд', mod, Action.DictionariesRead, undefined, true],
+    ['member: перегляд', member, Action.DictionariesRead, undefined, true],
+  ],
   'Сеанс роботи з обладнанням': [
     ['admin', admin, Action.SessionsStart, { authorized: false }, true],
     ['moderator', mod, Action.SessionsStart, { authorized: false }, true],

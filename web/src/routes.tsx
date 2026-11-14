@@ -4,6 +4,8 @@ import { AppShell } from './layout/AppShell';
 import { AboutPage } from './pages/AboutPage';
 import { LoginPage } from './pages/LoginPage';
 import { MorePage } from './pages/MorePage';
+import { DictionariesPage } from './pages/panel/DictionariesPage';
+import { DictionaryPage } from './pages/panel/DictionaryPage';
 import { FaultsPage } from './pages/panel/FaultsPage';
 import { ManageUserPage } from './pages/panel/ManageUserPage';
 import { NewUserPage } from './pages/panel/NewUserPage';
@@ -218,6 +220,22 @@ export const routes: RouteObject[] = [
         element: (
           <RequirePermission action="faults.close" fallback={<ForbiddenPage />}>
             <FaultsPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'panel/dictionaries',
+        element: (
+          <RequirePermission action="dictionaries.manage" fallback={<ForbiddenPage />}>
+            <DictionariesPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'panel/dictionaries/:key',
+        element: (
+          <RequirePermission action="dictionaries.manage" fallback={<ForbiddenPage />}>
+            <DictionaryPage />
           </RequirePermission>
         ),
       },
