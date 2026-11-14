@@ -13,6 +13,12 @@
           "dtoFileNameSuffix": ["dto.ts"]
         }
       }
+    ],
+    "assets": [
+      {
+        "include": "../../shared/editor-schema/*.css",
+        "outDir": "dist"
+      }
     ]
   }
 }

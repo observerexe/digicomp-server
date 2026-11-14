@@ -9,6 +9,7 @@ import { Icon } from '../../components/Icon';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { ConfirmButton, ErrorMessage } from '../../components/ui';
 import { paperExtensions } from '../../editor/extensions';
+import '../../../../shared/editor-schema/paper.css';
 import '../../editor/format.css';
 import { Ribbon } from '../../editor/Ribbon';
 import { Ruler } from '../../editor/Ruler';
@@ -83,7 +84,7 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
     extensions,
     content: paper.content,
     editable,
-    // TipTap's own <style> is blocked by CSP; its rules are in format.css.
+    // TipTap's own <style> is blocked by CSP; its rules are in format.css and paper.css.
     injectCSS: false,
     editorProps: { attributes: { class: `paper ${s.page}`, 'aria-label': 'Текст документа' } },
     onUpdate: ({ editor: e }) => autosave.change({ content: e.getJSON() }),
@@ -113,6 +114,17 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
     if (!t) return; // An empty title is not saved; on leaving the field the last one returns.
     lastTitle.current = t;
     autosave.change({ title: t });
+  };
+
+  /**
+   * The print page in a new tab, after the changes are saved. The tab opens at
+   * once (a tab opened after waiting is blocked as a pop-up), the address comes after.
+   */
+  const preview = () => {
+    const tab = window.open('', '_blank');
+    if (!tab) return;
+    tab.opener = null;
+    void autosave.flush().then(() => tab.location.replace(`/api/papers/${paper.id}/print`));
   };
 
   const saveText = autosave.state === 'saved' ? (autosave.savedAt ? `Збережено о ${formatTime(autosave.savedAt)}` : '') : SAVE_TEXT[autosave.state];
@@ -146,8 +158,11 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
             {saveText}
           </span>
         </div>
-        {editable && (
-          <span className={s.topActions}>
+        <span className={s.topActions}>
+          <button type="button" className="btn" onClick={preview}>
+            Попередній перегляд
+          </button>
+          {editable && (
             <ConfirmButton
               label="Видалити чернетку"
               question="Видалити чернетку назавжди?"
@@ -156,8 +171,8 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
               disabled={remove.isPending}
               onConfirm={() => remove.mutate()}
             />
-          </span>
-        )}
+          )}
+        </span>
       </header>
       <OfflineBanner />
       {editable && <Ribbon editor={editor} />}

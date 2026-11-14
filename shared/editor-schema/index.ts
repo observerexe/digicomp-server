@@ -1,8 +1,8 @@
 /**
  * The one description of editor documents, shared by the web editor
- * (web/src/editor/) and the API (content check, later the print render).
+ * (web/src/editor/) and the API (content check, print: render.ts, paper.css).
  *
- * No imports on purpose: both packages compile this file as their own source
+ * No package imports on purpose: both packages compile this folder as their own source
  * (see docs/tech/DEVELOPMENT.md, «Спільний опис редактора»).
  *
  * Formatting is classes only: CSP `style-src 'self'` forbids the `style`
@@ -15,6 +15,25 @@ export const DEFAULT_FONT_SIZE = 14;
 
 /** Text colours: names from the palette in docs/design/tokens.json (the sheet takes light.text). */
 export const COLORS = ['gray', 'red', 'orange', 'yellow', 'green', 'teal', 'blue', 'purple'] as const;
+
+/**
+ * The sheet's colours (--sheet-* in paper.css): always white, light values in both themes.
+ * From docs/design/tokens.json: paper — color.light.surface, ink — color.light.text,
+ * the rest — palette.<name>.light.text. The web takes them from tokens.css; the print
+ * from here (api/src/paperwork/print.spec.ts checks they match tokens.json).
+ */
+export const SHEET_COLORS = {
+  paper: '#FFFFFF',
+  ink: '#0E1A2B',
+  gray: '#46566E',
+  red: '#B42828',
+  orange: '#A4480A',
+  yellow: '#7D5A00',
+  green: '#17784A',
+  teal: '#0E6E73',
+  blue: '#1A54BF',
+  purple: '#6B3FC2',
+} as const satisfies Record<'paper' | 'ink' | TextColor, string>;
 
 /** Fonts. Without a font — serif (Times New Roman, Liberation Serif). */
 export const FONTS = ['serif', 'sans'] as const;
@@ -102,11 +121,8 @@ export const NODES: Record<string, NodeRule> = {
   pageBreak: { attrs: {} },
 };
 
+/** In the editor's order: marks nest in it (textStyle outermost, underline innermost). */
 export const MARKS: Record<string, { attrs: Record<string, AttrRule> }> = {
-  bold: { attrs: {} },
-  italic: { attrs: {} },
-  underline: { attrs: {} },
-  strike: { attrs: {} },
   textStyle: {
     attrs: {
       size: { default: null, valid: oneOf(FONT_SIZES) },
@@ -114,6 +130,10 @@ export const MARKS: Record<string, { attrs: Record<string, AttrRule> }> = {
       font: { default: null, valid: oneOf(FONTS) },
     },
   },
+  bold: { attrs: {} },
+  italic: { attrs: {} },
+  strike: { attrs: {} },
+  underline: { attrs: {} },
 };
 
 /** Document content: ProseMirror JSON. */

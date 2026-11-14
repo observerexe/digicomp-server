@@ -17,7 +17,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'insert', label: 'Вставка' },
 ];
 
-/** Heading sizes when the text has no own size (format.css). */
+/** Heading sizes when the text has no own size (shared/editor-schema/paper.css). */
 const HEADING_SIZE: Record<number, FontSize> = { 1: 16, 2: 14, 3: 14 };
 
 const ALIGN_BUTTONS: { value: Align | null; label: string; icon: IconName }[] = [

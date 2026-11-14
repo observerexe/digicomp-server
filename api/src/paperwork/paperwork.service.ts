@@ -8,11 +8,13 @@ import { DataSource, EntityManager } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { Action, Actor, assertCan, can } from '../auth/policy';
 import { escapeLike } from '../common/like';
+import { OrgService } from '../org/org.service';
 import { User } from '../users/user.entity';
 import type { OkDto, Plain } from '../common/responses.dto';
 import { EMPTY_CONTENT } from './content';
 import type { CreatePaperDto, ListPapersQuery, UpdatePaperDto } from './dto';
 import { Paper, PaperStatus, PaperVisibility } from './paper.entity';
+import { paperPrintHtml } from './print';
 import type { PaperDto, PaperItemDto, PaperListDto } from './responses.dto';
 
 const UNTITLED = 'Без назви';
@@ -53,6 +55,7 @@ export class PaperworkService {
   constructor(
     @InjectDataSource() private ds: DataSource,
     private audit: AuditService,
+    private org: OrgService,
   ) {}
 
   /** The document if the actor sees it; otherwise as if there is none. */
@@ -132,6 +135,17 @@ export class PaperworkService {
 
   async get(id: string, actor: Actor): Promise<PaperDto> {
     return this.view(await this.accessible(this.ds.manager, id, actor), actor);
+  }
+
+  /** Print page of the current content, header from «Реквізити». */
+  async printHtml(id: string, actor: Actor): Promise<string> {
+    const p = await this.accessible(this.ds.manager, id, actor);
+    const { institution, groupName } = await this.org.get();
+    return paperPrintHtml({
+      title: p.title,
+      content: p.content,
+      requisites: { institution, groupName },
+    });
   }
 
   async create(dto: CreatePaperDto, actor: Actor): Promise<PaperDto> {

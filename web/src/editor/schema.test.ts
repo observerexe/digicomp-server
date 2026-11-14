@@ -97,8 +97,8 @@ describe('Форматування класами', () => {
     e.destroy();
   });
 
-  it('у format.css є правило на кожен клас з опису', () => {
-    const css = readFileSync(join(__dirname, 'format.css'), 'utf8');
+  it('у paper.css є правило на кожен клас з опису', () => {
+    const css = readFileSync(join(__dirname, '../../../shared/editor-schema/paper.css'), 'utf8');
     for (const c of formatClasses()) expect(css).toMatch(new RegExp(`\\.${c}\\b`));
   });
 });

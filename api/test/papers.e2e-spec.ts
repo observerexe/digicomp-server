@@ -387,6 +387,61 @@ describe('Документи редактора (e2e)', () => {
     });
   });
 
+  describe('друк', () => {
+    it('аркуш A4: шапка з реквізитів, вміст, власний CSP без скриптів', async () => {
+      await as(app, admin)
+        .patch('/api/org-settings')
+        .send({ institution: 'КОЛЕДЖ', groupName: 'Творча група' })
+        .expect(200);
+      const p = await create(member, {
+        title: 'Звіт <1>',
+        content: doc('Текст & ще'),
+      });
+      const res = await as(app, member)
+        .get(`/api/papers/${p.id}/print`)
+        .expect(200);
+      expect(res.headers['content-type']).toBe('text/html; charset=utf-8');
+      const csp = res.headers['content-security-policy'];
+      expect(csp).toMatch(/^default-src 'none'; style-src 'sha256-/);
+      expect(csp).toContain("font-src 'self'");
+      expect(csp).not.toContain('script-src');
+      expect(res.text).toContain('<title>Звіт &lt;1&gt;</title>');
+      expect(res.text).toContain(
+        '<main class="paper"><header class="org"><p class="org-institution">КОЛЕДЖ</p><p class="org-group">Творча група</p></header><p>Текст &amp; ще</p></main>',
+      );
+    });
+
+    it('друкує поточний вміст після зміни', async () => {
+      const p = await create(member, { content: doc('старе') });
+      await as(app, member)
+        .patch(`/api/papers/${p.id}`)
+        .send({ revision: p.revision, content: doc('нове') })
+        .expect(200);
+      const res = await as(app, member)
+        .get(`/api/papers/${p.id}/print`)
+        .expect(200);
+      expect(res.text).toContain('<p>нове</p>');
+      expect(res.text).not.toContain('старе');
+    });
+
+    it('хто бачить документ — той і друкує; інші — 404', async () => {
+      const draft = await create(member);
+      await as(app, mod).get(`/api/papers/${draft.id}/print`).expect(200);
+      const res = await as(app, member2).get(`/api/papers/${draft.id}/print`);
+      expect(res.status).toBe(404);
+      expect(res.body.errorCode).toBe('PAPER_NOT_FOUND');
+      await setState(draft.id, 'published', 'members');
+      await as(app, member2).get(`/api/papers/${draft.id}/print`).expect(200);
+    });
+
+    it('без входу — 401', async () => {
+      const p = await create(member);
+      await request(app.getHttpServer())
+        .get(`/api/papers/${p.id}/print`)
+        .expect(401);
+    });
+  });
+
   it('схема paper — лише для читання', async () => {
     const res = await as(app, member)
       .get('/api/records/paper/schema')

@@ -49,15 +49,18 @@ Home Assistant і агент для локальної роботи не пот�
 
 ### Спільний опис редактора
 
-`shared/editor-schema/index.ts` — опис документа редактора, спільний для фронту й бекенду. Він не має залежностей і не є пакетом:
+`shared/editor-schema/` — опис документа редактора, спільний для фронту й бекенду: `index.ts` (вузли, позначки, класи, перевірка вмісту),
+`render.ts` (вміст → HTML для друку), `paper.css` (вигляд аркуша). Він не має залежностей і не є пакетом:
 обидва пакети компілюють його як свій код, через відносний імпорт.
 - **api:** `rootDir` у `tsconfig` — корінь репо, тож збірка лягає в `dist/api/src/` (точка входу `dist/api/src/main`) і `dist/shared/`.
+  `paper.css` копіює в `dist/shared/editor-schema/` сам `nest build` (`assets` у `nest-cli.json`); друк читає його під час запуску.
 - **web:** `tsconfig.app.json` включає `../shared`, Vite дозволяє її в `server.fs.allow`.
 - **Docker:** обидва етапи збірки копіюють `shared/` поруч із пакетом, як у репо.
-- Лінтер `shared/` запускає `npm run lint` у `web`. Тести опису — `api/src/paperwork/content.spec.ts` (перевірка вмісту)
-  і `web/src/editor/schema.test.ts` (TipTap збігається з описом).
-- Новий вузол чи атрибут додається в опис, у розширення `web/src/editor/extensions.ts` і, якщо це клас, — правилом у `editor/format.css`;
-  тести підкажуть, якщо щось пропущено.
+- Лінтер `shared/` запускає `npm run lint` у `web`. Тести опису — `api/src/paperwork/content.spec.ts` (перевірка вмісту),
+  `web/src/editor/schema.test.ts` (TipTap збігається з описом), `web/src/editor/render.test.ts` (друк дає той самий HTML, що й TipTap)
+  і `api/src/paperwork/print.spec.ts` (сторінка друку, кольори аркуша = `tokens.json`).
+- Новий вузол чи атрибут додається в опис, у розширення `web/src/editor/extensions.ts`, у `render.ts` і, якщо це клас, — правилом у `paper.css`;
+  тести підкажуть, якщо щось пропущено. Змінили кольори палітри в `tokens.json` — оновіть `SHEET_COLORS`.
 
 ## Перевірки перед комітом
 

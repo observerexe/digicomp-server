@@ -4747,6 +4747,37 @@
         ]
       }
     },
+    "/api/papers/{id}/print": {
+      "get": {
+        "operationId": "PaperworkController_print",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "HTML page",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Print-ready A4 page (print or save as PDF in the browser); own CSP, no scripts.",
+        "tags": [
+          "Paperwork"
+        ]
+      }
+    },
     "/api/admin-panel/overview": {
       "get": {
         "operationId": "AdminPanelController_overview",

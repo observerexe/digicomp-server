@@ -9,14 +9,22 @@ import {
   Post,
   Query,
   Req,
+  Res,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
+import {
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiProduces,
+} from '@nestjs/swagger';
+import type { Response } from 'express';
 import { Action } from '../auth/policy';
 import { Can, JwtAuthGuard, PolicyGuard } from '../auth/roles';
 import { OkDto } from '../common/responses.dto';
 import { CreatePaperDto, ListPapersQuery, UpdatePaperDto } from './dto';
 import { PaperworkService } from './paperwork.service';
+import { PRINT_CSP } from './print';
 import { PaperDto, PaperItemDto, PaperListDto } from './responses.dto';
 
 type Req = { user: { id: string; role: string } };
@@ -45,6 +53,24 @@ export class PaperworkController {
   @Get(':id')
   get(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
     return this.papers.get(id, req.user);
+  }
+
+  /** Print-ready A4 page (print or save as PDF in the browser); own CSP, no scripts. */
+  @Can(Action.PapersRead)
+  @ApiProduces('text/html')
+  @ApiOkResponse({ description: 'HTML page', schema: { type: 'string' } })
+  @Get(':id/print')
+  async print(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: Req,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const html = await this.papers.printHtml(id, req.user);
+    res.set({
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Security-Policy': PRINT_CSP,
+    });
+    return new StreamableFile(Buffer.from(html, 'utf8'));
   }
 
   /** Answers without the content: the client has just sent it. */

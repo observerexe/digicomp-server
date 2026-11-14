@@ -1,0 +1,80 @@
+import { generateHTML, getSchema } from '@tiptap/core';
+import { describe, expect, it } from 'vitest';
+import { ALIGNS, checkContent, COLORS, FONT_SIZES, FONTS, MARKS, MAX_INDENT, type PaperContent, type PaperNode } from '../../../shared/editor-schema';
+import { renderContent } from '../../../shared/editor-schema/render';
+import { paperExtensions } from './extensions';
+
+/** The print (shared render.ts) gives the same HTML as the editor. */
+
+const text = (t: string, marks?: PaperNode['marks']): PaperNode => ({ type: 'text', text: t, ...(marks ? { marks } : {}) });
+const p = (content: PaperNode[] = [], attrs?: PaperNode['attrs']): PaperNode => ({ type: 'paragraph', ...(attrs ? { attrs } : {}), ...(content.length ? { content } : {}) });
+const li = (...content: PaperNode[]): PaperNode => ({ type: 'listItem', content });
+const doc = (...content: PaperNode[]): PaperContent => ({ type: 'doc', content });
+
+const bold = { type: 'bold' };
+const italic = { type: 'italic' };
+const style = (attrs: Record<string, unknown>) => ({ type: 'textStyle', attrs: { size: null, color: null, font: null, ...attrs } });
+
+const CASES: [string, PaperContent][] = [
+  ['порожній документ', doc(p())],
+  ['екранування й нерозривний пробіл', doc(p([text('a < b && c > "d" \'e\' 10 мм <script>')]))],
+  ['вирівнювання й відступи', doc(...ALIGNS.map((align, i) => p([text(align)], { align, indent: i })), p([text('max')], { align: null, indent: MAX_INDENT }))],
+  [
+    'заголовки',
+    doc(
+      { type: 'heading', attrs: { level: 1 }, content: [text('Один')] },
+      { type: 'heading', attrs: { level: 2, align: 'center', indent: 1 }, content: [text('Два')] },
+      { type: 'heading', attrs: { level: 3, align: null, indent: 0 } },
+    ),
+  ],
+  ['розміри', doc(p(FONT_SIZES.map((size) => text(`${size} `, [style({ size })]))))],
+  ['кольори', doc(p(COLORS.map((color) => text(`${color} `, [style({ color })]))))],
+  ['шрифти', doc(p(FONTS.map((font) => text(`${font} `, [style({ font })]))))],
+  ['усі позначки разом, у будь-якому порядку', doc(p([text('все', [{ type: 'underline' }, { type: 'strike' }, italic, bold, style({ size: 12, color: 'red', font: 'sans' })])]))],
+  [
+    'сусіди зі спільними позначками',
+    doc(p([text('a', [bold]), text('b', [bold, italic]), text('c', [italic]), text('d', [style({ color: 'blue' }), bold]), text('e', [style({ color: 'red' }), bold]), text('f')])),
+  ],
+  ['розрив рядка з позначкою й без', doc(p([text('a', [bold]), { type: 'hardBreak', marks: [bold] }, text('b', [bold]), { type: 'hardBreak' }, text('c')]))],
+  [
+    'списки',
+    doc(
+      { type: 'bulletList', content: [li(p([text('раз')])), li(p([text('два')]), { type: 'bulletList', content: [li(p([text('вкладений')]))] })] },
+      { type: 'orderedList', content: [li(p([text('1')]))] },
+      { type: 'orderedList', attrs: { start: 1 }, content: [li(p())] },
+      { type: 'orderedList', attrs: { start: 0 }, content: [li(p([text('0')]))] },
+      { type: 'orderedList', attrs: { start: 7 }, content: [li(p([text('7')], { align: 'justify', indent: 0 }))] },
+    ),
+  ],
+  [
+    'таблиця з об’єднаними клітинками',
+    doc({
+      type: 'table',
+      content: [
+        {
+          type: 'tableRow',
+          content: [
+            { type: 'tableHeader', attrs: { colspan: 1, rowspan: 1, colwidth: null }, content: [p([text('Назва', [bold])])] },
+            { type: 'tableHeader', content: [p([text('Значення')])] },
+          ],
+        },
+        {
+          type: 'tableRow',
+          content: [{ type: 'tableCell', attrs: { colspan: 2, rowspan: 3, colwidth: null }, content: [p([text('x')]), { type: 'bulletList', content: [li(p())] }] }],
+        },
+      ],
+    }),
+  ],
+  ['розрив сторінки', doc(p([text('до')]), { type: 'pageBreak' }, p([text('після')]))],
+];
+
+describe('Рендер друку = HTML редактора', () => {
+  it('позначки вкладаються в порядку опису', () => {
+    expect(Object.keys(getSchema(paperExtensions()).marks)).toEqual(Object.keys(MARKS));
+  });
+
+  it.each(CASES)('%s', (_name, content) => {
+    expect(checkContent(content)).toBe(true);
+    expect(renderContent(content)).toBe(generateHTML(content, paperExtensions()));
+  });
+});

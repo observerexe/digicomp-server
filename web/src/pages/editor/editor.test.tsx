@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Me, Paper } from '../../api/types';
 import { json, member, mockApi, moderator, renderApp } from '../../test/render';
 
@@ -150,6 +150,27 @@ describe('Редактор: документ', () => {
     expect(await screen.findByText('Чужий текст')).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Назва документа')).toHaveValue('Протокол зборів');
+  });
+
+  it('«Попередній перегляд»: спершу зберігає зміни, потім відкриває сторінку друку в новій вкладці', async () => {
+    const { calls } = mockApi(base(writer, { 'GET /api/papers/p1': () => json(200, paper()), 'PATCH /api/papers/p1': () => json(200, { ...item(paper()), revision: 2 }) }));
+    let patchesAtOpen = -1;
+    const tab = { opener: {}, location: { replace: vi.fn(() => (patchesAtOpen = calls.filter((c) => c.method === 'PATCH').length)) } };
+    const open = vi.spyOn(window, 'open').mockReturnValue(tab as unknown as Window);
+    renderApp('/editor/p1');
+    await userEvent.type(await screen.findByLabelText('Назва документа'), ' 2');
+    await userEvent.click(screen.getByRole('button', { name: 'Попередній перегляд' }));
+    expect(open).toHaveBeenCalledWith('', '_blank');
+    await waitFor(() => expect(tab.location.replace).toHaveBeenCalledWith('/api/papers/p1/print'));
+    expect(patchesAtOpen).toBe(1);
+    expect(tab.opener).toBeNull();
+    open.mockRestore();
+  });
+
+  it('«Попередній перегляд» є й у документі лише для перегляду', async () => {
+    mockApi(base(writer, { 'GET /api/papers/p1': () => json(200, paper({ status: 'published' })) }));
+    renderApp('/editor/p1');
+    expect(await screen.findByRole('button', { name: 'Попередній перегляд' })).toBeInTheDocument();
   });
 
   it('чужа чернетка (модератор) — лише перегляд, без видалення', async () => {

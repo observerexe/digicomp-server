@@ -1655,6 +1655,23 @@ export interface paths {
         patch: operations["PaperworkController_update"];
         trace?: never;
     };
+    "/api/papers/{id}/print": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Print-ready A4 page (print or save as PDF in the browser); own CSP, no scripts. */
+        get: operations["PaperworkController_print"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin-panel/overview": {
         parameters: {
             query?: never;
@@ -6063,6 +6080,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaperItemDto"];
+                };
+            };
+        };
+    };
+    PaperworkController_print: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description HTML page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
                 };
             };
         };
