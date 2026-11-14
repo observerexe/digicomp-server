@@ -57,7 +57,7 @@ describe('Схеми записів (e2e)', () => {
   });
 
   it('невідомий тип — 404 RECORD_TYPE_NOT_FOUND', async () => {
-    const res = await as(app, member).get('/api/records/paper/schema');
+    const res = await as(app, member).get('/api/records/nope/schema');
     expect(res.status).toBe(404);
     expect(res.body.errorCode).toBe('RECORD_TYPE_NOT_FOUND');
   });

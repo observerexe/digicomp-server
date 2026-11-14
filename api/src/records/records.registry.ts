@@ -3,6 +3,7 @@ import { createHash } from 'crypto';
 import { DISCIPLINE_RECORD_SCHEMA } from '../discipline/discipline-record.schema';
 import { DOCUMENT_SCHEMA } from '../documents/document.schema';
 import { FAULT_SCHEMA } from '../faults/fault.schema';
+import { PAPER_SCHEMA } from '../paperwork/paper.schema';
 import { INVENTORY_ITEM_SCHEMA } from '../inventory/inventory-item.schema';
 import { PLACE_AUTHORIZATION_SCHEMA } from '../places/place-authorization.schema';
 import { PLACE_SCHEMA } from '../places/place.schema';
@@ -26,6 +27,7 @@ export const SCHEMA_DEFS: readonly RecordSchemaDef[] = [
   FAULT_SCHEMA,
   PLACE_AUTHORIZATION_SCHEMA,
   DOCUMENT_SCHEMA,
+  PAPER_SCHEMA,
 ];
 
 /** What clients get: the schema and its version. */

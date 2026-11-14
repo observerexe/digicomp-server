@@ -820,6 +820,66 @@ describe('Матриця прав (e2e)', () => {
     });
   });
 
+  describe('Документ редактора: створити; змінити й видалити свою чернетку', () => {
+    const create = async (u: TestUser) =>
+      (await as(app, u).post('/api/papers').send({})).body as { id: string };
+    const rename = (u: TestUser, id: string) =>
+      as(app, u).patch(`/api/papers/${id}`).send({ revision: 1, title: 'Х' });
+    it('admin так, і чужу', async () => {
+      allowed(await rename(admin, (await create(admin)).id));
+      allowed(await rename(admin, (await create(member)).id));
+      allowed(
+        await as(app, admin).delete(`/api/papers/${(await create(mod)).id}`),
+      );
+    });
+    it('moderator: свою; чужу — ні', async () => {
+      allowed(await rename(mod, (await create(mod)).id));
+      denied(await rename(mod, (await create(member)).id), 'NOT_OWNER');
+      denied(await rename(mod, (await create(mod2)).id), 'NOT_OWNER');
+    });
+    it('member: свою; чужу — ні', async () => {
+      const own = await create(member);
+      allowed(await rename(member, own.id));
+      allowed(await as(app, member).delete(`/api/papers/${own.id}`));
+      const other = await create(member2);
+      expect((await rename(member, other.id)).status).toBe(404);
+    });
+  });
+
+  describe('Документ редактора: бачити чужу чернетку', () => {
+    let id: string;
+    beforeEach(async () => {
+      id = (await as(app, member2).post('/api/papers').send({})).body.id;
+    });
+    it('admin так', async () => {
+      allowed(await as(app, admin).get(`/api/papers/${id}`));
+    });
+    it('moderator так', async () => {
+      allowed(await as(app, mod).get(`/api/papers/${id}`));
+    });
+    it('member ні', async () => {
+      expect((await as(app, member).get(`/api/papers/${id}`)).status).toBe(404);
+    });
+  });
+
+  describe('Документ редактора: зробити видимим для всіх', () => {
+    const share = async (u: TestUser) => {
+      const { id } = (await as(app, u).post('/api/papers').send({})).body;
+      return as(app, u)
+        .patch(`/api/papers/${id}`)
+        .send({ revision: 1, visibility: 'members' });
+    };
+    it('admin так', async () => {
+      allowed(await share(admin));
+    });
+    it('moderator так', async () => {
+      allowed(await share(mod));
+    });
+    it('member ні', async () => {
+      denied(await share(member));
+    });
+  });
+
   describe('Склад: взяти або поповнити', () => {
     let itemId: string;
     beforeEach(async () => {

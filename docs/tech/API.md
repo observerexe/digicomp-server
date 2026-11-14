@@ -46,7 +46,7 @@
 `FAULT_REPORT_NOT_FOUND`, `DOCUMENT_NOT_FOUND`, `VERSION_NOT_FOUND`, `FILE_NOT_FOUND`, `ITEM_NOT_FOUND`, `PROJECT_NOT_FOUND`,
 `AUTHORIZATION_NOT_FOUND`, `POINTS_ENTRY_NOT_FOUND`, `DISCIPLINE_RECORD_NOT_FOUND`, `SMART_DEVICE_NOT_FOUND`, `AUDIT_CURSOR_NOT_FOUND`,
 `DICTIONARY_NOT_FOUND`, `DICTIONARY_ITEM_NOT_FOUND`, `RECORD_TYPE_NOT_FOUND`, `FIELD_DEF_NOT_FOUND`, `LINK_NOT_FOUND`,
-`RECORD_NOT_FOUND` (запису немає або людина його не бачить).
+`RECORD_NOT_FOUND` (запису немає або людина його не бачить), `PAPER_NOT_FOUND` (документа редактора немає або людина його не бачить).
 
 | Код | Статус | Коли |
 |---|---|---|
@@ -65,7 +65,7 @@
 | **Права** | | |
 | `TARGET_ROLE_FORBIDDEN` | 403 | Модератор діє над модератором чи адміном |
 | `SELF_ACTION_FORBIDDEN` | 403 | Дія над собою: модератор через `/users/:id`, бали собі, прийняття власного ТЗ |
-| `NOT_OWNER` | 403 | Чужий запис: модератор знімає лише видане собою, учасник — лише своє |
+| `NOT_OWNER` | 403 | Чужий запис: модератор знімає лише видане собою, учасник — лише своє; чужу чернетку документа змінює лише адмін |
 | `NOT_PARTICIPANT` | 403 | Дію з ТЗ чи проєктом може виконати лише його учасник |
 | `FIELD_NOT_ALLOWED` | 403 | У `PATCH /users/me` змінено поле, яке роль собі не змінює (`field` у тілі) |
 | `NOT_ALLOWED` | 403 | Аватар — лише собі; чужий видаляє лише admin |
@@ -129,6 +129,9 @@
 | `LINK_DUPLICATE` | 409 | Ці записи вже пов'язані з тією самою роллю (у будь-якому напрямку) |
 | **Реквізити** | | |
 | `ORG_SIGNER_INVALID` | 400 | Підписанта немає або його заблоковано |
+| **Документи редактора** | | |
+| `PAPER_CONFLICT` | 409 | Документ змінили після того, як його відкрили: `revision` у запиті вже не поточна |
+| `PAPER_NOT_DRAFT` | 409 | Назву, вміст змінити чи документ видалити можна лише в чернетці |
 | **Розумна лабораторія** | | |
 | `SMART_NOT_CONFIGURED`, `SMART_UNAVAILABLE`, `SMART_AUTH_FAILED` | 503 | Немає `HA_TOKEN`, HA не відповідає за 5 с або відхилив токен |
 | `UNKNOWN_HA_ENTITY`, `ENTITY_KIND_MISMATCH`, `SMART_ENTITY_EXISTS` | 400/409 | Такого пристрою в HA немає, тип не збігається, або вже доданий |
@@ -210,7 +213,7 @@
 - `GET /api/records/:type/schema` — поля типу записів: ключ (той самий, що в API запису), назва, тип, межі. Даних записів немає;
   читають усі ролі. Невідомий тип — 404 `RECORD_TYPE_NOT_FOUND`.
 - Типи: `user`, `task`, `project`, `place`, `inventory_item`, `discipline_record`, `points_entry`, `place_authorization`;
-  `session`, `fault`, `document` — лише для читання (жодне поле не має `create` чи `update`).
+  `session`, `fault`, `document`, `paper` — лише для читання (жодне поле не має `create` чи `update`).
 - Тип поля: `text`, `richtext`, `int`, `decimal` (`scale` — знаків після коми), `date` (`YYYY-MM-DD`), `datetime`, `bool`,
   `enum`, `color`, `ref:<тип запису>` (UUID) або `list<…>` з одного з них. `enum` має або `options` (фіксовані значення з назвами),
   або `dictionary` (значення — ключі пунктів довідника).
@@ -266,6 +269,29 @@
   (модератор може вибрати й себе), інакше 400 `ORG_SIGNER_INVALID`; `signerId: null` — без підписанта.
 - Заблокований підписант лишається (`active: false`), поки його не замінять; видалений — очищається.
   Аудит: `org_settings.updated` з тим, що змінилось (`changes`: було → стало); без змін запису немає.
+
+### Документи редактора
+
+- Документ — `{ id, title, status, visibility, author, revision, createdAt, updatedAt }`; окремий документ ще має
+  `content` (документ ProseMirror, `{ "type": "doc", "content": [...] }`) і `canEdit` (людина може змінити й видалити його).
+- `status`: `draft` (Чернетка), `published` (Опубліковано), `frozen` (Зафіксовано), `signed` (Підписано), `cancelled` (Скасовано).
+  Зараз документи створюються лише чернетками. `visibility`: `author` (автор і модератори) або `members` (усі учасники).
+- Хто бачить: admin і moderator — усі документи, зокрема чужі чернетки; учасник — свої та опубліковані з `visibility: members`.
+  Чернетку з `members` бачать лише автор і модератори, доки її не опубліковано. Чужий невидимий документ — 404 `PAPER_NOT_FOUND`.
+- `GET /api/papers?mine=true&search=&page=&limit=` — без `content`, від нещодавно змінених; `mine=true` — лише свої,
+  `search` (до 100 знаків) шукає в назві.
+- `POST /api/papers { title?, content? }` — створити може будь-хто. Без назви — «Без назви», без вмісту — один порожній абзац. Відповідь — 201 з `content`.
+- `PATCH /api/papers/:id { revision, title?, content?, visibility? }` — змінюються лише передані поля, відповідь — без `content`.
+  `revision` — та, яку клієнт отримав останньою; інша — 409 `PAPER_CONFLICT`, документ не змінюється. Кожна зміна збільшує `revision`,
+  запит без змін — ні.
+  Назву й вміст змінює автор (admin — будь-чий документ), лише в чернетці (інакше 409 `PAPER_NOT_DRAFT`); модератор чужу чернетку
+  лише читає (403 `NOT_OWNER`). `visibility` змінюють admin і moderator; вона діє, коли документ опубліковано.
+- `DELETE /api/papers/:id` — лише чернетку (інакше 409 `PAPER_NOT_DRAFT`), автор або admin.
+- Вміст перевіряється за формою: корінь `doc`, вузли `{ type, attrs?, content?, text?, marks? }` без інших ключів, мітки `{ type, attrs? }`,
+  атрибути — рядки, числа, `true`/`false`, `null` або плоскі списки з них; до 40 рівнів вкладеності й 50 000 вузлів. Інакше 400 `VALIDATION_ERROR`.
+  Тіло запиту до `/api/papers` — до 1 МБ (інакше 413).
+- Аудит: `paper.created`, `paper.deleted` завжди; `paper.updated` (`changes`: назва, видимість; `content: true`, якщо змінено вміст) —
+  коли змінено видимість або документ змінює не автор. Автозбереження автором своєї чернетки в аудит не пишеться.
 
 ### Розумна лабораторія
 

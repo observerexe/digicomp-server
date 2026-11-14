@@ -1622,6 +1622,39 @@ export interface paths {
         patch: operations["OrgController_update"];
         trace?: never;
     };
+    "/api/papers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PaperworkController_list"];
+        put?: never;
+        post: operations["PaperworkController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/papers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PaperworkController_get"];
+        put?: never;
+        post?: never;
+        delete: operations["PaperworkController_remove"];
+        options?: never;
+        head?: never;
+        /** Answers without the content: the client has just sent it. */
+        patch: operations["PaperworkController_update"];
+        trace?: never;
+    };
     "/api/admin-panel/overview": {
         parameters: {
             query?: never;
@@ -2057,7 +2090,7 @@ export interface components {
             body: string;
         };
         /** @enum {string} */
-        RecordType: "user" | "task" | "project" | "place" | "inventory_item" | "discipline_record" | "points_entry" | "session" | "fault" | "place_authorization" | "document";
+        RecordType: "user" | "task" | "project" | "place" | "inventory_item" | "discipline_record" | "points_entry" | "session" | "fault" | "place_authorization" | "document" | "paper";
         EnumOptionDto: {
             key: string;
             label: string;
@@ -2909,6 +2942,69 @@ export interface components {
              */
             signerId?: string | null;
             signerPosition?: string;
+        };
+        /** @enum {string} */
+        PaperStatus: "draft" | "published" | "frozen" | "signed" | "cancelled";
+        /** @enum {string} */
+        PaperVisibility: "author" | "members";
+        PaperItemDto: {
+            status: components["schemas"]["PaperStatus"];
+            visibility: components["schemas"]["PaperVisibility"];
+            id: string;
+            title: string;
+            author: components["schemas"]["UserRefDto"];
+            /** @description Send it with the next change (PATCH). */
+            revision: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PaperListDto: {
+            items: components["schemas"]["PaperItemDto"][];
+            total: number;
+            page: number;
+            limit: number;
+        };
+        CreatePaperDto: {
+            /** @description ProseMirror document; without it — one empty paragraph. */
+            content?: {
+                [key: string]: unknown;
+            };
+            /** @description Without a title — «Без назви». */
+            title?: string;
+        };
+        PaperDto: {
+            status: components["schemas"]["PaperStatus"];
+            visibility: components["schemas"]["PaperVisibility"];
+            /** @description ProseMirror document. */
+            content: {
+                [key: string]: unknown;
+            };
+            /** @description The actor may change and delete it: their own draft (admin — any). */
+            canEdit: boolean;
+            id: string;
+            title: string;
+            author: components["schemas"]["UserRefDto"];
+            /** @description Send it with the next change (PATCH). */
+            revision: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        UpdatePaperDto: {
+            content?: {
+                [key: string]: unknown;
+            };
+            /** @description The revision the change is based on; another one — 409 PAPER_CONFLICT. */
+            revision: number;
+            title?: string;
+            /**
+             * @description Staff only. Takes effect once the document is published.
+             * @enum {string}
+             */
+            visibility?: "author" | "members";
         };
         ContainerDto: {
             /** @description healthy, unhealthy, starting or null (no healthcheck). */
@@ -5851,6 +5947,122 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrgSettingsDto"];
+                };
+            };
+        };
+    };
+    PaperworkController_list: {
+        parameters: {
+            query?: {
+                /** @description `true` — only the actor's own documents (tab «Мої»). */
+                mine?: "true";
+                /** @description Part of the title. */
+                search?: string;
+                page?: string;
+                limit?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperListDto"];
+                };
+            };
+        };
+    };
+    PaperworkController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePaperDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperDto"];
+                };
+            };
+        };
+    };
+    PaperworkController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperDto"];
+                };
+            };
+        };
+    };
+    PaperworkController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    PaperworkController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePaperDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperItemDto"];
                 };
             };
         };

@@ -1,4 +1,5 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { json, type NextFunction, type Request, type Response } from 'express';
 import { DocsService } from './docs/docs.controller';
 import { buildOpenApi } from './docs/openapi';
 import { AllExceptionsFilter } from './common/http-exception.filter';
@@ -6,6 +7,9 @@ import { applyGlobalPrefix } from './common/api-prefix';
 import { serveWeb } from './web/serve-web';
 import { panelPortGuard } from './admin-panel/panel-port';
 import { apiNoStore, csrfGuard, securityHeaders } from './common/web';
+
+/** Request body limit for editor documents (their ProseMirror JSON). */
+export const PAPER_BODY_LIMIT = '1mb';
 
 /**
  * Global middleware, filters and pipes. Shared by main.ts and e2e tests,
@@ -17,6 +21,15 @@ export function setupApp(app: INestApplication) {
   app.use(panelPortGuard);
   app.use(csrfGuard);
   app.use(apiNoStore);
+  // A long document does not fit the default 100 KB; only here, after CSRF.
+  // Named apart: Nest skips its own parser if a `jsonParser` layer exists.
+  const paperJson = json({ limit: PAPER_BODY_LIMIT });
+  app.use(
+    '/api/papers',
+    function paperBodyParser(req: Request, res: Response, next: NextFunction) {
+      paperJson(req, res, next);
+    },
+  );
   serveWeb(app);
   app.useGlobalFilters(new AllExceptionsFilter());
   app.useGlobalPipes(

@@ -185,7 +185,7 @@ describe('Схеми записів', () => {
   });
 
   it('невідомий тип — 404 RECORD_TYPE_NOT_FOUND', () => {
-    expect(() => recordSchema('paper')).toThrow('Record type not found');
+    expect(() => recordSchema('nope')).toThrow('Record type not found');
   });
 
   it.each(EXTRA_TYPES.map((t) => [t]))(

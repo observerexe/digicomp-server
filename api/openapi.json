@@ -4559,6 +4559,194 @@
         ]
       }
     },
+    "/api/papers": {
+      "get": {
+        "operationId": "PaperworkController_list",
+        "parameters": [
+          {
+            "name": "mine",
+            "required": false,
+            "in": "query",
+            "description": "`true` — only the actor's own documents (tab «Мої»).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Part of the title.",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 6,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 3,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperListDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Paperwork"
+        ]
+      },
+      "post": {
+        "operationId": "PaperworkController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePaperDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Paperwork"
+        ]
+      }
+    },
+    "/api/papers/{id}": {
+      "get": {
+        "operationId": "PaperworkController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Paperwork"
+        ]
+      },
+      "patch": {
+        "operationId": "PaperworkController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePaperDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperItemDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Answers without the content: the client has just sent it.",
+        "tags": [
+          "Paperwork"
+        ]
+      },
+      "delete": {
+        "operationId": "PaperworkController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Paperwork"
+        ]
+      }
+    },
     "/api/admin-panel/overview": {
       "get": {
         "operationId": "AdminPanelController_overview",
@@ -5946,7 +6134,8 @@
           "session",
           "fault",
           "place_authorization",
-          "document"
+          "document",
+          "paper"
         ]
       },
       "EnumOptionDto": {
@@ -9002,6 +9191,204 @@
             "maxLength": 200
           }
         }
+      },
+      "PaperStatus": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "published",
+          "frozen",
+          "signed",
+          "cancelled"
+        ]
+      },
+      "PaperVisibility": {
+        "type": "string",
+        "enum": [
+          "author",
+          "members"
+        ]
+      },
+      "PaperItemDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperStatus"
+              }
+            ]
+          },
+          "visibility": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperVisibility"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "author": {
+            "$ref": "#/components/schemas/UserRefDto"
+          },
+          "revision": {
+            "type": "number",
+            "description": "Send it with the next change (PATCH)."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "visibility",
+          "id",
+          "title",
+          "author",
+          "revision",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PaperListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaperItemDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit"
+        ]
+      },
+      "CreatePaperDto": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "object",
+            "description": "ProseMirror document; without it — one empty paragraph.",
+            "additionalProperties": true
+          },
+          "title": {
+            "type": "string",
+            "description": "Without a title — «Без назви».",
+            "maxLength": 200
+          }
+        }
+      },
+      "PaperDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperStatus"
+              }
+            ]
+          },
+          "visibility": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperVisibility"
+              }
+            ]
+          },
+          "content": {
+            "type": "object",
+            "description": "ProseMirror document.",
+            "additionalProperties": true
+          },
+          "canEdit": {
+            "type": "boolean",
+            "description": "The actor may change and delete it: their own draft (admin — any)."
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "author": {
+            "$ref": "#/components/schemas/UserRefDto"
+          },
+          "revision": {
+            "type": "number",
+            "description": "Send it with the next change (PATCH)."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "visibility",
+          "content",
+          "canEdit",
+          "id",
+          "title",
+          "author",
+          "revision",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdatePaperDto": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "revision": {
+            "type": "number",
+            "description": "The revision the change is based on; another one — 409 PAPER_CONFLICT.",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "visibility": {
+            "type": "string",
+            "description": "Staff only. Takes effect once the document is published.",
+            "enum": [
+              "author",
+              "members"
+            ]
+          }
+        },
+        "required": [
+          "revision"
+        ]
       },
       "ContainerDto": {
         "type": "object",

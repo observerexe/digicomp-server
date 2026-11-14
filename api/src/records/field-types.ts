@@ -16,6 +16,7 @@ export const RECORD_TYPES = [
   'fault',
   'place_authorization',
   'document',
+  'paper',
 ] as const;
 export type RecordType = (typeof RECORD_TYPES)[number];
 

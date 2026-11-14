@@ -99,6 +99,8 @@ const MESSAGE_CODES: Record<string, string> = {
   'Cannot link a record to itself': 'LINK_SELF',
   'Link already exists': 'LINK_DUPLICATE',
   'Signer is unknown or blocked': 'ORG_SIGNER_INVALID',
+  'Paper was changed by someone else': 'PAPER_CONFLICT',
+  'Paper is not a draft': 'PAPER_NOT_DRAFT',
 };
 
 const STATUS_CODES: Record<number, string> = {

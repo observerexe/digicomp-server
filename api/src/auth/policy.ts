@@ -23,6 +23,8 @@ export type PolicyContext = {
   participant?: boolean;
   /** Actor has a valid authorization for the place (or none is needed). */
   authorized?: boolean;
+  /** An editor document is published and visible to all members. */
+  shared?: boolean;
 };
 
 export enum Action {
@@ -105,6 +107,13 @@ export enum Action {
   // Requisites for documents (institution, group, default signer)
   OrgRead = 'org.read',
   OrgManage = 'org.manage',
+
+  // Editor documents (papers)
+  PapersRead = 'papers.read',
+  PapersReadAll = 'papers.read_all',
+  PapersCreate = 'papers.create',
+  PapersEdit = 'papers.edit',
+  PapersVisibility = 'papers.visibility',
 
   // Work sessions, bookings, faults
   SessionsStart = 'sessions.start',
@@ -206,6 +215,13 @@ export const ROLES: Record<Action, readonly Role[]> = {
   [Action.OrgRead]: ALL,
   [Action.OrgManage]: STAFF,
 
+  // Further checks for read and edit: the author, see REFINE.
+  [Action.PapersRead]: ALL,
+  [Action.PapersReadAll]: STAFF,
+  [Action.PapersCreate]: ALL,
+  [Action.PapersEdit]: ALL,
+  [Action.PapersVisibility]: STAFF,
+
   [Action.SessionsStart]: ALL,
   [Action.SessionsReadAll]: STAFF,
   [Action.SessionsEndOther]: STAFF,
@@ -268,6 +284,12 @@ const ownRecordForMember: Refine = (actor, { ownerId }) =>
     ? true
     : Deny.NotOwner;
 
+/** Own record for everyone but the admin (no restrictions). */
+const ownRecordForNonAdmin: Refine = (actor, { ownerId }) =>
+  actor.role === A || (ownerId != null && ownerId === actor.id)
+    ? true
+    : Deny.NotOwner;
+
 /** Layer 2: context rules. Missing entry = no extra rule. */
 const REFINE: Partial<Record<Action, Refine>> = {
   [Action.UsersBlock]: moderatorOverMember,
@@ -297,6 +319,17 @@ const REFINE: Partial<Record<Action, Refine>> = {
   [Action.BookingsCancel]: ownRecordForMember,
   // Photos of a fault report: its author or staff.
   [Action.FaultsAttach]: ownRecordForMember,
+
+  // A member sees own documents and published ones visible to all;
+  // staff see every document, drafts of others included.
+  [Action.PapersRead]: (actor, { ownerId, shared }) =>
+    roleAllowed(actor.role, Action.PapersReadAll) ||
+    shared ||
+    (ownerId != null && ownerId === actor.id)
+      ? true
+      : Deny.NotOwner,
+  // Change or delete a draft: its author; the admin — any.
+  [Action.PapersEdit]: ownRecordForNonAdmin,
 };
 
 export function roleAllowed(role: string, action: Action): boolean {
