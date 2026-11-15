@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditModule } from '../audit/audit.module';
 import { DictionariesModule } from '../dictionaries/dictionaries.module';
 import { DictionaryUsageRegistry } from '../dictionaries/dictionary-usage';
+import { DocumentsModule } from '../documents/documents.module';
 import { LinkRegistry } from '../links/link-registry';
 import { LinksModule } from '../links/links.module';
 import { OrgModule } from '../org/org.module';
@@ -30,6 +31,7 @@ import { TemplatesService } from './templates.service';
     ]),
     AuditModule,
     DictionariesModule,
+    DocumentsModule,
     LinksModule,
     OrgModule,
     RecordsModule,

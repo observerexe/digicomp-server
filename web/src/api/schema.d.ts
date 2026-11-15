@@ -713,6 +713,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/papers/{id}/signed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The latest signed scan, for who sees the document; `inline=1` — a PDF opens in the browser. */
+        get: operations["PaperworkController_scan"];
+        put?: never;
+        /**
+         * The signed scan of a frozen document (PDF or a photo): a version in the
+         *     Archive; the document becomes «Підписано». Again — the next version.
+         */
+        post: operations["PaperworkController_sign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/papers/verify/{sha}": {
         parameters: {
             query?: never;
@@ -845,6 +866,86 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["DictionariesController_updateItem"];
+        trace?: never;
+    };
+    "/api/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DocumentsController_list"];
+        put?: never;
+        post: operations["DocumentsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/documents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DocumentsController_get"];
+        put?: never;
+        post?: never;
+        delete: operations["DocumentsController_archive"];
+        options?: never;
+        head?: never;
+        patch: operations["DocumentsController_update"];
+        trace?: never;
+    };
+    "/api/documents/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DocumentsController_versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/documents/{id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DocumentsController_download"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/documents/{id}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["DocumentsController_addVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/org-settings": {
@@ -1540,86 +1641,6 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["FaultsController_close"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/documents": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["DocumentsController_list"];
-        put?: never;
-        post: operations["DocumentsController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/documents/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["DocumentsController_get"];
-        put?: never;
-        post?: never;
-        delete: operations["DocumentsController_archive"];
-        options?: never;
-        head?: never;
-        patch: operations["DocumentsController_update"];
-        trace?: never;
-    };
-    "/api/documents/{id}/versions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["DocumentsController_versions"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/documents/{id}/download": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["DocumentsController_download"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/documents/{id}/files": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["DocumentsController_addVersion"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2581,7 +2602,18 @@ export interface components {
             /** @description The record is in the archive (a member — blocked, a document — cancelled). */
             archived: boolean;
         };
+        PaperSignedDto: {
+            /** @description Its version in the archive document of the snapshot (1 — the first scan). */
+            version: number;
+            fileName: string;
+            mimeType: string;
+            size: number;
+            /** Format: date-time */
+            uploadedAt: string;
+        };
         PaperSnapshotDto: {
+            /** @description The signed scan; null — none uploaded. */
+            signed: components["schemas"]["PaperSignedDto"] | null;
             /** @description 1, 2, … within the document (`print?snapshot=`). */
             n: number;
             /** @description Hex SHA-256 of the sheet: the check page `/papers/verify/:sha`. */
@@ -2637,6 +2669,11 @@ export interface components {
              *     and signature (a member — own free document; staff — any).
              */
             canFreeze: boolean;
+            /**
+             * @description Frozen (or signed): the actor may upload the signed scan (a member — own
+             *     free document; staff — any).
+             */
+            canSign: boolean;
             id: string;
             title: string;
             author: components["schemas"]["UserRefDto"];
@@ -2757,6 +2794,64 @@ export interface components {
             color?: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
             /** @description true — to the archive, false — back. */
             archived?: boolean;
+        };
+        /** @enum {string} */
+        AccessScope: "members" | "supervisors";
+        DocDto: {
+            accessScope: components["schemas"]["AccessScope"];
+            /** @description Latest version; null for a document without files. */
+            version: number | null;
+            fileName: string | null;
+            mimeType: string | null;
+            size: number | null;
+            id: string;
+            title: string;
+            category: string;
+            description: string;
+            authorId: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            archived: boolean;
+            versionsCount: number;
+        };
+        DocListDto: {
+            items: components["schemas"]["DocDto"][];
+            total: number;
+            page: number;
+            limit: number;
+        };
+        DocVersionDto: {
+            id: string;
+            version: number;
+            fileName: string;
+            mimeType: string;
+            size: number;
+            sha256: string;
+            changeNote: string;
+            uploadedById: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        CreateDocDto: {
+            title: string;
+            /** @description Item key of the «document_category» dictionary. */
+            category: string;
+            description?: string;
+            /** @enum {string} */
+            accessScope?: "members" | "supervisors";
+        };
+        AddVersionDto: {
+            changeNote?: string;
+        };
+        UpdateDocDto: {
+            title?: string;
+            /** @description Item key of the «document_category» dictionary. */
+            category?: string;
+            description?: string;
+            /** @enum {string} */
+            accessScope?: "members" | "supervisors";
         };
         OrgSignerDto: {
             id: string;
@@ -3295,64 +3390,6 @@ export interface components {
             resolution: string;
             /** @description Return the equipment from maintenance to work. */
             reactivatePlace?: boolean;
-        };
-        /** @enum {string} */
-        AccessScope: "members" | "supervisors";
-        DocDto: {
-            accessScope: components["schemas"]["AccessScope"];
-            /** @description Latest version; null for a document without files. */
-            version: number | null;
-            fileName: string | null;
-            mimeType: string | null;
-            size: number | null;
-            id: string;
-            title: string;
-            category: string;
-            description: string;
-            authorId: string;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-            archived: boolean;
-            versionsCount: number;
-        };
-        DocListDto: {
-            items: components["schemas"]["DocDto"][];
-            total: number;
-            page: number;
-            limit: number;
-        };
-        DocVersionDto: {
-            id: string;
-            version: number;
-            fileName: string;
-            mimeType: string;
-            size: number;
-            sha256: string;
-            changeNote: string;
-            uploadedById: string;
-            /** Format: date-time */
-            createdAt: string;
-        };
-        CreateDocDto: {
-            title: string;
-            /** @description Item key of the «document_category» dictionary. */
-            category: string;
-            description?: string;
-            /** @enum {string} */
-            accessScope?: "members" | "supervisors";
-        };
-        AddVersionDto: {
-            changeNote?: string;
-        };
-        UpdateDocDto: {
-            title?: string;
-            /** @description Item key of the «document_category» dictionary. */
-            category?: string;
-            description?: string;
-            /** @enum {string} */
-            accessScope?: "members" | "supervisors";
         };
         InventoryItemDto: {
             createdById: string | null;
@@ -4706,8 +4743,12 @@ export interface operations {
                  * @description `freeze` — published documents waiting to be frozen by hand: their
                  *     template does not freeze them itself (or there is none) and their
                  *     records are ready; only those the actor may freeze (the Home of staff).
+                 *     `sign` — frozen in the last 30 days, not signed yet, where the actor
+                 *     signs: a column of «Блок підписів» or «Затверджую» (the Home's «На мій підпис»).
+                 *     `scan` — frozen in the last 30 days, not signed yet, whose scan the
+                 *     actor may upload (the Home of staff: «Завантажити скан»).
                  */
-                due?: "freeze";
+                due?: "freeze" | "sign" | "scan";
                 /** @description Part of the title. */
                 search?: string;
                 page?: string;
@@ -4847,6 +4888,49 @@ export interface operations {
         };
     };
     PaperworkController_freeze: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperDto"];
+                };
+            };
+        };
+    };
+    PaperworkController_scan: {
+        parameters: {
+            query?: {
+                /** @description `1` — show a PDF in the app instead of downloading (other types ignore it). */
+                inline?: "1";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PaperworkController_sign: {
         parameters: {
             query?: never;
             header?: never;
@@ -5183,6 +5267,194 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DictionaryItemDto"];
+                };
+            };
+        };
+    };
+    DocumentsController_list: {
+        parameters: {
+            query?: {
+                /** @description With `linkedId`: only documents linked with this record (`/links`). */
+                linkedType?: components["schemas"]["RecordType"];
+                search?: string;
+                /** @description Item key of the «document_category» dictionary. */
+                category?: string;
+                linkedId?: string;
+                archived?: "true";
+                page?: string;
+                limit?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocListDto"];
+                };
+            };
+        };
+    };
+    DocumentsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDocDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocDto"];
+                };
+            };
+        };
+    };
+    DocumentsController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocDto"];
+                };
+            };
+        };
+    };
+    DocumentsController_archive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    DocumentsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDocDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocDto"];
+                };
+            };
+        };
+    };
+    DocumentsController_versions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocVersionDto"][];
+                };
+            };
+        };
+    };
+    DocumentsController_download: {
+        parameters: {
+            query?: {
+                version?: string;
+                /** @description `1` — show a PDF in the app instead of downloading (other types ignore it). */
+                inline?: "1";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DocumentsController_addVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddVersionDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocVersionDto"];
                 };
             };
         };
@@ -6291,194 +6563,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FaultDetailDto"];
-                };
-            };
-        };
-    };
-    DocumentsController_list: {
-        parameters: {
-            query?: {
-                /** @description With `linkedId`: only documents linked with this record (`/links`). */
-                linkedType?: components["schemas"]["RecordType"];
-                search?: string;
-                /** @description Item key of the «document_category» dictionary. */
-                category?: string;
-                linkedId?: string;
-                archived?: "true";
-                page?: string;
-                limit?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocListDto"];
-                };
-            };
-        };
-    };
-    DocumentsController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateDocDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocDto"];
-                };
-            };
-        };
-    };
-    DocumentsController_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocDto"];
-                };
-            };
-        };
-    };
-    DocumentsController_archive: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OkDto"];
-                };
-            };
-        };
-    };
-    DocumentsController_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateDocDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocDto"];
-                };
-            };
-        };
-    };
-    DocumentsController_versions: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocVersionDto"][];
-                };
-            };
-        };
-    };
-    DocumentsController_download: {
-        parameters: {
-            query?: {
-                version?: string;
-                /** @description `1` — show a PDF in the app instead of downloading (other types ignore it). */
-                inline?: "1";
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    DocumentsController_addVersion: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AddVersionDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocVersionDto"];
                 };
             };
         };

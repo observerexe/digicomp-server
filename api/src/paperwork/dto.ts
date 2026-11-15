@@ -149,9 +149,13 @@ export class ListPapersQuery {
    * `freeze` — published documents waiting to be frozen by hand: their
    * template does not freeze them itself (or there is none) and their
    * records are ready; only those the actor may freeze (the Home of staff).
+   * `sign` — frozen in the last 30 days, not signed yet, where the actor
+   * signs: a column of «Блок підписів» or «Затверджую» (the Home's «На мій підпис»).
+   * `scan` — frozen in the last 30 days, not signed yet, whose scan the
+   * actor may upload (the Home of staff: «Завантажити скан»).
    */
   @IsOptional()
-  @IsIn(['freeze'])
+  @IsIn(['freeze', 'sign', 'scan'])
   due?: string;
 
   /** Part of the title. */
@@ -177,6 +181,13 @@ export class PrintPaperQuery {
   @IsNumberString({ no_symbols: true })
   @MaxLength(6)
   snapshot?: string;
+}
+
+export class PaperScanQuery {
+  /** `1` — show a PDF in the app instead of downloading (other types ignore it). */
+  @IsOptional()
+  @IsIn(['1'])
+  inline?: string;
 }
 
 export class CancelPaperDto {

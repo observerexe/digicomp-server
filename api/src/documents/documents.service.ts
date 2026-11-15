@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { createHash, randomUUID } from 'crypto';
-import { DataSource, In, Repository } from 'typeorm';
+import { DataSource, EntityManager, In, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { Action, can } from '../auth/policy';
 import {
@@ -27,6 +27,12 @@ import type { DocDto, DocListDto, DocVersionDto } from './responses.dto';
 import { escapeLike } from '../common/like';
 
 type Actor = { id: string; role: string };
+
+/** An uploaded file kept in the storage, not yet a version of a document. */
+export type StoredFile = Pick<
+  DocVersion,
+  'storedName' | 'fileName' | 'mimeType' | 'size' | 'sha256'
+>;
 
 function versionView(v: DocVersion): DocVersionDto {
   return {
@@ -141,55 +147,29 @@ export class DocumentsService {
     file: UploadedFileLike | undefined,
     actor: Actor,
   ) {
-    const info = validateUpload(file, DOCUMENT_EXTENSIONS);
-    await assertDictionaryItem(
-      this.ds.manager,
-      DOCUMENT_CATEGORY,
-      dto.category,
-    );
-    const storedName = randomUUID();
-    await this.storage.save(`documents/${storedName}`, file!.buffer);
+    const stored = await this.store(file, DOCUMENT_EXTENSIONS);
     try {
+      await assertDictionaryItem(
+        this.ds.manager,
+        DOCUMENT_CATEGORY,
+        dto.category,
+      );
       return await this.ds.transaction(async (m) => {
-        const doc = await m.save(
-          Doc,
-          m.create(Doc, {
+        const { doc, ver } = await this.insertDoc(
+          m,
+          {
             title: dto.title,
             category: dto.category,
             description: dto.description ?? '',
             accessScope: dto.accessScope ?? AccessScope.Members,
-            authorId: actor.id,
-            archivedAt: null,
-          }),
-        );
-        const ver = await m.save(
-          DocVersion,
-          m.create(DocVersion, {
-            docId: doc.id,
-            version: 1,
-            fileName: info.fileName,
-            mimeType: info.mime,
-            size: file!.size,
-            sha256: createHash('sha256').update(file!.buffer).digest('hex'),
-            storedName,
-            changeNote: '',
-            uploadedById: actor.id,
-          }),
-        );
-        await this.audit.log(
-          {
-            actorId: actor.id,
-            action: 'document.created',
-            entity: 'document',
-            entityId: doc.id,
-            meta: { title: doc.title, version: 1, fileName: ver.fileName },
           },
-          m,
+          stored,
+          actor,
         );
         return docView(doc, ver, 1);
       });
     } catch (e) {
-      await this.storage.remove(`documents/${storedName}`);
+      await this.discard(stored);
       throw e;
     }
   }
@@ -200,9 +180,7 @@ export class DocumentsService {
     file: UploadedFileLike | undefined,
     actor: Actor,
   ) {
-    const info = validateUpload(file, DOCUMENT_EXTENSIONS);
-    const storedName = randomUUID();
-    await this.storage.save(`documents/${storedName}`, file!.buffer);
+    const stored = await this.store(file, DOCUMENT_EXTENSIONS);
     try {
       return await this.ds.transaction(async (m) => {
         const doc = await m.findOne(Doc, {
@@ -212,43 +190,115 @@ export class DocumentsService {
         if (!doc || doc.archivedAt) {
           throw new NotFoundException('Document not found');
         }
-        const row = await m
-          .createQueryBuilder(DocVersion, 'v')
-          .select('MAX(v.version)', 'max')
-          .where('v.docId = :id', { id })
-          .getRawOne<{ max: number | null }>();
-        const next = Number(row?.max ?? 0) + 1;
-        const ver = await m.save(
-          DocVersion,
-          m.create(DocVersion, {
-            docId: id,
-            version: next,
-            fileName: info.fileName,
-            mimeType: info.mime,
-            size: file!.size,
-            sha256: createHash('sha256').update(file!.buffer).digest('hex'),
-            storedName,
-            changeNote: dto.changeNote ?? '',
-            uploadedById: actor.id,
-          }),
-        );
-        await m.update(Doc, { id }, { updatedAt: new Date() });
-        await this.audit.log(
-          {
-            actorId: actor.id,
-            action: 'document.version_added',
-            entity: 'document',
-            entityId: id,
-            meta: { version: next, fileName: ver.fileName },
-          },
+        const ver = await this.insertVersion(
           m,
+          doc,
+          stored,
+          dto.changeNote ?? '',
+          actor,
         );
         return versionView(ver);
       });
     } catch (e) {
-      await this.storage.remove(`documents/${storedName}`);
+      await this.discard(stored);
       throw e;
     }
+  }
+
+  /**
+   * Checks an uploaded file by its content and keeps it in the storage. A
+   * caller whose work then fails discards it.
+   */
+  async store(
+    file: UploadedFileLike | undefined,
+    extensions: string[],
+  ): Promise<StoredFile> {
+    const info = validateUpload(file, extensions);
+    const storedName = randomUUID();
+    await this.storage.save(`documents/${storedName}`, file!.buffer);
+    return {
+      storedName,
+      fileName: info.fileName,
+      mimeType: info.mime,
+      size: file!.size,
+      sha256: createHash('sha256').update(file!.buffer).digest('hex'),
+    };
+  }
+
+  async discard(f: StoredFile) {
+    await this.storage.remove(`documents/${f.storedName}`);
+  }
+
+  /** A new archive document with the stored file as version 1 (in `m`). */
+  async insertDoc(
+    m: EntityManager,
+    fields: Pick<Doc, 'title' | 'category' | 'description' | 'accessScope'>,
+    f: StoredFile,
+    actor: Actor,
+  ): Promise<{ doc: Doc; ver: DocVersion }> {
+    const doc = await m.save(
+      Doc,
+      m.create(Doc, { ...fields, authorId: actor.id, archivedAt: null }),
+    );
+    const ver = await m.save(
+      DocVersion,
+      m.create(DocVersion, {
+        ...f,
+        docId: doc.id,
+        version: 1,
+        changeNote: '',
+        uploadedById: actor.id,
+      }),
+    );
+    await this.audit.log(
+      {
+        actorId: actor.id,
+        action: 'document.created',
+        entity: 'document',
+        entityId: doc.id,
+        meta: { title: doc.title, version: 1, fileName: ver.fileName },
+      },
+      m,
+    );
+    return { doc, ver };
+  }
+
+  /** The stored file as the next version of `doc` (locked by the caller, in `m`). */
+  async insertVersion(
+    m: EntityManager,
+    doc: Doc,
+    f: StoredFile,
+    changeNote: string,
+    actor: Actor,
+  ): Promise<DocVersion> {
+    const row = await m
+      .createQueryBuilder(DocVersion, 'v')
+      .select('MAX(v.version)', 'max')
+      .where('v.docId = :id', { id: doc.id })
+      .getRawOne<{ max: number | null }>();
+    const next = Number(row?.max ?? 0) + 1;
+    const ver = await m.save(
+      DocVersion,
+      m.create(DocVersion, {
+        ...f,
+        docId: doc.id,
+        version: next,
+        changeNote,
+        uploadedById: actor.id,
+      }),
+    );
+    await m.update(Doc, { id: doc.id }, { updatedAt: new Date() });
+    await this.audit.log(
+      {
+        actorId: actor.id,
+        action: 'document.version_added',
+        entity: 'document',
+        entityId: doc.id,
+        meta: { version: next, fileName: ver.fileName },
+      },
+      m,
+    );
+    return ver;
   }
 
   async update(id: string, dto: UpdateDocDto, actor: Actor): Promise<DocDto> {
@@ -303,18 +353,19 @@ export class DocumentsService {
 
   async download(id: string, versionNo: string | undefined, actor: Actor) {
     await this.accessible(id, actor);
-    let ver: DocVersion | null;
-    if (versionNo) {
-      ver = await this.versions.findOneBy({
-        docId: id,
-        version: Number(versionNo),
-      });
-    } else {
-      ver = await this.versions.findOne({
-        where: { docId: id },
-        order: { version: 'DESC' },
-      });
-    }
+    return this.file(
+      this.ds.manager,
+      id,
+      versionNo ? Number(versionNo) : undefined,
+    );
+  }
+
+  /** A version of a document (none — the latest) and its file; no access check. */
+  async file(m: EntityManager, id: string, versionNo?: number) {
+    const ver = await m.findOne(DocVersion, {
+      where: { docId: id, ...(versionNo ? { version: versionNo } : {}) },
+      order: { version: 'DESC' },
+    });
     if (!ver) throw new NotFoundException('Version not found');
     const stream = await this.storage.streamOrFail(
       `documents/${ver.storedName}`,

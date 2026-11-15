@@ -157,8 +157,9 @@ function TasksCard() {
 }
 
 /**
- * My drafts and what others published about me lately; to staff — documents
- * waiting to be frozen by hand. The rest — in «Редактор».
+ * What waits for my signature, my drafts and what others published about me
+ * lately; to staff — documents waiting to be frozen by hand and frozen ones
+ * without a signed scan. The rest — in «Редактор».
  */
 function PapersCard({ staff }: { staff: boolean }) {
   const limit = String(HOME_LIMIT);
@@ -175,21 +176,35 @@ function PapersCard({ staff }: { staff: boolean }) {
     queryFn: () => unwrap(api.GET('/api/papers', { params: { query: { due: 'freeze', limit } } })),
     enabled: staff,
   });
-  const error = drafts.error ?? about.error ?? due.error;
+  const toSign = useQuery({
+    queryKey: ['papers', 'list', 'home', 'sign'],
+    queryFn: () => unwrap(api.GET('/api/papers', { params: { query: { due: 'sign', limit } } })),
+  });
+  const scans = useQuery({
+    queryKey: ['papers', 'list', 'home', 'scan'],
+    queryFn: () => unwrap(api.GET('/api/papers', { params: { query: { due: 'scan', limit } } })),
+    enabled: staff,
+  });
+  const error = drafts.error ?? about.error ?? due.error ?? toSign.error ?? scans.error;
   const mine = drafts.data?.items ?? [];
   const news = about.data ? recentPapers(about.data.items) : [];
   const toFreeze = due.data?.items ?? [];
+  const signing = toSign.data?.items ?? [];
+  const toScan = scans.data?.items ?? [];
+  const frozenOn = (p: PaperItem) => [p.number, p.author.name, `зафіксовано ${formatDate(p.updatedAt)}`].filter(Boolean).join(' · ');
   return (
     <Card>
       <h2 className={s.caption}>Документи</h2>
-      {drafts.isPending || about.isPending || (staff && due.isPending) ? (
+      {drafts.isPending || about.isPending || toSign.isPending || (staff && (due.isPending || scans.isPending)) ? (
         <Skeleton height={88} />
       ) : error ? (
         <ErrorMessage text={errorOf(error)} />
-      ) : mine.length === 0 && news.length === 0 && toFreeze.length === 0 ? (
-        <p className="hint">{staff ? 'Чернеток, нових документів про вас і документів до фіксації немає.' : 'Чернеток і нових документів про вас немає.'}</p>
+      ) : mine.length === 0 && news.length === 0 && toFreeze.length === 0 && signing.length === 0 && toScan.length === 0 ? (
+        <p className="hint">{staff ? 'Документів на підпис, до фіксації, без скану, чернеток і нових про вас немає.' : 'Документів на підпис, чернеток і нових про вас немає.'}</p>
       ) : (
         <>
+          <PaperRows title="На мій підпис" items={signing} sub={frozenOn} />
+          <PaperRows title="Завантажити скан" items={toScan} sub={frozenOn} />
           <PaperRows
             title="Зафіксувати"
             items={toFreeze}

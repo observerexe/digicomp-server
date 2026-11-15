@@ -1521,11 +1521,13 @@
             "name": "due",
             "required": false,
             "in": "query",
-            "description": "`freeze` — published documents waiting to be frozen by hand: their\ntemplate does not freeze them itself (or there is none) and their\nrecords are ready; only those the actor may freeze (the Home of staff).",
+            "description": "`freeze` — published documents waiting to be frozen by hand: their\ntemplate does not freeze them itself (or there is none) and their\nrecords are ready; only those the actor may freeze (the Home of staff).\n`sign` — frozen in the last 30 days, not signed yet, where the actor\nsigns: a column of «Блок підписів» or «Затверджую» (the Home's «На мій підпис»).\n`scan` — frozen in the last 30 days, not signed yet, whose scan the\nactor may upload (the Home of staff: «Завантажити скан»).",
             "schema": {
               "type": "string",
               "enum": [
-                "freeze"
+                "freeze",
+                "sign",
+                "scan"
               ]
             }
           },
@@ -1775,6 +1777,71 @@
           }
         },
         "summary": "Freezes for print and signature: a snapshot of the sheet with its\nSHA-256; once the records are ready (a member — own free document).",
+        "tags": [
+          "Paperwork"
+        ]
+      }
+    },
+    "/api/papers/{id}/signed": {
+      "post": {
+        "operationId": "PaperworkController_sign",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The signed scan of a frozen document (PDF or a photo): a version in the\nArchive; the document becomes «Підписано». Again — the next version.",
+        "tags": [
+          "Paperwork"
+        ]
+      },
+      "get": {
+        "operationId": "PaperworkController_scan",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "inline",
+            "required": false,
+            "in": "query",
+            "description": "`1` — show a PDF in the app instead of downloading (other types ignore it).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "The latest signed scan, for who sees the document; `inline=1` — a PDF opens in the browser.",
         "tags": [
           "Paperwork"
         ]
@@ -2259,6 +2326,336 @@
         },
         "tags": [
           "Dictionaries"
+        ]
+      }
+    },
+    "/api/documents": {
+      "get": {
+        "operationId": "DocumentsController_list",
+        "parameters": [
+          {
+            "name": "linkedType",
+            "required": false,
+            "in": "query",
+            "description": "With `linkedId`: only documents linked with this record (`/links`).",
+            "schema": {
+              "$ref": "#/components/schemas/RecordType"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "description": "Item key of the «document_category» dictionary.",
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          },
+          {
+            "name": "linkedId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "archived",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 6,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 3,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocListDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Documents"
+        ]
+      },
+      "post": {
+        "operationId": "DocumentsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDocDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
+    "/api/documents/{id}": {
+      "get": {
+        "operationId": "DocumentsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Documents"
+        ]
+      },
+      "patch": {
+        "operationId": "DocumentsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDocDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Documents"
+        ]
+      },
+      "delete": {
+        "operationId": "DocumentsController_archive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
+    "/api/documents/{id}/versions": {
+      "get": {
+        "operationId": "DocumentsController_versions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DocVersionDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
+    "/api/documents/{id}/download": {
+      "get": {
+        "operationId": "DocumentsController_download",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 6,
+              "type": "string"
+            }
+          },
+          {
+            "name": "inline",
+            "required": false,
+            "in": "query",
+            "description": "`1` — show a PDF in the app instead of downloading (other types ignore it).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
+    "/api/documents/{id}/files": {
+      "post": {
+        "operationId": "DocumentsController_addVersion",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddVersionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocVersionDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Documents"
         ]
       }
     },
@@ -4124,336 +4521,6 @@
         },
         "tags": [
           "Faults"
-        ]
-      }
-    },
-    "/api/documents": {
-      "get": {
-        "operationId": "DocumentsController_list",
-        "parameters": [
-          {
-            "name": "linkedType",
-            "required": false,
-            "in": "query",
-            "description": "With `linkedId`: only documents linked with this record (`/links`).",
-            "schema": {
-              "$ref": "#/components/schemas/RecordType"
-            }
-          },
-          {
-            "name": "search",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "maxLength": 100,
-              "type": "string"
-            }
-          },
-          {
-            "name": "category",
-            "required": false,
-            "in": "query",
-            "description": "Item key of the «document_category» dictionary.",
-            "schema": {
-              "maxLength": 40,
-              "type": "string"
-            }
-          },
-          {
-            "name": "linkedId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          },
-          {
-            "name": "archived",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "true"
-              ]
-            }
-          },
-          {
-            "name": "page",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "maxLength": 6,
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "maxLength": 3,
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocListDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Documents"
-        ]
-      },
-      "post": {
-        "operationId": "DocumentsController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateDocDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Documents"
-        ]
-      }
-    },
-    "/api/documents/{id}": {
-      "get": {
-        "operationId": "DocumentsController_get",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Documents"
-        ]
-      },
-      "patch": {
-        "operationId": "DocumentsController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateDocDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Documents"
-        ]
-      },
-      "delete": {
-        "operationId": "DocumentsController_archive",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Documents"
-        ]
-      }
-    },
-    "/api/documents/{id}/versions": {
-      "get": {
-        "operationId": "DocumentsController_versions",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/DocVersionDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Documents"
-        ]
-      }
-    },
-    "/api/documents/{id}/download": {
-      "get": {
-        "operationId": "DocumentsController_download",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "version",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "maxLength": 6,
-              "type": "string"
-            }
-          },
-          {
-            "name": "inline",
-            "required": false,
-            "in": "query",
-            "description": "`1` — show a PDF in the app instead of downloading (other types ignore it).",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Documents"
-        ]
-      }
-    },
-    "/api/documents/{id}/files": {
-      "post": {
-        "operationId": "DocumentsController_addVersion",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AddVersionDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocVersionDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Documents"
         ]
       }
     },
@@ -7510,9 +7577,48 @@
           "archived"
         ]
       },
+      "PaperSignedDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "number",
+            "description": "Its version in the archive document of the snapshot (1 — the first scan)."
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "number"
+          },
+          "uploadedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "fileName",
+          "mimeType",
+          "size",
+          "uploadedAt"
+        ]
+      },
       "PaperSnapshotDto": {
         "type": "object",
         "properties": {
+          "signed": {
+            "nullable": true,
+            "description": "The signed scan; null — none uploaded.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperSignedDto"
+              }
+            ]
+          },
           "n": {
             "type": "number",
             "description": "1, 2, … within the document (`print?snapshot=`)."
@@ -7527,6 +7633,7 @@
           }
         },
         "required": [
+          "signed",
           "n",
           "sha256",
           "createdAt"
@@ -7634,6 +7741,10 @@
             "type": "boolean",
             "description": "Published, and its records are ready: the actor may freeze it for print\nand signature (a member — own free document; staff — any)."
           },
+          "canSign": {
+            "type": "boolean",
+            "description": "Frozen (or signed): the actor may upload the signed scan (a member — own\nfree document; staff — any)."
+          },
           "id": {
             "type": "string"
           },
@@ -7674,6 +7785,7 @@
           "canCancel",
           "canChange",
           "canFreeze",
+          "canSign",
           "id",
           "title",
           "author",
@@ -8030,6 +8142,224 @@
           "archived": {
             "type": "boolean",
             "description": "true — to the archive, false — back."
+          }
+        }
+      },
+      "AccessScope": {
+        "type": "string",
+        "enum": [
+          "members",
+          "supervisors"
+        ]
+      },
+      "DocDto": {
+        "type": "object",
+        "properties": {
+          "accessScope": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AccessScope"
+              }
+            ]
+          },
+          "version": {
+            "type": "number",
+            "nullable": true,
+            "description": "Latest version; null for a document without files."
+          },
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "mimeType": {
+            "type": "string",
+            "nullable": true
+          },
+          "size": {
+            "type": "number",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "authorId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "versionsCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "accessScope",
+          "version",
+          "fileName",
+          "mimeType",
+          "size",
+          "id",
+          "title",
+          "category",
+          "description",
+          "authorId",
+          "createdAt",
+          "updatedAt",
+          "archived",
+          "versionsCount"
+        ]
+      },
+      "DocListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit"
+        ]
+      },
+      "DocVersionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "number"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "number"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "changeNote": {
+            "type": "string"
+          },
+          "uploadedById": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "fileName",
+          "mimeType",
+          "size",
+          "sha256",
+          "changeNote",
+          "uploadedById",
+          "createdAt"
+        ]
+      },
+      "CreateDocDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "category": {
+            "type": "string",
+            "description": "Item key of the «document_category» dictionary.",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 5000
+          },
+          "accessScope": {
+            "type": "string",
+            "enum": [
+              "members",
+              "supervisors"
+            ]
+          }
+        },
+        "required": [
+          "title",
+          "category"
+        ]
+      },
+      "AddVersionDto": {
+        "type": "object",
+        "properties": {
+          "changeNote": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "UpdateDocDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "category": {
+            "type": "string",
+            "description": "Item key of the «document_category» dictionary.",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 5000
+          },
+          "accessScope": {
+            "type": "string",
+            "enum": [
+              "members",
+              "supervisors"
+            ]
           }
         }
       },
@@ -9872,224 +10202,6 @@
         "required": [
           "resolution"
         ]
-      },
-      "AccessScope": {
-        "type": "string",
-        "enum": [
-          "members",
-          "supervisors"
-        ]
-      },
-      "DocDto": {
-        "type": "object",
-        "properties": {
-          "accessScope": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/AccessScope"
-              }
-            ]
-          },
-          "version": {
-            "type": "number",
-            "nullable": true,
-            "description": "Latest version; null for a document without files."
-          },
-          "fileName": {
-            "type": "string",
-            "nullable": true
-          },
-          "mimeType": {
-            "type": "string",
-            "nullable": true
-          },
-          "size": {
-            "type": "number",
-            "nullable": true
-          },
-          "id": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "category": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "authorId": {
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "archived": {
-            "type": "boolean"
-          },
-          "versionsCount": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "accessScope",
-          "version",
-          "fileName",
-          "mimeType",
-          "size",
-          "id",
-          "title",
-          "category",
-          "description",
-          "authorId",
-          "createdAt",
-          "updatedAt",
-          "archived",
-          "versionsCount"
-        ]
-      },
-      "DocListDto": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DocDto"
-            }
-          },
-          "total": {
-            "type": "number"
-          },
-          "page": {
-            "type": "number"
-          },
-          "limit": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "items",
-          "total",
-          "page",
-          "limit"
-        ]
-      },
-      "DocVersionDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "version": {
-            "type": "number"
-          },
-          "fileName": {
-            "type": "string"
-          },
-          "mimeType": {
-            "type": "string"
-          },
-          "size": {
-            "type": "number"
-          },
-          "sha256": {
-            "type": "string"
-          },
-          "changeNote": {
-            "type": "string"
-          },
-          "uploadedById": {
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "version",
-          "fileName",
-          "mimeType",
-          "size",
-          "sha256",
-          "changeNote",
-          "uploadedById",
-          "createdAt"
-        ]
-      },
-      "CreateDocDto": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200
-          },
-          "category": {
-            "type": "string",
-            "description": "Item key of the «document_category» dictionary.",
-            "minLength": 1,
-            "maxLength": 40
-          },
-          "description": {
-            "type": "string",
-            "maxLength": 5000
-          },
-          "accessScope": {
-            "type": "string",
-            "enum": [
-              "members",
-              "supervisors"
-            ]
-          }
-        },
-        "required": [
-          "title",
-          "category"
-        ]
-      },
-      "AddVersionDto": {
-        "type": "object",
-        "properties": {
-          "changeNote": {
-            "type": "string",
-            "maxLength": 500
-          }
-        }
-      },
-      "UpdateDocDto": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200
-          },
-          "category": {
-            "type": "string",
-            "description": "Item key of the «document_category» dictionary.",
-            "minLength": 1,
-            "maxLength": 40
-          },
-          "description": {
-            "type": "string",
-            "maxLength": 5000
-          },
-          "accessScope": {
-            "type": "string",
-            "enum": [
-              "members",
-              "supervisors"
-            ]
-          }
-        }
       },
       "InventoryItemDto": {
         "type": "object",

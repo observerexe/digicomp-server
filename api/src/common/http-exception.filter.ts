@@ -109,6 +109,7 @@ const MESSAGE_CODES: Record<string, string> = {
   'Record already has a paper': 'PAPER_TARGET_TAKEN',
   'Paper is frozen': 'PAPER_FROZEN',
   'Paper record is not ready': 'PAPER_TARGET_NOT_READY',
+  'Paper is not frozen': 'PAPER_NOT_FROZEN',
   'Template was changed by someone else': 'PAPER_CONFLICT',
   'Template version is published': 'TEMPLATE_VERSION_PUBLISHED',
   'Invalid template field': 'TEMPLATE_FIELD_INVALID',

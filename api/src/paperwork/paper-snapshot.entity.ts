@@ -7,6 +7,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { Doc } from '../documents/doc.entity';
 import { User } from '../users/user.entity';
 import type { FieldValues } from './content';
 import { Paper } from './paper.entity';
@@ -45,6 +46,18 @@ export class PaperSnapshot {
   /** Values of the fields as the document showed them (record ones included). */
   @Column({ name: 'resolved_values', type: 'jsonb' })
   resolvedValues: FieldValues;
+
+  /**
+   * The archive document whose versions are the signed scans of this
+   * snapshot; null — none uploaded.
+   */
+  @Index('UQ_paper_snapshots_archive_doc', { unique: true })
+  @Column({ name: 'archive_doc_id', type: 'uuid', nullable: true })
+  archiveDocId: string | null;
+
+  @ManyToOne(() => Doc, { onDelete: 'RESTRICT', nullable: true })
+  @JoinColumn({ name: 'archive_doc_id' })
+  archiveDoc?: Doc | null;
 
   @Column({ name: 'created_by_id', type: 'uuid' })
   createdById: string;

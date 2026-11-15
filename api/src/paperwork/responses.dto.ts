@@ -154,6 +154,16 @@ export class PaperRefDto {
   code?: string;
 }
 
+/** The latest signed scan of a snapshot (`GET /papers/:id/signed`). */
+export class PaperSignedDto {
+  /** Its version in the archive document of the snapshot (1 — the first scan). */
+  version: number;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  uploadedAt: Date;
+}
+
 /** A snapshot of a frozen document. */
 export class PaperSnapshotDto {
   /** 1, 2, … within the document (`print?snapshot=`). */
@@ -161,6 +171,9 @@ export class PaperSnapshotDto {
   /** Hex SHA-256 of the sheet: the check page `/papers/verify/:sha`. */
   sha256: string;
   createdAt: Date;
+  /** The signed scan; null — none uploaded. */
+  @ApiProperty({ type: PaperSignedDto, nullable: true })
+  signed: PaperSignedDto | null;
 }
 
 export class PaperDto extends PaperItemDto {
@@ -217,6 +230,12 @@ export class PaperDto extends PaperItemDto {
    * and signature (a member — own free document; staff — any).
    */
   canFreeze: boolean;
+
+  /**
+   * Frozen (or signed): the actor may upload the signed scan (a member — own
+   * free document; staff — any).
+   */
+  canSign: boolean;
 
   /** The latest snapshot (frozen, signed; cancelled after freezing); null — none. */
   @ApiProperty({ type: PaperSnapshotDto, nullable: true })

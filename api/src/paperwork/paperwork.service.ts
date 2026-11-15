@@ -8,6 +8,21 @@ import {
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
+import { ensureDictionaryItem } from '../dictionaries/dictionary-usage';
+import {
+  AccessScope,
+  Doc,
+  DOCUMENT_CATEGORY,
+  DocVersion,
+} from '../documents/doc.entity';
+import {
+  DocumentsService,
+  type StoredFile,
+} from '../documents/documents.service';
+import {
+  SCAN_EXTENSIONS,
+  type UploadedFileLike,
+} from '../files/file-validation';
 import { Action, Actor, assertCan, can } from '../auth/policy';
 import { escapeLike } from '../common/like';
 import { LinkRegistry } from '../links/link-registry';
@@ -82,6 +97,7 @@ import type {
   PaperItemDto,
   PaperListDto,
   PaperRefDto,
+  PaperSignedDto,
   PaperVerifyDto,
 } from './responses.dto';
 import {
@@ -102,6 +118,8 @@ export const PaperErrors = {
   Frozen: 'Paper is frozen',
   NotReady: 'Paper record is not ready',
   SnapshotNotFound: 'Paper snapshot not found',
+  NotFrozen: 'Paper is not frozen',
+  ScanNotFound: 'Paper scan not found',
 } as const;
 
 /** Published, not cancelled: it shows its record as it is now. */
@@ -110,6 +128,15 @@ const LIVE = new Set([
   PaperStatus.Frozen,
   PaperStatus.Signed,
 ]);
+
+/** Takes a signed scan: frozen, or signed already (a better scan). */
+const SIGNABLE = new Set([PaperStatus.Frozen, PaperStatus.Signed]);
+
+/** The archive category of signed scans (made when the first one comes). */
+const SCAN_CATEGORY = { key: 'signed_papers', title: 'Підписані документи' };
+
+/** How long a frozen document stays on the Home's «на підпис» lists. */
+const DUE_SIGN_DAYS = 30;
 
 /** Over every page of a print that is not a snapshot's (a cancelled one — of a snapshot too). */
 const WATERMARK: Record<PaperStatus, string | null> = {
@@ -141,6 +168,26 @@ function sealOf(snap: PaperSnapshot): Seal {
     url: verifyUrl(snap.sha256),
   };
 }
+
+/**
+ * The reader (`:me`) signs the document: a column of a «Блок підписів» is
+ * theirs (its author, a `ref:user` field holding them, or the signer from
+ * «Реквізити» — `:orgSigner`), or it has «Затверджую» and they are that
+ * signer. Structure blocks stand on the top level only. A right column
+ * without a label is not printed; a left one without `leftSigner` takes its
+ * default, the author (a key holding JSON null — a line only — is not SQL NULL).
+ */
+const signedBySql = `EXISTS (
+  SELECT 1 FROM jsonb_array_elements(p.content -> 'content') b
+   CROSS JOIN LATERAL (VALUES
+     (CASE WHEN b -> 'attrs' -> 'leftSigner' IS NOT NULL THEN b -> 'attrs' ->> 'leftSigner' ELSE '${SIGNER_AUTHOR}' END),
+     (CASE WHEN COALESCE(b -> 'attrs' ->> 'rightLabel', '') <> '' THEN b -> 'attrs' ->> 'rightSigner' END)
+   ) s(who)
+   WHERE (b ->> 'type' = 'signatures' AND (
+           (s.who = '${SIGNER_AUTHOR}' AND p.author_id = CAST(:me AS uuid))
+        OR (s.who = '${SIGNER_ORG}' AND :orgSigner)
+        OR p.values ->> s.who = CAST(:me AS text)))
+      OR (b ->> 'type' = 'approval' AND :orgSigner))`;
 
 /** Text and values as the document shows them (bound fields — from the record). */
 type Shown = { content: PaperContent; values: FieldValues };
@@ -412,6 +459,7 @@ export class PaperworkService {
     private recordFields: RecordFieldsService,
     private links: LinkRegistry,
     private adapters: PaperAdapterRegistry,
+    private documents: DocumentsService,
   ) {}
 
   /** Records the document (as it shows them) refers to that the actor sees. */
@@ -645,10 +693,13 @@ export class PaperworkService {
         p.status === PaperStatus.Published &&
         can(actor, Action.PapersFreeze, freezeOwner(p)) &&
         (await this.ready(m, p)),
+      canSign:
+        SIGNABLE.has(p.status) && can(actor, Action.PapersSign, freezeOwner(p)),
       snapshot: snap && {
         n: snap.n,
         sha256: snap.sha256,
         createdAt: snap.createdAt,
+        signed: await this.signedOf(m, snap),
       },
     };
   }
@@ -719,6 +770,24 @@ export class PaperworkService {
           me: actor.id,
         });
       }
+    }
+    if (q.due === 'sign' || q.due === 'scan') {
+      qb.andWhere('p.status = :frozen AND p.updatedAt >= :since', {
+        frozen: PaperStatus.Frozen,
+        since: new Date(Date.now() - DUE_SIGN_DAYS * 24 * 3600 * 1000),
+      });
+    }
+    if (q.due === 'scan' && !can(actor, Action.PapersSign, {})) {
+      qb.andWhere('p.authorId = :me AND p.targetType IS NULL', {
+        me: actor.id,
+      });
+    }
+    if (q.due === 'sign') {
+      const org = await this.org.get();
+      qb.andWhere(signedBySql, {
+        me: actor.id,
+        orgSigner: org.signer?.id === actor.id,
+      });
     }
     if (q.search) {
       qb.andWhere('(p.title ILIKE :s OR p.number ILIKE :s)', {
@@ -1048,6 +1117,145 @@ export class PaperworkService {
       cancelReason: p.cancelReason,
       paperId: (await this.sees(m, p, actor)) ? p.id : null,
     };
+  }
+
+  /** The latest signed scan of a snapshot; null — none. */
+  private async signedOf(
+    m: EntityManager,
+    snap: PaperSnapshot,
+  ): Promise<Plain<PaperSignedDto> | null> {
+    if (!snap.archiveDocId) return null;
+    const ver = await m.findOne(DocVersion, {
+      where: { docId: snap.archiveDocId },
+      order: { version: 'DESC' },
+    });
+    return ver
+      ? {
+          version: ver.version,
+          fileName: ver.fileName,
+          mimeType: ver.mimeType,
+          size: ver.size,
+          uploadedAt: ver.createdAt,
+        }
+      : null;
+  }
+
+  /**
+   * The signed paper scanned or photographed: a version of the archive
+   * document of the latest snapshot (made with the first scan: «Підписані
+   * документи», seen by staff only — others open it through the document).
+   * The document becomes «Підписано»; a later scan is the next version.
+   */
+  async sign(
+    id: string,
+    file: UploadedFileLike | undefined,
+    actor: Actor,
+  ): Promise<PaperDto> {
+    let stored: StoredFile | null = null;
+    try {
+      return await this.ds.transaction(async (m) => {
+        const p = await this.accessible(m, id, actor, true);
+        assertCan(actor, Action.PapersSign, freezeOwner(p));
+        if (!SIGNABLE.has(p.status)) {
+          throw new ConflictException(PaperErrors.NotFrozen);
+        }
+        const snap = (await this.snapshotOf(m, p.id))!;
+        stored = await this.documents.store(file, SCAN_EXTENSIONS);
+        const doc = snap.archiveDocId
+          ? await m.findOneOrFail(Doc, {
+              where: { id: snap.archiveDocId },
+              lock: { mode: 'pessimistic_write' },
+            })
+          : null;
+        const ver = doc
+          ? await this.documents.insertVersion(m, doc, stored, '', actor)
+          : await this.scanDoc(m, p, snap, stored, actor);
+        p.status = PaperStatus.Signed;
+        p.revision += 1;
+        await m.getRepository(Paper).save(p);
+        await this.audit.log(
+          {
+            actorId: actor.id,
+            action: 'paper.signed',
+            entity: 'paper',
+            entityId: p.id,
+            meta: {
+              title: p.title,
+              authorId: p.authorId,
+              number: p.number,
+              n: snap.n,
+              documentId: ver.docId,
+              version: ver.version,
+              fileName: ver.fileName,
+            },
+          },
+          m,
+        );
+        return this.view(m, p, actor);
+      });
+    } catch (e) {
+      if (stored) await this.documents.discard(stored);
+      throw e;
+    }
+  }
+
+  /** The archive document of a snapshot's scans, with the first one. */
+  private async scanDoc(
+    m: EntityManager,
+    p: Paper,
+    snap: PaperSnapshot,
+    stored: StoredFile,
+    actor: Actor,
+  ) {
+    const category = await ensureDictionaryItem(
+      m,
+      DOCUMENT_CATEGORY,
+      SCAN_CATEGORY.key,
+      SCAN_CATEGORY.title,
+    );
+    if (category.created) {
+      await this.audit.log(
+        {
+          actorId: actor.id,
+          action: 'dictionary.item_created',
+          entity: 'dictionary_item',
+          entityId: category.created.id,
+          meta: {
+            dictionary: DOCUMENT_CATEGORY,
+            key: category.key,
+            title: category.created.title,
+            color: category.created.color,
+          },
+        },
+        m,
+      );
+    }
+    const name = [p.number, p.title].filter(Boolean).join(' ');
+    const { doc, ver } = await this.documents.insertDoc(
+      m,
+      {
+        title: (snap.n > 1 ? `${name} (знімок ${snap.n})` : name).slice(0, 200),
+        category: category.key,
+        description: 'Підписаний скан документа з Редактора.',
+        accessScope: AccessScope.Supervisors,
+      },
+      stored,
+      actor,
+    );
+    snap.archiveDocId = doc.id;
+    await m.getRepository(PaperSnapshot).save(snap);
+    return ver;
+  }
+
+  /** The latest signed scan of the document, for who sees the document. */
+  async scan(id: string, actor: Actor) {
+    const m = this.ds.manager;
+    const p = await this.accessible(m, id, actor);
+    const snap = await this.snapshotOf(m, p.id);
+    if (!snap?.archiveDocId) {
+      throw new NotFoundException(PaperErrors.ScanNotFound);
+    }
+    return this.documents.file(m, snap.archiveDocId);
   }
 
   /** A free document, or one made from a template's current version. */

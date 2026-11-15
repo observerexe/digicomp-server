@@ -31,6 +31,7 @@ const paper = (over: Partial<Paper> = {}): Paper => ({
   canCancel: false,
   canChange: false,
   canFreeze: false,
+  canSign: false,
   snapshot: null,
   ...over,
 });
@@ -217,7 +218,13 @@ describe('Редактор: документ', () => {
 
   it('«Зафіксувати для підпису» з підтвердженням; після — «Друк» зі знімка', async () => {
     const published = paper({ status: 'published', canEdit: false, canFreeze: true, canCancel: true, publishedAt: '2026-11-15T10:00:00Z' });
-    const frozen = { ...published, status: 'frozen' as const, canFreeze: false, revision: 2, snapshot: { n: 1, sha256: 'a'.repeat(64), createdAt: '2026-11-15T11:00:00Z' } };
+    const frozen = {
+      ...published,
+      status: 'frozen' as const,
+      canFreeze: false,
+      revision: 2,
+      snapshot: { n: 1, sha256: 'a'.repeat(64), createdAt: '2026-11-15T11:00:00Z', signed: null },
+    };
     const { calls } = mockApi(base(writer, { 'GET /api/papers/p1': () => json(200, published), 'POST /api/papers/p1/freeze': () => json(200, frozen) }));
     renderApp('/editor/p1');
     await userEvent.click(await screen.findByRole('button', { name: 'Зафіксувати для підпису' }));
@@ -249,6 +256,50 @@ describe('Редактор: документ', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Зафіксувати для підпису' }));
     await userEvent.click(screen.getByRole('button', { name: 'Зафіксувати' }));
     expect(await screen.findByText('Зафіксувати можна, коли запис завершено: наприклад, ТЗ прийнято.')).toBeInTheDocument();
+  });
+
+  it('підписаний скан: форма з файлом, «Підписано» і посилання на скан; далі — «Інший скан»', async () => {
+    const snapshot = { n: 1, sha256: 'a'.repeat(64), createdAt: '2026-11-15T11:00:00Z', signed: null };
+    const frozen = paper({ status: 'frozen', canEdit: false, canSign: true, publishedAt: '2026-11-15T10:00:00Z', snapshot });
+    const signed = {
+      ...frozen,
+      status: 'signed' as const,
+      revision: 2,
+      snapshot: { ...snapshot, signed: { version: 1, fileName: 'скан.pdf', mimeType: 'application/pdf', size: 9, uploadedAt: '2026-11-15T12:00:00Z' } },
+    };
+    const { calls } = mockApi(
+      base(writer, {
+        'GET /api/papers/p1': () => json(200, frozen),
+        'POST /api/papers/p1/signed': () => json(200, signed),
+      }),
+    );
+    renderApp('/editor/p1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Завантажити підписаний скан' }));
+    const upload = screen.getByRole('button', { name: 'Завантажити' });
+    expect(upload).toBeDisabled();
+    const input = document.querySelector<HTMLInputElement>('#paper-scan')!;
+    expect(input.accept).toBe('.pdf,.png,.jpg,.jpeg,.webp');
+    await userEvent.upload(input, new File(['%PDF-1.4'], 'скан.pdf', { type: 'application/pdf' }));
+    await userEvent.click(upload);
+    const link = await screen.findByRole('link', { name: 'Відкрити скан' });
+    expect(link).toHaveAttribute('href', '/api/papers/p1/signed?inline=1');
+    expect(calls.find((c) => c.path === '/api/papers/p1/signed')!.headers.get('content-type')).toMatch(/^multipart\/form-data/);
+    expect(screen.getAllByText('Підписано').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: 'Завантажити підписаний скан' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Інший скан' })).toBeInTheDocument();
+  });
+
+  it('скан-фото завантажується; без права — кнопки скану немає', async () => {
+    const snapshot = {
+      n: 1,
+      sha256: 'a'.repeat(64),
+      createdAt: '2026-11-15T11:00:00Z',
+      signed: { version: 2, fileName: 'фото.png', mimeType: 'image/png', size: 9, uploadedAt: '2026-11-15T12:00:00Z' },
+    };
+    mockApi(base(writer, { 'GET /api/papers/p1': () => json(200, paper({ status: 'signed', canEdit: false, snapshot })) }));
+    renderApp('/editor/p1');
+    expect(await screen.findByRole('link', { name: 'Завантажити скан' })).toHaveAttribute('href', '/api/papers/p1/signed');
+    expect(screen.queryByRole('button', { name: 'Інший скан' })).not.toBeInTheDocument();
   });
 
   it('видалення чернетки з підтвердженням веде до списку', async () => {

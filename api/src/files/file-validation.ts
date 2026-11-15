@@ -34,6 +34,8 @@ const TYPES: Record<string, { mime: string; kind: Kind }> = {
 
 export const DOCUMENT_EXTENSIONS = Object.keys(TYPES);
 export const AVATAR_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'];
+/** A signed paper scanned or photographed. */
+export const SCAN_EXTENSIONS = ['pdf', 'png', 'jpg', 'jpeg', 'webp'];
 
 export function mimeForExtension(ext: string) {
   return TYPES[ext]?.mime ?? 'application/octet-stream';

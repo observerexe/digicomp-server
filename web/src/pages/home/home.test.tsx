@@ -53,14 +53,19 @@ const list = (items: PaperItem[]) => json(200, { items, total: items.length, pag
 /** Query strings of every `GET /api/papers`. */
 const queried: string[] = [];
 
-/** «Мої чернетки» — `status=draft`, «Нове про мене» — `about=me`, «Зафіксувати» (staff) — `due=freeze`. */
-const papersApi = (drafts: PaperItem[], about: PaperItem[], due: PaperItem[] = []) => ({
+/**
+ * «Мої чернетки» — `status=draft`, «Нове про мене» — `about=me`, «Зафіксувати» (staff) — `due=freeze`,
+ * «На мій підпис» — `due=sign`, «Завантажити скан» (staff) — `due=scan`.
+ */
+const papersApi = (drafts: PaperItem[], about: PaperItem[], due: PaperItem[] = [], sign: PaperItem[] = [], scan: PaperItem[] = []) => ({
   'GET /api/papers': (req: Request) => {
     const q = new URL(req.url).searchParams;
     queried.push(q.toString());
     if (q.get('mine') === 'true' && q.get('status') === 'draft') return list(drafts);
     if (q.get('about') === 'me') return list(about);
     if (q.get('due') === 'freeze') return list(due);
+    if (q.get('due') === 'sign') return list(sign);
+    if (q.get('due') === 'scan') return list(scan);
     return json(400, { errorCode: 'VALIDATION_ERROR' });
   },
 });
@@ -174,6 +179,31 @@ describe('Головна', () => {
     expect(queried.some((q) => q.includes('due=freeze'))).toBe(true);
   });
 
+  it('«На мій підпис» — усім; модератору ще й «Завантажити скан»', async () => {
+    queried.length = 0;
+    const frozen = paper({ id: 's1', title: 'Технічне завдання', number: 'ТЗ-2026-014', status: 'frozen' });
+    mockApi({
+      ...homeApi(),
+      'GET /api/auth/me': () => json(200, moderator),
+      ...papersApi([], [], [], [frozen], [paper({ id: 's2', title: 'Протокол', status: 'frozen' })]),
+    });
+    renderApp('/');
+    const sign = await screen.findByRole('list', { name: 'На мій підпис' });
+    expect(within(sign).getByRole('link')).toHaveAttribute('href', '/editor/s1');
+    expect(within(sign).getByText(/^ТЗ-2026-014 · Артур Машталер · зафіксовано /)).toBeInTheDocument();
+    const scan = screen.getByRole('list', { name: 'Завантажити скан' });
+    expect(within(scan).getByRole('link')).toHaveAttribute('href', '/editor/s2');
+  });
+
+  it('учасник «Завантажити скан» не запитує; «На мій підпис» — так', async () => {
+    queried.length = 0;
+    mockApi({ ...homeApi(), ...papersApi([], [], [], [paper({ id: 's1', title: 'Подання', status: 'frozen' })]) });
+    renderApp('/');
+    await screen.findByRole('list', { name: 'На мій підпис' });
+    expect(queried.some((q) => q.includes('due=sign'))).toBe(true);
+    expect(queried.some((q) => q.includes('due=scan'))).toBe(false);
+  });
+
   it('учасник «Зафіксувати» не бачить і не запитує', async () => {
     queried.length = 0;
     mockApi(homeApi());
@@ -200,7 +230,7 @@ describe('Головна', () => {
       ...papersApi([], [paper({ updatedAt: inDays(-15) })]),
     });
     renderApp('/');
-    expect(await screen.findByText('Чернеток і нових документів про вас немає.')).toBeInTheDocument();
+    expect(await screen.findByText('Документів на підпис, чернеток і нових про вас немає.')).toBeInTheDocument();
     expect(await screen.findByText('Активних ТЗ немає. Вільні ТЗ — на дошці.')).toBeInTheDocument();
     expect(await screen.findByText('Усе обладнання вільне.')).toBeInTheDocument();
     expect(await screen.findByText(/Бронювань немає/)).toBeInTheDocument();

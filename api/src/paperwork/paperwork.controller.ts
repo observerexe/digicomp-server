@@ -12,8 +12,11 @@ import {
   Req,
   Res,
   StreamableFile,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiCreatedResponse,
   ApiOkResponse,
@@ -24,11 +27,18 @@ import { Action } from '../auth/policy';
 import { Can, JwtAuthGuard, PolicyGuard } from '../auth/roles';
 import { OkDto } from '../common/responses.dto';
 import {
+  contentDisposition,
+  inlineDisposition,
+  PDF_PREVIEW_HEADERS,
+} from '../files/content-disposition';
+import type { UploadedFileLike } from '../files/file-validation';
+import {
   CancelPaperDto,
   CopyPaperDto,
   CreatePaperDto,
   ListPapersQuery,
   PaperForRecordDto,
+  PaperScanQuery,
   PrintPaperQuery,
   UpdatePaperDto,
 } from './dto';
@@ -41,6 +51,10 @@ import {
 } from './responses.dto';
 
 type Req = { user: { id: string; role: string } };
+
+const SCAN_UPLOAD = FileInterceptor('file', {
+  limits: { fileSize: 20 * 1024 * 1024, files: 1 },
+});
 
 @Controller('papers')
 @UseGuards(JwtAuthGuard, PolicyGuard)
@@ -116,6 +130,47 @@ export class PaperworkController {
   @HttpCode(200)
   freeze(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
     return this.papers.freeze(id, req.user);
+  }
+
+  /**
+   * The signed scan of a frozen document (PDF or a photo): a version in the
+   * Archive; the document becomes «Підписано». Again — the next version.
+   */
+  @Can(Action.PapersSign)
+  @ApiOkResponse({ type: PaperDto })
+  @Post(':id/signed')
+  @HttpCode(200)
+  @UseInterceptors(SCAN_UPLOAD)
+  sign(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file: UploadedFileLike | undefined,
+    @Req() req: Req,
+  ) {
+    return this.papers.sign(id, file, req.user);
+  }
+
+  /** The latest signed scan, for who sees the document; `inline=1` — a PDF opens in the browser. */
+  @Can(Action.PapersRead)
+  @Get(':id/signed')
+  async scan(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() q: PaperScanQuery,
+    @Req() req: Req,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { ver, stream } = await this.papers.scan(id, req.user);
+    const preview = q.inline === '1' && ver.mimeType === 'application/pdf';
+    res.set({
+      'Content-Type': ver.mimeType,
+      'Content-Disposition': preview
+        ? inlineDisposition(ver.fileName)
+        : contentDisposition(ver.fileName),
+      ...(preview ? PDF_PREVIEW_HEADERS : {}),
+      'Content-Length': String(ver.size),
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': 'private, no-store',
+    });
+    return new StreamableFile(stream);
   }
 
   /** The check of a printed document by its hash (the QR of its seal). */

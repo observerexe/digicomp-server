@@ -58,6 +58,44 @@ export class DictionaryUsageRegistry {
 }
 
 /**
+ * The item a module files its own records under (signed scans in the
+ * archive): the one with `key`, else the one titled `title` (staff made it
+ * by hand), else a new one — also when staff deleted it. Archived stays
+ * archived: the item is still valid. `created` — the new item, for the audit.
+ */
+export async function ensureDictionaryItem(
+  m: EntityManager,
+  dictionaryKey: string,
+  key: string,
+  title: string,
+): Promise<{ key: string; created: DictionaryItem | null }> {
+  // The dictionary row lock serialises changes to its items.
+  const d = await m.findOne(Dictionary, {
+    where: { key: dictionaryKey },
+    lock: { mode: 'pessimistic_write' },
+  });
+  if (!d) throw new Error(`Dictionary ${dictionaryKey} is missing`);
+  const items = await m.findBy(DictionaryItem, { dictionaryId: d.id });
+  const found =
+    items.find((i) => i.key === key) ??
+    items.find(
+      (i) => i.title.toLocaleLowerCase('uk') === title.toLocaleLowerCase('uk'),
+    );
+  if (found) return { key: found.key, created: null };
+  const created = await m.save(
+    m.create(DictionaryItem, {
+      dictionaryId: d.id,
+      key,
+      title,
+      color: 'gray',
+      position: items.reduce((n, i) => Math.max(n, i.position + 1), 0),
+      archivedAt: null,
+    }),
+  );
+  return { key, created };
+}
+
+/**
  * A record may get only an active item of the dictionary. An archived item
  * stays valid where it is already set (`current`), so old records still save.
  */

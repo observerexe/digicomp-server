@@ -21,6 +21,7 @@ import { DOCUMENT_LINKS } from './document.links';
   ],
   controllers: [DocumentsController],
   providers: [DocumentsService],
+  exports: [DocumentsService],
 })
 export class DocumentsModule implements OnModuleInit {
   constructor(

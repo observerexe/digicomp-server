@@ -34,6 +34,7 @@ const paper = (over: Partial<Paper> = {}): Paper => ({
   canCancel: false,
   canChange: false,
   canFreeze: false,
+  canSign: false,
   snapshot: null,
   ...over,
 });

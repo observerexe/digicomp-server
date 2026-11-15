@@ -612,6 +612,28 @@ const ROWS: Record<string, Case[]> = {
       Deny.NotOwner,
     ],
   ],
+  // Як фіксація: учасник — лише свій вільний; стан документа перевіряє
+  // сервіс — test/paper-sign.e2e-spec.ts.
+  'Документ редактора: завантажити підписаний скан': [
+    ['admin: чужий', admin, Action.PapersSign, { ownerId: 'u2' }, true],
+    ['moderator: чужий', mod, Action.PapersSign, { ownerId: 'u2' }, true],
+    ['moderator: що створює запис', mod, Action.PapersSign, {}, true],
+    [
+      'member: свій вільний',
+      member,
+      Action.PapersSign,
+      { ownerId: member.id },
+      true,
+    ],
+    [
+      'member: чужий',
+      member,
+      Action.PapersSign,
+      { ownerId: 'u2' },
+      Deny.NotOwner,
+    ],
+    ['member: що створює запис', member, Action.PapersSign, {}, Deny.NotOwner],
+  ],
   // Учасник бачить лише опубліковані шаблони, відкриті для всіх, —
   // test/paper-templates.e2e-spec.ts.
   'Шаблон документа: створити, змінити, опублікувати версію (перегляд — усі)': [

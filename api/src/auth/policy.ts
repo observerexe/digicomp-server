@@ -119,6 +119,7 @@ export enum Action {
   PapersCancel = 'papers.cancel',
   PapersChange = 'papers.change',
   PapersFreeze = 'papers.freeze',
+  PapersSign = 'papers.sign',
   PaperTemplatesRead = 'paper_templates.read',
   PaperTemplatesManage = 'paper_templates.manage',
 
@@ -240,6 +241,8 @@ export const ROLES: Record<Action, readonly Role[]> = {
   // Freeze for print and signature: a member — own free documents only (the
   // service gives no owner for a document that creates a record); staff — any.
   [Action.PapersFreeze]: ALL,
+  // Upload the signed scan of a frozen document: as freezing.
+  [Action.PapersSign]: ALL,
   // Members see only published templates open to all (service).
   [Action.PaperTemplatesRead]: ALL,
   [Action.PaperTemplatesManage]: STAFF,
@@ -356,6 +359,7 @@ const REFINE: Partial<Record<Action, Refine>> = {
   [Action.PapersCancel]: ownRecordForMember,
   [Action.PapersChange]: ownRecordForMember,
   [Action.PapersFreeze]: ownRecordForMember,
+  [Action.PapersSign]: ownRecordForMember,
 };
 
 export function roleAllowed(role: string, action: Action): boolean {

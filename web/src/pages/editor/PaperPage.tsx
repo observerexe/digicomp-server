@@ -8,6 +8,7 @@ import type { Paper } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
 import { Icon } from '../../components/Icon';
 import { OfflineBanner } from '../../components/OfflineBanner';
+import { DropZone } from '../../components/DropZone';
 import { ConfirmButton, ErrorMessage } from '../../components/ui';
 import { FieldsPanel } from '../../editor/FieldsPanel';
 import { setZoneText } from '../../editor/fields';
@@ -25,7 +26,7 @@ import { useAutosave, type SaveState } from '../../editor/useAutosave';
 import { peopleOf, useSheet } from '../../editor/useSheet';
 import { usePageStats } from '../../editor/usePageStats';
 import { errorOf } from '../../errors/messages';
-import { formatTime } from '../../lib/format';
+import { formatDate, formatTime } from '../../lib/format';
 import { PAPER_STATUS_LABEL } from '../../lib/labels';
 import { recordHref, recordLabel, type RecordView } from '../../lib/records';
 import { useDropdown } from '../../lib/useDropdown';
@@ -180,6 +181,21 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
     mutationFn: () => unwrap(api.POST('/api/papers/{id}/freeze', { params: { path: { id: paper.id } } })),
     onSuccess: replace,
   });
+  // The signed scan: the form is open while `scan` is not null (the file chosen, if any).
+  const [scan, setScan] = useState<File | null | undefined>(undefined);
+  const sign = useMutation({
+    mutationFn: () => {
+      if (!scan) throw new ApiError(0, 'FILE_REQUIRED');
+      if (scan.size > SCAN_MAX_BYTES) throw new ApiError(0, 'FILE_TOO_LARGE');
+      const body = new FormData();
+      body.append('file', scan);
+      return unwrap(api.POST('/api/papers/{id}/signed', { params: { path: { id: paper.id } }, body: body as never }));
+    },
+    onSuccess: (p) => {
+      setScan(undefined);
+      replace(p);
+    },
+  });
   const [reason, setReason] = useState<string | null>(null);
   const cancel = useMutation({
     mutationFn: () => unwrap(api.POST('/api/papers/{id}/cancel', { params: { path: { id: paper.id } }, body: { reason: (reason ?? '').trim() } })),
@@ -306,6 +322,11 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
           onConfirm={() => freeze.mutate()}
         />
       )}
+      {paper.canSign && scan === undefined && (
+        <button type="button" className={`btn ${paper.status === 'frozen' ? 'btn-primary' : ''}`} onClick={() => setScan(null)}>
+          {paper.status === 'frozen' ? 'Завантажити підписаний скан' : 'Інший скан'}
+        </button>
+      )}
     </>
   );
   const groups = template && {
@@ -410,6 +431,34 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
             </div>
           </form>
         )}
+        {scan !== undefined && (
+          <form
+            className={s.conflict}
+            onSubmit={(e) => {
+              e.preventDefault();
+              sign.mutate();
+            }}
+          >
+            <DropZone
+              id="paper-scan"
+              label="Вибрати файл"
+              file={scan}
+              onFile={setScan}
+              accept={SCAN_ACCEPT}
+              hint="Скан чи фото підписаного паперу: PDF, PNG, JPG або WebP, до 20 МБ."
+            />
+            <ErrorMessage text={sign.isError ? errorOf(sign.error) : null} />
+            <div className={s.conflictActions}>
+              <button type="submit" className="btn btn-primary" disabled={!scan || sign.isPending}>
+                Завантажити
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={() => setScan(undefined)}>
+                Назад
+              </button>
+            </div>
+          </form>
+        )}
+        {paper.snapshot?.signed && <SignedScan paper={paper} signed={paper.snapshot.signed} />}
         {paper.status === 'cancelled' && <p className="hint">Документ скасовано{paper.cancelReason ? `: ${paper.cancelReason}` : ''}.</p>}
         {paper.status !== 'cancelled' && paper.targetType && paper.targetId && <CreatedRecord type={paper.targetType} id={paper.targetId} />}
         {autosave.state === 'conflict' && (
@@ -498,6 +547,28 @@ function cancelHint(paper: Paper) {
   return paper.targetId
     ? `Разом із документом буде знято запис «${recordLabel(paper.targetType)}».`
     : `Разом із документом буде знято всі його записи «${recordLabel(paper.targetType)}».`;
+}
+
+const SCAN_ACCEPT = '.pdf,.png,.jpg,.jpeg,.webp';
+const SCAN_MAX_BYTES = 20 * 1024 * 1024;
+
+/** The signed scan: a PDF opens in the browser, a photo downloads. */
+function SignedScan({ paper, signed }: { paper: Paper; signed: NonNullable<NonNullable<Paper['snapshot']>['signed']> }) {
+  const href = `/api/papers/${paper.id}/signed`;
+  return (
+    <p className="hint">
+      Підписаний скан завантажено {formatDate(signed.uploadedAt)}.{' '}
+      {signed.mimeType === 'application/pdf' ? (
+        <a href={`${href}?inline=1`} target="_blank" rel="noopener noreferrer">
+          Відкрити скан
+        </a>
+      ) : (
+        <a href={href} download>
+          Завантажити скан
+        </a>
+      )}
+    </p>
+  );
 }
 
 /** A link to the record the document created. */
