@@ -62,8 +62,11 @@ function useFormatState(editor: Editor) {
   });
 }
 
-/** `lock` — why formatting does not apply where the cursor is (a document from a template); null — it does. */
-export function Ribbon({ editor, lock = null }: { editor: Editor; lock?: string | null }) {
+/**
+ * `lock` — why formatting does not apply where the cursor is (a document from a template); null — it does.
+ * `extra` — the page's own controls at the end (the constructor: «Показати ключі полів»).
+ */
+export function Ribbon({ editor, lock = null, extra }: { editor: Editor; lock?: string | null; extra?: ReactNode }) {
   const [tab, setTab] = useState<Tab>('home');
   const id = useId();
   const f = useFormatState(editor);
@@ -207,6 +210,7 @@ export function Ribbon({ editor, lock = null }: { editor: Editor; lock?: string 
             </>
           )}
         </fieldset>
+        {extra}
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import type { RecordType } from '../api/types';
 import { candidatesQuery, recordLabel, useSettled, type RecordView } from '../lib/records';
 import type { MentionMenuState } from './mention';
-import s from './MentionMenu.module.css';
+import s from './SuggestMenu.module.css';
 
 /** What «@» refers to, in this order. */
 export const MENTION_TYPES: RecordType[] = ['user', 'task', 'project', 'place', 'inventory_item'];

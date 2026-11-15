@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { JSONContent } from '@tiptap/core';
-import { api, ApiError, unwrap } from '../api/client';
-import type { FieldValues } from '../../../shared/editor-schema/fields';
-
-export type PaperChange = { title?: string; content?: JSONContent; values?: FieldValues };
+import { ApiError } from '../api/client';
 
 /**
  * saved — everything is on the server; dirty — changes wait for the pause;
@@ -18,18 +14,25 @@ export const SAVE_DELAY = 1500;
 /** After a failed save (network) — try again. */
 export const RETRY_DELAY = 10_000;
 
+/** What the server answers to a save: the next revision. */
+export type Saved = { revision: number; updatedAt: string };
+
 /**
- * Autosave of a draft: one PATCH at a time with the last known revision;
- * changes made while a request is on its way go with the next one.
- * A change of a field replaces its pending value (the latest wins).
+ * Autosave of a draft (a document, a template version): one save at a time
+ * with the last known revision; changes made while a request is on its way
+ * go with the next one. A change of a part replaces its pending value (the
+ * latest wins). `send` — the PATCH of the draft.
  */
-export function useAutosave(id: string, initialRevision: number) {
+export function useAutosave<C extends object>(send: (change: Partial<C>, revision: number) => Promise<Saved>, initialRevision: number) {
   const [state, setState] = useState<SaveState>('saved');
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   /** Why the server refused the last save (state rejected). */
   const [rejection, setRejection] = useState<ApiError | null>(null);
   const revision = useRef(initialRevision);
-  const pending = useRef<PaperChange>({});
+  const pending = useRef<Partial<C>>({});
+  // The latest `send`: a new function each render must not restart the saving.
+  const sendRef = useRef(send);
+  sendRef.current = send;
   const inFlight = useRef<Promise<void> | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stopped = useRef(false);
@@ -55,7 +58,7 @@ export function useAutosave(id: string, initialRevision: number) {
     setState('saving');
     const run = (async () => {
       try {
-        const res = await unwrap(api.PATCH('/api/papers/{id}', { params: { path: { id } }, body: { revision: revision.current, ...change } }));
+        const res = await sendRef.current(change, revision.current);
         revision.current = res.revision;
         setSavedAt(new Date(res.updatedAt));
         setRejection(null);
@@ -83,10 +86,10 @@ export function useAutosave(id: string, initialRevision: number) {
     await run;
     inFlight.current = null;
     if (!stopped.current && !held.current && Object.keys(pending.current).length && !timer.current) await save();
-  }, [id]);
+  }, []);
 
   const change = useCallback(
-    (c: PaperChange) => {
+    (c: Partial<C>) => {
       if (stopped.current) return;
       pending.current = { ...pending.current, ...c };
       held.current = false;

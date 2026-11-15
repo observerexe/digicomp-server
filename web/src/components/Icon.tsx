@@ -33,6 +33,15 @@ const PATHS: Record<string, string> = {
   outdent: 'M4 6h16M11 10h9M11 14h9M4 18h16M7 9.5 4 12l3 2.5',
   table: 'M4 5h16v14H4zM4 10h16M4 15h16M10 5v14',
   pageBreak: 'M6 3v5h12V3M6 21v-5h12v5M3 12h2M8 12h2M14 12h2M19 12h2',
+  heading: 'M6 4v16M18 4v16M6 12h12',
+  paragraph: 'M4 6h16M4 10h16M4 14h16M4 18h10',
+  textField: 'M3 7h18v10H3zM7 10v4',
+  zone: 'M4 7V4h3M10 4h4M17 4h3v3M20 10v4M20 17v3h-3M14 20h-4M7 20H4v-3M4 14v-4M8 10h8M8 14h5',
+  number: 'M5 9h15M4 15h15M10 4 8 20M16 4l-2 16',
+  calendar: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4',
+  choice: 'M3 7h18v10H3zM14 11l2 2 2-2',
+  checkbox: 'M4 4h16v16H4zM8 12l3 3 5-6',
+  trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',
 };
 
 export type IconName = keyof typeof PATHS;

@@ -86,6 +86,43 @@
   line-height: 18px;
 }
 
+/* An error of «Новий документ» under the header's buttons */
+.headerError {
+  flex-basis: 100%;
+}
+
+/* «Новий шаблон» */
+.newTemplate {
+  display: grid;
+  gap: 14px;
+  max-width: 560px;
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-card);
+  background: var(--c-surface);
+}
+.newTemplate h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+.formActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Versions of a template: published — green, the draft — yellow */
+.tagPublished {
+  background: var(--pal-green-soft);
+  color: var(--pal-green-text);
+}
+.tagDraft {
+  background: var(--pal-yellow-soft);
+  color: var(--pal-yellow-text);
+}
+
 /* «Новий документ»: empty or from a template */
 .newPaper {
   position: relative;
@@ -268,6 +305,26 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+/* The constructor's own control on the ribbon */
+.ribbonToggle {
+  min-height: 40px;
+  margin-left: 12px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--c-text);
+  font-weight: 500;
+  cursor: pointer;
+}
+.ribbonToggle:hover {
+  background: var(--c-surface2);
+}
+.ribbonToggle[aria-pressed='true'] {
+  background: var(--c-primary-soft);
+  color: var(--c-primary-text);
 }
 
 /* The desk and, for a document from a template, the «Поля» panel to its right */

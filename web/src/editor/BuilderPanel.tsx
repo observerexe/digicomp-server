@@ -1,0 +1,351 @@
+import { useId, useState, type DragEvent, type KeyboardEvent } from 'react';
+import type { RecordSchema, TemplateKind } from '../api/types';
+import { Icon } from '../components/Icon';
+import { useDictionaries } from '../lib/dictionaries';
+import { BLOCK_GROUPS, BLOCKS, fieldBlockOf, textBlockOf, type Block } from './blocks';
+import { BLOCK_MIME, type BuilderSelection } from './builder';
+import s from './BuilderPanel.module.css';
+import { bindingOptions, hasLength, isChoice, isList, isNumeric, keyProblem, LABEL_MAX, limitsText, withType, type FieldDef, type FieldType } from './template';
+
+export type BuilderTab = 'blocks' | 'props';
+
+type Props = {
+  tab: BuilderTab;
+  onTab: (tab: BuilderTab) => void;
+  selected: BuilderSelection;
+  /** Every field with settings, those not on the sheet too (the key of a field picked in a block). */
+  defs: ReadonlyMap<string, FieldDef>;
+  /** Fields on the sheet. */
+  fields: readonly FieldDef[];
+  kind: TemplateKind;
+  schema: RecordSchema | null | undefined;
+  onPick: (block: string) => void;
+  onChange: (f: FieldDef) => void;
+  onRename: (from: string, to: string) => void;
+  onRemoveField: (key: string) => void;
+  onRemoveBlock: (index: number) => void;
+  onSelectField: (key: string) => void;
+};
+
+const TABS: { key: BuilderTab; label: string }[] = [
+  { key: 'blocks', label: 'Блоки' },
+  { key: 'props', label: 'Властивості' },
+];
+
+/** The constructor's panel: «Блоки» (the palette) and «Властивості» (of what is selected). */
+export function BuilderPanel(props: Props) {
+  const id = useId();
+  const tabKeys = (e: KeyboardEvent) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const next = props.tab === 'blocks' ? 'props' : 'blocks';
+    props.onTab(next);
+    document.getElementById(`${id}-${next}`)?.focus();
+  };
+  return (
+    <aside className={s.panel} aria-label="Конструктор">
+      <div role="tablist" aria-label="Панель конструктора" className={s.tabs} onKeyDown={tabKeys}>
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            id={`${id}-${t.key}`}
+            type="button"
+            role="tab"
+            aria-selected={props.tab === t.key}
+            aria-controls={`${id}-panel`}
+            tabIndex={props.tab === t.key ? 0 : -1}
+            className={s.tab}
+            onClick={() => props.onTab(t.key)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div id={`${id}-panel`} role="tabpanel" aria-labelledby={`${id}-${props.tab}`} className={s.body}>
+        {props.tab === 'blocks' ? <Palette onPick={props.onPick} /> : <Properties {...props} />}
+      </div>
+    </aside>
+  );
+}
+
+/** A click on the palette must not take the cursor away from the sheet. */
+const keepFocus = (e: { preventDefault: () => void }) => e.preventDefault();
+
+function Palette({ onPick }: { onPick: (block: string) => void }) {
+  const drag = (b: Block) => (e: DragEvent) => {
+    e.dataTransfer.setData(BLOCK_MIME, b.key);
+    e.dataTransfer.effectAllowed = 'copy';
+  };
+  return (
+    <>
+      <p className="hint">Натисніть блок, щоб вставити його біля курсора, або перетягніть на аркуш. На аркуші — «/».</p>
+      {BLOCK_GROUPS.map((g) => (
+        <section key={g.key} className={s.group} aria-label={g.label}>
+          <h3 className={s[`h-${g.key}`]}>{g.label}</h3>
+          <div className={s.blocks}>
+            {BLOCKS.filter((b) => b.group === g.key).map((b) => (
+              <button key={b.key} type="button" className={s.block} draggable onDragStart={drag(b)} onMouseDown={keepFocus} onClick={() => onPick(b.key)}>
+                <span className={`${s.blockIcon} ${s[`i-${g.key}`]}`}>
+                  <Icon name={b.icon} size={18} />
+                </span>
+                {b.label}
+              </button>
+            ))}
+          </div>
+        </section>
+      ))}
+    </>
+  );
+}
+
+function Properties(props: Props) {
+  const { selected, defs } = props;
+  if (!selected) return <p className="hint">Виберіть блок на аркуші.</p>;
+  if (selected.kind === 'block') {
+    const block = textBlockOf(selected.node);
+    return (
+      <>
+        <Heading block={block} label={block?.label ?? selected.node} hint="Текст шаблону: у документі він не змінюється." />
+        {selected.keys.length > 0 && (
+          <div className={s.prop}>
+            <span className={s.propLabel}>Поля в блоці</span>
+            <div className={s.chips}>
+              {selected.keys.map((k) => (
+                <button key={k} type="button" className={s.chip} onClick={() => props.onSelectField(k)}>
+                  {defs.get(k)?.label ?? k}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        <button type="button" className={`btn btn-danger ${s.remove}`} onClick={() => props.onRemoveBlock(selected.index)}>
+          <Icon name="trash" size={18} />
+          Видалити блок
+        </button>
+      </>
+    );
+  }
+  const f = defs.get(selected.key);
+  if (!f) return <p className="hint">Поле «{selected.key}» без налаштувань: видаліть його з аркуша.</p>;
+  // A new form for each field: what is typed in it belongs to that field.
+  return <FieldForm key={f.key} f={f} {...props} />;
+}
+
+function Heading({ block, label, hint }: { block: Block | null; label: string; hint: string }) {
+  return (
+    <div className={s.heading}>
+      <span className={`${s.headingIcon} ${s[`i-${block?.group ?? 'text'}`]}`}>
+        <Icon name={block?.icon ?? 'paragraph'} size={22} />
+      </span>
+      <span>
+        <strong>{label}</strong>
+        <span className="hint">{hint}</span>
+      </span>
+    </div>
+  );
+}
+
+function FieldForm({ f, fields, kind, schema, onChange, onRename, onRemoveField }: Props & { f: FieldDef }) {
+  const id = useId();
+  const block = fieldBlockOf(f.type);
+  const [keyText, setKeyText] = useState(f.key);
+  const [label, setLabel] = useState(f.label);
+  const taken = new Set(fields.map((x) => x.key));
+  const keyError = keyProblem(keyText, f.key, taken);
+  const applyKey = () => {
+    if (!keyError && keyText !== f.key) onRename(f.key, keyText);
+  };
+  const bindings = bindingOptions(f, kind, schema, fields);
+  const bound = f.binding ? schema?.fields.find((x) => x.key === f.binding) : undefined;
+  const set = (patch: Partial<FieldDef>) => onChange({ ...f, ...patch });
+  const bind = (key: string) => {
+    const target = bindings.find((x) => x.key === key);
+    if (!target) return set({ binding: null });
+    set({
+      binding: key,
+      // A bound choice takes its values from the record's field.
+      dictionary: null,
+      // A template that creates a record fills what the record needs.
+      required: f.required || (kind === 'creates' && !!target.required),
+      label: f.label === block?.label ? target.label : f.label,
+    });
+    if (f.label === block?.label) setLabel(target.label);
+  };
+
+  return (
+    <>
+      <Heading block={block} label={block?.label ?? f.type} hint={block?.hint ?? 'Поле, яке заповнює людина'} />
+      <div className="field">
+        <label htmlFor={`${id}-key`}>Ключ</label>
+        <input
+          id={`${id}-key`}
+          className={s.mono}
+          value={keyText}
+          maxLength={40}
+          spellCheck={false}
+          autoComplete="off"
+          aria-invalid={!!keyError}
+          aria-describedby={`${id}-key-hint`}
+          onChange={(e) => setKeyText(e.target.value)}
+          onBlur={applyKey}
+          onKeyDown={(e) => e.key === 'Enter' && applyKey()}
+        />
+        <span id={`${id}-key-hint`} className={keyError ? s.error : 'hint'}>
+          {keyError ?? 'Латиницею. За ключем значення з’являється в тексті й у звіті.'}
+        </span>
+      </div>
+      <div className="field">
+        <label htmlFor={`${id}-label`}>Підпис у формі</label>
+        <input
+          id={`${id}-label`}
+          value={label}
+          maxLength={LABEL_MAX}
+          aria-invalid={!label.trim()}
+          onChange={(e) => {
+            setLabel(e.target.value);
+            if (e.target.value.trim()) set({ label: e.target.value });
+          }}
+          onBlur={() => !label.trim() && setLabel(f.label)}
+        />
+      </div>
+      {block?.variants && (
+        <div className={s.prop} role="group" aria-label="Вид поля">
+          <span className={s.propLabel}>Вид</span>
+          <div className={s.segmented}>
+            {block.variants.map((v) => (
+              <button key={v.type} type="button" aria-pressed={f.type === v.type} onClick={() => f.type !== v.type && onChange(withType(f, v.type as FieldType))}>
+                {v.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {kind !== 'free' && schema && (
+        <div className="field">
+          <label htmlFor={`${id}-binding`}>Зв’язок із записом</label>
+          <select id={`${id}-binding`} value={f.binding ?? ''} onChange={(e) => bind(e.target.value)}>
+            <option value="">Без зв’язку</option>
+            {f.binding && !bindings.some((b) => b.key === f.binding) && <option value={f.binding}>{bound?.label ?? f.binding} (недоступне)</option>}
+            {bindings.map((b) => (
+              <option key={b.key} value={b.key}>
+                {schema.label} → {b.label}
+              </option>
+            ))}
+          </select>
+          <span className="hint">
+            {bound
+              ? [
+                  `Значення піде в поле запису «${bound.label}».`,
+                  limitsText({ min: bound.min ?? null, max: bound.max ?? null, maxLength: bound.maxLength ?? null, maxItems: bound.maxItems ?? null }),
+                ]
+                  .filter(Boolean)
+                  .join(' Межі запису: ')
+              : bindings.length
+                ? 'Прив’язане поле пише значення в сам запис.'
+                : 'У записі немає полів, до яких можна прив’язати це поле.'}
+          </span>
+        </div>
+      )}
+      {/* Another kind of the field — its limits anew (an integer's bounds are rounded). */}
+      <Limits key={f.type} id={id} f={f} onChange={onChange} />
+      {isChoice(f.type) && !f.binding && <DictionaryChoice id={`${id}-dict`} value={f.dictionary} onChange={(dictionary) => set({ dictionary })} />}
+      <div className="field">
+        <label htmlFor={`${id}-fill`}>Хто заповнює</label>
+        <select id={`${id}-fill`} value={f.fill} onChange={(e) => set({ fill: e.target.value as FieldDef['fill'] })}>
+          <option value="author">Автор документа</option>
+          <option value="staff">Модератор</option>
+        </select>
+      </div>
+      <Switch label="Обов’язкове" on={f.required} onChange={(required) => set({ required })} />
+      <Switch label="Можна змінити після публікації" on={f.editable} onChange={(editable) => set({ editable })} />
+      <Switch label="Показувати в друці" on={f.print} onChange={(print) => set({ print })} />
+      <button type="button" className={`btn btn-danger ${s.remove}`} onClick={() => onRemoveField(f.key)}>
+        <Icon name="trash" size={18} />
+        Видалити поле
+      </button>
+    </>
+  );
+}
+
+/** Limits that suit the type: numbers — from/to, text — length, a list — how many. */
+function Limits({ id, f, onChange }: { id: string; f: FieldDef; onChange: (f: FieldDef) => void }) {
+  const integer = f.type === 'int';
+  return (
+    <>
+      {isNumeric(f.type) && (
+        <div className={s.pair}>
+          <NumberBox id={`${id}-min`} label="Від" value={f.min} integer={integer} onChange={(min) => onChange({ ...f, min })} />
+          <NumberBox id={`${id}-max`} label="До" value={f.max} integer={integer} onChange={(max) => onChange({ ...f, max })} />
+        </div>
+      )}
+      {f.min !== null && f.max !== null && f.min > f.max && <p className={s.error}>«Від» більше за «До».</p>}
+      {hasLength(f.type) && (
+        <NumberBox id={`${id}-len`} label="Найбільша довжина, знаків" value={f.maxLength} integer positive onChange={(maxLength) => onChange({ ...f, maxLength })} />
+      )}
+      {isList(f.type) && <NumberBox id={`${id}-items`} label="Найбільше, шт." value={f.maxItems} integer positive onChange={(maxItems) => onChange({ ...f, maxItems })} />}
+    </>
+  );
+}
+
+/** A number or nothing (no limit); an invalid one is shown, not applied. */
+function NumberBox(props: { id: string; label: string; value: number | null; integer: boolean; positive?: boolean; onChange: (v: number | null) => void }) {
+  const [raw, setRaw] = useState(props.value === null ? '' : String(props.value).replace('.', ','));
+  const parse = (v: string): number | null | undefined => {
+    const t = v.trim().replace(',', '.');
+    if (t === '') return null;
+    if (!/^-?\d+(\.\d{1,2})?$/.test(t)) return undefined;
+    const n = Number(t);
+    if (props.integer && !Number.isInteger(n)) return undefined;
+    if (props.positive && n < 1) return undefined;
+    return Math.abs(n) <= 1e9 ? n : undefined;
+  };
+  const bad = parse(raw) === undefined;
+  return (
+    <div className="field">
+      <label htmlFor={props.id}>{props.label}</label>
+      <input
+        id={props.id}
+        type="text"
+        inputMode={props.integer ? 'numeric' : 'decimal'}
+        value={raw}
+        placeholder="без меж"
+        aria-invalid={bad}
+        onChange={(e) => {
+          setRaw(e.target.value);
+          const n = parse(e.target.value);
+          if (n !== undefined) props.onChange(n);
+        }}
+      />
+      {bad && <span className={s.error}>{props.integer ? (props.positive ? 'Ціле число від 1' : 'Ціле число') : 'Число, до 2 знаків після коми'}</span>}
+    </div>
+  );
+}
+
+function DictionaryChoice({ id, value, onChange }: { id: string; value: string | null; onChange: (v: string | null) => void }) {
+  const dicts = useDictionaries();
+  return (
+    <div className="field">
+      <label htmlFor={id}>Довідник</label>
+      <select id={id} value={value ?? ''} aria-invalid={!value} onChange={(e) => onChange(e.target.value || null)}>
+        <option value="">Виберіть довідник</option>
+        {value && !dicts.data?.some((d) => d.key === value) && <option value={value}>{value}</option>}
+        {dicts.data?.map((d) => (
+          <option key={d.key} value={d.key}>
+            {d.title}
+          </option>
+        ))}
+      </select>
+      <span className="hint">Варіанти вибору — пункти довідника. Довідники — на «Панелі керування».</span>
+    </div>
+  );
+}
+
+function Switch({ label, on, onChange }: { label: string; on: boolean; onChange: (on: boolean) => void }) {
+  return (
+    <div className={s.switchRow}>
+      <span>{label}</span>
+      <button type="button" role="switch" aria-checked={on} aria-label={label} className={s.switch} onClick={() => onChange(!on)}>
+        <span className={s.knob} />
+      </button>
+    </div>
+  );
+}

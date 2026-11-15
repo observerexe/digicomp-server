@@ -135,3 +135,75 @@ img.ProseMirror-separator {
   text-decoration: none;
   font-style: italic;
 }
+
+/* The template constructor (builder.ts): each block in a frame with its label; fields in the colours of their groups */
+.paper .paper-block {
+  position: relative;
+  margin-left: -8px;
+  margin-right: -8px;
+  padding: 6px 8px;
+  border: 1px dashed color-mix(in srgb, var(--sheet-gray) 30%, var(--sheet-paper));
+  border-radius: 6px;
+}
+.paper .paper-block + .paper-block {
+  margin-top: 14px;
+}
+.paper .paper-block:first-child {
+  margin-top: 10px;
+}
+.paper .paper-block.is-active {
+  border: 1.5px solid var(--sheet-blue);
+  background: color-mix(in srgb, var(--sheet-blue) 3%, var(--sheet-paper));
+}
+.paper .paper-block::before {
+  content: attr(data-label);
+  position: absolute;
+  top: -10px;
+  left: 8px;
+  max-width: calc(100% - 16px);
+  overflow: hidden;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sheet-gray) 12%, var(--sheet-paper));
+  color: var(--sheet-gray);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 18px;
+  text-align: left;
+  text-indent: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.paper .paper-block.is-field::before {
+  background: color-mix(in srgb, var(--sheet-blue) 12%, var(--sheet-paper));
+  color: var(--sheet-blue);
+}
+.paper .paper-block.is-data::before {
+  background: color-mix(in srgb, var(--sheet-purple) 12%, var(--sheet-paper));
+  color: var(--sheet-purple);
+}
+.paper .paper-field.is-field {
+  color: var(--sheet-blue);
+}
+.paper .paper-field.is-data {
+  color: var(--sheet-purple);
+}
+.paper .paper-end {
+  margin-top: 18px;
+  padding: 14px;
+  border: 1.5px dashed color-mix(in srgb, var(--sheet-gray) 35%, var(--sheet-paper));
+  border-radius: 8px;
+  color: var(--sheet-gray);
+  font-family: var(--font-body);
+  font-size: 14px;
+  text-align: center;
+  text-indent: 0;
+  cursor: pointer;
+  user-select: none;
+}
+.paper .paper-end:hover {
+  border-color: var(--sheet-blue);
+  color: var(--sheet-blue);
+}

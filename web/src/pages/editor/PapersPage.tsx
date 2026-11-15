@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useId, useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { api, unwrap } from '../../api/client';
 import { useAuth } from '../../auth/AuthProvider';
 import { SearchField } from '../../components/Filters';
@@ -12,19 +12,66 @@ import { PAPER_STATUS_LABEL } from '../../lib/labels';
 import { useDebounced } from '../../lib/useDebounced';
 import { useDropdown } from '../../lib/useDropdown';
 import s from './editor.module.css';
+import { NewTemplate, TemplatesList } from './TemplatesTab';
 
-/** «Редактор»: my documents and all I can see; a new document opens at once. */
+type Tab = 'mine' | 'all' | 'templates';
+
+/**
+ * «Редактор»: my documents, all I can see, and (staff) templates. A new
+ * document opens at once; a new template — in the constructor. The tab is
+ * in the address: back from the constructor is back to «Шаблони».
+ */
 export function PapersPage() {
   const { can } = useAuth();
+  const [params, setParams] = useSearchParams();
+  const templates = can('paper_templates.manage');
+  const asked = params.get('tab');
+  const tab: Tab = asked === 'all' ? 'all' : asked === 'templates' && templates ? 'templates' : 'mine';
+  const [creating, setCreating] = useState(false);
+  const show = (t: Tab) => setParams(t === 'mine' ? {} : { tab: t }, { replace: true });
+
+  return (
+    <>
+      <PageHeader title="Редактор">
+        <div className={s.headerTools}>
+          <div className={s.segmented} role="group" aria-label="Що показати">
+            <button type="button" aria-pressed={tab === 'mine'} onClick={() => show('mine')}>
+              Мої
+            </button>
+            <button type="button" aria-pressed={tab === 'all'} onClick={() => show('all')}>
+              Усі
+            </button>
+            {templates && (
+              <button type="button" aria-pressed={tab === 'templates'} onClick={() => show('templates')}>
+                Шаблони
+              </button>
+            )}
+          </div>
+          {tab === 'templates' ? (
+            <button type="button" className="btn btn-primary" onClick={() => setCreating(true)} disabled={creating}>
+              Новий шаблон
+            </button>
+          ) : (
+            can('papers.create') && <NewPaperButton />
+          )}
+        </div>
+      </PageHeader>
+      {tab === 'templates' ? (
+        <>
+          {creating && <NewTemplate onClose={() => setCreating(false)} />}
+          <TemplatesList />
+        </>
+      ) : (
+        <Papers mine={tab === 'mine'} />
+      )}
+    </>
+  );
+}
+
+/** «Новий документ» and what it may fail with. */
+function NewPaperButton() {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [mine, setMine] = useState(true);
-  const [search, setSearch] = useState('');
-  const q = useDebounced(search.trim(), 300);
-  const papers = useQuery({
-    queryKey: ['papers', 'list', mine, q],
-    queryFn: () => unwrap(api.GET('/api/papers', { params: { query: { limit: '100', ...(mine ? { mine: 'true' } : {}), ...(q ? { search: q } : {}) } } })),
-  });
   const create = useMutation({
     mutationFn: (templateId: string | null) => unwrap(api.POST('/api/papers', { body: templateId ? { templateId } : {} })),
     onSuccess: (p) => {
@@ -32,24 +79,29 @@ export function PapersPage() {
       void navigate(`/editor/${p.id}`);
     },
   });
+  return (
+    <>
+      <NewPaper pending={create.isPending} onCreate={(templateId) => create.mutate(templateId)} />
+      {create.isError && (
+        <div className={s.headerError}>
+          <ErrorMessage text={errorOf(create.error)} />
+        </div>
+      )}
+    </>
+  );
+}
+
+function Papers({ mine }: { mine: boolean }) {
+  const [search, setSearch] = useState('');
+  const q = useDebounced(search.trim(), 300);
+  const papers = useQuery({
+    queryKey: ['papers', 'list', mine, q],
+    queryFn: () => unwrap(api.GET('/api/papers', { params: { query: { limit: '100', ...(mine ? { mine: 'true' } : {}), ...(q ? { search: q } : {}) } } })),
+  });
   const items = papers.data?.items ?? [];
 
   return (
     <>
-      <PageHeader title="Редактор">
-        <div className={s.headerTools}>
-          <div className={s.segmented} role="group" aria-label="Які документи показати">
-            <button type="button" aria-pressed={mine} onClick={() => setMine(true)}>
-              Мої
-            </button>
-            <button type="button" aria-pressed={!mine} onClick={() => setMine(false)}>
-              Усі
-            </button>
-          </div>
-          {can('papers.create') && <NewPaper pending={create.isPending} onCreate={(templateId) => create.mutate(templateId)} />}
-        </div>
-      </PageHeader>
-      <ErrorMessage text={create.isError ? errorOf(create.error) : null} />
       <div className={s.tools}>
         <SearchField value={search} onChange={setSearch} placeholder="Назва документа" />
       </div>
@@ -79,7 +131,11 @@ export function PapersPage() {
           ))}
         </ul>
       )}
-      {papers.data && papers.data.total > items.length && <p className="hint">Показано {items.length} з {papers.data.total}. Уточніть пошук, щоб знайти інші.</p>}
+      {papers.data && papers.data.total > items.length && (
+        <p className="hint">
+          Показано {items.length} з {papers.data.total}. Уточніть пошук, щоб знайти інші.
+        </p>
+      )}
     </>
   );
 }

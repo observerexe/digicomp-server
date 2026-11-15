@@ -20,8 +20,11 @@ const keyAttr = {
 export type FieldLook = {
   /** On the sheet: the value, or the label when empty. */
   text: string;
-  /** filled — light blue; missing — required and empty; empty; staff — a moderator fills it. */
-  state: 'filled' | 'missing' | 'empty' | 'staff';
+  /**
+   * A document: filled — light blue; missing — required and empty; empty; staff — a moderator fills it.
+   * The constructor: field, data — a field and a record of the app, in the colours of their groups.
+   */
+  state: 'filled' | 'missing' | 'empty' | 'staff' | 'field' | 'data';
 };
 export type FieldsLook = { fields: Record<string, FieldLook>; zones: Record<string, { label: string; missing: boolean }>; active: string | null };
 

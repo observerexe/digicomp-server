@@ -6,6 +6,25 @@ import type { LinkCandidate, RecordType } from '../api/types';
 /** A record as a reference shows it: title, archived, QR code. */
 export type RecordView = { type: RecordType; id: string; title: string; archived: boolean; code?: string };
 
+/** Every record type (as the API knows them), in the order of lists. */
+export const RECORD_TYPES = [
+  'user',
+  'task',
+  'project',
+  'place',
+  'inventory_item',
+  'discipline_record',
+  'points_entry',
+  'session',
+  'fault',
+  'place_authorization',
+  'document',
+  'paper',
+] as const satisfies readonly RecordType[];
+// A type the API adds and this list does not have — an error here.
+const allTypes: Exclude<RecordType, (typeof RECORD_TYPES)[number]> extends never ? true : false = true;
+void allTypes;
+
 /** What a record of each type is called (one), for chips, groups and hints. */
 export const RECORD_LABEL: Partial<Record<RecordType, string>> = {
   user: 'Учасник',

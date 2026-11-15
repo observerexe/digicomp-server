@@ -1,7 +1,13 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { api, unwrap } from '../api/client';
 import { json, mockApi } from '../test/render';
-import { RETRY_DELAY, SAVE_DELAY, useAutosave } from './useAutosave';
+import { RETRY_DELAY, SAVE_DELAY, useAutosave as useSaving } from './useAutosave';
+
+type Change = { title: string; content: Record<string, unknown>; values: Record<string, unknown> };
+/** The document's PATCH, as the document page sends it. */
+const useAutosave = (id: string, revision: number) =>
+  useSaving<Change>((change, rev) => unwrap(api.PATCH('/api/papers/{id}', { params: { path: { id } }, body: { revision: rev, ...change } })), revision);
 
 const doc = (t: string) => ({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: t }] }] });
 const saved = (revision: number) => json(200, { id: 'p1', title: 'x', status: 'draft', visibility: 'author', author: { id: 'u1', name: 'М', avatarUrl: null }, revision, createdAt: '', updatedAt: '2026-11-14T12:30:00Z' });

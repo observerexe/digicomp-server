@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { JSONContent } from '@tiptap/core';
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react';
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -79,6 +80,8 @@ const SAVE_TEXT: Record<Exclude<SaveState, 'saved'>, string> = {
 
 const TITLE_MAX = 200;
 
+type PaperChange = { title: string; content: JSONContent; values: FieldValues };
+
 /** What the sheet shows for each field and zone now. */
 function lookOf(template: PaperTemplateRef, values: FieldValues, zones: Record<string, string>, active: string | null, title: RecordTitle): FieldsLook {
   const look: FieldsLook = { fields: {}, zones: {}, active };
@@ -102,7 +105,10 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
   const qc = useQueryClient();
   const { user } = useAuth();
   const editable = paper.canEdit && paper.status === 'draft';
-  const autosave = useAutosave(paper.id, paper.revision);
+  const autosave = useAutosave<PaperChange>(
+    (change, revision) => unwrap(api.PATCH('/api/papers/{id}', { params: { path: { id: paper.id } }, body: { revision, ...change } })),
+    paper.revision,
+  );
   const [title, setTitle] = useState(paper.title);
   const lastTitle = useRef(paper.title);
   const template = paper.template;

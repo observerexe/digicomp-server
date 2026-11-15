@@ -52,10 +52,23 @@ import { UserPage } from './pages/team/UserPage';
 
 // TipTap is loaded only when a document is opened.
 const PaperPage = lazy(() => import('./pages/editor/PaperPage').then((m) => ({ default: m.PaperPage })));
+const TemplatePage = lazy(() => import('./pages/editor/TemplatePage').then((m) => ({ default: m.TemplatePage })));
 
 export const routes: RouteObject[] = [
   { path: '/login', element: <LoginPage /> },
   // A document takes the whole window, like a word processor: no sidebar.
+  {
+    path: '/editor/templates/:id',
+    element: (
+      <RequireAuth>
+        <RequirePermission action="paper_templates.manage" fallback={<ForbiddenPage />}>
+          <Suspense fallback={<PaperLoading />}>
+            <TemplatePage />
+          </Suspense>
+        </RequirePermission>
+      </RequireAuth>
+    ),
+  },
   {
     path: '/editor/:id',
     element: (

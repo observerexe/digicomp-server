@@ -1,4 +1,4 @@
-/* The list after «@» (MentionMenu.tsx): under the cursor, over the sheet */
+/* The lists after «@» (MentionMenu.tsx) and «/» (BlockMenu.tsx): under the cursor, over the sheet */
 .menu {
   position: fixed;
   z-index: 50;
@@ -42,5 +42,15 @@
 .note {
   margin: 0;
   padding: 6px 8px;
+  color: var(--c-text2);
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.icon {
+  flex: none;
+  display: flex;
   color: var(--c-text2);
 }
