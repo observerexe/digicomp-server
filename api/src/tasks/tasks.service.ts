@@ -209,45 +209,58 @@ export class TasksService {
     return tx ? run(tx) : this.ds.transaction(run);
   }
 
-  update(id: string, dto: UpdateTaskDto, actor: Actor): Promise<TaskDto> {
-    return this.locked(id, async (m, task, assignees) => {
-      if (task.status === TaskStatus.Done) {
-        throw new ConflictException(TaskErrors.Completed);
-      }
-      if (
-        dto.maxAssignees !== undefined &&
-        dto.maxAssignees < assignees.length
-      ) {
-        throw new ConflictException(TaskErrors.MaxTooLow);
-      }
-      const changes: Record<string, unknown> = {};
-      if (dto.title !== undefined)
-        task.title = changes.title = dto.title.trim();
-      if (dto.description !== undefined) {
-        task.description = dto.description;
-        changes.description = true;
-      }
-      if (dto.points !== undefined) task.points = changes.points = dto.points;
-      if (dto.maxAssignees !== undefined) {
-        task.maxAssignees = changes.maxAssignees = dto.maxAssignees;
-      }
-      if (dto.dueDate !== undefined) {
-        task.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
-        changes.dueDate = dto.dueDate;
-      }
-      if (dto.extra !== undefined) {
-        const { extra, changed } = await this.fields.applyExtra(
-          m,
-          'task',
-          dto.extra,
-          task.extra,
-        );
-        task.extra = extra;
-        if (Object.keys(changed).length) changes.extra = changed;
-      }
-      await m.save(Task, task);
-      await this.log(m, actor, 'task.updated', task.id, changes);
-    });
+  /** In its own transaction, or in the given one (a document changing the task). */
+  update(
+    id: string,
+    dto: UpdateTaskDto,
+    actor: Actor,
+    tx?: EntityManager,
+  ): Promise<TaskDto> {
+    return this.locked(
+      id,
+      async (m, task, assignees) => {
+        if (task.status === TaskStatus.Done) {
+          throw new ConflictException(TaskErrors.Completed);
+        }
+        if (
+          dto.maxAssignees !== undefined &&
+          dto.maxAssignees < assignees.length
+        ) {
+          throw new ConflictException({
+            message: TaskErrors.MaxTooLow,
+            field: 'maxAssignees',
+          });
+        }
+        const changes: Record<string, unknown> = {};
+        if (dto.title !== undefined)
+          task.title = changes.title = dto.title.trim();
+        if (dto.description !== undefined) {
+          task.description = dto.description;
+          changes.description = true;
+        }
+        if (dto.points !== undefined) task.points = changes.points = dto.points;
+        if (dto.maxAssignees !== undefined) {
+          task.maxAssignees = changes.maxAssignees = dto.maxAssignees;
+        }
+        if (dto.dueDate !== undefined) {
+          task.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
+          changes.dueDate = dto.dueDate;
+        }
+        if (dto.extra !== undefined) {
+          const { extra, changed } = await this.fields.applyExtra(
+            m,
+            'task',
+            dto.extra,
+            task.extra,
+          );
+          task.extra = extra;
+          if (Object.keys(changed).length) changes.extra = changed;
+        }
+        await m.save(Task, task);
+        await this.log(m, actor, 'task.updated', task.id, changes);
+      },
+      tx,
+    );
   }
 
   /** A task with a document goes only with it: the document is cancelled. */
@@ -563,7 +576,7 @@ export class TasksService {
   /**
    * Runs `fn` in a transaction with the task row locked (FOR UPDATE), so
    * concurrent take/accept requests cannot exceed limits or double-award.
-   * Returns the fresh task view.
+   * Returns the fresh task view. `tx` — in the caller's transaction.
    */
   private async locked(
     id: string,
@@ -572,15 +585,18 @@ export class TasksService {
       task: Task,
       assignees: TaskAssignee[],
     ) => Promise<void>,
+    tx?: EntityManager,
   ) {
-    await this.ds.transaction(async (m) => {
+    const run = async (m: EntityManager) => {
       const task = await this.lock(m, id);
       const assignees = sortAssignees(
         await m.find(TaskAssignee, { where: { taskId: id } }),
       );
       await fn(m, task, assignees);
-    });
-    const fresh = await this.tasks.findOneOrFail({
+    };
+    if (tx) await run(tx);
+    else await this.ds.transaction(run);
+    const fresh = await (tx ?? this.ds.manager).findOneOrFail(Task, {
       where: { id },
       relations: { assignees: { user: true } },
     });

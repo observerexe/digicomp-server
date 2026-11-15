@@ -77,6 +77,22 @@
 .active {
   background: var(--c-primary-soft);
 }
+/* «Підставить система»: the label, then what the record holds */
+.autoRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  background: var(--c-surface2);
+  font-size: 14px;
+}
+.autoRow > :last-child {
+  text-align: right;
+}
+.later {
+  color: var(--c-text2);
+}
 .missingRow label,
 .missingRow .label {
   color: var(--c-warning);

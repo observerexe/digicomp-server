@@ -29,6 +29,7 @@ const paper = (over: Partial<Paper> = {}): Paper => ({
   cancelReason: null,
   canPublish: false,
   canCancel: false,
+  canChange: false,
   ...over,
 });
 const item = (p: Paper) => {
@@ -55,7 +56,9 @@ describe('Редактор: список', () => {
         'GET /api/papers': (r) => {
           const mine = new URL(r.url).searchParams.get('mine');
           mineParams.push(mine);
-          const items = mine ? [item(paper({ author: { id: 'm1', name: 'Олег Петренко', avatarUrl: null } }))] : [item(paper()), item(paper({ id: 'p2', title: 'Наказ', status: 'published' }))];
+          const items = mine
+            ? [item(paper({ author: { id: 'm1', name: 'Олег Петренко', avatarUrl: null } }))]
+            : [item(paper()), item(paper({ id: 'p2', title: 'Наказ', status: 'published' }))];
           return json(200, { items, total: items.length, page: 1, limit: 100 });
         },
       }),
@@ -98,7 +101,12 @@ describe('Редактор: список', () => {
 
 describe('Редактор: документ', () => {
   it('відкриває вміст на аркуші; назва зберігається автоматично з revision', async () => {
-    const { calls } = mockApi(base(writer, { 'GET /api/papers/p1': () => json(200, paper()), 'PATCH /api/papers/p1': () => json(200, { ...item(paper()), revision: 2, updatedAt: '2026-11-14T12:30:00Z' }) }));
+    const { calls } = mockApi(
+      base(writer, {
+        'GET /api/papers/p1': () => json(200, paper()),
+        'PATCH /api/papers/p1': () => json(200, { ...item(paper()), revision: 2, updatedAt: '2026-11-14T12:30:00Z' }),
+      }),
+    );
     renderApp('/editor/p1');
     const sheet = await screen.findByLabelText('Текст документа');
     expect(sheet).toHaveTextContent('Порядок денний');
@@ -290,6 +298,7 @@ describe('Редактор: документ із шаблону', () => {
     plain: false,
     binding: null,
     canFill: true,
+    auto: false,
     ...over,
   });
   const FIELDS: PaperField[] = [
@@ -322,7 +331,8 @@ describe('Редактор: документ із шаблону', () => {
       { type: 'fieldZone', attrs: { key: 'goal' }, content: [{ type: 'paragraph' }] },
     ],
   };
-  const fromTemplate = (over: Partial<Paper> = {}) => paper({ title: 'Заява', content, values: {}, template: { id: 't1', title: 'Заява', version: 2, kind: 'free', target: null, fields: FIELDS }, ...over });
+  const fromTemplate = (over: Partial<Paper> = {}) =>
+    paper({ title: 'Заява', content, values: {}, template: { id: 't1', title: 'Заява', version: 2, kind: 'free', target: null, fields: FIELDS }, ...over });
   const sheetField = (key: string) => document.querySelector(`.ProseMirror .paper-field[data-field="${key}"]`)!;
 
   it('панель «Поля»: шаблон, прогрес, що не заповнено, групи; стрічка поза зоною вимкнена', async () => {
@@ -471,9 +481,16 @@ describe('Редактор: документ із шаблону', () => {
       const fields = FIELDS.map((x) => (x.key === 'goal' ? { ...x, plain: false } : x));
       const filled = {
         ...content,
-        content: [...content.content.slice(0, -1), { type: 'fieldZone', attrs: { key: 'goal' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Стенд для пайки' }] }] }],
+        content: [
+          ...content.content.slice(0, -1),
+          { type: 'fieldZone', attrs: { key: 'goal' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Стенд для пайки' }] }] },
+        ],
       };
-      mockApi(base(writer, { 'GET /api/papers/p1': () => json(200, fromTemplate({ content: filled, template: { id: 't1', title: 'Заява', version: 2, kind: 'free', target: null, fields } })) }));
+      mockApi(
+        base(writer, {
+          'GET /api/papers/p1': () => json(200, fromTemplate({ content: filled, template: { id: 't1', title: 'Заява', version: 2, kind: 'free', target: null, fields } })),
+        }),
+      );
       renderApp('/editor/p1');
       const form = await screen.findByRole('region', { name: 'Форма документа' });
       expect(await within(form).findByText('Стенд для пайки')).toBeInTheDocument();
@@ -518,7 +535,17 @@ describe('Редактор: документ із шаблону', () => {
         canPublish: true,
         template: { id: 't1', title: 'Технічне завдання', version: 2, kind: 'creates', target: 'task', fields: FIELDS },
       });
-      const done = { ...draft, status: 'published' as const, number: 'ТЗ-2026-014', canEdit: false, canPublish: false, canCancel: true, targetType: 'task' as const, targetId: 'task-1', revision: 2 };
+      const done = {
+        ...draft,
+        status: 'published' as const,
+        number: 'ТЗ-2026-014',
+        canEdit: false,
+        canPublish: false,
+        canCancel: true,
+        targetType: 'task' as const,
+        targetId: 'task-1',
+        revision: 2,
+      };
       const { calls } = mockApi(base(writer, { 'GET /api/papers/p1': () => json(200, draft), 'POST /api/papers/p1/publish': () => json(200, done) }));
       renderApp('/editor/p1');
       await waitFor(() => expect(document.querySelector('.ProseMirror .paper-field.is-auto')).toHaveTextContent('з’явиться після публікації'));
@@ -561,6 +588,98 @@ describe('Редактор: документ із шаблону', () => {
       expect(await screen.findByText('Документ скасовано: Замовник відмовився.')).toBeInTheDocument();
       expect(JSON.parse(calls.find((c) => c.path === '/api/papers/p1/cancel')!.body)).toEqual({ reason: 'Замовник відмовився' });
       expect(screen.queryByRole('button', { name: 'Скасувати документ' })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('авто-поля й зміна опублікованого', () => {
+    const AUTO: PaperField[] = [
+      ...FIELDS,
+      f({ key: 'team', label: 'Виконавці', type: 'list<ref:user>', binding: 'assignees', auto: true, canFill: false }),
+      f({ key: 'split', label: 'Розподіл балів', binding: 'pointsSplit', auto: true, canFill: false }),
+    ];
+    const withAuto = {
+      ...content,
+      content: [...content.content, ...['team', 'split'].map((key) => ({ type: 'paragraph', content: [{ type: 'field', attrs: { key } }] }))],
+    };
+    const task = (over: Partial<Paper> = {}) =>
+      fromTemplate({ content: withAuto, template: { id: 't1', title: 'Технічне завдання', version: 1, kind: 'creates', target: 'task', fields: AUTO }, ...over });
+
+    it('чернетка: авто-поля сірі «заповниться після публікації», у панелі — «Підставить система»', async () => {
+      mockApi(base(writer, { 'GET /api/papers/p1': () => json(200, task()) }));
+      renderApp('/editor/p1');
+      const panel = await screen.findByRole('complementary', { name: 'Поля документа' });
+      expect(within(panel).getByText('Підставить система')).toBeInTheDocument();
+      expect(within(panel).getAllByText('після публікації')).toHaveLength(2);
+      // Авто-поля не рахуються в прогресі: їх ніхто не заповнює.
+      expect(within(panel).getByText('0 з 4')).toBeInTheDocument();
+      await waitFor(() => expect(sheetField('team')).toHaveClass('is-auto'));
+      expect(sheetField('team')).toHaveTextContent('заповниться після публікації');
+    });
+
+    it('опубліковане: авто-поля показують запис; «Змінити» → «Зберегти зміни» одним запитом', async () => {
+      const values = { name: 'Логотип', team: ['u-ivan'], split: 'Іван ПЕТРЕНКО — 6' };
+      const fields = AUTO.map((x) => ({ ...x, canFill: x.key === 'name' || x.key === 'count' }));
+      const published = task({
+        status: 'published',
+        canEdit: false,
+        canChange: true,
+        revision: 3,
+        values,
+        refs: [{ type: 'user', id: 'u-ivan', title: 'Іван Петренко', archived: false }],
+        targetType: 'task',
+        targetId: 'task-1',
+        template: { id: 't1', title: 'Технічне завдання', version: 1, kind: 'creates', target: 'task', fields },
+      });
+      const { calls } = mockApi(
+        base(writer, {
+          'GET /api/papers/p1': () => json(200, published),
+          'PATCH /api/papers/p1': () => json(200, { ...item(published), revision: 4 }),
+        }),
+      );
+      renderApp('/editor/p1');
+      await waitFor(() => expect(sheetField('split')).toHaveClass('is-fixed'));
+      expect(sheetField('split')).toHaveTextContent('Іван ПЕТРЕНКО — 6');
+      const panel = screen.getByRole('complementary', { name: 'Поля документа' });
+      expect(within(panel).getByText('Іван ПЕТРЕНКО — 6')).toBeInTheDocument();
+      expect(screen.getByLabelText('Текст документа')).toHaveAttribute('contenteditable', 'false');
+      expect(screen.getByText('Документ опубліковано. Деякі поля можна змінити: «Змінити».')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', { name: 'Змінити' }));
+      const changing = await screen.findByRole('complementary', { name: 'Поля документа' });
+      expect(within(changing).getByText('Можна змінити')).toBeInTheDocument();
+      expect(within(changing).getByText('Не змінюється')).toBeInTheDocument();
+      expect(screen.getByText(/змінять і сам запис/)).toBeInTheDocument();
+      const save = screen.getByRole('button', { name: 'Зберегти зміни' });
+      expect(save).toBeDisabled();
+      const count = within(changing).getByLabelText('Кількість');
+      await userEvent.type(count, '3');
+      await userEvent.click(save);
+      await waitFor(() => expect(calls.filter((c) => c.method === 'PATCH')).toHaveLength(1));
+      const body = JSON.parse(calls.find((c) => c.method === 'PATCH')!.body);
+      expect(body).toEqual({ revision: 3, values: { ...values, count: 3 } });
+      // Збережено: знову перегляд (документ з сервера).
+      expect(await screen.findByRole('button', { name: 'Змінити' })).toBeInTheDocument();
+    });
+
+    it('«Скасувати» — без запиту; помилка запису підсвічує поле', async () => {
+      const published = task({ status: 'published', canEdit: false, canChange: true, values: { name: 'Логотип' } });
+      const { calls } = mockApi(
+        base(writer, {
+          'GET /api/papers/p1': () => json(200, published),
+          'PATCH /api/papers/p1': () => json(409, { errorCode: 'MAX_ASSIGNEES_TOO_LOW', field: 'count' }),
+        }),
+      );
+      renderApp('/editor/p1');
+      await userEvent.click(await screen.findByRole('button', { name: 'Змінити' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Скасувати' }));
+      expect(await screen.findByRole('button', { name: 'Змінити' })).toBeInTheDocument();
+      expect(calls.filter((c) => c.method === 'PATCH')).toHaveLength(0);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Змінити' }));
+      const panel = await screen.findByRole('complementary', { name: 'Поля документа' });
+      await userEvent.type(within(panel).getByLabelText('Кількість'), '1');
+      await userEvent.click(screen.getByRole('button', { name: 'Зберегти зміни' }));
+      await waitFor(() => expect(sheetField('count')).toHaveClass('is-active'));
     });
   });
 });

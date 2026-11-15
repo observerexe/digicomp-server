@@ -8103,9 +8103,13 @@
             "type": "boolean",
             "description": "A zone of plain paragraphs (bound to a text field of the record)."
           },
+          "auto": {
+            "type": "boolean",
+            "description": "Bound to what the record gets later (assignees, acceptance…): nobody fills it; it shows the record once published."
+          },
           "canFill": {
             "type": "boolean",
-            "description": "The actor may fill it now."
+            "description": "The actor may fill it now (a draft), or change it (a published document, see `canChange`)."
           }
         },
         "required": [
@@ -8124,6 +8128,7 @@
           "editable",
           "print",
           "plain",
+          "auto",
           "canFill"
         ]
       },
@@ -8405,6 +8410,10 @@
             "type": "boolean",
             "description": "The actor may cancel it (published: their own, staff — any; the record's rule — on cancelling)."
           },
+          "canChange": {
+            "type": "boolean",
+            "description": "Published: the actor may change some fields «можна змінити» (`canFill`) —\nbound ones while they may change the record, the rest in their own document (staff — any)."
+          },
           "id": {
             "type": "string"
           },
@@ -8442,6 +8451,7 @@
           "canEdit",
           "canPublish",
           "canCancel",
+          "canChange",
           "id",
           "title",
           "author",

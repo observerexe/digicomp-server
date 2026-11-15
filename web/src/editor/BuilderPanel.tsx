@@ -6,6 +6,7 @@ import { fieldBlockOf, textBlockOf, type Block, type Palette } from './blocks';
 import { FOOTER_MAX, SIGN_LABEL_MAX, SIGNER_AUTHOR, SIGNER_ORG } from '../../../shared/editor-schema';
 import { BLOCK_MIME, type BuilderSelection } from './builder';
 import s from './BuilderPanel.module.css';
+import { isAutoBinding } from './blocks/schema';
 import { bindingOptions, hasLength, isChoice, isList, isNumeric, keyProblem, LABEL_MAX, limitsText, withType, type FieldDef, type FieldType } from './template';
 
 export type BuilderTab = 'blocks' | 'props' | 'template';
@@ -250,6 +251,8 @@ function FieldForm({ f, fields, kind, schema, onChange, onRename, onRemoveField 
   };
   const bindings = bindingOptions(f, kind, schema, fields);
   const bound = f.binding ? schema?.fields.find((x) => x.key === f.binding) : undefined;
+  // Shows what the record gets later: nobody fills or changes it.
+  const auto = isAutoBinding(kind, bound);
   const set = (patch: Partial<FieldDef>) => onChange({ ...f, ...patch });
   const bind = (key: string) => {
     const target = bindings.find((x) => x.key === key);
@@ -258,8 +261,9 @@ function FieldForm({ f, fields, kind, schema, onChange, onRename, onRemoveField 
       binding: key,
       // A bound choice takes its values from the record's field.
       dictionary: null,
-      // A template that creates a record fills what the record needs.
-      required: f.required || (kind === 'creates' && !!target.required),
+      // A template that creates a record fills what the record needs; an auto field — nobody.
+      required: !isAutoBinding(kind, target) && (f.required || (kind === 'creates' && !!target.required)),
+      editable: !isAutoBinding(kind, target) && f.editable,
       label: f.label === block?.label ? target.label : f.label,
     });
     if (f.label === block?.label) setLabel(target.label);
@@ -326,31 +330,37 @@ function FieldForm({ f, fields, kind, schema, onChange, onRename, onRemoveField 
             ))}
           </select>
           <span className="hint">
-            {bound
-              ? [
-                  `Значення піде в поле запису «${bound.label}».`,
-                  limitsText({ min: bound.min ?? null, max: bound.max ?? null, maxLength: bound.maxLength ?? null, maxItems: bound.maxItems ?? null }),
-                ]
-                  .filter(Boolean)
-                  .join(' Межі запису: ')
-              : bindings.length
-                ? 'Прив’язане поле пише значення в сам запис.'
-                : 'У записі немає полів, до яких можна прив’язати це поле.'}
+            {auto
+              ? `Заповниться із запису «${bound!.label}» після публікації; ніхто не заповнює.`
+              : bound
+                ? [
+                    `Значення піде в поле запису «${bound.label}».`,
+                    limitsText({ min: bound.min ?? null, max: bound.max ?? null, maxLength: bound.maxLength ?? null, maxItems: bound.maxItems ?? null }),
+                  ]
+                    .filter(Boolean)
+                    .join(' Межі запису: ')
+                : bindings.length
+                  ? 'Прив’язане поле пише значення в сам запис.'
+                  : 'У записі немає полів, до яких можна прив’язати це поле.'}
           </span>
         </div>
       )}
-      {/* Another kind of the field — its limits anew (an integer's bounds are rounded). */}
-      <Limits key={f.type} id={id} f={f} onChange={onChange} />
-      {isChoice(f.type) && !f.binding && <DictionaryChoice id={`${id}-dict`} value={f.dictionary} onChange={(dictionary) => set({ dictionary })} />}
-      <div className="field">
-        <label htmlFor={`${id}-fill`}>Хто заповнює</label>
-        <select id={`${id}-fill`} value={f.fill} onChange={(e) => set({ fill: e.target.value as FieldDef['fill'] })}>
-          <option value="author">Автор документа</option>
-          <option value="staff">Модератор</option>
-        </select>
-      </div>
-      <Switch label="Обов’язкове" on={f.required} onChange={(required) => set({ required })} />
-      <Switch label="Можна змінити після публікації" on={f.editable} onChange={(editable) => set({ editable })} />
+      {!auto && (
+        <>
+          {/* Another kind of the field — its limits anew (an integer's bounds are rounded). */}
+          <Limits key={f.type} id={id} f={f} onChange={onChange} />
+          {isChoice(f.type) && !f.binding && <DictionaryChoice id={`${id}-dict`} value={f.dictionary} onChange={(dictionary) => set({ dictionary })} />}
+          <div className="field">
+            <label htmlFor={`${id}-fill`}>Хто заповнює</label>
+            <select id={`${id}-fill`} value={f.fill} onChange={(e) => set({ fill: e.target.value as FieldDef['fill'] })}>
+              <option value="author">Автор документа</option>
+              <option value="staff">Модератор</option>
+            </select>
+          </div>
+          <Switch label="Обов’язкове" on={f.required} onChange={(required) => set({ required })} />
+          <Switch label="Можна змінити після публікації" on={f.editable} onChange={(editable) => set({ editable })} />
+        </>
+      )}
       <Switch label="Показувати в друці" on={f.print} onChange={(print) => set({ print })} />
       <button type="button" className={`btn btn-danger ${s.remove}`} onClick={() => onRemoveField(f.key)}>
         <Icon name="trash" size={18} />

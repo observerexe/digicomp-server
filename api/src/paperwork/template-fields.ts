@@ -116,18 +116,27 @@ function narrower(f: TemplateField, s: FieldSchema) {
   );
 }
 
-/** Fields of the schema a template of this kind may bind to. */
-export function bindable(kind: TemplateKind, schema: PublishedSchema) {
-  return schema.fields.filter(
-    (s) => !s.archived && (kind === TemplateKind.Report || s.create),
-  );
+/** Fields of the schema a template of this kind may bind to: any not archived. */
+export function bindable(schema: PublishedSchema) {
+  return schema.fields.filter((s) => !s.archived);
+}
+
+/**
+ * A field of a `creates` template bound to a field of the record set not on
+ * creation (assignees, acceptance…): nobody fills it, it shows the record
+ * once the document is published.
+ */
+export function isAutoBinding(kind: TemplateKind, s: FieldSchema) {
+  return kind === TemplateKind.Creates && !s.create;
 }
 
 /**
  * Bindings against the target's schema: each to a field it may bind to,
  * once, of the same type (a free text zone may bind to a text field: it
  * then takes plain paragraphs), never wider. A template that creates a
- * record binds every field the record needs, as a required field.
+ * record binds every field the record needs, as a required field; a field
+ * bound to what the record gets later (see isAutoBinding) is neither
+ * required nor changeable.
  */
 export function bindingProblem(
   fields: TemplateField[],
@@ -136,7 +145,7 @@ export function bindingProblem(
 ): FieldProblem | null {
   const allowed = new Map(
     schema && kind !== TemplateKind.Free
-      ? bindable(kind, schema).map((s) => [s.key, s])
+      ? bindable(schema).map((s) => [s.key, s])
       : [],
   );
   const bound = new Set<string>();
@@ -148,7 +157,8 @@ export function bindingProblem(
       bound.has(f.binding) ||
       !(f.type === s.type || (f.type === 'richtext' && s.type === 'text')) ||
       !narrower(f, s) ||
-      (kind === TemplateKind.Creates && s.required && !f.required)
+      (kind === TemplateKind.Creates && s.required && !f.required) ||
+      (isAutoBinding(kind, s) && (f.required || f.editable))
     ) {
       return { field: f.key };
     }

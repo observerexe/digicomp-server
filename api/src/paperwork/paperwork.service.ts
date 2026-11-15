@@ -52,6 +52,7 @@ import {
   TARGET_ROLE,
 } from './paper-refs';
 import {
+  changedFields,
   checkContent,
   checkValues,
   fieldInvalid,
@@ -159,7 +160,7 @@ function recordValues(
 ): RecordValues {
   const out: RecordValues = {};
   for (const f of fields) {
-    if (f.binding === null) continue;
+    if (f.binding === null || f.auto) continue;
     out[f.binding] = isFillable(f.type)
       ? (p.values[f.key] ?? null)
       : zoneOf(p.content, f.key) || null;
@@ -178,13 +179,15 @@ async function withFieldKeys<T>(
   try {
     return await run();
   } catch (e) {
-    if (!(e instanceof HttpException) || e.getStatus() !== 400) throw e;
+    if (!(e instanceof HttpException) || ![400, 409].includes(e.getStatus())) {
+      throw e;
+    }
     const body = e.getResponse();
     if (typeof body !== 'object') throw e;
     const key = (body as { field?: unknown }).field;
     const f = fields.find((x) => x.binding !== null && x.binding === key);
     if (!f) throw e;
-    throw new BadRequestException({ ...body, field: f.key });
+    throw new HttpException({ ...body, field: f.key }, e.getStatus());
   }
 }
 
@@ -220,16 +223,49 @@ export class PaperworkService {
     private adapters: PaperAdapterRegistry,
   ) {}
 
-  /** Records the document refers to that the actor sees. */
-  private refsOf(m: EntityManager, p: Paper, form: Form | null, actor: Actor) {
+  /** Records the document (as it shows them) refers to that the actor sees. */
+  private refsOf(
+    m: EntityManager,
+    shown: Shown,
+    form: Form | null,
+    actor: Actor,
+  ) {
     return seenRefs(
       this.links,
       form?.fields ?? [],
-      p.values,
-      p.content,
+      shown.values,
+      shown.content,
       actor,
       m,
     );
+  }
+
+  /**
+   * Which fields of a published document the actor may change: «можна
+   * змінити», not auto, theirs to fill; bound — while they may change the
+   * record (its adapter), not bound — their own document or staff.
+   * null — nothing changes (a draft, a free document, past publication).
+   */
+  private async changer(
+    m: EntityManager,
+    p: Paper,
+    form: Form | null,
+    actor: Actor,
+  ): Promise<((f: PaperField) => boolean) | null> {
+    if (!form || p.status !== PaperStatus.Published) return null;
+    const staff = can(actor, Action.PapersFillStaff);
+    const own = can(actor, Action.PapersChange, { ownerId: p.authorId });
+    const adapter = p.targetType ? this.adapters.get(p.targetType) : undefined;
+    const record =
+      !!adapter &&
+      !!p.targetId &&
+      (await adapter.canUpdate(p.targetId, actor, m));
+    return (f) =>
+      f.editable &&
+      !f.auto &&
+      fillableType(this.links, f.type) &&
+      (f.fill === 'author' || staff) &&
+      (f.binding !== null ? record : own);
   }
 
   /** Fields of the version with limits and choices (see resolveFields). */
@@ -241,7 +277,7 @@ export class PaperworkService {
     const schema = template.target
       ? await this.recordFields.schema(template.target)
       : null;
-    return resolveFields(m, version.fields, schema);
+    return resolveFields(m, template.kind, version.fields, schema);
   }
 
   /** The document's template; null — a free document. */
@@ -376,7 +412,9 @@ export class PaperworkService {
     const form = await this.formOf(m, p);
     const editable = canEdit(p, actor);
     const staff = can(actor, Action.PapersFillStaff);
-    const { content, values } = await this.shown(m, p, form);
+    const shown = await this.shown(m, p, form);
+    const { content, values } = shown;
+    const may = await this.changer(m, p, form, actor);
     const owner = { ownerId: p.authorId };
     return {
       ...itemView(p),
@@ -393,16 +431,18 @@ export class PaperworkService {
         version: form.version.number,
         fields: form.fields.map((f): Plain<PaperFieldDto> => ({
           ...f,
-          canFill:
-            editable &&
-            fillableType(this.links, f.type) &&
-            (f.fill === 'author' || staff),
+          canFill: editable
+            ? !f.auto &&
+              fillableType(this.links, f.type) &&
+              (f.fill === 'author' || staff)
+            : !!may?.(f),
         })),
       },
-      refs: (await this.refsOf(m, p, form, actor)).map(
+      refs: (await this.refsOf(m, shown, form, actor)).map(
         (r): Plain<PaperRefDto> => ({ ...r, type: r.type as RecordType }),
       ),
       canEdit: editable,
+      canChange: !!may && !!form?.fields.some(may),
       canPublish:
         p.status === PaperStatus.Draft &&
         can(actor, Action.PapersPublish, owner),
@@ -464,10 +504,11 @@ export class PaperworkService {
     const m = this.ds.manager;
     const p = await this.accessible(m, id, actor);
     const form = await this.formOf(m, p);
-    const { content, values } = await this.shown(m, p, form);
+    const shown = await this.shown(m, p, form);
+    const { content, values } = shown;
     const fields = new Map((form?.fields ?? []).map((f) => [f.key, f]));
     const refs = new Map(
-      (await this.refsOf(m, p, form, actor)).map((r) => [
+      (await this.refsOf(m, shown, form, actor)).map((r) => [
         `${r.type}:${r.id}`,
         r.title,
       ]),
@@ -682,7 +723,8 @@ export class PaperworkService {
    * Changes only the given fields. Title and content — the author of a
    * draft (admin — any); visibility — staff. Any change raises the revision.
    * The author's own saves of a draft are not audited: autosave would flood
-   * the log, and a draft is not a record yet.
+   * the log, and a draft is not a record yet. Values and zones of a
+   * published document — see change().
    */
   async update(
     id: string,
@@ -695,6 +737,15 @@ export class PaperworkService {
         dto.title !== undefined ||
         dto.content !== undefined ||
         dto.values !== undefined;
+      if (
+        text &&
+        p.status === PaperStatus.Published &&
+        p.templateVersionId &&
+        dto.title === undefined &&
+        dto.visibility === undefined
+      ) {
+        return this.change(m, p, dto, actor);
+      }
       if (text) {
         assertCan(actor, Action.PapersEdit, { ownerId: p.authorId });
       }
@@ -766,6 +817,107 @@ export class PaperworkService {
       }
       return itemView(p);
     });
+  }
+
+  /**
+   * Fields «можна змінити» of a published document (see changer): bound
+   * ones change the record through its adapter (its rights, audit and
+   * errors — with the key of the field), the rest are kept by the document.
+   * One change — one record change and one audit entry, whoever makes it.
+   */
+  private async change(
+    m: EntityManager,
+    p: Paper,
+    dto: UpdatePaperDto,
+    actor: Actor,
+  ): Promise<PaperItemDto> {
+    const form = (await this.formOf(m, p))!;
+    const may = (await this.changer(m, p, form, actor))!;
+    if (dto.revision !== p.revision) {
+      throw new ConflictException('Paper was changed by someone else');
+    }
+    const shown = await this.shown(m, p, form);
+    if (dto.content !== undefined) {
+      // Who fills what — by `may` (changedFields).
+      checkContent(
+        dto.content,
+        form.version.body,
+        form.fields,
+        shown.content,
+        true,
+      );
+    }
+    const changes = changedFields(dto, form.fields, shown, may);
+    if (!changes.values.size && !changes.zones.size) return itemView(p);
+
+    const next = {
+      values: { ...shown.values },
+      content: dto.content ?? shown.content,
+    };
+    for (const [key, v] of changes.values) {
+      if (v === null) delete next.values[key];
+      else next.values[key] = v;
+    }
+    requireFilled(form.fields, next);
+
+    const bound = form.fields.filter(
+      (f) =>
+        f.binding !== null &&
+        (changes.values.has(f.key) || changes.zones.has(f.key)),
+    );
+    if (bound.length) {
+      const adapter = this.adapters.get(p.targetType!)!;
+      await withFieldKeys(form.fields, () =>
+        adapter.update(p.targetId!, recordValues(bound, next), actor, m),
+      );
+    }
+    // The document keeps its own fields; bound ones show the record.
+    const own = { ...p.values };
+    for (const [key, v] of changes.values) {
+      if (form.fields.find((f) => f.key === key)?.binding !== null) continue;
+      if (v === null) delete own[key];
+      else own[key] = v;
+    }
+    const stored = { values: own, content: next.content };
+    const fresh = await checkNewRefs(
+      this.links,
+      form.fields,
+      stored,
+      p,
+      actor,
+      m,
+    );
+    p.values = stored.values;
+    p.content = stored.content;
+    p.revision += 1;
+    await m.getRepository(Paper).save(p);
+    await syncLinks(
+      m,
+      p.id,
+      form.fields,
+      stored.values,
+      stored.content,
+      fresh,
+      actor.id,
+    );
+    await this.audit.log(
+      {
+        actorId: actor.id,
+        action: 'paper.updated',
+        entity: 'paper',
+        entityId: p.id,
+        meta: {
+          authorId: p.authorId,
+          number: p.number,
+          fields: [...changes.values.keys(), ...changes.zones].sort(),
+          ...(bound.length
+            ? { targetType: p.targetType, targetId: p.targetId }
+            : {}),
+        },
+      },
+      m,
+    );
+    return itemView(p);
   }
 
   /**

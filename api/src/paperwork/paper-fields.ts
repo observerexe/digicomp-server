@@ -17,11 +17,17 @@ import {
   zoneText,
   type FieldOption,
   type FieldSpec,
+  type FieldValue,
   type FieldValues,
   type PaperContent,
   type PaperNode,
 } from './content';
-import type { FieldFiller, TemplateField } from './template-fields';
+import { TemplateKind } from './template.entities';
+import {
+  isAutoBinding,
+  type FieldFiller,
+  type TemplateField,
+} from './template-fields';
 
 /** Messages mapped to stable errorCode in common/http-exception.filter.ts. */
 export const PaperFieldErrors = {
@@ -52,6 +58,8 @@ export type PaperField = FieldSpec & {
   plain: boolean;
   /** Key of the record's field it is bound to; null — not bound. */
   binding: string | null;
+  /** Bound to what the record gets later (see isAutoBinding): nobody fills it. */
+  auto: boolean;
 };
 
 const tighter = (
@@ -67,6 +75,7 @@ const tighter = (
  */
 export async function resolveFields(
   m: EntityManager,
+  kind: TemplateKind,
   fields: TemplateField[],
   schema: PublishedSchema | null,
 ): Promise<PaperField[]> {
@@ -121,6 +130,7 @@ export async function resolveFields(
         : null,
       plain: f.type === 'richtext' && f.binding !== null,
       binding: f.binding,
+      auto: !!s && isAutoBinding(kind, s),
     };
   });
 }
@@ -141,7 +151,7 @@ export function checkValues(
   const out: FieldValues = {};
   for (const [key, raw] of Object.entries(input)) {
     const f = byKey.get(key);
-    if (!f || !isFillable(f.type)) throw fieldInvalid(key);
+    if (!f || f.auto || !isFillable(f.type)) throw fieldInvalid(key);
     const v = normalizeValue(f, raw);
     if (v === undefined) throw fieldInvalid(key);
     if (v === null) continue;
@@ -210,8 +220,68 @@ export function checkContent(
     if (zoneText(zone).length > (f.maxLength ?? FIELD_LIMITS.zoneDefault)) {
       throw fieldInvalid(key);
     }
+    if (f.auto && !sameNodes(zone, before.get(key))) throw locked();
     if (f.fill === 'staff' && !staff && !sameNodes(zone, before.get(key))) {
       throw new ForbiddenException('Not allowed');
     }
   }
+}
+
+/** What a change of a published document changes (see changedFields). */
+export type FieldChanges = {
+  /** Fields whose value changed: the new value (null — emptied). */
+  values: Map<string, FieldValue | null>;
+  /** Zones whose text changed. */
+  zones: Set<string>;
+};
+
+/**
+ * A change of a published document: fields and zones that differ from
+ * what the document shows now. Each must be one the actor may change
+ * (`may`): a field «можна змінити» bound to a record they may change, or
+ * one of their own; any other — 403. New values are checked as in a draft.
+ */
+export function changedFields(
+  input: { values?: Record<string, unknown>; content?: PaperContent },
+  fields: PaperField[],
+  shown: { values: FieldValues; content: PaperContent },
+  may: (f: PaperField) => boolean,
+): FieldChanges {
+  const out: FieldChanges = { values: new Map(), zones: new Set() };
+  const denied = () => new ForbiddenException('Not allowed');
+  if (input.values !== undefined) {
+    const changed: Record<string, unknown> = {};
+    for (const f of fields) {
+      if (!isFillable(f.type)) continue;
+      const raw = input.values[f.key] ?? null;
+      const v = normalizeValue(f, raw);
+      if (v === undefined) throw fieldInvalid(f.key);
+      if (JSON.stringify(v) === JSON.stringify(shown.values[f.key] ?? null)) {
+        continue;
+      }
+      if (!may(f)) throw denied();
+      changed[f.key] = v;
+      out.values.set(f.key, v);
+    }
+    const known = new Set(fields.map((f) => f.key));
+    const unknown = Object.keys(input.values).find((k) => !known.has(k));
+    if (unknown !== undefined) throw fieldInvalid(unknown);
+    // Limits and choices, as in a draft (who may — checked above).
+    checkValues(changed, fields, shown.values, true);
+  }
+  if (input.content !== undefined) {
+    const before = zoneMap(shown.content);
+    for (const [key, zone] of zoneMap(input.content)) {
+      const f = fields.find((x) => x.key === key);
+      const old = before.get(key);
+      // A bound zone shows the record's text: only the text counts.
+      const same = f?.binding
+        ? old !== undefined && zoneText(zone) === zoneText(old)
+        : sameNodes(zone, old);
+      if (same) continue;
+      if (!f || !may(f)) throw denied();
+      out.zones.add(key);
+    }
+  }
+  return out;
 }

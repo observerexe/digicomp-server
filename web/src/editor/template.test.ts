@@ -70,7 +70,7 @@ describe('Поля шаблону в конструкторі', () => {
     expect(keyProblem('2goal', 'points', taken)).toMatch(/Латиницею/);
   });
 
-  it('зв’язок: «створює» — поля, які задаються при створенні; «звіт» — будь-які; того самого типу; зона — і до тексту; не зайняті', () => {
+  it('зв’язок: «створює» — поля, які задаються при створенні, потім авто-поля; «звіт» — будь-які; того самого типу; зона — і до тексту; не зайняті', () => {
     const points = field({ key: 'points', type: 'int' });
     const title = field({ key: 'name', type: 'text', binding: 'title' });
     const zone = field({ key: 'goal', type: 'richtext' });
@@ -78,7 +78,8 @@ describe('Поля шаблону в конструкторі', () => {
     expect(bindingOptions(points, 'creates', schema, [points, title]).map((s) => s.key)).toEqual(['points']);
     expect(bindingOptions(zone, 'creates', schema, [zone, title]).map((s) => s.key)).toEqual(['description']);
     expect(bindingOptions(zone, 'creates', schema, [zone]).map((s) => s.key)).toEqual(['title', 'description']);
-    expect(bindingOptions(choice, 'creates', schema, [choice])).toEqual([]);
+    // Статус не задається при створенні: авто-поле.
+    expect(bindingOptions(choice, 'creates', schema, [choice]).map((s) => s.key)).toEqual(['status']);
     expect(bindingOptions(choice, 'report', schema, [choice]).map((s) => s.key)).toEqual(['status']);
     expect(bindingOptions(points, 'free', schema, [points])).toEqual([]);
     expect(bindingOptions(points, 'creates', null, [points])).toEqual([]);

@@ -317,7 +317,7 @@ export class TemplatesService {
     const t = await this.load(m, id);
     const v = await this.findVersion(m, t, n);
     const schema = await new Schemas(this.recordFields).of(t.target);
-    const fields = await resolveFields(m, v.fields, schema);
+    const fields = await resolveFields(m, t.kind, v.fields, schema);
     return {
       id: t.id,
       title: t.title,
@@ -326,7 +326,7 @@ export class TemplatesService {
       target: t.target,
       fields: fields.map((f): Plain<PaperFieldDto> => ({
         ...f,
-        canFill: fillableType(this.links, f.type),
+        canFill: !f.auto && fillableType(this.links, f.type),
       })),
     };
   }

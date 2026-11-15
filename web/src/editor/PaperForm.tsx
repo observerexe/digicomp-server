@@ -16,7 +16,7 @@ export function PaperForm({ saved, ...props }: Required<GroupsProps> & { saved: 
       </div>
       <footer className={s.formFoot}>
         {saved}
-        {props.editable && p.required > 0 && (
+        {props.mode === 'fill' && p.required > 0 && (
           <span>
             {p.requiredFilled} з {p.required} обов&apos;язкових
           </span>

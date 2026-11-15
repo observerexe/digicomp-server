@@ -570,6 +570,20 @@ const ROWS: Record<string, Case[]> = {
       Deny.NotOwner,
     ],
   ],
+  // Поле, прив'язане до запису, — як зміна самого запису (адаптер):
+  // ТЗ — лише модератор і адмін — test/paper-change.e2e-spec.ts.
+  'Документ редактора: змінити поле «можна змінити» опублікованого': [
+    ['admin: чужий', admin, Action.PapersChange, { ownerId: 'u2' }, true],
+    ['moderator: чужий', mod, Action.PapersChange, { ownerId: 'u2' }, true],
+    ['member: свій', member, Action.PapersChange, { ownerId: member.id }, true],
+    [
+      'member: чужий',
+      member,
+      Action.PapersChange,
+      { ownerId: 'u2' },
+      Deny.NotOwner,
+    ],
+  ],
   // Учасник бачить лише опубліковані шаблони, відкриті для всіх, —
   // test/paper-templates.e2e-spec.ts.
   'Шаблон документа: створити, змінити, опублікувати версію (перегляд — усі)': [

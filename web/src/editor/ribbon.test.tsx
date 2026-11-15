@@ -32,6 +32,7 @@ const paper = (over: Partial<Paper> = {}): Paper => ({
   cancelReason: null,
   canPublish: false,
   canCancel: false,
+  canChange: false,
   ...over,
 });
 

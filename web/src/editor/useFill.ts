@@ -19,11 +19,20 @@ import { recordKey, type PaperRecords } from './records';
  * constructor only tries the template (nothing is saved).
  */
 
-/** What the sheet shows for each field and zone now. */
-export function lookOf(template: PaperTemplateRef, values: FieldValues, zones: Record<string, string>, active: string | null, title: RecordTitle): FieldsLook {
+/**
+ * What the sheet shows for each field and zone now. An auto field: what the
+ * record holds (plain text), or grey — when it comes.
+ */
+export function lookOf(template: PaperTemplateRef, values: FieldValues, zones: Record<string, string>, active: string | null, title: RecordTitle, published: boolean): FieldsLook {
   const look: FieldsLook = { fields: {}, zones: {}, active };
   for (const f of template.fields) {
     const filled = isFilled(f, values, zones);
+    if (f.auto && f.type !== 'richtext') {
+      const v = values[f.key];
+      look.fields[f.key] =
+        v !== undefined ? { text: valueText(f.type, v, f.options, title), state: 'fixed' } : { text: published ? 'ще немає' : 'заповниться після публікації', state: 'auto' };
+      continue;
+    }
     if (f.type === 'richtext') {
       look.zones[f.key] = { label: f.label, missing: f.required && !filled };
       continue;
@@ -43,7 +52,10 @@ type FillOptions = {
   values: FieldValues;
   /** Records the values and the text refer to, as the server gave them. */
   refs: readonly RecordView[];
+  /** The actor fills a draft or changes a published document now. */
   editable: boolean;
+  /** Published (or later): auto fields show the record. */
+  published?: boolean;
   /**
    * The fields' controls are not on the screen now (the phone shows the page):
    * show them; true — they appear after React draws again.
@@ -52,7 +64,7 @@ type FillOptions = {
 };
 
 /** Before the editor: its extensions and the state of filling. */
-export function useFill({ template, values: initial, refs, editable, showControls }: FillOptions) {
+export function useFill({ template, values: initial, refs, editable, published = false, showControls }: FillOptions) {
   const [values, setValues] = useState<FieldValues>(initial);
   const [zones, setZones] = useState<Record<string, string>>({});
   const [active, setActive] = useState<string | null>(null);
@@ -145,6 +157,7 @@ export function useFill({ template, values: initial, refs, editable, showControl
   return {
     template,
     editable,
+    published,
     values,
     change,
     zones,
@@ -168,13 +181,13 @@ export type Fill = ReturnType<typeof useFill>;
  * field the server refused (shown as the active one).
  */
 export function useFillSheet(editor: Editor, fill: Fill, refused: string | null = null) {
-  const { template, values, zones, active, recordTitle, recordsVersion, editable } = fill;
+  const { template, values, zones, active, recordTitle, recordsVersion, editable, published } = fill;
   const zone = useEditorState({ editor, selector: ({ editor: e }) => (template ? zoneAtSelection(e.state) : null) });
   const shownActive = zone ?? refused ?? active;
   useEffect(() => {
-    if (template) setFieldsLook(editor, lookOf(template, values, zones, shownActive, recordTitle));
+    if (template) setFieldsLook(editor, lookOf(template, values, zones, shownActive, recordTitle, published));
     // recordsVersion: a picked record's title is shown on the sheet.
-  }, [editor, template, values, zones, shownActive, recordsVersion]);
+  }, [editor, template, values, zones, shownActive, recordsVersion, published]);
 
   /** Bring a field into view on the sheet; a zone — put the cursor in it. */
   const showField = (key: string, focusZone: boolean) => {

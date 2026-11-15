@@ -53,6 +53,7 @@ const TASK: RecordSchema = {
   fields: [
     { key: 'title', label: 'Назва', type: 'text', required: true, create: true, maxLength: 200 },
     { key: 'points', label: 'Бали', type: 'int', required: true, create: true, min: 0, max: 1000 },
+    { key: 'pointsSplit', label: 'Розподіл балів', type: 'text', nullable: true, source: 'computed' },
   ],
 };
 /** Schemas of every record type: only tasks are made by templates here, the rest — read only. */
@@ -309,6 +310,23 @@ describe('Конструктор шаблону', () => {
     await waitFor(() => expect(calls.some((c) => c.method === 'PATCH' && JSON.parse(c.body).fields)).toBe(true), { timeout: 4000 });
     const fields = JSON.parse(calls.filter((c) => c.method === 'PATCH' && JSON.parse(c.body).fields).at(-1)!.body).fields;
     expect(fields).toEqual([expect.objectContaining({ key: 'title', label: 'Назва', type: 'text', binding: 'title', required: true })]);
+  });
+
+  it('авто-поле з «Поля запису «ТЗ»»: зелене, ніхто не заповнює — без «Обов’язкове» й «Можна змінити»', async () => {
+    let rev = 1;
+    const { calls } = mockApi(builder(version(), template(), { 'PATCH /api/papers/templates/t1/versions/1': () => saved(++rev) }));
+    renderApp('/editor/templates/t1');
+    const sheet = await screen.findByLabelText('Аркуш шаблону');
+    const group = await screen.findByRole('region', { name: 'Поля запису «ТЗ»' });
+    await userEvent.click(within(group).getByRole('button', { name: 'Розподіл балів' }));
+    await waitFor(() => expect(sheet.querySelector('.paper-field')).toHaveClass('is-auto'));
+    expect(screen.getByText('Заповниться із запису «Розподіл балів» після публікації; ніхто не заповнює.')).toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'Обов’язкове' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'Можна змінити після публікації' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Хто заповнює')).not.toBeInTheDocument();
+    await waitFor(() => expect(calls.some((c) => c.method === 'PATCH' && JSON.parse(c.body).fields)).toBe(true), { timeout: 4000 });
+    const fields = JSON.parse(calls.filter((c) => c.method === 'PATCH' && JSON.parse(c.body).fields).at(-1)!.body).fields;
+    expect(fields).toEqual([expect.objectContaining({ key: 'pointsSplit', type: 'text', binding: 'pointsSplit', required: false, editable: false })]);
   });
 
   it('«Опублікувати v1»: з підтвердженням; після — опублікована версія лише для читання, «Змінити» робить чернетку', async () => {

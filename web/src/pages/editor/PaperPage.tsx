@@ -51,6 +51,8 @@ export function PaperPage() {
   });
   // The list shows titles and dates: refresh it when leaving.
   useEffect(() => () => void qc.invalidateQueries({ queryKey: ['papers', 'list'] }), [qc]);
+  // A published document being changed (fields «можна змінити»): the editor starts again for it.
+  const [changing, setChanging] = useState(false);
 
   if (paper.isPending) return <PaperLoading />;
   if (paper.isError) {
@@ -61,7 +63,15 @@ export function PaperPage() {
       </main>
     );
   }
-  return <PaperEditor key={`${paper.data.id}:${paper.dataUpdatedAt}`} paper={paper.data} onReload={() => void paper.refetch()} />;
+  return (
+    <PaperEditor
+      key={`${paper.data.id}:${paper.dataUpdatedAt}:${changing}`}
+      paper={paper.data}
+      changing={changing}
+      onChanging={setChanging}
+      onReload={() => void paper.refetch()}
+    />
+  );
 }
 
 function BackLink() {
@@ -85,11 +95,30 @@ const TITLE_MAX = 200;
 
 type PaperChange = { title: string; content: JSONContent; values: FieldValues };
 
-function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }) {
+type EditorProps = {
+  paper: Paper;
+  /** Changing a published document: no autosave, «Зберегти зміни» sends it all at once. */
+  changing: boolean;
+  onChanging: (on: boolean) => void;
+  onReload: () => void;
+};
+
+function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
-  const editable = paper.canEdit && paper.status === 'draft';
+  // A draft the actor fills (saved as they type).
+  const filling = paper.canEdit && paper.status === 'draft';
+  const editable = filling || (changing && paper.canChange);
+  const published = paper.status !== 'draft';
+  // A change of a published document, kept here until «Зберегти зміни».
+  const pending = useRef<Partial<Pick<PaperChange, 'content' | 'values'>>>({});
+  const [dirty, setDirty] = useState(false);
+  const keep = (change: Partial<PaperChange>) => {
+    if (filling) return autosave.change(change);
+    pending.current = { ...pending.current, ...change };
+    setDirty(true);
+  };
   const autosave = useAutosave<PaperChange>(
     (change, revision) => unwrap(api.PATCH('/api/papers/{id}', { params: { path: { id: paper.id } }, body: { revision, ...change } })),
     paper.revision,
@@ -106,6 +135,7 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
     values: paper.values as FieldValues,
     refs: paper.refs as RecordView[],
     editable,
+    published,
     // A field touched on the page: its control is in the form.
     showControls: () => {
       if (wide || !template) return false;
@@ -126,7 +156,7 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
     onBlur: () => fill.closeMenu(),
     onUpdate: ({ editor: e }) => {
       fill.syncZones(e.state.doc);
-      autosave.change({ content: e.getJSON() });
+      keep({ content: e.getJSON() });
     },
   });
   /** The page shows what the server answered (the editor starts again with it). */
@@ -151,9 +181,17 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
   });
   // Unsaved changes stop the publication: the autosave's own message says why.
   const publishError = publish.error instanceof ApiError ? publish.error : null;
+  const save = useMutation({
+    mutationFn: () => unwrap(api.PATCH('/api/papers/{id}', { params: { path: { id: paper.id } }, body: { revision: paper.revision, ...pending.current } })),
+    onSuccess: () => {
+      onChanging(false);
+      onReload();
+    },
+  });
+  const saveError = save.error instanceof ApiError ? save.error : null;
 
   // A value the server refused (on saving or publishing): its field is shown (the error says what to fix).
-  const refused = autosave.state === 'rejected' ? (autosave.rejection?.field ?? null) : (publishError?.field ?? null);
+  const refused = autosave.state === 'rejected' ? (autosave.rejection?.field ?? null) : (publishError?.field ?? saveError?.field ?? null);
   const sheet = useFillSheet(editor, fill, refused);
   useSheet(editor, {
     author: paper.author.name,
@@ -162,7 +200,7 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
     people: template ? peopleOf(template.fields, values, fill.recordTitle) : {},
   });
 
-  const changeValue = (key: string, v: FieldValue | null) => autosave.change({ values: fill.change(key, v) });
+  const changeValue = (key: string, v: FieldValue | null) => keep({ values: fill.change(key, v) });
   /** A zone from the form: to it on the page, the cursor in it. */
   const toPage = (key: string) => {
     setView('page');
@@ -214,8 +252,22 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
       {saveText}
     </span>
   );
-  const actions = (
+  const actions = changing ? (
     <>
+      <button type="button" className="btn btn-ghost" disabled={save.isPending} onClick={() => onChanging(false)}>
+        Скасувати
+      </button>
+      <button type="button" className="btn btn-primary" disabled={!dirty || save.isPending} onClick={() => save.mutate()}>
+        Зберегти зміни
+      </button>
+    </>
+  ) : (
+    <>
+      {paper.canChange && (
+        <button type="button" className="btn" onClick={() => onChanging(true)}>
+          Змінити
+        </button>
+      )}
       <button type="button" className="btn" onClick={preview}>
         Попередній перегляд
       </button>
@@ -235,14 +287,7 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
         </button>
       )}
       {paper.canPublish && (
-        <ConfirmButton
-          label="Опублікувати"
-          question={publishQuestion(paper)}
-          confirmLabel="Опублікувати"
-          primary
-          disabled={publish.isPending}
-          onConfirm={() => publish.mutate()}
-        />
+        <ConfirmButton label="Опублікувати" question={publishQuestion(paper)} confirmLabel="Опублікувати" primary disabled={publish.isPending} onConfirm={() => publish.mutate()} />
       )}
     </>
   );
@@ -250,7 +295,8 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
     template,
     values,
     zones: fill.zones,
-    editable,
+    mode: filling ? ('fill' as const) : changing ? ('change' as const) : ('view' as const),
+    published,
     active: sheet.shownActive,
     onChange: changeValue,
     onActive: sheet.onActive,
@@ -273,7 +319,7 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
             </span>
           )}
           <div className={s.titleRow}>
-            {editable ? (
+            {filling ? (
               <input
                 className={s.titleInput}
                 aria-label="Назва документа"
@@ -288,7 +334,7 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
             {wide && paper.number && <span className={s.number}>№ {paper.number}</span>}
             {wide && <span className={s.tag}>{PAPER_STATUS_LABEL[paper.status]}</span>}
           </div>
-          {wide && saved}
+          {wide && filling && saved}
         </div>
         {wide ? <span className={s.topActions}>{actions}</span> : <MoreMenu>{actions}</MoreMenu>}
       </header>
@@ -311,11 +357,13 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
               ? errorOf(remove.error)
               : copy.isError
                 ? errorOf(copy.error)
-                : autosave.state === 'rejected'
-                  ? errorOf(autosave.rejection)
-                  : publishError
-                    ? errorOf(publishError)
-                    : null
+                : saveError
+                  ? errorOf(saveError)
+                  : autosave.state === 'rejected'
+                    ? errorOf(autosave.rejection)
+                    : publishError
+                      ? errorOf(publishError)
+                      : null
           }
         />
         {reason !== null && (
@@ -360,9 +408,7 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
             </div>
           </div>
         )}
-        {!editable && paper.status !== 'cancelled' && (
-          <p className="hint">{paper.status === 'draft' ? 'Це чужа чернетка: її можна лише переглядати.' : 'Документ опубліковано: текст не змінюється.'}</p>
-        )}
+        {!filling && paper.status !== 'cancelled' && <p className="hint">{readHint(paper, changing)}</p>}
       </div>
       <div className={s.work}>
         <main id="main" className={`${s.desk} ${formShown ? s.gone : ''}`} tabIndex={-1}>
@@ -397,6 +443,16 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
       )}
     </div>
   );
+}
+
+/** Why the text does not change, or what changes. */
+function readHint(paper: Paper, changing: boolean) {
+  if (paper.status === 'draft') return 'Це чужа чернетка: її можна лише переглядати.';
+  if (changing) {
+    const record = paper.targetType ? ` Поля, пов’язані із записом «${recordLabel(paper.targetType)}», змінять і сам запис.` : '';
+    return `Змініть поля, які можна змінити, і натисніть «Зберегти зміни».${record}`;
+  }
+  return paper.canChange ? 'Документ опубліковано. Деякі поля можна змінити: «Змінити».' : 'Документ опубліковано: текст не змінюється.';
 }
 
 /** What publishing does: a document of a `creates` template makes a record. */

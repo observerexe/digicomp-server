@@ -45,6 +45,21 @@ export type PaperAdapter = {
     m: EntityManager,
   ): Promise<string>;
   /**
+   * May the actor change the record now (its right and its state): fields
+   * of a published document bound to it change only then.
+   */
+  canUpdate(id: string, actor: Actor, m: EntityManager): Promise<boolean>;
+  /**
+   * Changes the record: only the given fields (null — emptied), as the
+   * module's own PATCH does it.
+   */
+  update(
+    id: string,
+    values: RecordValues,
+    actor: Actor,
+    m: EntityManager,
+  ): Promise<void>;
+  /**
    * Takes the record off (the document is cancelled). May return work for
    * after the commit (files of a deleted record).
    */

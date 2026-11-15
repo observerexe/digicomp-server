@@ -1,6 +1,7 @@
 import type { PaperField, PaperTemplateRef } from '../api/types';
-import type { FieldValue, FieldValues } from '../../../shared/editor-schema/fields';
+import { valueText, type FieldValue, type FieldValues } from '../../../shared/editor-schema/fields';
 import { fieldType } from './fieldTypes';
+import { usePaperRecords } from './records';
 import s from './FieldsPanel.module.css';
 
 /** id of a field's control in the panel (a click on the sheet focuses it). */
@@ -24,13 +25,23 @@ export function fillProgress(template: PaperTemplateRef, values: FieldValues, zo
   };
 }
 
+/**
+ * fill — a draft the actor fills; change — a published document the actor
+ * changes (fields «можна змінити»); view — reading.
+ */
+export type FieldsMode = 'fill' | 'change' | 'view';
+
+/** What an auto field shows before the record has it. */
+export const autoPlaceholder = (published: boolean) => (published ? 'ще немає' : 'після публікації');
+
 export type GroupsProps = {
   template: PaperTemplateRef;
   values: FieldValues;
   /** Text of each zone on the sheet. */
   zones: Record<string, string>;
-  /** The document is a draft the actor may change. */
-  editable: boolean;
+  mode: FieldsMode;
+  /** Published (or later): auto fields show the record. */
+  published: boolean;
   active: string | null;
   onChange: (key: string, value: FieldValue | null) => void;
   onActive: (key: string | null) => void;
@@ -40,11 +51,29 @@ export type GroupsProps = {
   onZoneText?: (key: string, text: string) => void;
 };
 
-/** Fields the actor fills, then those a moderator fills; a document that is not a draft — all in one list. */
-export function FieldGroups({ template, values, zones, editable, active, onChange, onActive, onJump, onZoneText }: GroupsProps) {
+/**
+ * A draft: fields the actor fills, then those a moderator fills; a change:
+ * those that may change, then the rest; reading — all in one list. Auto
+ * fields last: «Підставить система».
+ */
+export function FieldGroups({ template, values, zones, mode, published, active, onChange, onActive, onJump, onZoneText }: GroupsProps) {
+  const auto = template.fields.filter((f) => f.auto);
+  const rest = template.fields.filter((f) => !f.auto);
   // The actor's own: what they fill now, and author fields they cannot (a reference to a type without a picker).
-  const own = template.fields.filter((f) => f.canFill || f.fill === 'author');
-  const others = template.fields.filter((f) => !own.includes(f));
+  const own = rest.filter((f) => (mode === 'fill' ? f.canFill || f.fill === 'author' : f.canFill));
+  const others = rest.filter((f) => !own.includes(f));
+  const sections: [string | null, PaperField[]][] =
+    mode === 'fill'
+      ? [
+          ['Заповнюєте ви', own],
+          ['Заповнить модератор', others],
+        ]
+      : mode === 'change'
+        ? [
+            ['Можна змінити', own],
+            ['Не змінюється', others],
+          ]
+        : [[auto.length ? 'Поля' : null, rest]];
 
   const row = (f: PaperField) => {
     const { Widget, group } = fieldType(f.type);
@@ -68,22 +97,38 @@ export function FieldGroups({ template, values, zones, editable, active, onChang
     );
   };
 
-  if (!editable) return <section className={s.group}>{template.fields.map(row)}</section>;
   return (
     <>
-      {own.length > 0 && (
-        <section className={s.group}>
-          <h3>Заповнюєте ви</h3>
-          {own.map(row)}
-        </section>
+      {sections.map(
+        ([title, list]) =>
+          list.length > 0 && (
+            <section key={title ?? ''} className={s.group}>
+              {title && <h3>{title}</h3>}
+              {list.map(row)}
+            </section>
+          ),
       )}
-      {others.length > 0 && (
+      {auto.length > 0 && (
         <section className={s.group}>
-          <h3>Заповнить модератор</h3>
-          {others.map(row)}
+          <h3>Підставить система</h3>
+          {auto.map((f) => (
+            <AutoRow key={f.key} field={f} value={values[f.key]} published={published} />
+          ))}
         </section>
       )}
     </>
+  );
+}
+
+/** An auto field: what the record holds, or when it comes. */
+function AutoRow({ field: f, value, published }: { field: PaperField; value: FieldValue | undefined; published: boolean }) {
+  const records = usePaperRecords();
+  const text = value !== undefined ? valueText(f.type, value, f.options, (type, id) => records.get(type, id)?.title ?? null) : null;
+  return (
+    <div className={s.autoRow}>
+      <span>{f.label}</span>
+      <span className={text === null ? s.later : undefined}>{text ?? autoPlaceholder(published)}</span>
+    </div>
   );
 }
 
@@ -92,7 +137,8 @@ export function FieldGroups({ template, values, zones, editable, active, onChang
  * missing; fields the actor fills, then those a moderator fills.
  */
 export function FieldsPanel(props: Omit<GroupsProps, 'onZoneText'>) {
-  const { template, values, zones, editable } = props;
+  const { template, values, zones } = props;
+  const editable = props.mode === 'fill';
   const p = fillProgress(template, values, zones);
   return (
     <aside className={s.panel} aria-label="Поля документа">

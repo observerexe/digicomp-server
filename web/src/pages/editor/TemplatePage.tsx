@@ -10,7 +10,7 @@ import { OfflineBanner } from '../../components/OfflineBanner';
 import { ConfirmButton, ErrorMessage } from '../../components/ui';
 import { BlockMenu } from '../../editor/BlockMenu';
 import { fieldBlockOf, type Palette } from '../../editor/blocks';
-import { paletteOf } from '../../editor/blocks/schema';
+import { isAutoBinding, paletteOf } from '../../editor/blocks/schema';
 import {
   builderExtension,
   cursorAtEnd,
@@ -258,11 +258,15 @@ function TemplateBuilder({ template, version, schema, onReload, onTemplate, onPu
   useEffect(() => {
     const look: BuilderLook = { editable: !readOnly, fields: {} };
     for (const f of defs.values()) {
-      const group = fieldBlockOf(f.type)?.group === 'data' ? 'data' : 'field';
+      const auto = isAutoBinding(
+        template.kind,
+        schema?.fields.find((x) => x.key === f.binding),
+      );
+      const group = auto ? 'auto' : fieldBlockOf(f.type)?.group === 'data' ? 'data' : 'field';
       look.fields[f.key] = { text: showKeys ? `{${f.key}}` : `{${f.label}}`, state: group, tag: fieldTag(f, schema), group };
     }
     setBuilderLook(editor, look);
-  }, [editor, defs, showKeys, schema, readOnly]);
+  }, [editor, defs, showKeys, schema, readOnly, template.kind]);
 
   // The header and «Затверджую» from «Реквізити»; auto values and who signs — by their names.
   useSheet(editor, { builder: true, people: Object.fromEntries(fields.filter((f) => f.type === 'ref:user').map((f) => [f.key, `{${showKeys ? f.key : f.label}}`])) });

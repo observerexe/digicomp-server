@@ -73,6 +73,14 @@ export const TASK_SCHEMA: RecordSchemaDef = {
       type: 'list<ref:user>',
       source: 'relation',
     },
+    {
+      // «Ім'я ПРІЗВИЩЕ — 6; …»: how the points go to the assignees on acceptance.
+      key: 'pointsSplit',
+      label: 'Розподіл балів',
+      type: 'text',
+      nullable: true,
+      source: 'computed',
+    },
     { key: 'createdById', label: 'Автор', type: 'ref:user' },
     { key: 'createdAt', label: 'Створено', type: 'datetime' },
     {

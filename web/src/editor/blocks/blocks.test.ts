@@ -64,17 +64,24 @@ describe('Поля запису в палітрі', () => {
       { key: 'description', label: 'Опис', type: 'text', create: true, maxLength: 5000 },
       { key: 'assigneeIds', label: 'Виконавці', type: 'list<ref:user>', create: true },
       { key: 'status', label: 'Статус', type: 'enum' },
+      { key: 'split', label: 'Розподіл балів', type: 'text' },
       { key: 'old', label: 'Старе', type: 'text', create: true, archived: true },
+      { key: 'kind', label: 'Тип', type: 'enum', create: true },
     ],
   };
 
-  it('«Створює запис» — поля, які задаються при створенні; «Звіт» — усі; вільний — немає групи', () => {
-    expect(schemaBlocks('creates', schema).map((b) => b.binding)).toEqual(['title', 'description', 'assigneeIds']);
-    expect(schemaBlocks('report', schema).map((b) => b.binding)).toEqual(['title', 'description', 'assigneeIds', 'status']);
+  it('«Створює запис» — спершу поля, які задаються при створенні, потім авто-поля; «Звіт» — усі; вільний — немає групи', () => {
+    expect(schemaBlocks('creates', schema).map((b) => b.binding)).toEqual(['title', 'description', 'assigneeIds', 'kind', 'status', 'split']);
+    expect(schemaBlocks('report', schema).map((b) => b.binding)).toEqual(['title', 'description', 'assigneeIds', 'status', 'split', 'kind']);
     expect(paletteOf('free', schema).groups).toEqual(BLOCK_GROUPS);
     const palette = paletteOf('creates', schema);
     expect(palette.groups[0]).toEqual({ key: 'schema', label: 'Поля запису «ТЗ»' });
-    expect(palette.blocks.length).toBe(BLOCKS.length + 3);
+    expect(palette.blocks.length).toBe(BLOCKS.length + 6);
+  });
+
+  it('авто-поле: текст лишається рядком (не зона), підказка — «заповниться із запису»', () => {
+    const split = schemaBlocks('creates', schema).find((b) => b.binding === 'split');
+    expect(split).toMatchObject({ type: 'text', required: false, hint: 'Заповниться із запису «ТЗ» після публікації' });
   });
 
   it('тип і вигляд — з поля запису: довгий текст — вільна зона; обов’язковість — лише для «Створює запис»', () => {

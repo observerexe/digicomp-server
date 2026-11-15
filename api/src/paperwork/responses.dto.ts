@@ -89,7 +89,10 @@ export class PaperFieldDto {
   @ApiProperty({ type: String, nullable: true })
   binding: string | null;
 
-  /** The actor may fill it now. */
+  /** Bound to what the record gets later (assignees, acceptance…): nobody fills it; it shows the record once published. */
+  auto: boolean;
+
+  /** The actor may fill it now (a draft), or change it (a published document, see `canChange`). */
   canFill: boolean;
 }
 
@@ -168,6 +171,12 @@ export class PaperDto extends PaperItemDto {
 
   /** The actor may cancel it (published: their own, staff — any; the record's rule — on cancelling). */
   canCancel: boolean;
+
+  /**
+   * Published: the actor may change some fields «можна змінити» (`canFill`) —
+   * bound ones while they may change the record, the rest in their own document (staff — any).
+   */
+  canChange: boolean;
 }
 
 export class PaperListDto {

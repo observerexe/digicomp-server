@@ -128,10 +128,22 @@ describe('Поля шаблону: прив’язки до схеми', () => {
     });
   });
 
-  it('поле, якого не задають при створенні (статус), — лише у звіті', () => {
+  it('поле, якого не задають при створенні, — авто-поле: не обов’язкове й незмінне', () => {
     const status = field({ key: 's', type: 'enum', binding: 'status' });
-    expect(check([...taskBase, status])).toEqual({ field: 's' });
+    const team = field({
+      key: 'team',
+      type: 'list<ref:user>',
+      binding: 'assignees',
+    });
+    const split = field({ key: 'split', binding: 'pointsSplit' });
+    expect(check([...taskBase, status, team, split])).toBeNull();
     expect(check([status], TemplateKind.Report)).toBeNull();
+    expect(check([...taskBase, { ...status, required: true }])).toEqual({
+      field: 's',
+    });
+    expect(check([...taskBase, { ...team, editable: true }])).toEqual({
+      field: 'team',
+    });
   });
 
   it('одне поле запису — один раз', () => {

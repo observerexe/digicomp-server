@@ -53,7 +53,8 @@ export function TemplateTrial({ template, body }: { template: PaperTemplateRef; 
             template={template}
             values={fill.values}
             zones={fill.zones}
-            editable
+            mode="fill"
+            published={false}
             active={sheet.shownActive}
             onChange={fill.change}
             onActive={sheet.onActive}
