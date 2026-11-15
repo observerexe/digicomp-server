@@ -22,6 +22,7 @@ import { MiniRibbon, Ribbon } from '../../editor/Ribbon';
 import { Ruler } from '../../editor/Ruler';
 import { StatusBar, useZoom } from '../../editor/StatusBar';
 import { useAutosave, type SaveState } from '../../editor/useAutosave';
+import { peopleOf, useSheet } from '../../editor/useSheet';
 import { usePageStats } from '../../editor/usePageStats';
 import { errorOf } from '../../errors/messages';
 import { formatTime } from '../../lib/format';
@@ -153,7 +154,13 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
 
   // A value the server refused (on saving or publishing): its field is shown (the error says what to fix).
   const refused = autosave.state === 'rejected' ? (autosave.rejection?.field ?? null) : (publishError?.field ?? null);
-  const sheet = useFillSheet(editor, fill, refused, paper.number);
+  const sheet = useFillSheet(editor, fill, refused);
+  useSheet(editor, {
+    author: paper.author.name,
+    publishedAt: paper.publishedAt,
+    number: paper.number,
+    people: template ? peopleOf(template.fields, values, fill.recordTitle) : {},
+  });
 
   const changeValue = (key: string, v: FieldValue | null) => autosave.change({ values: fill.change(key, v) });
   /** A zone from the form: to it on the page, the cursor in it. */

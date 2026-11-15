@@ -70,10 +70,11 @@ export function blockTag(node: PMNode, look: BuilderLook): { label: string; grou
   const keys = keysIn(node);
   const one = keys.length === 1 && (node.type.name === 'fieldZone' || node.isTextblock) ? look.fields[keys[0]!] : undefined;
   if (one) return { label: one.tag, group: one.group };
-  const base = textBlockOf(node.type.name)?.label ?? node.type.name;
+  const block = textBlockOf(node.type.name);
+  const base = block?.label ?? node.type.name;
   const auto = !keys.length && node.isTextblock ? autoIn(node) : null;
   if (auto) return { label: `Авто: ${auto.label.toLowerCase()}`, group: 'auto' };
-  if (!keys.length) return { label: base, group: 'text' };
+  if (!keys.length) return { label: base, group: block?.group ?? 'text' };
   return { label: `${base} · ${keys.length} ${plural(keys.length, ['поле', 'поля', 'полів'])}`, group: 'text' };
 }
 
@@ -182,7 +183,18 @@ export function placeBlock(editor: Editor, block: Block, key: string | null, ran
   return true;
 }
 
-/** Every field and zone of `from` gets the key `to` (not in the history: the key lives in the panel). */
+const SIGNERS = ['leftSigner', 'rightSigner'] as const;
+
+/** Signatures signed by the member of the field `from`: by `to` now (null — a line to sign by hand). */
+function resign(tr: Transaction, from: string, to: string | null) {
+  tr.doc.descendants((n, pos) => {
+    if (n.type.name !== 'signatures') return n.type.name === 'doc';
+    for (const side of SIGNERS) if (n.attrs[side] === from) tr.setNodeAttribute(pos, side, to);
+    return false;
+  });
+}
+
+/** Every field and zone of `from` gets the key `to`, signatures too (not in the history: the key lives in the panel). */
 export function renameField(editor: Editor, from: string, to: string) {
   const tr = editor.state.tr;
   editor.state.doc.descendants((n, pos) => {
@@ -190,10 +202,21 @@ export function renameField(editor: Editor, from: string, to: string) {
     if ((n.type.name === 'field' || n.type.name === 'fieldZone') && n.attrs.key === from) tr.setNodeAttribute(pos, 'key', to);
     return true;
   });
+  resign(tr, from, to);
   if (tr.docChanged) editor.view.dispatch(tr.setMeta('addToHistory', false));
 }
 
-/** Takes a field off the sheet: a paragraph holding only it — with the paragraph. */
+/** Changes attributes of the block of the top level at `index` (signatures, the footer). */
+export function setBlockAttrs(editor: Editor, index: number, attrs: Record<string, unknown>) {
+  const { doc } = editor.state;
+  if (index < 0 || index >= doc.childCount) return;
+  let pos = 0;
+  for (let i = 0; i < index; i++) pos += doc.child(i).nodeSize;
+  const node = doc.child(index);
+  editor.view.dispatch(editor.state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, ...attrs }));
+}
+
+/** Takes a field off the sheet: a paragraph holding only it — with the paragraph; signatures by it — a line to sign by hand. */
 export function removeField(editor: Editor, key: string) {
   const { state } = editor;
   const ranges: [number, number][] = [];
@@ -204,10 +227,10 @@ export function removeField(editor: Editor, key: string) {
     ranges.push(alone ? [$pos.before(), $pos.after()] : [pos, pos + n.nodeSize]);
     return false;
   });
-  if (!ranges.length) return;
   const tr = state.tr;
   for (const [from, to] of ranges.reverse()) tr.delete(from, to);
-  editor.view.dispatch(tr);
+  resign(tr, key, null);
+  if (tr.docChanged) editor.view.dispatch(tr);
 }
 
 /** Removes the block of the top level at `index`; the sheet is never left without a paragraph. */
@@ -280,12 +303,10 @@ export function builderExtension(opts: BuilderOptions) {
               state.doc.descendants((n, pos, parent) => {
                 const key = n.attrs.key as string;
                 const f = look.fields[key];
-                const auto = autoBlockOf(n.type.name);
+                // Auto values and structure blocks: drawn by structure.ts (the constructor's names — SheetInfo.builder).
                 if (n.type.name === 'field') {
                   const look1: FieldLook = { text: f?.text ?? `{${key}}`, state: f?.state ?? 'empty' };
                   decos.push(Decoration.node(pos, pos + n.nodeSize, {}, { look: look1, active: sel instanceof NodeSelection && sel.from === pos }));
-                } else if (auto) {
-                  decos.push(Decoration.node(pos, pos + n.nodeSize, {}, { look: { text: auto.text, state: 'auto' }, active: sel instanceof NodeSelection && sel.from === pos }));
                 } else if (n.type.name === 'fieldZone' && parent !== state.doc) {
                   decos.push(Decoration.node(pos, pos + n.nodeSize, { class: 'is-zone', 'data-label': f?.tag ?? key }));
                 }
@@ -335,7 +356,8 @@ export function builderExtension(opts: BuilderOptions) {
  * What the cursor is on: a field (`picked` — the field itself is selected, not
  * the text around it), a zone, a block holding one field; or a block of the top level.
  */
-export type BuilderSelection = { kind: 'field'; key: string; picked: boolean } | { kind: 'block'; index: number; node: string; keys: string[] } | null;
+export type BuilderSelection =
+  { kind: 'field'; key: string; picked: boolean } | { kind: 'block'; index: number; node: string; keys: string[]; attrs: Record<string, unknown> } | null;
 
 export function selectionOf(state: EditorState): BuilderSelection {
   const sel = state.selection;
@@ -347,7 +369,7 @@ export function selectionOf(state: EditorState): BuilderSelection {
   const node = state.doc.child(index);
   const keys = keysIn(node);
   if (keys.length === 1 && (node.isTextblock || node.type.name === 'fieldZone')) return { kind: 'field', key: keys[0]!, picked: false };
-  return { kind: 'block', index, node: node.type.name, keys };
+  return { kind: 'block', index, node: node.type.name, keys, attrs: node.attrs };
 }
 
 /** The cursor at the end of the sheet, in an empty paragraph (one is added if the last block is not). */

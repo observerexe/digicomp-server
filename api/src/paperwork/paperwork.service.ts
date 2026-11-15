@@ -19,8 +19,13 @@ import type { RecordType } from '../records/field-types';
 import { User } from '../users/user.entity';
 import type { OkDto, Plain } from '../common/responses.dto';
 import {
+  dayText,
   EMPTY_CONTENT,
   isFillable,
+  signName,
+  SIGNER_AUTHOR,
+  SIGNER_ORG,
+  yearText,
   normalizeValue,
   valueText,
   withZoneText,
@@ -449,10 +454,13 @@ export class PaperworkService {
   }
 
   /**
-   * Print page of the current content with the values of fields,
-   * header from «Реквізити».
+   * Print page of the current content with the values of fields; the
+   * structure blocks take «Реквізити», the author and the day of publication.
    */
-  async printHtml(id: string, actor: Actor): Promise<string> {
+  async printHtml(
+    id: string,
+    actor: Actor,
+  ): Promise<{ html: string; csp: string }> {
     const m = this.ds.manager;
     const p = await this.accessible(m, id, actor);
     const form = await this.formOf(m, p);
@@ -466,11 +474,12 @@ export class PaperworkService {
     );
     const title = (type: string, id: string) =>
       refs.get(`${type}:${id}`) ?? null;
-    const { institution, groupName } = await this.org.get();
+    const org = await this.org.get();
+    const named = (name: string | null | undefined) =>
+      name ? signName(name) : null;
     return paperPrintHtml({
       title: p.title,
       content,
-      requisites: { institution, groupName },
       fill: {
         number: p.number,
         text: (key) => {
@@ -482,6 +491,23 @@ export class PaperworkService {
         },
         hidden: (key) => !fields.get(key)?.print,
         title,
+        info: {
+          institution: org.institution,
+          groupName: org.groupName,
+          signerPosition: org.signerPosition,
+          person: (signer) => {
+            if (signer === SIGNER_AUTHOR) return named(p.author?.name);
+            if (signer === SIGNER_ORG) return named(org.signer?.name);
+            // A `ref:user` field: the member it holds, if the reader sees them.
+            const v = values[signer];
+            return fields.get(signer)?.type === 'ref:user' &&
+              typeof v === 'string'
+              ? named(title('user', v))
+              : null;
+          },
+          date: p.publishedAt ? dayText(p.publishedAt) : null,
+          year: yearText(p.publishedAt ?? new Date()),
+        },
       },
     });
   }
@@ -498,6 +524,18 @@ export class PaperworkService {
         ? await this.templates.forPaper(m, dto.templateId, actor)
         : null;
       const content = from?.version.body ?? dto.content ?? EMPTY_CONTENT;
+      // A free document's own content: checked as any save of it.
+      if (!from) {
+        this.checked(
+          null,
+          actor,
+          { content },
+          {
+            content: EMPTY_CONTENT,
+            values: {},
+          },
+        );
+      }
       // What a template's body refers to is the template's own.
       const fresh = from
         ? new Set<string>()

@@ -133,6 +133,26 @@ export function choicesOf(v: FieldValue | undefined): string[] {
 const TZ = 'Europe/Kyiv';
 const DATETIME_TEXT = new Intl.DateTimeFormat('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: TZ });
 const NUMBER_TEXT = new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 6 });
+const DAY_TEXT = new Intl.DateTimeFormat('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: TZ });
+const YEAR_TEXT = new Intl.DateTimeFormat('uk-UA', { year: 'numeric', timeZone: TZ });
+
+/** A moment as a day in Kyiv: «15.11.2026». */
+export function dayText(at: Date | string): string {
+  return DAY_TEXT.format(new Date(at));
+}
+
+/** The year of a moment in Kyiv: «2026». */
+export function yearText(at: Date | string): string {
+  return YEAR_TEXT.format(new Date(at)).replace(/\D/g, '');
+}
+
+/** A name as documents sign it (ДСТУ 4163): «Артур Машталер» → «Артур МАШТАЛЕР». One word stays as it is. */
+export function signName(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length < 2) return words.join('');
+  const last = words.pop()!;
+  return [...words, last.toLocaleUpperCase('uk-UA')].join(' ');
+}
 
 const COLOR_TEXT: Record<string, string> = {
   gray: 'сірий',

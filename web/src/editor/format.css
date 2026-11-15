@@ -208,7 +208,7 @@ img.ProseMirror-separator {
   color: var(--sheet-blue);
 }
 
-/* «Авто: номер» (fields.ts PaperNumber): grey until the document is published, then plain text; green in the constructor */
+/* Auto values (structure.ts: number, day, author): grey until the document is published, then plain text; green in the constructor */
 .paper .paper-field.is-auto {
   background: color-mix(in srgb, var(--sheet-gray) 10%, var(--sheet-paper));
   color: var(--sheet-gray);
@@ -227,4 +227,38 @@ img.ProseMirror-separator {
 .paper .paper-block.is-auto::before {
   background: color-mix(in srgb, var(--sheet-green) 12%, var(--sheet-paper));
   color: var(--sheet-green);
+}
+
+/* Structure blocks (structure.ts): drawn as in the print; selected — outlined; yellow labels in the constructor */
+.paper .paper-org,
+.paper .paper-approval,
+.paper .paper-signs,
+.paper .paper-footer {
+  cursor: default;
+  user-select: none;
+}
+.paper .paper-org.ProseMirror-selectednode,
+.paper .paper-approval.ProseMirror-selectednode,
+.paper .paper-signs.ProseMirror-selectednode,
+.paper .paper-footer.ProseMirror-selectednode {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 2px;
+}
+.paper .paper-structure-empty,
+.paper .paper-footer {
+  color: var(--sheet-gray);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-style: italic;
+  text-indent: 0;
+}
+.paper .paper-footer {
+  margin: 12pt 0 0;
+  padding-top: 4px;
+  border-top: 1px dashed color-mix(in srgb, var(--sheet-gray) 40%, var(--sheet-paper));
+  text-align: center;
+}
+.paper .paper-block.is-structure::before {
+  background: color-mix(in srgb, var(--sheet-yellow) 14%, var(--sheet-paper));
+  color: var(--sheet-yellow);
 }

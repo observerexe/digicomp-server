@@ -1,6 +1,6 @@
 import type { JSONContent } from '@tiptap/core';
 import type { IconName } from '../../components/Icon';
-import { autoNumber } from './autoNumber';
+import { autoAuthor, autoDate, autoNumber } from './auto';
 import { checkbox } from './checkbox';
 import { choice } from './choice';
 import { date } from './date';
@@ -11,6 +11,7 @@ import { number } from './number';
 import { pageBreak } from './pageBreak';
 import { paragraph } from './paragraph';
 import { RECORD_BLOCKS } from './record';
+import { approval, orgHeader, pageFooter, signatures } from './structure';
 import { table } from './table';
 import { zone } from './zone';
 
@@ -24,9 +25,10 @@ import { zone } from './zone';
 /**
  * Groups of the palette; the colour of a group is the colour of its labels on
  * the sheet. `schema` — fields of the template's record (blocks/schema.ts);
- * `auto` — what the document gets by itself (the number).
+ * `auto` — what the document gets by itself (number, day, author);
+ * `structure` — the header, «Затверджую», signatures, the footer.
  */
-export type BlockGroup = 'text' | 'field' | 'data' | 'auto' | 'schema';
+export type BlockGroup = 'text' | 'field' | 'data' | 'auto' | 'structure' | 'schema';
 
 export type GroupDef = { key: BlockGroup; label: string };
 
@@ -35,6 +37,7 @@ export const BLOCK_GROUPS: GroupDef[] = [
   { key: 'field', label: 'Поля' },
   { key: 'data', label: 'Дані застосунку' },
   { key: 'auto', label: 'Авто' },
+  { key: 'structure', label: 'Структура' },
 ];
 
 /** One kind of a field's type («Ціле» / «Дробове»): the choice in «Властивості». */
@@ -68,14 +71,34 @@ export type FieldBlock = BlockBase & {
   required?: boolean;
 };
 
-/** Filled by the document itself (an inline node of the shared description); `text` — on the constructor's sheet. */
-export type AutoBlock = BlockBase & { kind: 'auto'; node: string; text: string };
+/** Filled by the document itself: an inline node of the shared description (editor/structure.ts draws it). */
+export type AutoBlock = BlockBase & { kind: 'auto'; node: string };
 
 export type Block = TextBlock | FieldBlock | AutoBlock;
 
-export const BLOCKS: Block[] = [heading, paragraph, list, table, pageBreak, line, zone, number, date, choice, checkbox, ...RECORD_BLOCKS, autoNumber];
+export const BLOCKS: Block[] = [
+  heading,
+  paragraph,
+  list,
+  table,
+  pageBreak,
+  line,
+  zone,
+  number,
+  date,
+  choice,
+  checkbox,
+  ...RECORD_BLOCKS,
+  autoNumber,
+  autoDate,
+  autoAuthor,
+  orgHeader,
+  approval,
+  signatures,
+  pageFooter,
+];
 
-/** The auto block of a node on the sheet (`paperNumber`); null — none. */
+/** The auto block of a node on the sheet (`paperNumber`…); null — none. */
 export function autoBlockOf(node: string): AutoBlock | null {
   return (BLOCKS.find((b) => b.kind === 'auto' && b.node === node) as AutoBlock | undefined) ?? null;
 }

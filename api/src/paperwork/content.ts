@@ -5,6 +5,9 @@ export {
   CONTENT_LIMITS,
   EMPTY_CONTENT,
   FIELD_KEY,
+  SIGNER_AUTHOR,
+  SIGNER_ORG,
+  signerField,
   type PaperContent,
   type PaperNode,
 } from '../../../shared/editor-schema';

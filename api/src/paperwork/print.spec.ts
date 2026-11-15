@@ -2,12 +2,17 @@ import { createHash } from 'crypto';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import {
+  checkContent,
   COLORS,
   SHEET_COLORS,
   type PaperContent,
 } from '../../../shared/editor-schema';
-import { renderContent } from '../../../shared/editor-schema/render';
-import { paperPrintHtml, PRINT_CSP, SANS_FONT } from './print';
+import {
+  renderContent,
+  type FieldFill,
+  type PaperInfo,
+} from '../../../shared/editor-schema/render';
+import { paperPrintHtml, SANS_FONT } from './print';
 
 const REPO = join(__dirname, '../../..');
 
@@ -20,16 +25,30 @@ const text = (t: string, extra: object = {}) => ({
   ...extra,
 });
 
-const requisites = {
+const info = (over: Partial<PaperInfo> = {}): PaperInfo => ({
   institution: 'КАЛУСЬКИЙ ПОЛІТЕХНІЧНИЙ ФАХОВИЙ КОЛЕДЖ',
   groupName: 'Творча група DigiComp',
-};
+  signerPosition: 'Модератор творчої групи DigiComp',
+  person: (who) =>
+    ({ '@author': 'Андрій ШЕВЧУК', '@signer': 'Артур МАШТАЛЕР' })[who] ?? null,
+  date: '15.11.2026',
+  year: '2026',
+  ...over,
+});
+
+const fill = (over: Partial<PaperInfo> = {}): FieldFill => ({
+  text: () => null,
+  hidden: () => false,
+  title: () => null,
+  number: null,
+  info: info(over),
+});
 
 const page = (over: Partial<Parameters<typeof paperPrintHtml>[0]> = {}) =>
   paperPrintHtml({
     title: 'Документ',
     content: doc(p(text('Текст'))),
-    requisites,
+    fill: fill(),
     ...over,
   });
 
@@ -109,17 +128,20 @@ describe('Рендер вмісту для друку (shared/editor-schema/rend
 });
 
 describe('Сторінка друку документа', () => {
+  const styleOf = (html: string) => /<style>([\s\S]*)<\/style>/.exec(html)![1]!;
+  const hashOf = (style: string) =>
+    createHash('sha256').update(style).digest('base64');
+
   it('стиль сторінки дозволено хешем у CSP', () => {
-    const style = /<style>([\s\S]*)<\/style>/.exec(page())![1]!;
-    const hash = createHash('sha256').update(style).digest('base64');
-    expect(PRINT_CSP).toContain(`style-src 'sha256-${hash}'`);
-    expect(PRINT_CSP).toContain("default-src 'none'");
-    expect(PRINT_CSP).toContain("font-src 'self'");
-    expect(PRINT_CSP).not.toContain('script-src');
+    const { html, csp } = page();
+    expect(csp).toContain(`style-src 'sha256-${hashOf(styleOf(html))}'`);
+    expect(csp).toContain("default-src 'none'");
+    expect(csp).toContain("font-src 'self'");
+    expect(csp).not.toContain('script-src');
   });
 
   it('A4 з полями за ДСТУ, вигляд аркуша з paper.css', () => {
-    const html = page();
+    const { html } = page();
     expect(html).toContain('size: A4; margin: 20mm 10mm 20mm 30mm');
     const paperCss = readFileSync(
       join(REPO, 'shared/editor-schema/paper.css'),
@@ -128,34 +150,158 @@ describe('Сторінка друку документа', () => {
     expect(html).toContain(paperCss);
   });
 
-  it('шапка з реквізитів, назва — лише в заголовку вкладки', () => {
-    const html = page({ title: 'Мій документ' });
-    expect(html).toContain(
-      '<header class="org"><p class="org-institution">КАЛУСЬКИЙ ПОЛІТЕХНІЧНИЙ ФАХОВИЙ КОЛЕДЖ</p><p class="org-group">Творча група DigiComp</p></header><p>Текст</p>',
-    );
+  it('шапки сам друк не додає; назва — лише в заголовку вкладки', () => {
+    const { html } = page({ title: 'Мій документ' });
+    expect(html).toContain('<main class="paper"><p>Текст</p></main>');
+    expect(html).not.toContain('<header');
     expect(html).toContain('<title>Мій документ</title>');
     expect(html.match(/Мій документ/g)).toHaveLength(1);
   });
 
-  it('без реквізитів шапки немає; лише одна частина — лише вона', () => {
-    expect(
-      page({ requisites: { institution: ' ', groupName: '' } }),
-    ).not.toContain('<header');
-    expect(
-      page({ requisites: { institution: '', groupName: 'Група' } }),
-    ).toContain('<header class="org"><p class="org-group">Група</p></header>');
+  it('колонтитул — унизу кожної сторінки, не в тексті; CSS-рядок екрановано, хеш — цього стилю', () => {
+    const { html, csp } = page({
+      content: doc(p(text('Текст')), {
+        type: 'pageFooter',
+        attrs: { text: 'Ф-01 "ТЗ" \\ </style><script>' },
+      }),
+    });
+    const style = styleOf(html);
+    expect(style).toContain(
+      '@bottom-center { content: "Ф-01 \\22 ТЗ\\22  \\5c  \\3c /style>\\3c script>";',
+    );
+    expect(html).not.toMatch(/<script/i);
+    expect(html).toContain('<main class="paper"><p>Текст</p></main>');
+    expect(csp).toContain(`style-src 'sha256-${hashOf(style)}'`);
+    expect(page().html).not.toContain('@bottom-center');
   });
 
-  it('екранує назву й реквізити; у сторінці немає скриптів і style=', () => {
-    const html = page({
-      title: '</title><script>x</script>',
-      requisites: { institution: '<b>"Коледж"</b>', groupName: "О'Брайен" },
-    });
+  it('екранує назву; у сторінці немає скриптів і style=', () => {
+    const { html } = page({ title: '</title><script>x</script>' });
     expect(html).toContain('&lt;/title&gt;&lt;script&gt;x&lt;/script&gt;');
-    expect(html).toContain('&lt;b&gt;&quot;Коледж&quot;&lt;/b&gt;');
-    expect(html).toContain('О&#39;Брайен');
     expect(html).not.toMatch(/<script/i);
     expect(html).not.toContain('style=');
+  });
+});
+
+describe('Блоки структури', () => {
+  const sign = (attrs: Record<string, unknown> = {}) => ({
+    type: 'signatures',
+    attrs,
+  });
+
+  it('у спільному описі лише на верхньому рівні аркуша', () => {
+    expect(checkContent(doc({ type: 'orgHeader' }, { type: 'approval' }))).toBe(
+      true,
+    );
+    expect(
+      checkContent(
+        doc({
+          type: 'bulletList',
+          content: [{ type: 'listItem', content: [{ type: 'orgHeader' }] }],
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      checkContent(
+        doc({ type: 'fieldZone', attrs: { key: 'z' }, content: [sign()] }),
+      ),
+    ).toBe(false);
+  });
+
+  it('підписи: хто підписує — автор, підписант, ключ поля; підпис — один рядок до 100 символів', () => {
+    for (const who of ['@author', '@signer', 'chair', null]) {
+      expect(checkContent(doc(sign({ leftSigner: who })))).toBe(true);
+    }
+    for (const bad of ['@admin', 'Chair', 7]) {
+      expect(checkContent(doc(sign({ rightSigner: bad })))).toBe(false);
+    }
+    expect(checkContent(doc(sign({ leftLabel: 'a\nb' })))).toBe(false);
+    expect(checkContent(doc(sign({ leftLabel: 'x'.repeat(101) })))).toBe(false);
+    expect(
+      checkContent(
+        doc({ type: 'pageFooter', attrs: { text: 'x'.repeat(201) } }),
+      ),
+    ).toBe(false);
+  });
+
+  it('у HTML редактора — лише елемент з атрибутами (екрановано)', () => {
+    expect(
+      renderContent(
+        doc(
+          { type: 'orgHeader' },
+          { type: 'approval' },
+          sign({
+            leftLabel: 'Видав "А" & Б',
+            rightLabel: 'Прийняв',
+            rightSigner: 'boss',
+          }),
+          { type: 'pageFooter', attrs: { text: 'Ф-01' } },
+        ),
+      ),
+    ).toBe(
+      '<div class="paper-org"></div><div class="paper-approval"></div>' +
+        '<div class="paper-signs" data-left-label="Видав &quot;А&quot; &amp; Б" data-left-signer="@author" data-right-label="Прийняв" data-right-signer="boss"></div>' +
+        '<div class="paper-footer" data-text="Ф-01"></div>',
+    );
+  });
+
+  it('у друці: шапка й гриф з реквізитів, підписи з іменами, порожнє — лінія', () => {
+    const html = renderContent(
+      doc(
+        { type: 'orgHeader' },
+        { type: 'approval' },
+        sign({
+          leftLabel: 'Завдання видав',
+          rightLabel: 'Роботу прийняв',
+          rightSigner: 'boss',
+        }),
+      ),
+      fill(),
+    );
+    expect(html).toBe(
+      '<header class="paper-org"><p class="paper-org-institution">КАЛУСЬКИЙ ПОЛІТЕХНІЧНИЙ ФАХОВИЙ КОЛЕДЖ</p><p class="paper-org-group">Творча група DigiComp</p></header>' +
+        '<div class="paper-approval"><p class="paper-approval-title">ЗАТВЕРДЖУЮ</p><p>Модератор творчої групи DigiComp</p>' +
+        '<p class="paper-sign"><span class="paper-sign-line"></span><span class="paper-sign-name">Артур МАШТАЛЕР</span></p>' +
+        '<p class="paper-approval-date">«<span class="paper-sign-day"></span>» <span class="paper-sign-month"></span> 2026 р.</p></div>' +
+        '<div class="paper-signs"><div class="paper-signs-col"><p>Завдання видав</p><p class="paper-sign"><span class="paper-sign-line"></span><span class="paper-sign-name">Андрій ШЕВЧУК</span></p></div>' +
+        '<div class="paper-signs-col"><p>Роботу прийняв</p><p class="paper-sign"><span class="paper-sign-line"></span></p></div></div>',
+    );
+  });
+
+  it('без правої колонки — одна; без реквізитів шапки немає, з однією частиною — лише вона', () => {
+    expect(renderContent(doc(sign()), fill())).toBe(
+      '<div class="paper-signs"><div class="paper-signs-col"><p>Склав</p><p class="paper-sign"><span class="paper-sign-line"></span><span class="paper-sign-name">Андрій ШЕВЧУК</span></p></div></div>',
+    );
+    expect(
+      renderContent(
+        doc({ type: 'orgHeader' }),
+        fill({ institution: ' ', groupName: '' }),
+      ),
+    ).toBe('');
+    expect(
+      renderContent(
+        doc({ type: 'orgHeader' }),
+        fill({ institution: '', groupName: '<Група>' }),
+      ),
+    ).toBe(
+      '<header class="paper-org"><p class="paper-org-group">&lt;Група&gt;</p></header>',
+    );
+  });
+
+  it('«Авто: дата» й «Авто: автор»: у редакторі — порожні місця, у друці — текст або лінія', () => {
+    const body = doc(
+      p({ type: 'paperDate' }, text(' '), { type: 'paperAuthor' }),
+    );
+    expect(checkContent(body)).toBe(true);
+    expect(renderContent(body)).toBe(
+      '<p><span class="paper-date"></span> <span class="paper-author"></span></p>',
+    );
+    expect(renderContent(body, fill())).toBe(
+      '<p><span class="paper-field">15.11.2026</span> <span class="paper-field">Андрій ШЕВЧУК</span></p>',
+    );
+    expect(renderContent(body, fill({ date: null, person: () => null }))).toBe(
+      '<p><span class="paper-field-blank"></span> <span class="paper-field-blank"></span></p>',
+    );
   });
 });
 

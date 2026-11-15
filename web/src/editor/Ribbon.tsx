@@ -8,7 +8,8 @@ import { useDropdown } from '../lib/useDropdown';
 import s from './Ribbon.module.css';
 
 /**
- * The ribbon: «Головна» (text formatting) and «Вставка» (table, page break).
+ * The ribbon: «Головна» (text formatting) and «Вставка» (table, page break,
+ * the header and «Затверджую» from «Реквізити»).
  * Each button calls a command from extensions.ts and returns the focus to the sheet.
  */
 
@@ -57,6 +58,8 @@ function useFormatState(editor: Editor) {
         inTable: e.isActive('table'),
         canMerge: e.can().mergeCells(),
         canSplit: e.can().splitCell(),
+        // The header and «Затверджую» stand only on the sheet's top level (not in a list, a table or a zone).
+        canStructure: e.can().insertContent({ type: 'orgHeader' }),
       };
     },
   });
@@ -205,6 +208,30 @@ export function Ribbon({ editor, lock = null, extra }: { editor: Editor; lock?: 
                 <button type="button" className={s.wide} onMouseDown={keepFocus} onClick={() => run().setPageBreak().run()}>
                   <Icon name="pageBreak" size={20} />
                   Розрив сторінки
+                </button>
+              </Group>
+              <Group label="Реквізити">
+                <button
+                  type="button"
+                  className={s.wide}
+                  disabled={!f.canStructure}
+                  title="Назва закладу й групи з «Реквізитів»"
+                  onMouseDown={keepFocus}
+                  onClick={() => run().insertContent({ type: 'orgHeader' }).run()}
+                >
+                  <Icon name="header" size={20} />
+                  Шапка
+                </button>
+                <button
+                  type="button"
+                  className={s.wide}
+                  disabled={!f.canStructure}
+                  title="Підписант і посада з «Реквізитів»"
+                  onMouseDown={keepFocus}
+                  onClick={() => run().insertContent({ type: 'approval' }).run()}
+                >
+                  <Icon name="shield" size={20} />
+                  Затверджую
                 </button>
               </Group>
               {f.inTable && (

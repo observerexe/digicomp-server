@@ -1,6 +1,6 @@
 import type { Node as PMNode } from '@tiptap/pm/model';
 import type { RecordField, RecordSchema, TemplateField, TemplateKind } from '../api/types';
-import { FIELD_KEY } from '../../../shared/editor-schema';
+import { FIELD_KEY, signerField } from '../../../shared/editor-schema';
 import { itemType, walkNodes } from '../../../shared/editor-schema/fields';
 import type { PaperNode } from '../../../shared/editor-schema';
 import { plural } from '../lib/format';
@@ -76,11 +76,17 @@ export function defsOf(fields: readonly TemplateField[], body: PaperNode): Map<s
   return defs;
 }
 
-/** Keys of fields and zones in the order of the sheet, each once. */
+/** Keys of fields and zones in the order of the sheet, each once; a member who signs a column of signatures is a field too. */
 export function keysOf(doc: PMNode): string[] {
   const keys = new Set<string>();
   doc.descendants((n) => {
     if (n.type.name === 'field' || n.type.name === 'fieldZone') keys.add(n.attrs.key as string);
+    if (n.type.name === 'signatures') {
+      for (const side of ['leftSigner', 'rightSigner']) {
+        const key = signerField(n.attrs[side]);
+        if (key !== null) keys.add(key);
+      }
+    }
     return true;
   });
   return [...keys];

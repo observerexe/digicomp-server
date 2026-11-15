@@ -18,6 +18,16 @@ import {
 import { renderContent } from '../../../shared/editor-schema/render';
 import { bodyProblem, type TemplateField } from './template-fields';
 
+/** Requisites and names: none (the fields are what these tests are about). */
+const NO_INFO = {
+  institution: '',
+  groupName: '',
+  signerPosition: '',
+  person: () => null,
+  date: null,
+  year: '',
+};
+
 const U1 = '11111111-1111-4111-8111-111111111111';
 const U2 = '22222222-2222-4222-8222-222222222222';
 const mention = (type: string, id: string): PaperNode => ({
@@ -196,6 +206,7 @@ describe('Посилання «@» у вмісті', () => {
       hidden: () => false,
       title: (_t: string, id: string) => (id === U1 ? '<ТЗ>' : null),
       number: null,
+      info: NO_INFO,
     };
     expect(renderContent(body, fill)).toBe(
       '<p><span class="paper-ref">&lt;ТЗ&gt;</span> <span class="paper-ref">запис недоступний</span></p>',
@@ -325,6 +336,28 @@ describe('Тіло шаблону й поля (bodyProblem)', () => {
     ).toEqual({ field: 'z' });
     expect(bodyProblem(doc(zone('z', p(text('а')))), fields)).toBeNull();
   });
+
+  it('підписи: поле учасника може стояти лише як той, хто підписує; інший тип чи невідомий ключ — помилка', () => {
+    const sign = (
+      leftSigner: string | null,
+      rightSigner: string | null = null,
+    ) =>
+      ({
+        type: 'signatures',
+        attrs: { leftSigner, rightLabel: 'Прийняв', rightSigner },
+      }) as PaperNode;
+    const fields = [f('boss', 'ref:user'), f('a')];
+    expect(
+      bodyProblem(doc(p(fieldNode('a')), sign('@author', 'boss')), fields),
+    ).toBeNull();
+    expect(
+      bodyProblem(doc(p(fieldNode('boss')), sign('boss')), [f('boss', 'text')]),
+    ).toEqual({ field: 'boss' });
+    expect(bodyProblem(doc(sign('nobody')), [])).toEqual({ field: 'nobody' });
+    expect(bodyProblem(doc(sign('@signer')), [f('boss', 'ref:user')])).toEqual({
+      field: 'boss',
+    });
+  });
 });
 
 describe('Рендер полів', () => {
@@ -345,6 +378,7 @@ describe('Рендер полів', () => {
       hidden: (k: string) => hidden.includes(k),
       title: () => null,
       number: null,
+      info: NO_INFO,
     });
     expect(renderContent(body, fill({ name: '<Іван>' }))).toBe(
       '<p>Ім’я: <span class="paper-field">&lt;Іван&gt;</span></p><div class="paper-zone" data-field="goal"><p>Мета</p></div>',
@@ -373,6 +407,7 @@ describe('«Авто: номер»', () => {
     hidden: () => false,
     title: () => null,
     number,
+    info: NO_INFO,
   });
 
   it('вузол спільного опису; у редакторі — порожнє місце, у друці — номер або лінія', () => {

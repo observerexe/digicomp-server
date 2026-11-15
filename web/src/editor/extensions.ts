@@ -16,8 +16,9 @@ import {
   type FontSize,
   type TextColor,
 } from '../../../shared/editor-schema';
-import { Field, FieldZone, PaperNumber, templateExtension, type TemplateOptions } from './fields';
+import { Field, FieldZone, templateExtension, type TemplateOptions } from './fields';
 import { Mention, type MentionOptions } from './mention';
+import { Approval, OrgHeader, PageFooter, PaperAuthor, PaperDate, PaperNumber, SheetLook, Signatures } from './structure';
 
 /**
  * The editor's extensions, built to match shared/editor-schema exactly
@@ -148,6 +149,9 @@ const PageBreak = Node.create({
   },
 });
 
+/** Structure blocks (the header, signatures…) only on the sheet's top level. */
+const PaperDocument = Node.create({ name: 'doc', topNode: true, content: '(block | structure)+' });
+
 /** Our spans carry format classes, not styles (TipTap's own parse needs `style`). */
 const ClassTextStyle = TextStyle.extend({
   parseHTML() {
@@ -189,11 +193,13 @@ const PlainTable = Table.extend({
 /**
  * `template` — a document made from a template: fields drawn, text outside zones
  * locked, Tab between fields. `mention` — titles of records and the «@» list.
+ * The structure and auto values show what setSheetInfo gives (structure.ts).
  */
 export function paperExtensions(opts: { template?: TemplateOptions; mention?: Partial<MentionOptions> } = {}): Extensions {
   const { template, mention } = opts;
   return [
     StarterKit.configure({
+      document: false,
       blockquote: false,
       code: false,
       codeBlock: false,
@@ -210,9 +216,17 @@ export function paperExtensions(opts: { template?: TemplateOptions; mention?: Pa
     TableRow,
     withoutAlign(TableCell),
     withoutAlign(TableHeader),
+    PaperDocument,
     Field,
     FieldZone,
     PaperNumber,
+    PaperDate,
+    PaperAuthor,
+    OrgHeader,
+    Approval,
+    Signatures,
+    PageFooter,
+    SheetLook,
     mention ? Mention.configure(mention) : Mention,
     ...(template ? [templateExtension(template)] : []),
   ];

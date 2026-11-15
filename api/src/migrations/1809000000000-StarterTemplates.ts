@@ -2,7 +2,8 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 /**
  * Editor 2.4: the first templates every installation starts with —
- * «Протокол зборів» and «Інструкція з безпеки». Both free (no record), A4,
+ * «Протокол зборів» and «Інструкція з безпеки» (with the header, «Затверджую»
+ * and signatures of 3.1б). Both free (no record), A4,
  * published as version 1; afterwards they are edited in the constructor like
  * any other template. The author is the first active admin; without one
  * (an empty database) nothing is created. Only new rows; a template a revert
@@ -102,6 +103,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     body: {
       type: 'doc',
       content: [
+        { type: 'orgHeader' },
         heading(1, 'ПРОТОКОЛ ЗБОРІВ', 'center'),
         line('Дата', 'date'),
         line('Місце', 'venue'),
@@ -114,6 +116,15 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
         zone('heard'),
         heading(2, 'Ухвалили'),
         zone('decided'),
+        {
+          type: 'signatures',
+          attrs: {
+            leftLabel: 'Головуючий',
+            leftSigner: 'chair',
+            rightLabel: 'Секретар',
+            rightSigner: 'secretary',
+          },
+        },
       ],
     },
   },
@@ -135,6 +146,8 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     body: {
       type: 'doc',
       content: [
+        { type: 'orgHeader' },
+        { type: 'approval' },
         heading(1, 'ІНСТРУКЦІЯ З БЕЗПЕКИ', 'center'),
         {
           type: 'paragraph',

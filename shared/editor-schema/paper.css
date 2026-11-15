@@ -119,6 +119,69 @@
   border-bottom: 1px solid var(--sheet-ink);
 }
 
+/*
+ * Structure of the sheet (render.ts structureInner: the editor draws the same).
+ * Header: institution and group, a line under them (12 pt).
+ */
+.paper .paper-org {
+  margin-bottom: 12pt;
+  padding-bottom: 4pt;
+  border-bottom: 1px solid var(--sheet-ink);
+  font-size: 12pt;
+  line-height: 1.3;
+  text-align: center;
+}
+.paper .paper-org p,
+.paper .paper-approval p,
+.paper .paper-signs p {
+  text-indent: 0;
+}
+.paper .paper-org-institution {
+  font-weight: 700;
+}
+/* «Затверджую»: the right half of the sheet. */
+.paper .paper-approval {
+  width: 50%;
+  margin: 0 0 12pt auto;
+}
+.paper .paper-approval-title {
+  font-weight: 700;
+}
+/* A line to sign on, then the name; «___» of the day and the month. */
+/* The line stands at the foot of the line of text, with a name or without. */
+.paper .paper-sign {
+  display: flex;
+  align-items: flex-end;
+  gap: 3mm;
+  min-height: 1.5em;
+  margin-top: 6pt;
+}
+.paper .paper-sign-line {
+  flex: 0 0 35mm;
+  border-bottom: 1px solid var(--sheet-ink);
+}
+.paper .paper-sign-day,
+.paper .paper-sign-month {
+  display: inline-block;
+  border-bottom: 1px solid var(--sheet-ink);
+}
+.paper .paper-sign-day {
+  width: 8mm;
+}
+.paper .paper-sign-month {
+  width: 30mm;
+}
+/* Signatures: one or two columns. */
+.paper .paper-signs {
+  display: flex;
+  gap: 10mm;
+  margin: 18pt 0 6pt;
+  break-inside: avoid;
+}
+.paper .paper-signs-col {
+  flex: 1 1 0;
+}
+
 /* Sizes */
 .paper .fs-10 { font-size: 10pt; }
 .paper .fs-11 { font-size: 11pt; }

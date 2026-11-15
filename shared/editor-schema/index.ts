@@ -100,7 +100,9 @@ export type NodeRule = {
 };
 
 const BLOCKS = ['paragraph', 'heading', 'bulletList', 'orderedList', 'table', 'pageBreak', 'fieldZone'] as const;
-const INLINE = ['text', 'hardBreak', 'field', 'mention', 'paperNumber'] as const;
+/** Structure of the sheet: only on its top level (not in a list, a table or a zone). */
+export const STRUCTURE = ['orgHeader', 'approval', 'signatures', 'pageFooter'] as const;
+const INLINE = ['text', 'hardBreak', 'field', 'mention', 'paperNumber', 'paperDate', 'paperAuthor'] as const;
 
 /** Key of a template field: Latin, starts with a small letter (`title`, `goal_2`). */
 export const FIELD_KEY = /^[a-z][a-zA-Z0-9_]{0,39}$/;
@@ -110,11 +112,28 @@ const fieldKey: AttrRule = { default: null, valid: (v) => typeof v === 'string' 
 export const RECORD_TYPE_KEY = /^[a-z][a-z_]{0,39}$/;
 /** Id of a record: a UUID in lower case. */
 export const RECORD_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+/** One line of text up to `max` characters: no line breaks or other control characters. */
+const lineOf =
+  (max: number): AttrRule['valid'] =>
+  (v) =>
+    typeof v === 'string' && v.length <= max && ![...v].some((c) => c.charCodeAt(0) < 0x20 || c.charCodeAt(0) === 0x7f);
+export const SIGN_LABEL_MAX = 100;
+export const FOOTER_MAX = 200;
+
+/** Who signs a column: the document's author, the signer from «Реквізити», or a `ref:user` field of the template (its key). */
+export const SIGNER_AUTHOR = '@author';
+export const SIGNER_ORG = '@signer';
+const signer: AttrRule = { default: null, valid: (v) => v === null || v === SIGNER_AUTHOR || v === SIGNER_ORG || (typeof v === 'string' && FIELD_KEY.test(v)) };
+/** The key of the template field a signature column takes its name from; null — not a field. */
+export function signerField(v: unknown): string | null {
+  return typeof v === 'string' && FIELD_KEY.test(v) ? v : null;
+}
+
 const recordType: AttrRule = { default: null, valid: (v) => typeof v === 'string' && RECORD_TYPE_KEY.test(v) };
 const recordId: AttrRule = { default: null, valid: (v) => typeof v === 'string' && RECORD_ID.test(v) };
 
 export const NODES: Record<string, NodeRule> = {
-  doc: { attrs: {}, children: BLOCKS },
+  doc: { attrs: {}, children: [...BLOCKS, ...STRUCTURE] },
   paragraph: { attrs: BLOCK_FORMAT, children: INLINE },
   heading: {
     attrs: { level: { default: 1, valid: oneOf(HEADING_LEVELS, false) }, ...BLOCK_FORMAT },
@@ -138,6 +157,25 @@ export const NODES: Record<string, NodeRule> = {
   mention: { attrs: { type: recordType, id: recordId } },
   /** «Авто: номер»: the document's number, given when it is published. */
   paperNumber: { attrs: {} },
+  /** «Авто: дата»: the day the document is published. */
+  paperDate: { attrs: {} },
+  /** «Авто: автор»: the document's author («Ім'я ПРІЗВИЩЕ»). */
+  paperAuthor: { attrs: {} },
+  /** «Шапка»: institution and group from «Реквізити». */
+  orgHeader: { attrs: {} },
+  /** «Гриф «Затверджую»»: the signer and their position from «Реквізити». */
+  approval: { attrs: {} },
+  /** «Блок підписів»: one or two columns, each — a label and who signs (a right column without a label — none). */
+  signatures: {
+    attrs: {
+      leftLabel: { default: 'Склав', valid: lineOf(SIGN_LABEL_MAX) },
+      leftSigner: { ...signer, default: SIGNER_AUTHOR },
+      rightLabel: { default: '', valid: lineOf(SIGN_LABEL_MAX) },
+      rightSigner: signer,
+    },
+  },
+  /** «Колонтитул»: a line at the foot of every printed page. */
+  pageFooter: { attrs: { text: { default: '', valid: lineOf(FOOTER_MAX) } } },
 };
 
 /** In the editor's order: marks nest in it (textStyle outermost, underline innermost). */

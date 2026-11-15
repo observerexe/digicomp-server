@@ -23,7 +23,7 @@ export type FieldLook = {
   /**
    * A document: filled — light blue; missing — required and empty; empty; staff — a moderator fills it.
    * The constructor: field, data — a field and a record of the app, in the colours of their groups.
-   * «Авто» (the number): auto — comes later (grey; green in the constructor); fixed — given, plain text.
+   * Auto values (structure.ts): auto — comes later (grey; green in the constructor); fixed — given, plain text.
    */
   state: 'filled' | 'missing' | 'empty' | 'staff' | 'field' | 'data' | 'auto' | 'fixed';
 };
@@ -31,14 +31,9 @@ export type FieldsLook = {
   fields: Record<string, FieldLook>;
   zones: Record<string, { label: string; missing: boolean }>;
   active: string | null;
-  /** «Авто: номер» (`paperNumber`). */
-  number: FieldLook;
 };
 
-/** The number before the document is published. */
-export const NUMBER_PENDING: FieldLook = { text: 'з’явиться після публікації', state: 'auto' };
-
-const EMPTY_LOOK: FieldsLook = { fields: {}, zones: {}, active: null, number: NUMBER_PENDING };
+const EMPTY_LOOK: FieldsLook = { fields: {}, zones: {}, active: null };
 const lookKey = new PluginKey<FieldsLook>('fieldsLook');
 
 /** Classes of a field on the sheet (format.css). */
@@ -47,10 +42,10 @@ function fieldClass(look: FieldLook | undefined, active: boolean) {
 }
 
 /**
- * A node view drawn from its decoration (`spec.look`): what a field or the
- * number shows comes from the panel, not from the document.
+ * A node view drawn from its decoration (`spec.look`): what a field or an
+ * auto value shows comes from the page, not from the document.
  */
-function lookView(name: string, fallback: FieldLook | null, key: (n: PMNode) => string | null) {
+export function lookView(name: string, fallback: FieldLook | null, key: (n: PMNode) => string | null) {
   return ({ node, decorations }: { node: PMNode; decorations: readonly unknown[] }) => {
     const dom = document.createElement('span');
     dom.contentEditable = 'false';
@@ -94,28 +89,6 @@ export const Field = Node.create({
   },
   addNodeView() {
     return lookView('field', null, (n) => n.attrs.key as string);
-  },
-});
-
-/**
- * «Авто: номер»: the document's number, given when it is published. The
- * HTML is an empty placeholder; the sheet shows the number or «з’явиться після публікації».
- */
-export const PaperNumber = Node.create({
-  name: 'paperNumber',
-  group: 'inline',
-  inline: true,
-  atom: true,
-  selectable: true,
-  draggable: false,
-  parseHTML() {
-    return [{ tag: 'span.paper-number' }];
-  },
-  renderHTML() {
-    return ['span', { class: 'paper-number' }];
-  },
-  addNodeView() {
-    return lookView('paperNumber', NUMBER_PENDING, () => null);
   },
 });
 
@@ -314,8 +287,6 @@ export function templateExtension(opts: TemplateOptions) {
                 const key = n.attrs.key as string;
                 if (n.type.name === 'field') {
                   decos.push(Decoration.node(pos, pos + n.nodeSize, {}, { look: look.fields[key], active: look.active === key }));
-                } else if (n.type.name === 'paperNumber') {
-                  decos.push(Decoration.node(pos, pos + n.nodeSize, {}, { look: look.number, active: false }));
                 } else if (n.type.name === 'fieldZone') {
                   const z = look.zones[key];
                   const cls = ['is-zone', z?.missing ? 'is-missing' : '', look.active === key ? 'is-active' : '', opts.locked.has(key) ? 'is-staff' : ''];

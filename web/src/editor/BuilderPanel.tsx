@@ -3,6 +3,7 @@ import type { RecordSchema, TemplateKind } from '../api/types';
 import { Icon } from '../components/Icon';
 import { useDictionaries } from '../lib/dictionaries';
 import { fieldBlockOf, textBlockOf, type Block, type Palette } from './blocks';
+import { FOOTER_MAX, SIGN_LABEL_MAX, SIGNER_AUTHOR, SIGNER_ORG } from '../../../shared/editor-schema';
 import { BLOCK_MIME, type BuilderSelection } from './builder';
 import s from './BuilderPanel.module.css';
 import { bindingOptions, hasLength, isChoice, isList, isNumeric, keyProblem, LABEL_MAX, limitsText, withType, type FieldDef, type FieldType } from './template';
@@ -31,6 +32,8 @@ type Props = {
   onRename: (from: string, to: string) => void;
   onRemoveField: (key: string) => void;
   onRemoveBlock: (index: number) => void;
+  /** Settings of a block of the top level (signatures, the footer). */
+  onBlockAttrs: (index: number, attrs: Record<string, unknown>) => void;
   onSelectField: (key: string) => void;
 };
 
@@ -132,9 +135,18 @@ function Properties(props: Props) {
   if (!selected) return <p className="hint">Виберіть блок на аркуші.</p>;
   if (selected.kind === 'block') {
     const block = textBlockOf(selected.node);
+    const setAttrs = (attrs: Record<string, unknown>) => props.onBlockAttrs(selected.index, attrs);
     return (
       <>
-        <Heading block={block} label={block?.label ?? selected.node} hint="Текст шаблону: у документі він не змінюється." />
+        <Heading block={block} label={block?.label ?? selected.node} hint={BLOCK_HINT[selected.node] ?? 'Текст шаблону: у документі він не змінюється.'} />
+        {selected.node === 'signatures' && <SignaturesForm attrs={selected.attrs} fields={props.fields} onChange={setAttrs} />}
+        {selected.node === 'pageFooter' && (
+          <div className="field">
+            <label htmlFor="block-footer">Текст колонтитула</label>
+            <input id="block-footer" maxLength={FOOTER_MAX} value={selected.attrs.text as string} onChange={(e) => setAttrs({ text: e.target.value })} />
+            <span className="hint">Друкується внизу кожної сторінки. Номери сторінок — угорі, з другої.</span>
+          </div>
+        )}
         {selected.keys.length > 0 && (
           <div className={s.prop}>
             <span className={s.propLabel}>Поля в блоці</span>
@@ -158,6 +170,58 @@ function Properties(props: Props) {
   if (!f) return <p className="hint">Поле «{selected.key}» без налаштувань: видаліть його з аркуша.</p>;
   // A new form for each field: what is typed in it belongs to that field.
   return <FieldForm key={f.key} f={f} {...props} />;
+}
+
+/** What a structure block shows, under its name. */
+const BLOCK_HINT: Record<string, string> = {
+  orgHeader: 'Назва закладу й групи з «Реквізитів» на панелі керування.',
+  approval: 'Посада й ім’я підписанта з «Реквізитів» на панелі керування.',
+  signatures: 'Одна або дві колонки: підпис, лінія й ім’я того, хто підписує.',
+  pageFooter: 'Рядок унизу кожної сторінки друку.',
+};
+
+const SIDES = [
+  { side: 'left', label: 'Ліва колонка' },
+  { side: 'right', label: 'Права колонка' },
+] as const;
+
+/** Signatures: each column — a label and who signs (the author, the signer, a member of a field, or a bare line). */
+function SignaturesForm({ attrs, fields, onChange }: { attrs: Record<string, unknown>; fields: readonly FieldDef[]; onChange: (attrs: Record<string, unknown>) => void }) {
+  const id = useId();
+  const people = fields.filter((f) => f.type === 'ref:user');
+  return (
+    <>
+      {SIDES.map(({ side, label }) => {
+        const signer = attrs[`${side}Signer`] as string | null;
+        const own = attrs[`${side}Label`] as string;
+        return (
+          <fieldset key={side} className={s.prop}>
+            <legend className={s.propLabel}>{label}</legend>
+            <div className="field">
+              <label htmlFor={`${id}-${side}-label`}>Підпис</label>
+              <input id={`${id}-${side}-label`} maxLength={SIGN_LABEL_MAX} value={own} onChange={(e) => onChange({ [`${side}Label`]: e.target.value })} />
+              {side === 'right' && !own && <span className="hint">Без підпису права колонка не друкується.</span>}
+            </div>
+            <div className="field">
+              <label htmlFor={`${id}-${side}-signer`}>Хто підписує</label>
+              <select id={`${id}-${side}-signer`} value={signer ?? ''} onChange={(e) => onChange({ [`${side}Signer`]: e.target.value || null })}>
+                <option value={SIGNER_AUTHOR}>Автор документа</option>
+                <option value={SIGNER_ORG}>Підписант з «Реквізитів»</option>
+                {people.map((f) => (
+                  <option key={f.key} value={f.key}>
+                    Поле «{f.label}»
+                  </option>
+                ))}
+                {signer !== null && signer !== SIGNER_AUTHOR && signer !== SIGNER_ORG && !people.some((f) => f.key === signer) && <option value={signer}>{signer}</option>}
+                <option value="">Нікого: лише лінія</option>
+              </select>
+            </div>
+          </fieldset>
+        );
+      })}
+      {people.length === 0 && <p className="hint">Щоб підписував учасник, вибраний у документі, додайте на аркуш поле «Учасник».</p>}
+    </>
+  );
 }
 
 function Heading({ block, label, hint }: { block: Block | null; label: string; hint: string }) {

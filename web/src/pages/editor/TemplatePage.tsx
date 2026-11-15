@@ -20,12 +20,14 @@ import {
   renameField,
   selectionOf,
   selectionRange,
+  setBlockAttrs,
   setBuilderLook,
   type BlockMenuState,
   type BuilderLook,
 } from '../../editor/builder';
 import { BuilderPanel, isUsed, type BuilderTab } from '../../editor/BuilderPanel';
 import { paperExtensions } from '../../editor/extensions';
+import { useSheet } from '../../editor/useSheet';
 import { fieldPosition } from '../../editor/fields';
 import { Ribbon } from '../../editor/Ribbon';
 import { Ruler } from '../../editor/Ruler';
@@ -262,6 +264,9 @@ function TemplateBuilder({ template, version, schema, onReload, onTemplate, onPu
     setBuilderLook(editor, look);
   }, [editor, defs, showKeys, schema, readOnly]);
 
+  // The header and «Затверджую» from «Реквізити»; auto values and who signs — by their names.
+  useSheet(editor, { builder: true, people: Object.fromEntries(fields.filter((f) => f.type === 'ref:user').map((f) => [f.key, `{${showKeys ? f.key : f.label}}`])) });
+
   const saveFields = (next: Map<string, FieldDef>) => {
     changeDefs(next);
     autosave.change({ fields: fieldsOf(next, keysOf(editor.state.doc)) });
@@ -426,6 +431,7 @@ function TemplateBuilder({ template, version, schema, onReload, onTemplate, onPu
             onRename={rename}
             onRemoveField={(key) => removeField(editor, key)}
             onRemoveBlock={(index) => removeBlock(editor, index)}
+            onBlockAttrs={(index, attrs) => setBlockAttrs(editor, index, attrs)}
             onSelectField={selectField}
           />
         </div>

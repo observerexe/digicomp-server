@@ -31,7 +31,6 @@ import {
   UpdatePaperDto,
 } from './dto';
 import { PaperworkService } from './paperwork.service';
-import { PRINT_CSP } from './print';
 import { PaperDto, PaperItemDto, PaperListDto } from './responses.dto';
 
 type Req = { user: { id: string; role: string } };
@@ -106,10 +105,10 @@ export class PaperworkController {
     @Req() req: Req,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const html = await this.papers.printHtml(id, req.user);
+    const { html, csp } = await this.papers.printHtml(id, req.user);
     res.set({
       'Content-Type': 'text/html; charset=utf-8',
-      'Content-Security-Policy': PRINT_CSP,
+      'Content-Security-Policy': csp,
     });
     return new StreamableFile(Buffer.from(html, 'utf8'));
   }

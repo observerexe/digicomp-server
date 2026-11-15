@@ -8,6 +8,8 @@ import { Ribbon } from '../../editor/Ribbon';
 import { StatusBar, useZoom } from '../../editor/StatusBar';
 import { useFill, useFillSheet } from '../../editor/useFill';
 import { usePageStats } from '../../editor/usePageStats';
+import { peopleOf, useSheet } from '../../editor/useSheet';
+import { useAuth } from '../../auth/AuthProvider';
 import s from './editor.module.css';
 
 /**
@@ -28,6 +30,9 @@ export function TemplateTrial({ template, body }: { template: PaperTemplateRef; 
     onUpdate: ({ editor: e }) => fill.syncZones(e.state.doc),
   });
   const sheet = useFillSheet(editor, fill);
+  // As a document of the one trying it would show.
+  const { user } = useAuth();
+  useSheet(editor, { author: user?.name ?? null, people: peopleOf(template.fields, fill.values, fill.recordTitle) });
   const [zoom, setZoom, zoomClass] = useZoom();
   const stats = usePageStats(editor, zoom);
 

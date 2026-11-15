@@ -7,12 +7,17 @@
  * attributes as format classes or checked numbers, escaped text.
  */
 import { RECORD_MISSING } from './fields';
-import { formatClass, MARKS, NODES, type PaperAttrs, type PaperMark, type PaperNode } from './index';
+import { formatClass, MARKS, NODES, SIGNER_AUTHOR, SIGNER_ORG, type PaperAttrs, type PaperMark, type PaperNode } from './index';
 
-const TEXT_ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\u00a0': '&nbsp;' };
+const TEXT_ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\u00a0': '&nbsp;' };
 
 function escapeText(s: string): string {
   return s.replace(/[&<>\u00a0]/g, (c) => TEXT_ESCAPES[c]!);
+}
+
+/** An attribute's value, as the DOM serializes it. */
+function escapeAttr(s: string): string {
+  return s.replace(/[&"\u00a0]/g, (c) => TEXT_ESCAPES[c]!);
 }
 
 /** Attribute value: valid by the description, otherwise its default. */
@@ -35,6 +40,22 @@ const nodeAttr = (n: PaperNode, name: string) => attr(NODES[n.type]!.attrs, n.at
 /** Keys match FIELD_KEY: nothing to escape. */
 const fieldKey = (n: PaperNode) => nodeAttr(n, 'key') as string | null;
 
+/** What the structure of the sheet shows: requisites, who signs, the day and the year. */
+export type PaperInfo = {
+  institution: string;
+  groupName: string;
+  signerPosition: string;
+  /**
+   * The name a signature shows («Ім'я ПРІЗВИЩЕ») for who signs: SIGNER_AUTHOR,
+   * SIGNER_ORG or a field's key; null — a line to sign by hand.
+   */
+  person(signer: string): string | null;
+  /** «Авто: дата»: the day the document is published («15.11.2026»); null — not yet. */
+  date: string | null;
+  /** The year of «Затверджую»: «2026». */
+  year: string;
+};
+
 /**
  * Values of fields for the print. Without it the HTML is the editor's own
  * (a field — an empty placeholder).
@@ -48,7 +69,81 @@ export type FieldFill = {
   title(type: string, id: string): string | null;
   /** The document's number; null — none yet (a line to fill in by hand). */
   number: string | null;
+  info: PaperInfo;
 };
+
+const BLANK = '<span class="paper-field-blank"></span>';
+const p = (cls: string | null, html: string) => `${tag('p', [['class', cls]])}${html}</p>`;
+
+/** A line to sign on and the name after it (none — the line alone). */
+function signLine(name: string | null): string {
+  return p('paper-sign', `<span class="paper-sign-line"></span>${name ? `<span class="paper-sign-name">${escapeText(name)}</span>` : ''}`);
+}
+
+/**
+ * What the structure blocks hold (the editor draws the same inside its own
+ * element); null — not a structure block, or nothing to show (a header
+ * without requisites).
+ */
+export function structureInner(n: PaperNode, info: PaperInfo): string | null {
+  switch (n.type) {
+    case 'orgHeader': {
+      const lines = [info.institution.trim() && p('paper-org-institution', escapeText(info.institution.trim())), info.groupName.trim() && p('paper-org-group', escapeText(info.groupName.trim()))];
+      return lines.filter(Boolean).join('') || null;
+    }
+    case 'approval':
+      return (
+        p('paper-approval-title', 'ЗАТВЕРДЖУЮ') +
+        (info.signerPosition.trim() ? p(null, escapeText(info.signerPosition.trim())) : '') +
+        signLine(info.person(SIGNER_ORG)) +
+        p('paper-approval-date', `«<span class="paper-sign-day"></span>» <span class="paper-sign-month"></span> ${escapeText(info.year)} р.`)
+      );
+    case 'signatures': {
+      const column = (side: 'left' | 'right') => {
+        const label = nodeAttr(n, `${side}Label`) as string;
+        const signer = nodeAttr(n, `${side}Signer`) as string | null;
+        return `<div class="paper-signs-col">${p(null, escapeText(label))}${signLine(signer === null ? null : info.person(signer))}</div>`;
+      };
+      return column('left') + ((nodeAttr(n, 'rightLabel') as string) ? column('right') : '');
+    }
+    default:
+      return null;
+  }
+}
+
+/** The text of the page footer (the first «Колонтитул»); '' — none. */
+export function footerText(doc: PaperNode): string {
+  const f = (doc.content ?? []).find((n) => n.type === 'pageFooter');
+  return f ? ((nodeAttr(f, 'text') as string) ?? '').trim() : '';
+}
+
+/** The class of each structure block's element. */
+export const STRUCTURE_CLASS: Record<string, string> = {
+  orgHeader: 'paper-org',
+  approval: 'paper-approval',
+  signatures: 'paper-signs',
+  pageFooter: 'paper-footer',
+};
+
+/** A structure block: in the editor's HTML — its element with attributes only; in the print — with what it shows. */
+function renderStructure(n: PaperNode, fill: FieldFill | undefined): string {
+  const cls = STRUCTURE_CLASS[n.type]!;
+  if (!fill) {
+    const attrs: [string, string | null][] =
+      n.type === 'signatures'
+        ? (['leftLabel', 'leftSigner', 'rightLabel', 'rightSigner'] as const).map((k) => [`data-${k.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`, escapeAttr((nodeAttr(n, k) as string | null) ?? '')])
+        : n.type === 'pageFooter'
+          ? [['data-text', escapeAttr(nodeAttr(n, 'text') as string)]]
+          : [];
+    return tag('div', [['class', cls], ...attrs]) + '</div>';
+  }
+  // The footer goes to the foot of every page (print.ts), not into the text.
+  if (n.type === 'pageFooter') return '';
+  const inner = structureInner(n, fill.info);
+  if (inner === null) return '';
+  const name = n.type === 'orgHeader' ? 'header' : 'div';
+  return `<${name} class="${cls}">${inner}</${name}>`;
+}
 
 /** Classes of a paragraph or heading: alignment, then indent. */
 function blockClass(n: PaperNode): string | null {
@@ -136,7 +231,7 @@ function renderField(n: PaperNode, fill: FieldFill | undefined): string {
   if (!fill) return tag('span', [['class', 'paper-field'], ['data-field', key]]) + '</span>';
   if (key === null || fill.hidden(key)) return '';
   const text = fill.text(key);
-  return text === null ? '<span class="paper-field-blank"></span>' : `<span class="paper-field">${escapeText(text)}</span>`;
+  return text === null ? BLANK : `<span class="paper-field">${escapeText(text)}</span>`;
 }
 
 /** A reference: the title of the record in the print; in the editor's HTML — only what it points to. */
@@ -152,7 +247,15 @@ function renderMention(n: PaperNode, fill: FieldFill | undefined): string {
 /** «Авто: номер»: the number in the print; in the editor's HTML — an empty placeholder. */
 function renderNumber(fill: FieldFill | undefined): string {
   if (!fill) return '<span class="paper-number"></span>';
-  return fill.number === null ? '<span class="paper-field-blank"></span>' : `<span class="paper-field">${escapeText(fill.number)}</span>`;
+  return fill.number === null ? BLANK : `<span class="paper-field">${escapeText(fill.number)}</span>`;
+}
+
+/** «Авто: дата», «Авто: автор»: the text in the print (none yet — a line); in the editor's HTML — an empty placeholder. */
+function renderAuto(n: PaperNode, fill: FieldFill | undefined): string {
+  const cls = n.type === 'paperDate' ? 'paper-date' : 'paper-author';
+  if (!fill) return `<span class="${cls}"></span>`;
+  const text = n.type === 'paperDate' ? fill.info.date : fill.info.person(SIGNER_AUTHOR);
+  return text === null ? BLANK : `<span class="paper-field">${escapeText(text)}</span>`;
 }
 
 function renderInline(children: PaperNode[], fill: FieldFill | undefined): string {
@@ -176,6 +279,7 @@ function renderInline(children: PaperNode[], fill: FieldFill | undefined): strin
     else if (n.type === 'field') out += renderField(n, fill);
     else if (n.type === 'mention') out += renderMention(n, fill);
     else if (n.type === 'paperNumber') out += renderNumber(fill);
+    else if (n.type === 'paperDate' || n.type === 'paperAuthor') out += renderAuto(n, fill);
   }
   while (open.length) out += open.pop()!.close;
   return out;
@@ -183,6 +287,7 @@ function renderInline(children: PaperNode[], fill: FieldFill | undefined): strin
 
 function renderNode(n: PaperNode, fill: FieldFill | undefined): string {
   if (n.type === 'pageBreak') return '<div class="page-break"></div>';
+  if (STRUCTURE_CLASS[n.type]) return renderStructure(n, fill);
   if (n.type === 'fieldZone' && fill) {
     const key = fieldKey(n);
     if (key === null || fill.hidden(key)) return '';

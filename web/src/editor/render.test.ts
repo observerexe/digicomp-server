@@ -86,6 +86,20 @@ const CASES: [string, PaperContent][] = [
     ),
   ],
   ['«Авто: номер»', doc(p([text('№ '), { type: 'paperNumber' }, text(' від')]))],
+  ['«Авто: дата» й «Авто: автор»', doc(p([{ type: 'paperDate' }, text(', '), { type: 'paperAuthor', marks: [bold] }]))],
+  [
+    'блоки структури',
+    doc(
+      { type: 'orgHeader' },
+      { type: 'approval' },
+      p([text('Текст')]),
+      { type: 'signatures' },
+      { type: 'signatures', attrs: { leftLabel: 'Видав "А" & Б', leftSigner: null, rightLabel: 'Прийняв', rightSigner: 'boss' } },
+      { type: 'signatures', attrs: { leftLabel: '', leftSigner: '@signer', rightLabel: '', rightSigner: null } },
+      { type: 'pageFooter' },
+      { type: 'pageFooter', attrs: { text: 'Ф-01 «ТЗ» & ко' } },
+    ),
+  ],
 ];
 
 describe('Рендер друку = HTML редактора', () => {

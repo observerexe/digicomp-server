@@ -84,14 +84,15 @@
   white-space: nowrap;
 }
 .button:hover:not(:disabled),
-.wide:hover {
+.wide:hover:not(:disabled) {
   background: var(--c-surface2);
 }
 .button[aria-pressed='true'] {
   background: var(--c-primary-soft);
   color: var(--c-primary-text);
 }
-.button:disabled {
+.button:disabled,
+.wide:disabled {
   color: var(--c-text3);
   opacity: 0.5;
   cursor: default;

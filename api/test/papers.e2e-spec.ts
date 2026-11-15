@@ -388,7 +388,7 @@ describe('Документи редактора (e2e)', () => {
   });
 
   describe('друк', () => {
-    it('аркуш A4: шапка з реквізитів, вміст, власний CSP без скриптів', async () => {
+    it('аркуш A4: вміст, власний CSP без скриптів; шапки сам друк не додає', async () => {
       await as(app, admin)
         .patch('/api/org-settings')
         .send({ institution: 'КОЛЕДЖ', groupName: 'Творча група' })
@@ -407,8 +407,86 @@ describe('Документи редактора (e2e)', () => {
       expect(csp).not.toContain('script-src');
       expect(res.text).toContain('<title>Звіт &lt;1&gt;</title>');
       expect(res.text).toContain(
-        '<main class="paper"><header class="org"><p class="org-institution">КОЛЕДЖ</p><p class="org-group">Творча група</p></header><p>Текст &amp; ще</p></main>',
+        '<main class="paper"><p>Текст &amp; ще</p></main>',
       );
+    });
+
+    it('блоки структури: шапка й гриф з реквізитів, підпис автора, дата публікації, колонтитул', async () => {
+      const author = await makeUser(app, Role.Member, {
+        name: 'Андрій Шевчук',
+      });
+      const signer = await makeUser(app, Role.Moderator, {
+        name: 'Артур Машталер',
+      });
+      await as(app, admin)
+        .patch('/api/org-settings')
+        .send({
+          institution: 'КОЛЕДЖ',
+          groupName: 'Творча група',
+          signerId: signer.id,
+          signerPosition: 'Модератор',
+        })
+        .expect(200);
+      const p = await create(author, {
+        content: {
+          type: 'doc',
+          content: [
+            { type: 'orgHeader' },
+            { type: 'approval' },
+            {
+              type: 'paragraph',
+              content: [{ type: 'paperDate' }, { type: 'paperAuthor' }],
+            },
+            { type: 'signatures', attrs: { leftLabel: 'Склав' } },
+            { type: 'pageFooter', attrs: { text: 'Ф-01' } },
+          ],
+        },
+      });
+      const draft = await as(app, author)
+        .get(`/api/papers/${p.id}/print`)
+        .expect(200);
+      const year = new Intl.DateTimeFormat('uk-UA', {
+        year: 'numeric',
+        timeZone: 'Europe/Kyiv',
+      })
+        .format(new Date())
+        .replace(/\D/g, '');
+      expect(draft.text).toContain(
+        '<header class="paper-org"><p class="paper-org-institution">КОЛЕДЖ</p><p class="paper-org-group">Творча група</p></header>' +
+          '<div class="paper-approval"><p class="paper-approval-title">ЗАТВЕРДЖУЮ</p><p>Модератор</p>' +
+          '<p class="paper-sign"><span class="paper-sign-line"></span><span class="paper-sign-name">Артур МАШТАЛЕР</span></p>' +
+          `<p class="paper-approval-date">«<span class="paper-sign-day"></span>» <span class="paper-sign-month"></span> ${year} р.</p></div>` +
+          // Not published: no date yet.
+          '<p><span class="paper-field-blank"></span><span class="paper-field">Андрій ШЕВЧУК</span></p>' +
+          '<div class="paper-signs"><div class="paper-signs-col"><p>Склав</p><p class="paper-sign"><span class="paper-sign-line"></span><span class="paper-sign-name">Андрій ШЕВЧУК</span></p></div></div></main>',
+      );
+      expect(draft.text).toContain('@bottom-center { content: "Ф-01";');
+      await as(app, author).post(`/api/papers/${p.id}/publish`).expect(200);
+      const published = await as(app, author)
+        .get(`/api/papers/${p.id}/print`)
+        .expect(200);
+      const day = new Intl.DateTimeFormat('uk-UA', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        timeZone: 'Europe/Kyiv',
+      }).format(new Date());
+      expect(published.text).toContain(
+        `<p><span class="paper-field">${day}</span><span class="paper-field">Андрій ШЕВЧУК</span></p>`,
+      );
+    });
+
+    it('підпис учасником поля вільного документа — 400 PAPER_CONTENT_LOCKED', async () => {
+      const res = await as(app, member)
+        .post('/api/papers')
+        .send({
+          content: {
+            type: 'doc',
+            content: [{ type: 'signatures', attrs: { leftSigner: 'boss' } }],
+          },
+        });
+      expect(res.status).toBe(400);
+      expect(res.body.errorCode).toBe('PAPER_CONTENT_LOCKED');
     });
 
     it('друкує поточний вміст після зміни', async () => {

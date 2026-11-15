@@ -2,6 +2,7 @@ import type { FieldSchema, FieldType } from '../records/field-types';
 import {
   isPlainZone,
   refType,
+  signerField,
   walkNodes,
   type PaperContent,
   type PaperNode,
@@ -185,7 +186,8 @@ export function fieldDictionaries(fields: TemplateField[]): string[] {
 /**
  * The body and the fields agree: every field is in the body; a free zone
  * (`richtext`) — once, as a zone, the rest — as inline fields (any number
- * of times); no unknown keys; nothing of a field inside a zone; a zone
+ * of times; a `ref:user` field may stand only as who signs a column of
+ * signatures); no unknown keys; nothing of a field inside a zone; a zone
  * bound to a text field starts as plain paragraphs.
  */
 export function bodyProblem(
@@ -196,7 +198,18 @@ export function bodyProblem(
   const seen = new Set<string>();
   let problem = null as FieldProblem | null;
   walkNodes(body, (n: PaperNode, insideZone) => {
-    if (problem || (n.type !== 'field' && n.type !== 'fieldZone')) return;
+    if (problem) return;
+    if (n.type === 'signatures') {
+      // A column signed by a member of a `ref:user` field: the field is on the sheet.
+      for (const side of ['leftSigner', 'rightSigner']) {
+        const key = signerField(n.attrs?.[side]);
+        if (key === null) continue;
+        if (byKey.get(key)?.type !== 'ref:user') problem = { field: key };
+        else seen.add(key);
+      }
+      return;
+    }
+    if (n.type !== 'field' && n.type !== 'fieldZone') return;
     const key = n.attrs?.key as string;
     const f = byKey.get(key);
     const zone = n.type === 'fieldZone';

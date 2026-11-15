@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { checkContent } from '../../../shared/editor-schema';
 import { matchesBody } from '../../../shared/editor-schema/fields';
 import { paperExtensions } from './extensions';
-import { fieldPosition, NUMBER_PENDING, setFieldsLook, setZoneText, zoneAtSelection, zoneTexts } from './fields';
+import { fieldPosition, setFieldsLook, setZoneText, zoneAtSelection, zoneTexts } from './fields';
 
 /** A document made from a template: a line with a field, a free zone, a plain zone, a zone a moderator fills. */
 const body: JSONContent = {
@@ -148,7 +148,7 @@ describe('Документ із шаблону: заблокований тек�
 
   it('поле показує значення з панелі; клік по полю — до панелі', () => {
     const { editor, onFieldClick } = open();
-    setFieldsLook(editor, { fields: { name: { text: 'Іван', state: 'filled' } }, zones: {}, active: null, number: NUMBER_PENDING });
+    setFieldsLook(editor, { fields: { name: { text: 'Іван', state: 'filled' } }, zones: {}, active: null });
     const dom = editor.view.nodeDOM(fieldPosition(editor, 'name')!) as HTMLElement;
     expect(dom.textContent).toBe('Іван');
     expect(dom.className).toBe('paper-field is-filled');

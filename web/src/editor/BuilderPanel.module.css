@@ -63,6 +63,12 @@
 .h-data {
   color: var(--pal-purple-text);
 }
+.h-auto {
+  color: var(--pal-green-text);
+}
+.h-structure {
+  color: var(--pal-yellow-text);
+}
 /* Fields of the record are fields too: the same blue */
 .h-schema {
   color: var(--pal-blue-text);
@@ -122,6 +128,14 @@
   background: var(--pal-blue-soft);
   color: var(--pal-blue-text);
 }
+.i-auto {
+  background: var(--pal-green-soft);
+  color: var(--pal-green-text);
+}
+.i-structure {
+  background: var(--pal-yellow-soft);
+  color: var(--pal-yellow-text);
+}
 
 /* «Властивості» */
 .heading {
@@ -140,6 +154,10 @@
 .prop {
   display: grid;
   gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 .propLabel {
   font-size: 14px;

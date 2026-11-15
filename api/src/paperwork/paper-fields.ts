@@ -11,6 +11,7 @@ import {
   matchesBody,
   normalizeValue,
   sameNodes,
+  signerField,
   walkNodes,
   zonesOf,
   zoneText,
@@ -186,6 +187,14 @@ export function checkContent(
     let found = false;
     walkNodes(content, (n) => {
       if (n.type === 'field' || n.type === 'fieldZone') found = true;
+      // Signatures of a field's member: a free document has no fields.
+      if (
+        n.type === 'signatures' &&
+        (signerField(n.attrs?.leftSigner) !== null ||
+          signerField(n.attrs?.rightSigner) !== null)
+      ) {
+        found = true;
+      }
     });
     if (found) throw locked();
     return;
