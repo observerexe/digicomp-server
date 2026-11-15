@@ -9,12 +9,16 @@ import { DataSource, EntityManager } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { Action, Actor, assertCan, can } from '../auth/policy';
 import { escapeLike } from '../common/like';
+import { LinkRegistry } from '../links/link-registry';
+import { removeLinksOf } from '../links/links.sql';
 import { OrgService } from '../org/org.service';
 import { RecordFieldsService } from '../records/record-fields.service';
+import type { RecordType } from '../records/field-types';
 import { User } from '../users/user.entity';
 import type { OkDto, Plain } from '../common/responses.dto';
 import {
   EMPTY_CONTENT,
+  refType,
   valueText,
   type FieldValues,
   type PaperContent,
@@ -26,6 +30,8 @@ import type {
   UpdatePaperDto,
 } from './dto';
 import { Paper, PaperStatus, PaperVisibility } from './paper.entity';
+import { whereSeen } from './paper.links';
+import { checkNewRefs, seenRefs, syncLinks } from './paper-refs';
 import {
   checkContent,
   checkValues,
@@ -39,6 +45,7 @@ import type {
   PaperFieldDto,
   PaperItemDto,
   PaperListDto,
+  PaperRefDto,
 } from './responses.dto';
 import { PaperTemplate, PaperTemplateVersion } from './template.entities';
 import { TemplatesService } from './templates.service';
@@ -91,7 +98,26 @@ export class PaperworkService {
     private org: OrgService,
     private templates: TemplatesService,
     private recordFields: RecordFieldsService,
+    private links: LinkRegistry,
   ) {}
+
+  /** A field of this type may be filled: not a reference, or one to a type that may be referred to. */
+  private fillableType(type: string) {
+    const ref = refType(type);
+    return ref === null || this.links.get(ref) !== undefined;
+  }
+
+  /** Records the document refers to that the actor sees. */
+  private refsOf(m: EntityManager, p: Paper, form: Form | null, actor: Actor) {
+    return seenRefs(
+      this.links,
+      form?.fields ?? [],
+      p.values,
+      p.content,
+      actor,
+      m,
+    );
+  }
 
   /** Fields of the version with limits and choices (see resolveFields). */
   private async fieldsOf(
@@ -197,10 +223,13 @@ export class PaperworkService {
           ...f,
           canFill:
             editable &&
-            !f.type.includes('ref:') &&
+            this.fillableType(f.type) &&
             (f.fill === 'author' || staff),
         })),
       },
+      refs: (await this.refsOf(m, p, form, actor)).map(
+        (r): Plain<PaperRefDto> => ({ ...r, type: r.type as RecordType }),
+      ),
       canEdit: editable,
     };
   }
@@ -226,17 +255,7 @@ export class PaperworkService {
         'author.name',
         'author.avatarUrl',
       ]);
-    if (!can(actor, Action.PapersReadAll)) {
-      // Same rule as PapersRead in policy.ts: own, or published for all.
-      qb.andWhere(
-        '(p.authorId = :me OR (p.status <> :draft AND p.visibility = :members))',
-        {
-          me: actor.id,
-          draft: PaperStatus.Draft,
-          members: PaperVisibility.Members,
-        },
-      );
-    }
+    whereSeen(qb, actor);
     if (q.mine === 'true') qb.andWhere('p.authorId = :me', { me: actor.id });
     if (q.search) {
       qb.andWhere('p.title ILIKE :s', { s: `%${escapeLike(q.search)}%` });
@@ -263,6 +282,14 @@ export class PaperworkService {
     const p = await this.accessible(m, id, actor);
     const form = await this.formOf(m, p);
     const fields = new Map((form?.fields ?? []).map((f) => [f.key, f]));
+    const refs = new Map(
+      (await this.refsOf(m, p, form, actor)).map((r) => [
+        `${r.type}:${r.id}`,
+        r.title,
+      ]),
+    );
+    const title = (type: string, id: string) =>
+      refs.get(`${type}:${id}`) ?? null;
     const { institution, groupName } = await this.org.get();
     return paperPrintHtml({
       title: p.title,
@@ -272,9 +299,12 @@ export class PaperworkService {
         text: (key) => {
           const f = fields.get(key);
           const v = p.values[key];
-          return f && v !== undefined ? valueText(f.type, v, f.options) : null;
+          return f && v !== undefined
+            ? valueText(f.type, v, f.options, title)
+            : null;
         },
         hidden: (key) => !fields.get(key)?.print,
+        title,
       },
     });
   }
@@ -290,11 +320,25 @@ export class PaperworkService {
       const from = dto.templateId
         ? await this.templates.forPaper(m, dto.templateId, actor)
         : null;
+      const content = from?.version.body ?? dto.content ?? EMPTY_CONTENT;
+      // What a template's body refers to is the template's own.
+      const fresh = from
+        ? new Set<string>()
+        : await checkNewRefs(
+            this.links,
+            [],
+            { values: {}, content },
+            { values: {}, content: EMPTY_CONTENT },
+            actor,
+            m,
+          );
       return this.insert(m, actor, {
         title: dto.title?.trim() || from?.template.title || UNTITLED,
-        content: from?.version.body ?? dto.content ?? EMPTY_CONTENT,
+        content,
         values: {},
         from,
+        fields: [],
+        fresh,
         meta: {},
       });
     });
@@ -329,11 +373,35 @@ export class PaperworkService {
           { content: dto.content, values: dto.values ?? {} },
           { content: from?.version.body ?? EMPTY_CONTENT, values: {} },
         ) ?? {};
+      // Records the original already refers to stay, as in any save of it;
+      // the copy links every one of them the actor sees.
+      await checkNewRefs(
+        this.links,
+        form?.fields ?? [],
+        { values, content: dto.content },
+        source,
+        actor,
+        m,
+      );
+      const fresh = new Set(
+        (
+          await seenRefs(
+            this.links,
+            form?.fields ?? [],
+            values,
+            dto.content,
+            actor,
+            m,
+          )
+        ).map((r) => `${r.type}:${r.id}`),
+      );
       return this.insert(m, actor, {
         title: dto.title?.trim() || source.title,
         content: dto.content,
         values,
         from,
+        fields: form?.fields ?? [],
+        fresh,
         meta: { copyOf: source.id },
       });
     });
@@ -347,6 +415,9 @@ export class PaperworkService {
       content: PaperContent;
       values: FieldValues;
       from: { template: PaperTemplate; version: PaperTemplateVersion } | null;
+      fields: PaperField[];
+      /** Records just checked (see checkNewRefs). */
+      fresh: ReadonlySet<string>;
       meta: Record<string, unknown>;
     },
   ): Promise<PaperDto> {
@@ -360,6 +431,15 @@ export class PaperworkService {
         visibility: p.from?.template.visibility ?? PaperVisibility.Author,
         authorId: actor.id,
       }),
+    );
+    await syncLinks(
+      m,
+      saved.id,
+      p.fields,
+      p.values,
+      p.content,
+      p.fresh,
+      actor.id,
     );
     await this.audit.log(
       {
@@ -412,10 +492,16 @@ export class PaperworkService {
       if (dto.revision !== p.revision) {
         throw new ConflictException('Paper was changed by someone else');
       }
-      const values =
-        dto.content !== undefined || dto.values !== undefined
-          ? this.checked(await this.formOf(m, p), actor, dto, p)
-          : undefined;
+      const filling = dto.content !== undefined || dto.values !== undefined;
+      const form = filling ? await this.formOf(m, p) : null;
+      const values = filling ? this.checked(form, actor, dto, p) : undefined;
+      const next = {
+        values: values ?? p.values,
+        content: dto.content ?? p.content,
+      };
+      const fresh = filling
+        ? await checkNewRefs(this.links, form?.fields ?? [], next, p, actor, m)
+        : null;
 
       const changes: Record<string, { from: unknown; to: unknown }> = {};
       const title = dto.title?.trim();
@@ -435,6 +521,17 @@ export class PaperworkService {
 
       p.revision += 1;
       await m.getRepository(Paper).save(p);
+      if (fresh) {
+        await syncLinks(
+          m,
+          p.id,
+          form?.fields ?? [],
+          next.values,
+          next.content,
+          fresh,
+          actor.id,
+        );
+      }
       if (changes.visibility || p.authorId !== actor.id) {
         await this.audit.log(
           {
@@ -478,6 +575,7 @@ export class PaperworkService {
       if (p.status !== PaperStatus.Draft) {
         throw new ConflictException('Paper is not a draft');
       }
+      await removeLinksOf(m, 'paper', p.id);
       await m.getRepository(Paper).delete(p.id);
       await this.audit.log(
         {

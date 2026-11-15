@@ -122,3 +122,16 @@ img.ProseMirror-separator {
   line-height: 16px;
   text-indent: 0;
 }
+
+/* «@» — a reference to a record (mention.ts). The print draws only the title (paper.css). */
+.paper .paper-ref {
+  color: var(--sheet-blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-indent: 0;
+}
+.paper .paper-ref.is-missing {
+  color: var(--sheet-gray);
+  text-decoration: none;
+  font-style: italic;
+}

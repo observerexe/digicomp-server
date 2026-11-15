@@ -29,6 +29,8 @@ export type WidgetProps = {
   onChange: (value: FieldValue | null) => void;
   /** Zones: bring the zone on the sheet into view and put the cursor there. */
   onJump: () => void;
+  /** An item of a list: values the other items hold (not offered again). */
+  taken?: readonly unknown[];
 };
 
 export type FieldType = {
@@ -40,12 +42,10 @@ export type FieldType = {
 const TYPES: Record<string, FieldType> = { text, int, decimal, date, datetime, bool, enum: enumType, color, richtext };
 
 export function fieldType(type: string): FieldType {
-  if (type.startsWith('ref:') || type.startsWith('list<ref:')) return ref;
-  if (type.startsWith('list<')) return list;
-  return TYPES[type] ?? ref;
+  return type.startsWith('list<') ? list : itemFieldType(type);
 }
 
-/** The widget of one item of a list (`list<int>` → int). */
+/** The widget of one value (`list<int>` → int, `ref:user` → the picker). */
 export function itemFieldType(type: string): FieldType {
-  return TYPES[type] ?? ref;
+  return type.startsWith('ref:') ? ref : (TYPES[type] ?? text);
 }

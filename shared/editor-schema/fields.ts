@@ -5,7 +5,7 @@
  *
  * No package imports (see index.ts).
  */
-import { COLORS, MARKS, NODES, type PaperAttrs, type PaperMark, type PaperNode } from './index';
+import { COLORS, MARKS, NODES, RECORD_ID, type PaperAttrs, type PaperMark, type PaperNode } from './index';
 
 /** A value as kept in the document's `values`. */
 export type FieldValue = string | number | boolean | (string | number | boolean)[];
@@ -46,10 +46,15 @@ export function itemType(type: string): string | null {
   return m ? m[1]! : null;
 }
 
-/** Field types a document fills (a `ref:*` field — by a picker, later). */
-export function isFillable(type: string): boolean {
+/** `ref:task`, `list<ref:task>` → `task`; null — not a reference. */
+export function refType(type: string): string | null {
   const t = itemType(type) ?? type;
-  return !t.startsWith('ref:') && t !== 'richtext';
+  return t.startsWith('ref:') ? t.slice(4) : null;
+}
+
+/** Field types a document fills by a value (a zone — by its text on the sheet). */
+export function isFillable(type: string): boolean {
+  return (itemType(type) ?? type) !== 'richtext';
 }
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -90,7 +95,8 @@ function scalar(type: string, f: FieldSpec, v: unknown): string | number | boole
     case 'color':
       return typeof v === 'string' && (COLORS as readonly string[]).includes(v) ? v : undefined;
     default:
-      return undefined;
+      // ref:<type> — the id of a record; whether it exists and is seen — the API's check.
+      return type.startsWith('ref:') && typeof v === 'string' && RECORD_ID.test(v) ? v : undefined;
   }
 }
 
@@ -113,8 +119,8 @@ export function normalizeValue(f: FieldSpec, v: unknown): FieldValue | null | un
     if (n === undefined) return undefined;
     out.push(n);
   }
-  // A choice is made once.
-  if ((item === 'enum' || item === 'color') && new Set(out).size !== out.length) return undefined;
+  // A choice (a record) is made once.
+  if ((item === 'enum' || item === 'color' || item.startsWith('ref:')) && new Set(out).size !== out.length) return undefined;
   return out;
 }
 
@@ -139,7 +145,14 @@ const COLOR_TEXT: Record<string, string> = {
   purple: 'фіолетовий',
 };
 
-function scalarText(type: string, v: string | number | boolean, options: readonly FieldOption[] | null): string {
+/** Title of a record a value or a reference points to; null — not seen (or no more). */
+export type RecordTitle = (type: string, id: string) => string | null;
+
+/** In place of a record the reader does not see, or one deleted. */
+export const RECORD_MISSING = 'запис недоступний';
+
+function scalarText(type: string, v: string | number | boolean, options: readonly FieldOption[] | null, title: RecordTitle | null): string {
+  if (type.startsWith('ref:')) return title?.(type.slice(4), String(v)) ?? RECORD_MISSING;
   switch (type) {
     case 'int':
     case 'decimal':
@@ -161,11 +174,41 @@ function scalarText(type: string, v: string | number | boolean, options: readonl
   }
 }
 
-/** How a value reads on the sheet and in the print: «12», «15.12.2026», «так». */
-export function valueText(type: string, v: FieldValue, options: readonly FieldOption[] | null = null): string {
+/** How a value reads on the sheet and in the print: «12», «15.12.2026», «так», a record's title. */
+export function valueText(type: string, v: FieldValue, options: readonly FieldOption[] | null = null, title: RecordTitle | null = null): string {
   const item = itemType(type);
-  if (item === null) return scalarText(type, v as string | number | boolean, options);
-  return (Array.isArray(v) ? v : [v]).map((x) => scalarText(item, x, options)).join(', ');
+  if (item === null) return scalarText(type, v as string | number | boolean, options, title);
+  return (Array.isArray(v) ? v : [v]).map((x) => scalarText(item, x, options, title)).join(', ');
+}
+
+/** A record a document refers to. */
+export type RecordRef = { type: string; id: string };
+
+/** Records of the values of reference fields, each once. */
+export function valueRefs(fields: readonly { key: string; type: string }[], values: FieldValues): (RecordRef & { key: string })[] {
+  const out: (RecordRef & { key: string })[] = [];
+  for (const f of fields) {
+    const type = refType(f.type);
+    const v = values[f.key];
+    if (type === null || v === undefined) continue;
+    for (const id of new Set((Array.isArray(v) ? v : [v]).map(String))) out.push({ key: f.key, type, id });
+  }
+  return out;
+}
+
+/** Records the text refers to («@»), each once, in order. */
+export function mentionsOf(doc: PaperNode): RecordRef[] {
+  const seen = new Set<string>();
+  const out: RecordRef[] = [];
+  walkNodes(doc, (n) => {
+    if (n.type !== 'mention') return;
+    const type = n.attrs?.type as string;
+    const id = n.attrs?.id as string;
+    if (seen.has(`${type}:${id}`)) return;
+    seen.add(`${type}:${id}`);
+    out.push({ type, id });
+  });
+  return out;
 }
 
 // --- the document and its template's body ---

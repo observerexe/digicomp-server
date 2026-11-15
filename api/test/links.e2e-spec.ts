@@ -21,6 +21,7 @@ type Link = {
   recordId: string;
   title: string;
   archived: boolean;
+  code?: string;
   role: string;
   canRemove: boolean;
 };
@@ -169,7 +170,7 @@ describe("Зв'язки між записами (e2e)", () => {
     expect(self.status).toBe(400);
     expect(self.body.errorCode).toBe('LINK_SELF');
 
-    const type = await link(mod, 'task', taskId, 'user', member.id);
+    const type = await link(mod, 'task', taskId, 'session', member.id);
     expect(type.status).toBe(400);
     expect(type.body.errorCode).toBe('LINK_TYPE_INVALID');
 
@@ -186,7 +187,9 @@ describe("Зв'язки між записами (e2e)", () => {
     const role = await link(mod, 'task', taskId, 'place', placeId, 'Bad Role');
     expect(role.status).toBe(400);
 
-    const list = await as(app, mod).get(`/api/links?type=user&id=${member.id}`);
+    const list = await as(app, mod).get(
+      `/api/links?type=session&id=${member.id}`,
+    );
     expect(list.status).toBe(400);
     expect(list.body.errorCode).toBe('LINK_TYPE_INVALID');
   });
@@ -330,7 +333,7 @@ describe("Зв'язки між записами (e2e)", () => {
       { id: placeId, type: 'place', title: 'Фрезер', archived: true },
     ]);
 
-    const bad = await as(app, member).get('/api/links/candidates?type=user');
+    const bad = await as(app, member).get('/api/links/candidates?type=session');
     expect(bad.status).toBe(400);
     expect(bad.body.errorCode).toBe('LINK_TYPE_INVALID');
   });

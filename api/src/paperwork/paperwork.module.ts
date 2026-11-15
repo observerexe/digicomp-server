@@ -3,9 +3,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditModule } from '../audit/audit.module';
 import { DictionariesModule } from '../dictionaries/dictionaries.module';
 import { DictionaryUsageRegistry } from '../dictionaries/dictionary-usage';
+import { LinkRegistry } from '../links/link-registry';
+import { LinksModule } from '../links/links.module';
 import { OrgModule } from '../org/org.module';
 import { RecordsModule } from '../records/records.module';
 import { Paper } from './paper.entity';
+import { PAPER_LINKS } from './paper.links';
 import { PaperworkController } from './paperwork.controller';
 import { PaperworkService } from './paperwork.service';
 import { PaperTemplate, PaperTemplateVersion } from './template.entities';
@@ -18,6 +21,7 @@ import { TemplatesService } from './templates.service';
     TypeOrmModule.forFeature([Paper, PaperTemplate, PaperTemplateVersion]),
     AuditModule,
     DictionariesModule,
+    LinksModule,
     OrgModule,
     RecordsModule,
   ],
@@ -31,6 +35,7 @@ export class PaperworkModule implements OnModuleInit {
     private dictionaries: DictionaryUsageRegistry,
     private templates: TemplatesService,
     private papers: PaperworkService,
+    private links: LinkRegistry,
   ) {}
 
   onModuleInit() {
@@ -40,5 +45,6 @@ export class PaperworkModule implements OnModuleInit {
       dictionaries: (m) => this.templates.usedDictionaries(m),
       countItem: (d, item, m) => this.papers.countItem(m, d, item),
     });
+    this.links.register('paper', PAPER_LINKS);
   }
 }

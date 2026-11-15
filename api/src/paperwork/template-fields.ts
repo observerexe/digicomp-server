@@ -1,6 +1,7 @@
 import type { FieldSchema, FieldType } from '../records/field-types';
 import {
   isPlainZone,
+  refType,
   walkNodes,
   type PaperContent,
   type PaperNode,
@@ -66,8 +67,20 @@ export function duplicateKey(fields: TemplateField[]): string | null {
   return null;
 }
 
-/** Limits suit the type; a free enum has a dictionary that exists. */
-function ownOk(f: TemplateField, dictionaries: ReadonlySet<string>) {
+/** What exists outside the template: dictionaries, record types that may be referred to. */
+export type Known = {
+  dictionaries: ReadonlySet<string>;
+  /** Types registered in the links (LinkRegistry): a picker finds them. */
+  refTypes: ReadonlySet<string>;
+};
+
+/**
+ * Limits suit the type; a free enum has a dictionary that exists; a
+ * reference — to a type that may be referred to.
+ */
+function ownOk(f: TemplateField, { dictionaries, refTypes }: Known) {
+  const ref = refType(f.type);
+  if (ref !== null && !refTypes.has(ref)) return false;
   const numeric = NUMERIC.has(f.type);
   if (!numeric && (f.min !== null || f.max !== null)) return false;
   if (
@@ -153,11 +166,11 @@ export function fieldsProblem(
   fields: TemplateField[],
   kind: TemplateKind,
   schema: PublishedSchema | null,
-  dictionaries: ReadonlySet<string>,
+  known: Known,
 ): FieldProblem | null {
   const dup = duplicateKey(fields);
   if (dup) return { field: dup };
-  const bad = fields.find((f) => !ownOk(f, dictionaries));
+  const bad = fields.find((f) => !ownOk(f, known));
   if (bad) return { field: bad.key };
   return bindingProblem(fields, kind, schema);
 }

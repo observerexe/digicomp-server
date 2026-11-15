@@ -88,7 +88,11 @@ function orgHeader({ institution, groupName }: PrintRequisites) {
 }
 
 /** A document without values: every field an empty line. */
-const NO_VALUES: FieldFill = { text: () => null, hidden: () => false };
+const NO_VALUES: FieldFill = {
+  text: () => null,
+  hidden: () => false,
+  title: () => null,
+};
 
 export function paperPrintHtml(paper: {
   title: string;

@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRefDto } from '../common/responses.dto';
+import { RECORD_TYPES, type RecordType } from '../records/field-types';
 import type { FieldValues, PaperContent } from './content';
 import { PaperStatus, PaperVisibility } from './paper.entity';
 import { FIELD_FILLERS, type FieldFiller } from './template-fields';
@@ -90,6 +91,22 @@ export class PaperTemplateRefDto {
   fields: PaperFieldDto[];
 }
 
+/** A record the document refers to (a `ref:*` field, «@»), as the reader sees it. */
+export class PaperRefDto {
+  @ApiProperty({ enum: RECORD_TYPES, enumName: 'RecordType' })
+  type: RecordType;
+
+  id: string;
+  title: string;
+
+  /** The record is in the archive (a member — blocked, a document — cancelled). */
+  archived: boolean;
+
+  /** QR code, for records opened by it (equipment, inventory). */
+  @ApiProperty({ required: false })
+  code?: string;
+}
+
 export class PaperDto extends PaperItemDto {
   /** ProseMirror document. */
   @ApiProperty({ type: 'object', additionalProperties: true })
@@ -102,6 +119,13 @@ export class PaperDto extends PaperItemDto {
   /** null — a free document. */
   @ApiProperty({ type: PaperTemplateRefDto, nullable: true })
   template: PaperTemplateRefDto | null;
+
+  /**
+   * Records of `ref:*` values and «@» in the text the reader sees. One
+   * not here — not seen, or deleted: «запис недоступний».
+   */
+  @ApiProperty({ type: [PaperRefDto] })
+  refs: PaperRefDto[];
 
   /** The actor may change and delete it: their own draft (admin — any). */
   canEdit: boolean;

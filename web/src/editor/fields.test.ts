@@ -25,7 +25,7 @@ const body: JSONContent = {
 
 function open(onFieldClick = vi.fn()) {
   const editor = new Editor({
-    extensions: paperExtensions({ plain: new Set(['goal']), locked: new Set(['verdict']), onFieldClick }),
+    extensions: paperExtensions({ template: { plain: new Set(['goal']), locked: new Set(['verdict']), fillable: new Set(['name', 'notes', 'goal']), onFieldClick } }),
     injectCSS: false,
     content: body,
   });
@@ -132,5 +132,60 @@ describe('Документ із шаблону: заблокований тек�
       f(editor.view, fieldPosition(editor, 'name')!, editor.state.doc.nodeAt(fieldPosition(editor, 'name')!)!, 0, new MouseEvent('click'), true),
     );
     expect(onFieldClick).toHaveBeenCalledWith('name');
+  });
+});
+
+describe('Tab між полями', () => {
+  /** A key as the browser gives it (the keyboardShortcut command would put its own selection back). */
+  const press = (e: Editor, key: string, shiftKey = false) => !!e.view.someProp('handleKeyDown', (f) => f(e.view, new KeyboardEvent('keydown', { key, shiftKey })));
+
+  it('Tab — до наступного поля, яке людина заповнює; Shift+Tab — назад', () => {
+    const { editor, onFieldClick } = open();
+    editor.chain().setTextSelection(2).run();
+    press(editor, 'Tab');
+    // Поле в рядку: вибране на аркуші, введення — у панелі.
+    expect(editor.state.selection.from).toBe(fieldPosition(editor, 'name'));
+    expect(onFieldClick).toHaveBeenLastCalledWith('name');
+    press(editor, 'Tab');
+    expect(zoneAtSelection(editor.state)).toBe('notes');
+    press(editor, 'Tab');
+    expect(zoneAtSelection(editor.state)).toBe('goal');
+    // «Висновок» заповнює модератор: далі нікуди, Tab лишається браузеру.
+    expect(press(editor, 'Tab')).toBe(false);
+    expect(zoneAtSelection(editor.state)).toBe('goal');
+    press(editor, 'Tab', true);
+    expect(zoneAtSelection(editor.state)).toBe('notes');
+    onFieldClick.mockClear();
+    press(editor, 'Tab', true);
+    expect(onFieldClick).toHaveBeenLastCalledWith('name');
+  });
+
+  it('у списку Tab лишається відступом пункту', () => {
+    const { editor, onFieldClick } = open();
+    editor.chain().setTextSelection(inZone(editor, 'notes')).toggleBulletList().run();
+    editor.chain().splitListItem('listItem').insertContent('другий').run();
+    press(editor, 'Tab');
+    expect(zoneAtSelection(editor.state)).toBe('notes');
+    expect(onFieldClick).not.toHaveBeenCalled();
+    expect(JSON.stringify(editor.getJSON().content![1])).toMatch(/"bulletList".*"bulletList"/);
+  });
+});
+
+describe('Посилання «@»', () => {
+  const RECORD = { type: 'task' as const, id: '11111111-1111-4111-8111-111111111111', title: 'Корпус', archived: false };
+  const mentionDoc = (id: string): JSONContent => ({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'mention', attrs: { type: 'task', id } }] }] });
+
+  it('на аркуші — назва запису з посиланням; невидимий — «запис недоступний»', () => {
+    const editor = new Editor({
+      extensions: paperExtensions({ mention: { record: (type, id) => (type === RECORD.type && id === RECORD.id ? RECORD : null) } }),
+      injectCSS: false,
+      content: mentionDoc(RECORD.id),
+    });
+    const a = editor.view.dom.querySelector('a.paper-ref')!;
+    expect(a.textContent).toBe('Корпус');
+    expect(a.getAttribute('href')).toBe(`/tasks/${RECORD.id}`);
+    expect(editor.getText()).toBe('Корпус');
+    editor.commands.setContent(mentionDoc('22222222-2222-4222-8222-222222222222'));
+    expect(editor.view.dom.querySelector('.paper-ref.is-missing')!.textContent).toBe('запис недоступний');
   });
 });

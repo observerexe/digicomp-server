@@ -6,6 +6,7 @@
  * Only what the description allows gets out: known nodes and marks,
  * attributes as format classes or checked numbers, escaped text.
  */
+import { RECORD_MISSING } from './fields';
 import { formatClass, MARKS, NODES, type PaperAttrs, type PaperMark, type PaperNode } from './index';
 
 const TEXT_ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\u00a0': '&nbsp;' };
@@ -43,6 +44,8 @@ export type FieldFill = {
   text(key: string): string | null;
   /** Not in the print at all (the field's `print` is off). */
   hidden(key: string): boolean;
+  /** Title of a record the text refers to («@»); null — not seen (or no more). */
+  title(type: string, id: string): string | null;
 };
 
 /** Classes of a paragraph or heading: alignment, then indent. */
@@ -134,6 +137,16 @@ function renderField(n: PaperNode, fill: FieldFill | undefined): string {
   return text === null ? '<span class="paper-field-blank"></span>' : `<span class="paper-field">${escapeText(text)}</span>`;
 }
 
+/** A reference: the title of the record in the print; in the editor's HTML — only what it points to. */
+function renderMention(n: PaperNode, fill: FieldFill | undefined): string {
+  const type = nodeAttr(n, 'type') as string | null;
+  const id = nodeAttr(n, 'id') as string | null;
+  // Type and id match RECORD_TYPE_KEY and RECORD_ID: nothing to escape.
+  if (!fill) return tag('span', [['class', 'paper-ref'], ['data-ref-type', type], ['data-ref-id', id]]) + '</span>';
+  const title = type && id ? fill.title(type, id) : null;
+  return `<span class="paper-ref">${escapeText(title ?? RECORD_MISSING)}</span>`;
+}
+
 function renderInline(children: PaperNode[], fill: FieldFill | undefined): string {
   let out = '';
   const open: { mark: { type: string; attrs: PaperAttrs }; close: string }[] = [];
@@ -153,6 +166,7 @@ function renderInline(children: PaperNode[], fill: FieldFill | undefined): strin
     if (n.type === 'text') out += escapeText(n.text ?? '');
     else if (n.type === 'hardBreak') out += '<br>';
     else if (n.type === 'field') out += renderField(n, fill);
+    else if (n.type === 'mention') out += renderMention(n, fill);
   }
   while (open.length) out += open.pop()!.close;
   return out;

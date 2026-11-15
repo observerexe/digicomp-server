@@ -165,6 +165,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Links of a record, both directions; only records the caller sees. */
+        get: operations["LinksController_list"];
+        put?: never;
+        /** Whoever edits the source record; both records must be visible. */
+        post: operations["LinksController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/links/candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Records of a type the caller sees, by title: what may be linked. */
+        get: operations["LinksController_candidates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/links/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Whoever edits the source record. */
+        delete: operations["LinksController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/setup": {
         parameters: {
             query?: never;
@@ -789,58 +841,6 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["DictionariesController_updateItem"];
-        trace?: never;
-    };
-    "/api/links": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Links of a record, both directions; only records the caller sees. */
-        get: operations["LinksController_list"];
-        put?: never;
-        /** Whoever edits the source record; both records must be visible. */
-        post: operations["LinksController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/links/candidates": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Records of a type the caller sees, by title: what may be linked. */
-        get: operations["LinksController_candidates"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/links/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Whoever edits the source record. */
-        delete: operations["LinksController_remove"];
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/api/discipline/me": {
@@ -1996,6 +1996,59 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        /** @enum {string} */
+        RecordType: "user" | "task" | "project" | "place" | "inventory_item" | "discipline_record" | "points_entry" | "session" | "fault" | "place_authorization" | "document" | "paper";
+        /**
+         * @description `out` — this record is the source, `in` — the other record is.
+         * @enum {string}
+         */
+        LinkDirection: "out" | "in";
+        LinkDto: {
+            /** @description `out` — this record is the source, `in` — the other record is. */
+            direction: components["schemas"]["LinkDirection"];
+            /** @description Type of the record on the other side. */
+            type: components["schemas"]["RecordType"];
+            /** @description QR code of the other record, for records opened by it (equipment, inventory). */
+            code?: string;
+            id: string;
+            /** @description Id of the record on the other side. */
+            recordId: string;
+            title: string;
+            /** @description The other record is in the archive. */
+            archived: boolean;
+            /** @description What the link means for the source; empty — just related. */
+            role: string;
+            createdById: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** @description The actor may remove the link (edits its source). */
+            canRemove: boolean;
+        };
+        LinkListDto: {
+            items: components["schemas"]["LinkDto"][];
+            /** @description The actor edits this record, so may link it to others. */
+            canLink: boolean;
+        };
+        LinkCandidateDto: {
+            type: components["schemas"]["RecordType"];
+            /** @description QR code, for records opened by it (equipment, inventory). */
+            code?: string;
+            id: string;
+            title: string;
+            /** @description The record is in the archive. */
+            archived: boolean;
+        };
+        CreateLinkDto: {
+            /** @description The source: the actor must be able to edit it. */
+            fromType: components["schemas"]["RecordType"];
+            toType: components["schemas"]["RecordType"];
+            /** Format: uuid */
+            fromId: string;
+            /** Format: uuid */
+            toId: string;
+            /** @description What the link means for the source; empty — just related. */
+            role?: string;
+        };
         CreateUserDto: {
             /** Format: email */
             email: string;
@@ -2211,8 +2264,6 @@ export interface components {
         CommentDto: {
             body: string;
         };
-        /** @enum {string} */
-        RecordType: "user" | "task" | "project" | "place" | "inventory_item" | "discipline_record" | "points_entry" | "session" | "fault" | "place_authorization" | "document" | "paper";
         EnumOptionDto: {
             key: string;
             label: string;
@@ -2367,57 +2418,6 @@ export interface components {
             color?: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
             /** @description true — to the archive, false — back. */
             archived?: boolean;
-        };
-        /**
-         * @description `out` — this record is the source, `in` — the other record is.
-         * @enum {string}
-         */
-        LinkDirection: "out" | "in";
-        LinkDto: {
-            /** @description `out` — this record is the source, `in` — the other record is. */
-            direction: components["schemas"]["LinkDirection"];
-            /** @description Type of the record on the other side. */
-            type: components["schemas"]["RecordType"];
-            /** @description QR code of the other record, for records opened by it (equipment, inventory). */
-            code?: string;
-            id: string;
-            /** @description Id of the record on the other side. */
-            recordId: string;
-            title: string;
-            /** @description The other record is in the archive. */
-            archived: boolean;
-            /** @description What the link means for the source; empty — just related. */
-            role: string;
-            createdById: string;
-            /** Format: date-time */
-            createdAt: string;
-            /** @description The actor may remove the link (edits its source). */
-            canRemove: boolean;
-        };
-        LinkListDto: {
-            items: components["schemas"]["LinkDto"][];
-            /** @description The actor edits this record, so may link it to others. */
-            canLink: boolean;
-        };
-        LinkCandidateDto: {
-            type: components["schemas"]["RecordType"];
-            /** @description QR code, for records opened by it (equipment, inventory). */
-            code?: string;
-            id: string;
-            title: string;
-            /** @description The record is in the archive. */
-            archived: boolean;
-        };
-        CreateLinkDto: {
-            /** @description The source: the actor must be able to edit it. */
-            fromType: components["schemas"]["RecordType"];
-            toType: components["schemas"]["RecordType"];
-            /** Format: uuid */
-            fromId: string;
-            /** Format: uuid */
-            toId: string;
-            /** @description What the link means for the source; empty — just related. */
-            role?: string;
         };
         /** @enum {string} */
         DisciplineType: "warning" | "fine" | "reprimand";
@@ -3292,6 +3292,15 @@ export interface components {
             title: string;
             version: number;
         };
+        PaperRefDto: {
+            type: components["schemas"]["RecordType"];
+            /** @description QR code, for records opened by it (equipment, inventory). */
+            code?: string;
+            id: string;
+            title: string;
+            /** @description The record is in the archive (a member — blocked, a document — cancelled). */
+            archived: boolean;
+        };
         PaperDto: {
             status: components["schemas"]["PaperStatus"];
             visibility: components["schemas"]["PaperVisibility"];
@@ -3305,6 +3314,11 @@ export interface components {
             };
             /** @description null — a free document. */
             template: components["schemas"]["PaperTemplateRefDto"] | null;
+            /**
+             * @description Records of `ref:*` values and «@» in the text the reader sees. One
+             *     not here — not seen, or deleted: «запис недоступний».
+             */
+            refs: components["schemas"]["PaperRefDto"][];
             /** @description The actor may change and delete it: their own draft (admin — any). */
             canEdit: boolean;
             id: string;
@@ -3705,6 +3719,97 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    LinksController_list: {
+        parameters: {
+            query: {
+                /** @description Type of the record whose links are listed. */
+                type: components["schemas"]["RecordType"];
+                id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkListDto"];
+                };
+            };
+        };
+    };
+    LinksController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLinkDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkDto"];
+                };
+            };
+        };
+    };
+    LinksController_candidates: {
+        parameters: {
+            query: {
+                /** @description Type of the records to find. */
+                type: components["schemas"]["RecordType"];
+                /** @description Part of the title (or code); empty — the first ones by title. */
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkCandidateDto"][];
+                };
+            };
+        };
+    };
+    LinksController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
             };
         };
     };
@@ -4752,97 +4857,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DictionaryItemDto"];
-                };
-            };
-        };
-    };
-    LinksController_list: {
-        parameters: {
-            query: {
-                /** @description Type of the record whose links are listed. */
-                type: components["schemas"]["RecordType"];
-                id: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LinkListDto"];
-                };
-            };
-        };
-    };
-    LinksController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateLinkDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LinkDto"];
-                };
-            };
-        };
-    };
-    LinksController_candidates: {
-        parameters: {
-            query: {
-                /** @description Type of the records to find. */
-                type: components["schemas"]["RecordType"];
-                /** @description Part of the title (or code); empty — the first ones by title. */
-                q?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LinkCandidateDto"][];
-                };
-            };
-        };
-    };
-    LinksController_remove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OkDto"];
                 };
             };
         };

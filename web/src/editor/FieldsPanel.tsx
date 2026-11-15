@@ -29,7 +29,7 @@ type Props = {
  * actor fills, then those a moderator fills.
  */
 export function FieldsPanel({ template, values, zones, editable, active, onChange, onActive, onJump }: Props) {
-  // The actor's own: what they fill now, and author fields not fillable yet (pickers).
+  // The actor's own: what they fill now, and author fields they cannot (a reference to a type without a picker).
   const own = template.fields.filter((f) => f.canFill || f.fill === 'author');
   const others = template.fields.filter((f) => !own.includes(f));
   const mine = template.fields.filter((f) => f.canFill);

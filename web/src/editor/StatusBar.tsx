@@ -25,7 +25,8 @@ export function useZoom() {
 
 const FORMAT = `A4 · поля ${PAGE.left}/${PAGE.right}/${PAGE.top}/${PAGE.bottom} мм`;
 
-export function StatusBar({ stats, zoom, onZoom }: { stats: PageStats; zoom: Zoom; onZoom: (z: Zoom) => void }) {
+/** `hints` — keys that help here («Tab — наступне поле»). */
+export function StatusBar({ stats, zoom, onZoom, hints = [] }: { stats: PageStats; zoom: Zoom; onZoom: (z: Zoom) => void; hints?: string[] }) {
   const i = ZOOMS.indexOf(zoom);
   return (
     <footer className={s.bar}>
@@ -36,6 +37,7 @@ export function StatusBar({ stats, zoom, onZoom }: { stats: PageStats; zoom: Zoo
         {stats.words} {plural(stats.words, ['слово', 'слова', 'слів'])}
       </span>
       <span className={s.wide}>{FORMAT}</span>
+      {hints.length > 0 && <span className={`${s.wide} ${s.hints}`}>{hints.join(' · ')}</span>}
       <span className={`${s.zoom} ${s.wide}`}>
         <button type="button" className={s.step} aria-label="Зменшити" disabled={i === 0} onClick={() => onZoom(ZOOMS[i - 1]!)}>
           −

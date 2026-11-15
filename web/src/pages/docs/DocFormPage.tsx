@@ -6,7 +6,8 @@ import type { AccessScope, Doc, LinkCandidate } from '../../api/types';
 import { DictSelect } from '../../components/DictSelect';
 import { DropZone } from '../../components/DropZone';
 import { Icon } from '../../components/Icon';
-import { LinkPicker, linkTypeLabel } from '../../components/Related';
+import { LinkPicker } from '../../components/Related';
+import { recordLabel } from '../../lib/records';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { CATEGORY } from '../../lib/dictionaries';
@@ -137,7 +138,7 @@ function DocForm({ doc }: { doc?: Doc }) {
                   {linked.map((r) => (
                     <li key={`${r.type}:${r.id}`}>
                       <span>
-                        {linkTypeLabel(r.type)}: {r.title}
+                        {recordLabel(r.type)}: {r.title}
                       </span>
                       <button
                         type="button"

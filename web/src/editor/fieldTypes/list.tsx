@@ -54,6 +54,7 @@ function Items(props: WidgetProps) {
             id={i === 0 ? id : `${id}-${r.k}`}
             field={{ ...field, type: itemType(field.type) ?? 'text' }}
             value={r.v ?? undefined}
+            taken={rows.filter((y) => y.k !== r.k && y.v !== null).map((y) => y.v)}
             onChange={(x: FieldValue | null) => update(rows.map((y) => (y.k === r.k ? { k: r.k, v: x as Item | null } : y)))}
           />
           {!disabled && rows.length > 1 && (

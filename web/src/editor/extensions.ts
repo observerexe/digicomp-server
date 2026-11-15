@@ -16,7 +16,8 @@ import {
   type FontSize,
   type TextColor,
 } from '../../../shared/editor-schema';
-import { Field, FieldZone, templateExtension, type LockOptions } from './fields';
+import { Field, FieldZone, templateExtension, type TemplateOptions } from './fields';
+import { Mention, type MentionOptions } from './mention';
 
 /**
  * The editor's extensions, built to match shared/editor-schema exactly
@@ -185,8 +186,12 @@ const PlainTable = Table.extend({
   },
 }).configure({ resizable: false, renderWrapper: false });
 
-/** `template` — a document made from a template: fields drawn, text outside zones locked. */
-export function paperExtensions(template?: LockOptions & { onFieldClick: (key: string) => void }): Extensions {
+/**
+ * `template` — a document made from a template: fields drawn, text outside zones
+ * locked, Tab between fields. `mention` — titles of records and the «@» list.
+ */
+export function paperExtensions(opts: { template?: TemplateOptions; mention?: Partial<MentionOptions> } = {}): Extensions {
+  const { template, mention } = opts;
   return [
     StarterKit.configure({
       blockquote: false,
@@ -207,6 +212,7 @@ export function paperExtensions(template?: LockOptions & { onFieldClick: (key: s
     withoutAlign(TableHeader),
     Field,
     FieldZone,
+    mention ? Mention.configure(mention) : Mention,
     ...(template ? [templateExtension(template)] : []),
   ];
 }

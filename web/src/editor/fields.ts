@@ -1,6 +1,6 @@
 import { Extension, mergeAttributes, Node, type Editor } from '@tiptap/core';
 import { Fragment, Slice, type Node as PMNode, type ResolvedPos } from '@tiptap/pm/model';
-import { Plugin, PluginKey, type EditorState, type Transaction } from '@tiptap/pm/state';
+import { NodeSelection, Plugin, PluginKey, TextSelection, type EditorState, type Transaction } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 
 /**
@@ -180,13 +180,76 @@ function withoutFields(content: Fragment): Fragment {
   return Fragment.from(out);
 }
 
+/** A field or a zone on the sheet: where it starts and ends. */
+export type FieldTarget = { key: string; from: number; to: number; zone: boolean };
+
+/** Fields and zones the actor fills, in the order of the sheet. */
+export function fieldTargets(doc: PMNode, fillable: ReadonlySet<string>): FieldTarget[] {
+  const out: FieldTarget[] = [];
+  doc.descendants((n, pos) => {
+    const zone = n.type.name === 'fieldZone';
+    if ((zone || n.type.name === 'field') && fillable.has(n.attrs.key as string)) {
+      out.push({ key: n.attrs.key as string, from: pos, to: pos + n.nodeSize, zone });
+    }
+    return !zone;
+  });
+  return out;
+}
+
+/** The field after (1) or before (-1) the cursor, past the one it is in; null — none. */
+export function nextField(state: EditorState, dir: 1 | -1, fillable: ReadonlySet<string>): FieldTarget | null {
+  const targets = fieldTargets(state.doc, fillable);
+  const { selection } = state;
+  const at = selection.from;
+  const current = targets.find((t) => (t.zone ? t.from < at && at < t.to : selection instanceof NodeSelection && t.from === at));
+  if (dir === 1) {
+    const after = current ? current.to : at;
+    return targets.find((t) => t.from >= after && t !== current) ?? null;
+  }
+  const before = current ? current.from : at;
+  return targets.filter((t) => t.to <= before && t !== current).pop() ?? null;
+}
+
+/** In a list or a table Tab keeps its own meaning (indent, next cell). */
+function inListOrTable(state: EditorState) {
+  const { $from } = state.selection;
+  for (let d = $from.depth; d > 0; d--) {
+    if (['listItem', 'tableCell', 'tableHeader'].includes($from.node(d).type.name)) return true;
+  }
+  return false;
+}
+
+export type TemplateOptions = LockOptions & {
+  /** Fields and zones the actor fills: Tab goes through them. */
+  fillable: ReadonlySet<string>;
+  onFieldClick: (key: string) => void;
+};
+
 /**
  * A document made from a template: only zones change; a plain zone takes a paste as
- * text; a click on a field — `onFieldClick` (the panel opens its input).
+ * text; a click on a field — `onFieldClick` (the panel opens its input); Tab and
+ * Shift+Tab go to the next and the previous field (a zone — the cursor in it, a
+ * field — its input in the panel).
  */
-export function templateExtension(opts: LockOptions & { onFieldClick: (key: string) => void }) {
+export function templateExtension(opts: TemplateOptions) {
+  const jump = (editor: Editor, dir: 1 | -1) => {
+    if (inListOrTable(editor.state)) return false;
+    const t = nextField(editor.state, dir, opts.fillable);
+    if (!t) return false;
+    const { state, view } = editor;
+    const sel = t.zone ? TextSelection.near(state.doc.resolve(t.from + 1)) : NodeSelection.create(state.doc, t.from);
+    view.dispatch(state.tr.setSelection(sel).scrollIntoView());
+    if (!t.zone) opts.onFieldClick(t.key);
+    return true;
+  };
   return Extension.create({
     name: 'templateFields',
+    addKeyboardShortcuts() {
+      return {
+        Tab: ({ editor }) => jump(editor, 1),
+        'Shift-Tab': ({ editor }) => jump(editor, -1),
+      };
+    },
     addProseMirrorPlugins() {
       let cache: { doc: PMNode; look: FieldsLook; set: DecorationSet } | null = null;
       return [

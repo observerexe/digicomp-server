@@ -23,6 +23,7 @@ const paper = (over: Partial<Paper> = {}): Paper => ({
   content: doc(para('Порядок денний')),
   values: {},
   template: null,
+  refs: [],
   canEdit: true,
   ...over,
 });

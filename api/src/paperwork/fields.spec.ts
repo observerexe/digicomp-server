@@ -5,7 +5,9 @@ import {
 } from '../../../shared/editor-schema';
 import {
   matchesBody,
+  mentionsOf,
   normalizeValue,
+  valueRefs,
   isPlainZone,
   sameNodes,
   valueText,
@@ -14,6 +16,13 @@ import {
 } from '../../../shared/editor-schema/fields';
 import { renderContent } from '../../../shared/editor-schema/render';
 import { bodyProblem, type TemplateField } from './template-fields';
+
+const U1 = '11111111-1111-4111-8111-111111111111';
+const U2 = '22222222-2222-4222-8222-222222222222';
+const mention = (type: string, id: string): PaperNode => ({
+  type: 'mention',
+  attrs: { type, id },
+});
 
 const spec = (type: string, over: Partial<FieldSpec> = {}): FieldSpec => ({
   key: 'f',
@@ -58,6 +67,8 @@ describe('Значення полів (shared/editor-schema/fields.ts)', () => {
     ['enum', 'k', 'k'],
     ['color', 'teal', 'teal'],
     ['list<int>', [1, 2], [1, 2]],
+    ['ref:user', U1, U1],
+    ['list<ref:task>', [U1, U2], [U1, U2]],
     ['list<text>', [], null],
     ['text', null, null],
   ])('%s: %j → %j', (type, v, out) => {
@@ -78,7 +89,9 @@ describe('Значення полів (shared/editor-schema/fields.ts)', () => {
     ['list<enum>', ['a', 'a']],
     ['list<int>', 3],
     ['ref:user', 'id'],
+    ['ref:user', 'AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA'],
     ['list<ref:user>', ['id']],
+    ['list<ref:user>', [U1, U1]],
     ['richtext', 'текст'],
   ])('%s: %j — невірне', (type, v) => {
     expect(normalizeValue(spec(type), v)).toBeUndefined();
@@ -116,6 +129,75 @@ describe('Значення полів (shared/editor-schema/fields.ts)', () => {
         ],
       ),
     ).toBe('Перший, Другий, gone');
+  });
+
+  it('текст запису — його назва; невидимий — «запис недоступний»', () => {
+    const title = (type: string, id: string) =>
+      type === 'user' && id === U1 ? 'Іван Петренко' : null;
+    expect(valueText('ref:user', U1, null, title)).toBe('Іван Петренко');
+    expect(valueText('list<ref:user>', [U1, U2], null, title)).toBe(
+      'Іван Петренко, запис недоступний',
+    );
+  });
+
+  it('записи значень і тексту — кожен раз', () => {
+    const fields = [
+      { key: 'who', type: 'ref:user' },
+      { key: 'team', type: 'list<ref:user>' },
+      { key: 'n', type: 'int' },
+    ];
+    expect(valueRefs(fields, { who: U1, team: [U1, U2], n: 3 })).toEqual([
+      { key: 'who', type: 'user', id: U1 },
+      { key: 'team', type: 'user', id: U1 },
+      { key: 'team', type: 'user', id: U2 },
+    ]);
+    const content = doc(
+      p(mention('task', U1), text(' і '), mention('task', U1)),
+      zone('z', p(mention('user', U2))),
+    );
+    expect(mentionsOf(content)).toEqual([
+      { type: 'task', id: U1 },
+      { type: 'user', id: U2 },
+    ]);
+  });
+});
+
+describe('Посилання «@» у вмісті', () => {
+  it('лише тип і id, обидва обов’язкові й правильні', () => {
+    expect(checkContent(doc(p(mention('task', U1))))).toBe(true);
+    expect(
+      checkContent(doc(p({ type: 'mention', attrs: { type: 'task' } }))),
+    ).toBe(false);
+    expect(checkContent(doc(p(mention('Task', U1))))).toBe(false);
+    expect(checkContent(doc(p(mention('task', 'x'))))).toBe(false);
+    expect(
+      checkContent(
+        doc(
+          p({ type: 'mention', attrs: { type: 'task', id: U1, title: 'а' } }),
+        ),
+      ),
+    ).toBe(false);
+  });
+
+  it('проста зона не бере посилань', () => {
+    expect(isPlainZone(zone('z', p(text('а'), mention('task', U1))))).toBe(
+      false,
+    );
+  });
+
+  it('друк: назва запису, екранована; невидимий — «запис недоступний»', () => {
+    const body = doc(p(mention('task', U1), text(' '), mention('task', U2)));
+    expect(renderContent(body)).toBe(
+      `<p><span class="paper-ref" data-ref-type="task" data-ref-id="${U1}"></span> <span class="paper-ref" data-ref-type="task" data-ref-id="${U2}"></span></p>`,
+    );
+    const fill = {
+      text: () => null,
+      hidden: () => false,
+      title: (_t: string, id: string) => (id === U1 ? '<ТЗ>' : null),
+    };
+    expect(renderContent(body, fill)).toBe(
+      '<p><span class="paper-ref">&lt;ТЗ&gt;</span> <span class="paper-ref">запис недоступний</span></p>',
+    );
   });
 });
 
@@ -259,6 +341,7 @@ describe('Рендер полів', () => {
     const fill = (values: Record<string, string>, hidden: string[] = []) => ({
       text: (k: string) => values[k] ?? null,
       hidden: (k: string) => hidden.includes(k),
+      title: () => null,
     });
     expect(renderContent(body, fill({ name: '<Іван>' }))).toBe(
       '<p>Ім’я: <span class="paper-field">&lt;Іван&gt;</span></p><div class="paper-zone" data-field="goal"><p>Мета</p></div>',

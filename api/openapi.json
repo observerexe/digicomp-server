@@ -456,6 +456,153 @@
         ]
       }
     },
+    "/api/links": {
+      "get": {
+        "operationId": "LinksController_list",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "query",
+            "description": "Type of the record whose links are listed.",
+            "schema": {
+              "$ref": "#/components/schemas/RecordType"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkListDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Links of a record, both directions; only records the caller sees.",
+        "tags": [
+          "Links"
+        ]
+      },
+      "post": {
+        "operationId": "LinksController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLinkDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Whoever edits the source record; both records must be visible.",
+        "tags": [
+          "Links"
+        ]
+      }
+    },
+    "/api/links/candidates": {
+      "get": {
+        "operationId": "LinksController_candidates",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "query",
+            "description": "Type of the records to find.",
+            "schema": {
+              "$ref": "#/components/schemas/RecordType"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Part of the title (or code); empty — the first ones by title.",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LinkCandidateDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Records of a type the caller sees, by title: what may be linked.",
+        "tags": [
+          "Links"
+        ]
+      }
+    },
+    "/api/links/{id}": {
+      "delete": {
+        "operationId": "LinksController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Whoever edits the source record.",
+        "tags": [
+          "Links"
+        ]
+      }
+    },
     "/api/auth/setup": {
       "post": {
         "operationId": "AuthController_setup",
@@ -2016,153 +2163,6 @@
         },
         "tags": [
           "Dictionaries"
-        ]
-      }
-    },
-    "/api/links": {
-      "get": {
-        "operationId": "LinksController_list",
-        "parameters": [
-          {
-            "name": "type",
-            "required": true,
-            "in": "query",
-            "description": "Type of the record whose links are listed.",
-            "schema": {
-              "$ref": "#/components/schemas/RecordType"
-            }
-          },
-          {
-            "name": "id",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LinkListDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Links of a record, both directions; only records the caller sees.",
-        "tags": [
-          "Links"
-        ]
-      },
-      "post": {
-        "operationId": "LinksController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateLinkDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LinkDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Whoever edits the source record; both records must be visible.",
-        "tags": [
-          "Links"
-        ]
-      }
-    },
-    "/api/links/candidates": {
-      "get": {
-        "operationId": "LinksController_candidates",
-        "parameters": [
-          {
-            "name": "type",
-            "required": true,
-            "in": "query",
-            "description": "Type of the records to find.",
-            "schema": {
-              "$ref": "#/components/schemas/RecordType"
-            }
-          },
-          {
-            "name": "q",
-            "required": false,
-            "in": "query",
-            "description": "Part of the title (or code); empty — the first ones by title.",
-            "schema": {
-              "maxLength": 100,
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/LinkCandidateDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "Records of a type the caller sees, by title: what may be linked.",
-        "tags": [
-          "Links"
-        ]
-      }
-    },
-    "/api/links/{id}": {
-      "delete": {
-        "operationId": "LinksController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Whoever edits the source record.",
-        "tags": [
-          "Links"
         ]
       }
     },
@@ -5791,6 +5791,186 @@
           "createdAt"
         ]
       },
+      "RecordType": {
+        "type": "string",
+        "enum": [
+          "user",
+          "task",
+          "project",
+          "place",
+          "inventory_item",
+          "discipline_record",
+          "points_entry",
+          "session",
+          "fault",
+          "place_authorization",
+          "document",
+          "paper"
+        ]
+      },
+      "LinkDirection": {
+        "type": "string",
+        "enum": [
+          "out",
+          "in"
+        ],
+        "description": "`out` — this record is the source, `in` — the other record is."
+      },
+      "LinkDto": {
+        "type": "object",
+        "properties": {
+          "direction": {
+            "description": "`out` — this record is the source, `in` — the other record is.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LinkDirection"
+              }
+            ]
+          },
+          "type": {
+            "description": "Type of the record on the other side.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "code": {
+            "type": "string",
+            "description": "QR code of the other record, for records opened by it (equipment, inventory)."
+          },
+          "id": {
+            "type": "string"
+          },
+          "recordId": {
+            "type": "string",
+            "description": "Id of the record on the other side."
+          },
+          "title": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "The other record is in the archive."
+          },
+          "role": {
+            "type": "string",
+            "description": "What the link means for the source; empty — just related."
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "canRemove": {
+            "type": "boolean",
+            "description": "The actor may remove the link (edits its source)."
+          }
+        },
+        "required": [
+          "direction",
+          "type",
+          "id",
+          "recordId",
+          "title",
+          "archived",
+          "role",
+          "createdById",
+          "createdAt",
+          "canRemove"
+        ]
+      },
+      "LinkListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkDto"
+            }
+          },
+          "canLink": {
+            "type": "boolean",
+            "description": "The actor edits this record, so may link it to others."
+          }
+        },
+        "required": [
+          "items",
+          "canLink"
+        ]
+      },
+      "LinkCandidateDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "code": {
+            "type": "string",
+            "description": "QR code, for records opened by it (equipment, inventory)."
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "The record is in the archive."
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "title",
+          "archived"
+        ]
+      },
+      "CreateLinkDto": {
+        "type": "object",
+        "properties": {
+          "fromType": {
+            "description": "The source: the actor must be able to edit it.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "toType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "fromId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "toId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "role": {
+            "type": "string",
+            "description": "What the link means for the source; empty — just related."
+          }
+        },
+        "required": [
+          "fromType",
+          "toType",
+          "fromId",
+          "toId"
+        ]
+      },
       "CreateUserDto": {
         "type": "object",
         "properties": {
@@ -6538,23 +6718,6 @@
           "body"
         ]
       },
-      "RecordType": {
-        "type": "string",
-        "enum": [
-          "user",
-          "task",
-          "project",
-          "place",
-          "inventory_item",
-          "discipline_record",
-          "points_entry",
-          "session",
-          "fault",
-          "place_authorization",
-          "document",
-          "paper"
-        ]
-      },
       "EnumOptionDto": {
         "type": "object",
         "properties": {
@@ -7073,169 +7236,6 @@
             "description": "true — to the archive, false — back."
           }
         }
-      },
-      "LinkDirection": {
-        "type": "string",
-        "enum": [
-          "out",
-          "in"
-        ],
-        "description": "`out` — this record is the source, `in` — the other record is."
-      },
-      "LinkDto": {
-        "type": "object",
-        "properties": {
-          "direction": {
-            "description": "`out` — this record is the source, `in` — the other record is.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/LinkDirection"
-              }
-            ]
-          },
-          "type": {
-            "description": "Type of the record on the other side.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RecordType"
-              }
-            ]
-          },
-          "code": {
-            "type": "string",
-            "description": "QR code of the other record, for records opened by it (equipment, inventory)."
-          },
-          "id": {
-            "type": "string"
-          },
-          "recordId": {
-            "type": "string",
-            "description": "Id of the record on the other side."
-          },
-          "title": {
-            "type": "string"
-          },
-          "archived": {
-            "type": "boolean",
-            "description": "The other record is in the archive."
-          },
-          "role": {
-            "type": "string",
-            "description": "What the link means for the source; empty — just related."
-          },
-          "createdById": {
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "canRemove": {
-            "type": "boolean",
-            "description": "The actor may remove the link (edits its source)."
-          }
-        },
-        "required": [
-          "direction",
-          "type",
-          "id",
-          "recordId",
-          "title",
-          "archived",
-          "role",
-          "createdById",
-          "createdAt",
-          "canRemove"
-        ]
-      },
-      "LinkListDto": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/LinkDto"
-            }
-          },
-          "canLink": {
-            "type": "boolean",
-            "description": "The actor edits this record, so may link it to others."
-          }
-        },
-        "required": [
-          "items",
-          "canLink"
-        ]
-      },
-      "LinkCandidateDto": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RecordType"
-              }
-            ]
-          },
-          "code": {
-            "type": "string",
-            "description": "QR code, for records opened by it (equipment, inventory)."
-          },
-          "id": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "archived": {
-            "type": "boolean",
-            "description": "The record is in the archive."
-          }
-        },
-        "required": [
-          "type",
-          "id",
-          "title",
-          "archived"
-        ]
-      },
-      "CreateLinkDto": {
-        "type": "object",
-        "properties": {
-          "fromType": {
-            "description": "The source: the actor must be able to edit it.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RecordType"
-              }
-            ]
-          },
-          "toType": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RecordType"
-              }
-            ]
-          },
-          "fromId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "toId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "role": {
-            "type": "string",
-            "description": "What the link means for the source; empty — just related."
-          }
-        },
-        "required": [
-          "fromType",
-          "toType",
-          "fromId",
-          "toId"
-        ]
       },
       "DisciplineType": {
         "type": "string",
@@ -10405,6 +10405,38 @@
           "version"
         ]
       },
+      "PaperRefDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "code": {
+            "type": "string",
+            "description": "QR code, for records opened by it (equipment, inventory)."
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "The record is in the archive (a member — blocked, a document — cancelled)."
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "title",
+          "archived"
+        ]
+      },
       "PaperDto": {
         "type": "object",
         "properties": {
@@ -10442,6 +10474,13 @@
               }
             ]
           },
+          "refs": {
+            "description": "Records of `ref:*` values and «@» in the text the reader sees. One\nnot here — not seen, or deleted: «запис недоступний».",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaperRefDto"
+            }
+          },
           "canEdit": {
             "type": "boolean",
             "description": "The actor may change and delete it: their own draft (admin — any)."
@@ -10474,6 +10513,7 @@
           "content",
           "values",
           "template",
+          "refs",
           "canEdit",
           "id",
           "title",

@@ -20,11 +20,12 @@ const paper = (over: Partial<Paper> = {}): Paper => ({
   content: text('Порядок денний'),
   values: {},
   template: null,
+  refs: [],
   canEdit: true,
   ...over,
 });
 const item = (p: Paper) => {
-  const { content: _c, canEdit: _e, values: _v, template: _t, ...rest } = p;
+  const { content: _c, canEdit: _e, values: _v, template: _t, refs: _r, ...rest } = p;
   return rest;
 };
 const base = (me: Me, extra: Record<string, (r: Request) => Response | Promise<Response>> = {}) => ({
@@ -326,7 +327,6 @@ describe('Редактор: документ із шаблону', () => {
     expect(within(panel).getByText('Заповнюєте ви')).toBeInTheDocument();
     expect(within(panel).getByText('Заповнить модератор')).toBeInTheDocument();
     expect(within(panel).getByLabelText('Відповідальний')).toBeDisabled();
-    expect(within(panel).getByLabelText('Відповідальний')).toHaveAttribute('placeholder', 'Вибір з’явиться згодом');
     expect(within(panel).getByLabelText('Висновок')).toBeDisabled();
     // Архівний пункт не пропонується.
     expect(
@@ -377,6 +377,39 @@ describe('Редактор: документ із шаблону', () => {
     await userEvent.type(within(panel).getByLabelText(/^Ім’я/), 'І');
     expect(await screen.findByText(/Значення поля не підходить/, undefined, { timeout: 4000 })).toBeInTheDocument();
     await waitFor(() => expect(sheetField('name')).toHaveClass('is-active'));
+  });
+
+  it('запис у полі: пошук у панелі, назва на аркуші, id у збереженні; підказки Tab і @', async () => {
+    const ivan = { type: 'user' as const, id: 'u-ivan', title: 'Іван Петренко', archived: false };
+    const fields = FIELDS.map((x) => (x.key === 'who' ? { ...x, canFill: true } : x));
+    const doc = fromTemplate({ template: { id: 't1', title: 'Заява', version: 2, fields } });
+    const { calls } = mockApi(
+      base(writer, {
+        'GET /api/papers/p1': () => json(200, doc),
+        'GET /api/links/candidates': () => json(200, [ivan]),
+        'PATCH /api/papers/p1': () => json(200, { ...doc, revision: 2 }),
+      }),
+    );
+    renderApp('/editor/p1');
+    const panel = await screen.findByRole('complementary', { name: 'Поля документа' });
+    expect(screen.getByText('Tab — наступне поле · @ — посилання на запис')).toBeInTheDocument();
+    await userEvent.click(within(panel).getByRole('combobox', { name: 'Відповідальний' }));
+    await userEvent.click(await within(panel).findByRole('option', { name: 'Іван Петренко' }));
+    await waitFor(() => expect(sheetField('who').textContent).toBe('Іван Петренко'));
+    expect(within(panel).getByRole('link', { name: 'Іван Петренко' })).toHaveAttribute('href', '/team/u-ivan');
+    await waitFor(() => expect(calls.some((c) => c.method === 'PATCH')).toBe(true), { timeout: 4000 });
+    expect(JSON.parse(calls.find((c) => c.method === 'PATCH')!.body)).toEqual({ revision: 1, values: { who: 'u-ivan' } });
+  });
+
+  it('назви записів — з відповіді сервера', async () => {
+    const values = { who: 'u-ivan' };
+    mockApi(
+      base(writer, {
+        'GET /api/papers/p1': () => json(200, fromTemplate({ values, refs: [{ type: 'user', id: 'u-ivan', title: 'Іван Петренко', archived: false }] })),
+      }),
+    );
+    renderApp('/editor/p1');
+    await waitFor(() => expect(sheetField('who').textContent).toBe('Іван Петренко'));
   });
 
   it('вільний документ — без панелі й без блокування стрічки', async () => {

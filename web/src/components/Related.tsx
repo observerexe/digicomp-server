@@ -1,16 +1,17 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { Link } from 'react-router';
 import { api, unwrap } from '../api/client';
 import type { LinkCandidate, RecordLink, RecordType } from '../api/types';
 import { errorOf } from '../errors/messages';
+import { recordHref, recordLabel, useCandidates, useSettled } from '../lib/records';
 import { SearchField } from './Filters';
 import { Card, ErrorMessage, Skeleton } from './ui';
 import s from './Related.module.css';
 
 /** Groups of the «Пов'язане» block, in order: documents first. */
 const GROUPS: { title: string; types: RecordType[] }[] = [
-  { title: 'Документи', types: ['document'] },
+  { title: 'Документи', types: ['document', 'paper'] },
   { title: 'ТЗ', types: ['task'] },
   { title: 'Проєкти', types: ['project'] },
   { title: 'Обладнання', types: ['place'] },
@@ -18,33 +19,7 @@ const GROUPS: { title: string; types: RecordType[] }[] = [
 ];
 
 /** What can be picked to link, one chip per type. */
-export const LINKABLE: { type: RecordType; label: string }[] = [
-  { type: 'document', label: 'Документ' },
-  { type: 'task', label: 'ТЗ' },
-  { type: 'project', label: 'Проєкт' },
-  { type: 'place', label: 'Обладнання' },
-  { type: 'inventory_item', label: 'Склад' },
-];
-
-export const linkTypeLabel = (type: RecordType) => LINKABLE.find((t) => t.type === type)?.label ?? type;
-
-/** Page of a record; equipment and inventory open by their QR code. */
-export function recordHref(type: RecordType, id: string, code?: string) {
-  switch (type) {
-    case 'document':
-      return `/docs/${id}`;
-    case 'task':
-      return `/tasks/${id}`;
-    case 'project':
-      return `/projects/${id}`;
-    case 'place':
-      return `/lab/${encodeURIComponent(code ?? id)}`;
-    case 'inventory_item':
-      return `/inventory/${encodeURIComponent(code ?? id)}`;
-    default:
-      return null;
-  }
-}
+const LINKABLE: RecordType[] = ['document', 'task', 'project', 'place', 'inventory_item'];
 
 export const linksKey = (type: RecordType, id: string) => ['links', type, id] as const;
 
@@ -148,16 +123,6 @@ function RecordRef({ link: l }: { link: RecordLink }) {
   );
 }
 
-/** The value after it stopped changing for `ms` (search as you type). */
-function useSettled<T>(value: T, ms = 250) {
-  const [settled, setSettled] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setSettled(value), ms);
-    return () => clearTimeout(t);
-  }, [value, ms]);
-  return settled;
-}
-
 /**
  * Finds a record to link: type chips, search by title or code, results.
  * Records in `exclude` (this one and the already linked) are not offered.
@@ -166,16 +131,7 @@ export function LinkPicker(props: { exclude: { type: RecordType; id: string }[];
   const [type, setType] = useState<RecordType>('document');
   const [text, setText] = useState('');
   const search = useSettled(text.trim());
-  const found = useQuery({
-    queryKey: ['links', 'candidates', type, search],
-    queryFn: () =>
-      unwrap(
-        api.GET('/api/links/candidates', {
-          params: { query: { type, ...(search ? { q: search } : {}) } },
-        }),
-      ),
-    placeholderData: keepPreviousData,
-  });
+  const found = useCandidates(type, search);
   const shown = found.data?.filter((c) => c.type === type && !props.exclude.some((e) => e.type === c.type && e.id === c.id)) ?? [];
 
   return (
@@ -188,8 +144,8 @@ export function LinkPicker(props: { exclude: { type: RecordType; id: string }[];
     >
       <div className={s.chips} role="group" aria-label="Що пов’язати">
         {LINKABLE.map((t) => (
-          <button key={t.type} type="button" className={s.chip} aria-pressed={type === t.type} onClick={() => setType(t.type)}>
-            {t.label}
+          <button key={t} type="button" className={s.chip} aria-pressed={type === t} onClick={() => setType(t)}>
+            {recordLabel(t)}
           </button>
         ))}
       </div>

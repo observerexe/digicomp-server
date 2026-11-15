@@ -100,11 +100,18 @@ export type NodeRule = {
 };
 
 const BLOCKS = ['paragraph', 'heading', 'bulletList', 'orderedList', 'table', 'pageBreak', 'fieldZone'] as const;
-const INLINE = ['text', 'hardBreak', 'field'] as const;
+const INLINE = ['text', 'hardBreak', 'field', 'mention'] as const;
 
 /** Key of a template field: Latin, starts with a small letter (`title`, `goal_2`). */
 export const FIELD_KEY = /^[a-z][a-zA-Z0-9_]{0,39}$/;
 const fieldKey: AttrRule = { default: null, valid: (v) => typeof v === 'string' && FIELD_KEY.test(v) };
+
+/** A record type (`task`, `inventory_item`); which ones may be referred to — the API decides. */
+export const RECORD_TYPE_KEY = /^[a-z][a-z_]{0,39}$/;
+/** Id of a record: a UUID in lower case. */
+export const RECORD_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const recordType: AttrRule = { default: null, valid: (v) => typeof v === 'string' && RECORD_TYPE_KEY.test(v) };
+const recordId: AttrRule = { default: null, valid: (v) => typeof v === 'string' && RECORD_ID.test(v) };
 
 export const NODES: Record<string, NodeRule> = {
   doc: { attrs: {}, children: BLOCKS },
@@ -127,6 +134,8 @@ export const NODES: Record<string, NodeRule> = {
   field: { attrs: { key: fieldKey } },
   /** A free zone (`richtext` field): text the author writes on the sheet itself. */
   fieldZone: { attrs: { key: fieldKey }, children: BLOCKS },
+  /** A reference to a record («@»): only type and id; the title comes from the record itself. */
+  mention: { attrs: { type: recordType, id: recordId } },
 };
 
 /** In the editor's order: marks nest in it (textStyle outermost, underline innermost). */
@@ -205,6 +214,8 @@ export function checkContent(v: unknown): v is PaperContent {
     if (!validAttrs(n.attrs, rule.attrs)) return false;
     // A field carries its key: it may not be left out.
     if ((n.type === 'field' || n.type === 'fieldZone') && !(isPlainObject(n.attrs) && own(n.attrs, 'key'))) return false;
+    // A reference carries both.
+    if (n.type === 'mention' && !(isPlainObject(n.attrs) && own(n.attrs, 'type') && own(n.attrs, 'id'))) return false;
     if (n.marks !== undefined) {
       const inline = (INLINE as readonly string[]).includes(n.type);
       if (!inline || !Array.isArray(n.marks) || !n.marks.every(validMark)) return false;

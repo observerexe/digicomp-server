@@ -69,6 +69,14 @@ describe('Блок «Пов’язане»', () => {
             title: 'Паспорт',
           }),
           link({
+            id: 'l5',
+            type: 'paper',
+            recordId: 'pp1',
+            title: 'Заява на ТЗ',
+            direction: 'in',
+            role: 'task',
+          }),
+          link({
             id: 'l4',
             type: 'inventory_item',
             recordId: 'i1',
@@ -86,6 +94,8 @@ describe('Блок «Пов’язане»', () => {
         .map((h) => h.textContent),
     ).toEqual(['Документи', 'Проєкти', 'Обладнання', 'Склад']);
     expect(within(block).getByRole('link', { name: 'Паспорт' })).toHaveAttribute('href', '/docs/d1');
+    // Документ редактора — у тій самій групі «Документи».
+    expect(within(within(block).getByRole('region', { name: 'Документи' })).getByRole('link', { name: 'Заява на ТЗ' })).toHaveAttribute('href', '/editor/pp1');
     expect(within(block).getByRole('link', { name: 'Робот' })).toHaveAttribute('href', '/projects/pr1');
     expect(within(block).getByRole('link', { name: 'Фрезер' })).toHaveAttribute('href', '/lab/CNC-1');
     expect(within(block).getByRole('link', { name: 'Фанера' })).toHaveAttribute('href', '/inventory/PLY-1');

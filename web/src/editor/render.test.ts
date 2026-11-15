@@ -74,6 +74,17 @@ const CASES: [string, PaperContent][] = [
       content: [p([text('Мета', [italic])]), { type: 'bulletList', content: [li(p([text('пункт')]))] }],
     }),
   ],
+  [
+    'посилання «@»',
+    doc(
+      p([
+        text('Відповідальний: '),
+        { type: 'mention', attrs: { type: 'user', id: '11111111-1111-4111-8111-111111111111' } },
+        text(', ТЗ '),
+        { type: 'mention', attrs: { type: 'inventory_item', id: '22222222-2222-4222-8222-222222222222' }, marks: [bold] },
+      ]),
+    ),
+  ],
 ];
 
 describe('Рендер друку = HTML редактора', () => {

@@ -80,3 +80,6 @@
     zoom: 2;
   }
 }
+.hints {
+  white-space: nowrap;
+}

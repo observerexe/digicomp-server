@@ -10,6 +10,7 @@ import { AuditService } from '../audit/audit.service';
 import { Action, Actor, can } from '../auth/policy';
 import type { OkDto, Plain } from '../common/responses.dto';
 import { Dictionary } from '../dictionaries/dictionary.entities';
+import { LinkRegistry } from '../links/link-registry';
 import { RecordFieldsService } from '../records/record-fields.service';
 import { schemaDef, type PublishedSchema } from '../records/records.registry';
 import { EMPTY_CONTENT } from './content';
@@ -148,6 +149,7 @@ export class TemplatesService {
     @InjectDataSource() private ds: DataSource,
     private audit: AuditService,
     private recordFields: RecordFieldsService,
+    private links: LinkRegistry,
   ) {}
 
   async list(actor: Actor): Promise<TemplateItemDto[]> {
@@ -368,12 +370,10 @@ export class TemplatesService {
         ? await m.findBy(Dictionary, { key: In(names) })
         : [];
       const problem =
-        fieldsProblem(
-          v.fields,
-          t.kind,
-          schema,
-          new Set(existing.map((d) => d.key)),
-        ) ?? bodyProblem(v.body, v.fields);
+        fieldsProblem(v.fields, t.kind, schema, {
+          dictionaries: new Set(existing.map((d) => d.key)),
+          refTypes: new Set(this.links.registered()),
+        }) ?? bodyProblem(v.body, v.fields);
       if (problem) throw fieldInvalid(problem);
       v.publishedAt = new Date();
       v.publishedById = actor.id;

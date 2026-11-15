@@ -33,7 +33,10 @@ const taskBase = [
   field({ key: 'title', binding: 'title', required: true }),
   field({ key: 'points', type: 'int', binding: 'points', required: true }),
 ];
-const DICTS = new Set(['task_type']);
+const DICTS = {
+  dictionaries: new Set(['task_type']),
+  refTypes: new Set(['user', 'task']),
+};
 const C = TemplateKind.Creates;
 
 describe('Поля шаблону: власні межі', () => {
@@ -48,6 +51,9 @@ describe('Поля шаблону: власні межі', () => {
     ['довжина в числа', { type: 'int', maxLength: 5 }, false],
     ['кількість у списку', { type: 'list<ref:user>', maxItems: 5 }, true],
     ['кількість не в списку', { type: 'ref:user', maxItems: 5 }, false],
+    ['посилання на тип, який шукає пікер', { type: 'ref:task' }, true],
+    ['посилання на тип без пікера', { type: 'ref:session' }, false],
+    ['список посилань без пікера', { type: 'list<ref:fault>' }, false],
     ['вибір з довідником', { type: 'enum', dictionary: 'task_type' }, true],
     ['вибір без довідника', { type: 'enum' }, false],
     [

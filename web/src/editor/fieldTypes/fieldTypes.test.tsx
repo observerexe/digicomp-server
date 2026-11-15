@@ -1,9 +1,13 @@
-import { render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { PaperField } from '../../api/types';
+import type { RecordView } from '../../lib/records';
+import { json, mockApi } from '../../test/render';
 import type { FieldValue } from '../../../../shared/editor-schema/fields';
+import { PaperRecordsContext, type PaperRecords } from '../records';
 import { fieldType } from '.';
 
 const f = (type: string, over: Partial<PaperField> = {}): PaperField => ({
@@ -26,10 +30,12 @@ const f = (type: string, over: Partial<PaperField> = {}): PaperField => ({
 });
 
 /** The widget with its value kept (as the page does) and a label pointing at its control. */
-function widget(field: PaperField, initial?: FieldValue) {
+function widget(field: PaperField, initial?: FieldValue, opts: { disabled?: boolean; known?: RecordView[] } = {}) {
   const onChange = vi.fn();
   const onJump = vi.fn();
   const { Widget, group } = fieldType(field.type);
+  const known = new Map((opts.known ?? []).map((r) => [`${r.type}:${r.id}`, r]));
+  const records: PaperRecords = { get: (type, id) => known.get(`${type}:${id}`), add: (r) => void known.set(`${r.type}:${r.id}`, r) };
   function Harness() {
     const [value, setValue] = useState(initial);
     return (
@@ -39,7 +45,7 @@ function widget(field: PaperField, initial?: FieldValue) {
           id="w"
           field={field}
           value={value}
-          disabled={false}
+          disabled={opts.disabled ?? false}
           onChange={(v) => {
             onChange(v);
             setValue(v ?? undefined);
@@ -49,7 +55,13 @@ function widget(field: PaperField, initial?: FieldValue) {
       </>
     );
   }
-  render(<Harness />);
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <PaperRecordsContext value={records}>
+        <Harness />
+      </PaperRecordsContext>
+    </QueryClientProvider>,
+  );
   return { onChange, onJump };
 }
 
@@ -131,9 +143,70 @@ describe('Реєстр типів полів', () => {
     expect(screen.getByRole('textbox')).toHaveValue('два');
   });
 
-  it('ref: пікера ще немає', () => {
-    widget(f('ref:user'));
-    expect(screen.getByRole('textbox')).toBeDisabled();
+  const IVAN: RecordView = { type: 'user', id: 'u-ivan', title: 'Іван Петренко', archived: false };
+  const OLHA: RecordView = { type: 'user', id: 'u-olha', title: 'Ольга Бойко', archived: false };
+  /** GET /api/links/candidates: people whose name has `q`. */
+  const people = () =>
+    mockApi({
+      'GET /api/links/candidates': (r) => {
+        const q = new URL(r.url).searchParams.get('q') ?? '';
+        return json(
+          200,
+          [IVAN, OLHA].filter((p) => p.title.includes(q)),
+        );
+      },
+    });
+
+  it('ref: пошук за назвою, вибір клацанням; «×» — вибрати інше', async () => {
+    const { calls } = people();
+    const { onChange } = widget(f('ref:user'));
+    const input = screen.getByRole('combobox', { name: 'Поле' });
+    await userEvent.type(input, 'Оль');
+    const list = await screen.findByRole('listbox', { name: 'Знайдено' });
+    await waitFor(() =>
+      expect(
+        within(list)
+          .getAllByRole('option')
+          .map((o) => o.textContent),
+      ).toEqual(['Ольга Бойко']),
+    );
+    expect(calls.some((c) => c.path === '/api/links/candidates')).toBe(true);
+    await userEvent.click(within(list).getByRole('option'));
+    expect(onChange).toHaveBeenLastCalledWith('u-olha');
+    expect(screen.getByRole('link', { name: 'Ольга Бойко' })).toHaveAttribute('href', '/team/u-olha');
+    await userEvent.click(screen.getByRole('button', { name: 'Вибрати інше: Поле' }));
+    expect(onChange).toHaveBeenLastCalledWith(null);
+    expect(screen.getByRole('combobox')).toBeInTheDocument();
+  });
+
+  it('ref: стрілки й Enter', async () => {
+    people();
+    const { onChange } = widget(f('ref:user'));
+    await userEvent.click(screen.getByRole('combobox'));
+    await screen.findByRole('option', { name: 'Ольга Бойко' });
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+    expect(onChange).toHaveBeenLastCalledWith('u-olha');
+  });
+
+  it('ref: вибраного видно й без права заповнювати; невидимий — «запис недоступний»', () => {
+    widget(f('ref:user'), 'u-ivan', { disabled: true, known: [IVAN] });
+    expect(screen.getByRole('link', { name: 'Іван Петренко' })).toBeInTheDocument();
+    expect(screen.queryByRole('button')).toBeNull();
+  });
+
+  it('ref: запис, якого читач не бачить', () => {
+    widget(f('ref:user'), 'u-gone', { disabled: true });
+    expect(screen.getByText('запис недоступний')).toBeInTheDocument();
+  });
+
+  it('list<ref:user>: уже вибраний в іншому рядку не пропонується', async () => {
+    people();
+    const { onChange } = widget(f('list<ref:user>'), ['u-ivan'], { known: [IVAN] });
+    await userEvent.click(screen.getByRole('button', { name: 'Додати' }));
+    await userEvent.click(screen.getByRole('combobox'));
+    await waitFor(() => expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['Ольга Бойко']));
+    await userEvent.keyboard('{Enter}');
+    expect(onChange).toHaveBeenLastCalledWith(['u-ivan', 'u-olha']);
   });
 
   it('richtext: перехід до зони на аркуші', async () => {
