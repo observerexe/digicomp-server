@@ -184,6 +184,22 @@ export class DisciplineService {
   }
 
   /**
+   * A record made before documents gets its «Подання» (for-record): from
+   * who may revoke it (admin any, a moderator their own), while it stands.
+   */
+  async adopt(m: EntityManager, id: string, actor: Actor): Promise<void> {
+    const rec = await m.findOne(DisciplineRecord, {
+      where: { id },
+      lock: { mode: 'pessimistic_write' },
+    });
+    if (!rec) throw new NotFoundException('Discipline record not found');
+    assertCan(actor, Action.DisciplineRevoke, { ownerId: rec.issuedById });
+    if (rec.revokedAt) {
+      throw new ConflictException(PointsErrors.AlreadyRevoked);
+    }
+  }
+
+  /**
    * Revoke with a reason: admin any, moderator only their own. Fines are
    * refunded. `alone` — not through its document: a record with one stays.
    */

@@ -17,7 +17,7 @@ import { Type } from 'class-transformer';
 import { RECORD_TYPES, type RecordType } from '../records/field-types';
 import { NOT_BLANK } from '../points/dto';
 import { IsPaperContent, type PaperContent } from './content';
-import { PaperVisibility } from './paper.entity';
+import { PaperStatus, PaperVisibility } from './paper.entity';
 
 /** Field key → value (null or left out — empty). */
 const VALUES = {
@@ -131,6 +131,19 @@ export class ListPapersQuery {
   @IsOptional()
   @IsIn(['true'])
   mine?: string;
+
+  /** Only documents in this state (the Home's «Мої чернетки» — `draft`). */
+  @IsOptional()
+  @IsEnum(PaperStatus)
+  status?: PaperStatus;
+
+  /**
+   * `me` — documents published by others that refer to the actor: by a
+   * field `ref:user`, «@» or a cell of rows (the Home's «Нове про мене»).
+   */
+  @IsOptional()
+  @IsIn(['me'])
+  about?: string;
 
   /** Part of the title. */
   @IsOptional()

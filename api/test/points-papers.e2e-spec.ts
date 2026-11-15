@@ -221,20 +221,6 @@ describe('Бали через відомість (e2e)', () => {
       expect(res.text).toContain('чергування');
       expect(res.text).toContain('склад');
     });
-
-    it('документ для старого нарахування не робиться', async () => {
-      const p = await published(mod, [
-        { member: a.id, amount: 5, reason: 'r' },
-      ]);
-      const [entry] = await entries(p.id);
-      code(
-        await as(app, admin)
-          .post('/api/papers/for-record')
-          .send({ templateId: sheet, targetId: entry!.id }),
-        400,
-        'TEMPLATE_KIND_INVALID',
-      );
-    });
   });
 
   describe('зняття', () => {

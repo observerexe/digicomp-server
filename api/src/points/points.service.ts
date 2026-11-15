@@ -160,6 +160,32 @@ export class PointsService {
   }
 
   /**
+   * A manual award made before documents gets its «Відомість балів»
+   * (for-record) and refers to it: from who may revoke it (admin any, a
+   * moderator their own), while it stands.
+   */
+  async adopt(
+    m: EntityManager,
+    entryId: string,
+    paperId: string,
+    actor: Actor,
+  ): Promise<void> {
+    const entry = await m.findOne(PointsEntry, {
+      where: { id: entryId },
+      lock: { mode: 'pessimistic_write' },
+    });
+    if (!entry) throw new NotFoundException('Points entry not found');
+    if (entry.kind !== PointsKind.Manual) {
+      throw new ConflictException(PointsErrors.NotRevocable);
+    }
+    assertCan(actor, Action.PointsRevoke, { ownerId: entry.createdById });
+    if (await m.existsBy(PointsEntry, { reversesId: entry.id })) {
+      throw new ConflictException(PointsErrors.AlreadyRevoked);
+    }
+    await m.update(PointsEntry, entry.id, { paperId });
+  }
+
+  /**
    * Revoke a manual award: admin any, moderator only their own. `alone` —
    * not through its document: an award with one stays.
    */

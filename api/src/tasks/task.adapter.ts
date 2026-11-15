@@ -1,5 +1,6 @@
+import { ForbiddenException } from '@nestjs/common';
 import { In, type EntityManager } from 'typeorm';
-import { Action, assertCan, can } from '../auth/policy';
+import { Action, assertCan, can, type Actor } from '../auth/policy';
 import { recordInput, type PaperAdapter } from '../paperwork/adapters';
 import { fieldInvalid } from '../paperwork/paper-fields';
 import { signName } from '../paperwork/content';
@@ -62,6 +63,12 @@ async function pointsSplit(
  * published documents.
  */
 export function taskAdapter(tasks: TasksService): PaperAdapter {
+  async function canUpdate(id: string, actor: Actor, m: EntityManager) {
+    if (!can(actor, Action.TasksManage)) return false;
+    const t = await m.findOneBy(Task, { id });
+    return !!t && t.status !== TaskStatus.Done;
+  }
+
   return {
     async publish(values, actor, m) {
       assertCan(actor, Action.TasksCreate);
@@ -69,10 +76,11 @@ export function taskAdapter(tasks: TasksService): PaperAdapter {
       return (await tasks.create(dto, actor, m)).id;
     },
 
-    async canUpdate(id, actor, m) {
-      if (!can(actor, Action.TasksManage)) return false;
-      const t = await m.findOneBy(Task, { id });
-      return !!t && t.status !== TaskStatus.Done;
+    canUpdate,
+
+    // An old task gets its document from who may change it now.
+    async adopt(id, _paperId, actor, m) {
+      if (!(await canUpdate(id, actor, m))) throw new ForbiddenException();
     },
 
     async update(id, values, actor, m) {

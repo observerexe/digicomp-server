@@ -44,3 +44,20 @@ export function useNewPaper() {
     },
   });
 }
+
+/**
+ * A document for a record made before documents: published at once from the
+ * record, opened in the editor; `section` — the query key of the record's section.
+ */
+export function usePaperForRecord(section: string) {
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  return useMutation({
+    mutationFn: (body: { templateId: string; targetId: string }) => unwrap(api.POST('/api/papers/for-record', { body })),
+    onSuccess: (p) => {
+      void qc.invalidateQueries({ queryKey: ['papers', 'list'] });
+      void qc.invalidateQueries({ queryKey: [section] });
+      void navigate(`/editor/${p.id}`);
+    },
+  });
+}

@@ -11,7 +11,7 @@ import { RecordPapers } from '../../components/RecordPapers';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { currentMonthName, formatDate, formatDateTime, formatPoints, plural } from '../../lib/format';
-import { disciplineTitle, PROJECT_STAGE_LABEL, pointsReason, ROLE_LABEL, TASK_STATUS_LABEL } from '../../lib/labels';
+import { disciplineTitle, PAPER_STATUS_LABEL, PROJECT_STAGE_LABEL, pointsReason, ROLE_LABEL, TASK_STATUS_LABEL } from '../../lib/labels';
 import { templateChoices, useNewPaper, useTemplates } from '../../lib/paperTemplates';
 import s from './profile.module.css';
 
@@ -200,7 +200,10 @@ function DisciplineCard() {
   );
 }
 
-/** «Мої ТЗ, проєкти, допуски, бронювання»: a count on the row, the list inside. */
+/** How many of my documents the profile lists; all — in «Редактор» → «Мої». */
+export const PROFILE_PAPERS = 10;
+
+/** «Мої ТЗ, проєкти, документи, допуски, бронювання»: a count on the row, the list inside. */
 function MineCard({ user }: { user: Me }) {
   const tasks = useQuery({
     queryKey: ['tasks', { mine: true }],
@@ -209,6 +212,10 @@ function MineCard({ user }: { user: Me }) {
   const projects = useQuery({
     queryKey: ['projects', { memberId: user.id }],
     queryFn: () => unwrap(api.GET('/api/projects', { params: { query: { memberId: user.id, limit: '100' } } })),
+  });
+  const papers = useQuery({
+    queryKey: ['papers', 'list', 'profile'],
+    queryFn: () => unwrap(api.GET('/api/papers', { params: { query: { mine: 'true', limit: String(PROFILE_PAPERS) } } })),
   });
   const auths = useQuery({
     queryKey: ['place-authorizations', 'me'],
@@ -252,6 +259,19 @@ function MineCard({ user }: { user: Me }) {
           }))}
         />
         <Mine
+          title="Мої документи"
+          value={papers.data && String(papers.data.total)}
+          error={papers.error}
+          empty="Документів ще немає. Створити — у «Редакторі»."
+          items={(papers.data?.items ?? []).map((p) => ({
+            key: p.id,
+            to: `/editor/${p.id}`,
+            title: p.title,
+            sub: [p.number, PAPER_STATUS_LABEL[p.status], formatDate(p.updatedAt)].filter(Boolean).join(' · '),
+          }))}
+          more={papers.data && papers.data.total > PROFILE_PAPERS ? { to: '/editor', label: `Усі мої документи (${papers.data.total})` } : undefined}
+        />
+        <Mine
           title="Допуски"
           value={auths.data && String(validAuths.length)}
           error={auths.error}
@@ -282,7 +302,7 @@ function MineCard({ user }: { user: Me }) {
 
 type MineItem = { key: string; to: string; title: string; sub: ReactNode };
 
-function Mine(props: { title: string; value: string | undefined; error: unknown; empty: string; items: MineItem[] }) {
+function Mine(props: { title: string; value: string | undefined; error: unknown; empty: string; items: MineItem[]; more?: { to: string; label: string } }) {
   return (
     <details className={s.details}>
       <summary className={s.summary}>
@@ -305,6 +325,11 @@ function Mine(props: { title: string; value: string | undefined; error: unknown;
             </li>
           ))}
         </ul>
+      )}
+      {props.more && (
+        <Link to={props.more.to} className="btn btn-ghost">
+          {props.more.label}
+        </Link>
       )}
     </details>
   );

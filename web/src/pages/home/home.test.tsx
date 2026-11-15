@@ -1,8 +1,8 @@
 import { screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import type { Place, Task } from '../../api/types';
+import type { PaperItem, Place, Task } from '../../api/types';
 import { json, member, mockApi, renderApp } from '../../test/render';
-import { busyPlaces, greeting, homeTasks } from './HomePage';
+import { busyPlaces, greeting, homeTasks, recentPapers } from './HomePage';
 
 const iso = (d: Date) => d.toISOString();
 const inDays = (n: number) => iso(new Date(Date.now() + n * 86_400_000));
@@ -33,7 +33,42 @@ const place = (o: Partial<Place>) =>
     ...o,
   }) as Place;
 
+const paper = (o: Partial<PaperItem>) =>
+  ({
+    id: 'd',
+    title: 'Документ',
+    number: null,
+    status: 'published',
+    visibility: 'author',
+    revision: 1,
+    author: { id: 'u2', name: 'Артур Машталер', avatarUrl: null },
+    publishedAt: iso(new Date()),
+    createdAt: iso(new Date()),
+    updatedAt: iso(new Date()),
+    ...o,
+  }) as PaperItem;
+
+const list = (items: PaperItem[]) => json(200, { items, total: items.length, page: 1, limit: 5 });
+
+/** «Мої чернетки» — `status=draft`, «Нове про мене» — `about=me`. */
+const papersApi = (drafts: PaperItem[], about: PaperItem[]) => ({
+  'GET /api/papers': (req: Request) => {
+    const q = new URL(req.url).searchParams;
+    if (q.get('mine') === 'true' && q.get('status') === 'draft') return list(drafts);
+    if (q.get('about') === 'me') return list(about);
+    return json(400, { errorCode: 'VALIDATION_ERROR' });
+  },
+});
+
 const homeApi = (opts: { active?: boolean } = {}) => ({
+  ...papersApi(
+    [paper({ id: 'd1', title: 'Протокол зборів', status: 'draft' })],
+    [
+      paper({ id: 'd2', title: 'Відомість балів', number: 'ВБ-2026-003' }),
+      paper({ id: 'd3', title: 'Подання про стягнення', status: 'cancelled' }),
+      paper({ id: 'd4', title: 'Давнє', updatedAt: inDays(-20) }),
+    ],
+  ),
   'GET /api/auth/me': () => json(200, member),
   'GET /api/work-sessions': () =>
     json(200, {
@@ -104,6 +139,22 @@ describe('Головна', () => {
     expect(screen.queryByText(/Тут будуть/)).not.toBeInTheDocument();
   });
 
+  it('документи: мої чернетки й нове про мене за 14 днів', async () => {
+    mockApi(homeApi());
+    renderApp('/');
+    const drafts = await screen.findByRole('list', { name: 'Мої чернетки' });
+    expect(within(drafts).getByRole('link', { name: /Протокол зборів/ })).toHaveAttribute('href', '/editor/d1');
+    const news = screen.getByRole('list', { name: 'Нове про мене' });
+    expect(
+      within(news)
+        .getAllByRole('link')
+        .map((a) => a.getAttribute('href')),
+    ).toEqual(['/editor/d2', '/editor/d3']);
+    expect(within(news).getByText(/^ВБ-2026-003 · Артур Машталер · /)).toBeInTheDocument();
+    expect(within(news).getByText('Артур Машталер · скасовано')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'До Редактора' })).toHaveAttribute('href', '/editor');
+  });
+
   it('активний сеанс — посилання на обладнання', async () => {
     mockApi(homeApi({ active: true }));
     renderApp('/');
@@ -118,8 +169,10 @@ describe('Головна', () => {
       'GET /api/tasks': () => json(200, []),
       'GET /api/places': () => json(200, []),
       'GET /api/bookings/me': () => json(200, []),
+      ...papersApi([], [paper({ updatedAt: inDays(-15) })]),
     });
     renderApp('/');
+    expect(await screen.findByText('Чернеток і нових документів про вас немає.')).toBeInTheDocument();
     expect(await screen.findByText('Активних ТЗ немає. Вільні ТЗ — на дошці.')).toBeInTheDocument();
     expect(await screen.findByText('Усе обладнання вільне.')).toBeInTheDocument();
     expect(await screen.findByText(/Бронювань немає/)).toBeInTheDocument();
@@ -144,6 +197,12 @@ describe('Головна: логіка', () => {
   it('ТЗ: без виконаних, найближчий дедлайн спершу', () => {
     const r = homeTasks([task({ id: 'a' }), task({ id: 'b', dueDate: inDays(5) }), task({ id: 'c', status: 'done' }), task({ id: 'd', dueDate: inDays(1) })]);
     expect(r.map((t) => t.id)).toEqual(['d', 'b', 'a']);
+  });
+
+  it('нове про мене: змінене за останні 14 днів', () => {
+    const now = new Date('2026-11-15T12:00:00Z');
+    const items = [paper({ id: 'a', updatedAt: '2026-11-02T12:00:00Z' }), paper({ id: 'b', updatedAt: '2026-11-01T11:59:59Z' })];
+    expect(recentPapers(items, now).map((p) => p.id)).toEqual(['a']);
   });
 
   it('зайняте: без архіву', () => {

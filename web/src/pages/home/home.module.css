@@ -23,6 +23,15 @@
   text-transform: uppercase;
   color: var(--c-text3);
 }
+.subcaption {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+}
+.subcaption:first-of-type {
+  margin-top: 0;
+}
 .session {
   display: flex;
   flex-wrap: wrap;

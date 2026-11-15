@@ -11,8 +11,8 @@ const iso = (d: Date | null) => (d ? d.toISOString() : null);
  * Documents that issue discipline («Подання про стягнення»). Publishing
  * issues the record (staff, a moderator not to self); it never changes
  * after; cancelling the document revokes it (admin any, a moderator only
- * their own; a fine returns its points). A member sees only documents
- * about themselves.
+ * their own; a fine returns its points) — and the same may give an old
+ * record its document. A member sees only documents about themselves.
  */
 export function disciplineAdapter(discipline: DisciplineService): PaperAdapter {
   return {
@@ -27,6 +27,8 @@ export function disciplineAdapter(discipline: DisciplineService): PaperAdapter {
     },
 
     canUpdate: () => Promise.resolve(false),
+
+    adopt: (id, _paperId, actor, m) => discipline.adopt(m, id, actor),
 
     update() {
       return Promise.reject(new ForbiddenException());

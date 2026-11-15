@@ -1490,6 +1490,34 @@
             }
           },
           {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Only documents in this state (the Home's «Мої чернетки» — `draft`).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "published",
+                "frozen",
+                "signed",
+                "cancelled"
+              ]
+            }
+          },
+          {
+            "name": "about",
+            "required": false,
+            "in": "query",
+            "description": "`me` — documents published by others that refer to the actor: by a\nfield `ref:user`, «@» or a cell of rows (the Home's «Нове про мене»).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "me"
+              ]
+            }
+          },
+          {
             "name": "search",
             "required": false,
             "in": "query",

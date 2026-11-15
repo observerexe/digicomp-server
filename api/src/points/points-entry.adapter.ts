@@ -9,8 +9,9 @@ import type { PointsService } from './points.service';
  * Documents that award points («Відомість балів»: a row — an award).
  * Publishing awards each row (staff, a moderator not to self) and the
  * entry refers to the document; an award never changes after; cancelling
- * the document revokes its awards (admin any, a moderator only their own).
- * A member sees the documents that award them.
+ * the document revokes its awards (admin any, a moderator only their own)
+ * — and the same may give an old manual award a sheet of its one row. A
+ * member sees the documents that award them.
  */
 export function pointsEntryAdapter(points: PointsService): PaperAdapter {
   return {
@@ -21,6 +22,8 @@ export function pointsEntryAdapter(points: PointsService): PaperAdapter {
     },
 
     canUpdate: () => Promise.resolve(false),
+
+    adopt: (id, paperId, actor, m) => points.adopt(m, id, paperId, actor),
 
     update() {
       return Promise.reject(new ForbiddenException());

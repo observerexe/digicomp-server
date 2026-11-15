@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import { api, unwrap } from '../../api/client';
-import type { Place, Task } from '../../api/types';
+import type { PaperItem, Place, Task } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
 import { Icon } from '../../components/Icon';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
-import { currentMonthName, formatDateTime, formatDuration, formatTime, plural } from '../../lib/format';
+import { currentMonthName, formatDate, formatDateTime, formatDuration, formatTime, plural } from '../../lib/format';
 import { kyivParts } from '../../lib/kyiv';
 import { TASK_STATUS_LABEL } from '../../lib/labels';
 import { keys, useActiveSession } from '../lab/queries';
@@ -31,12 +31,21 @@ export function homeTasks(tasks: Task[]): Task[] {
   return tasks.filter((t) => t.status !== 'done').sort((a, b) => due(a) - due(b));
 }
 
+/** How many days a document about me stays «Нове про мене». */
+export const NEWS_DAYS = 14;
+
+/** Documents about me changed in the last NEWS_DAYS days. */
+export function recentPapers(items: PaperItem[], now = new Date()): PaperItem[] {
+  const since = now.getTime() - NEWS_DAYS * 24 * 60 * 60 * 1000;
+  return items.filter((p) => Date.parse(p.updatedAt) >= since);
+}
+
 /** Equipment someone works on right now. */
 export function busyPlaces(places: Place[]): Place[] {
   return places.filter((p) => p.inUse && p.status !== 'archived');
 }
 
-/** «/»: active session, my tasks and deadlines, points, busy equipment, next bookings (docs/tech/ARCHITECTURE.md). */
+/** «/»: active session, my tasks and deadlines, points, documents, busy equipment, next bookings (docs/tech/ARCHITECTURE.md). */
 export function HomePage() {
   const { user } = useAuth();
   const first = user?.name.split(/\s+/)[0] ?? '';
@@ -51,6 +60,7 @@ export function HomePage() {
         </div>
         <div className={s.column}>
           {user && <PointsCard userId={user.id} />}
+          <PapersCard />
           <BookingsCard />
         </div>
       </div>
@@ -143,6 +153,68 @@ function TasksCard() {
         </>
       )}
     </Card>
+  );
+}
+
+/** My drafts and what others published about me lately; the rest — in «Редактор». */
+function PapersCard() {
+  const limit = String(HOME_LIMIT);
+  const drafts = useQuery({
+    queryKey: ['papers', 'list', 'home', 'drafts'],
+    queryFn: () => unwrap(api.GET('/api/papers', { params: { query: { mine: 'true', status: 'draft', limit } } })),
+  });
+  const about = useQuery({
+    queryKey: ['papers', 'list', 'home', 'about'],
+    queryFn: () => unwrap(api.GET('/api/papers', { params: { query: { about: 'me', limit } } })),
+  });
+  const error = drafts.error ?? about.error;
+  const mine = drafts.data?.items ?? [];
+  const news = about.data ? recentPapers(about.data.items) : [];
+  return (
+    <Card>
+      <h2 className={s.caption}>Документи</h2>
+      {drafts.isPending || about.isPending ? (
+        <Skeleton height={88} />
+      ) : error ? (
+        <ErrorMessage text={errorOf(error)} />
+      ) : mine.length === 0 && news.length === 0 ? (
+        <p className="hint">Чернеток і нових документів про вас немає.</p>
+      ) : (
+        <>
+          <PaperRows title="Мої чернетки" items={mine} sub={(p) => `змінено ${formatDate(p.updatedAt)}`} />
+          <PaperRows
+            title="Нове про мене"
+            items={news}
+            sub={(p) => [p.number, p.author.name, p.status === 'cancelled' ? 'скасовано' : formatDate(p.updatedAt)].filter(Boolean).join(' · ')}
+          />
+        </>
+      )}
+      <Link to="/editor" className={`btn btn-ghost ${s.more}`}>
+        До Редактора
+      </Link>
+    </Card>
+  );
+}
+
+function PaperRows({ title, items, sub }: { title: string; items: PaperItem[]; sub: (p: PaperItem) => string }) {
+  if (items.length === 0) return null;
+  return (
+    <>
+      <h3 className={s.subcaption}>{title}</h3>
+      <ul className={s.rows} aria-label={title}>
+        {items.map((p) => (
+          <li key={p.id}>
+            <Link to={`/editor/${p.id}`} className={s.row}>
+              <span className={s.rowMain}>
+                <span className={s.rowTitle}>{p.title}</span>
+                <span className={s.rowSub}>{sub(p)}</span>
+              </span>
+              <Icon name="chevron" size={20} />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 

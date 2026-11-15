@@ -8,11 +8,18 @@ import { Paper, PaperStatus } from './paper.entity';
 import { whereSeen } from './paper.links';
 
 /**
- * How many documents created this record. A module asks before deleting
- * one: a record with a document goes only by cancelling the document.
+ * How many documents created this record (or were made for it later): by
+ * their links `@target`, so the records of rows count too. A module asks
+ * before taking one off: a record with a document goes only by cancelling
+ * the document.
  */
 export function papersOf(m: EntityManager, type: RecordType, id: string) {
-  return m.count(Paper, { where: { targetType: type, targetId: id } });
+  return m.countBy(RecordLink, {
+    fromType: 'paper',
+    toType: type,
+    toId: id,
+    role: TARGET_ROLE,
+  });
 }
 
 /**

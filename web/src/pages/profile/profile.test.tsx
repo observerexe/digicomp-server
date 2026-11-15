@@ -84,6 +84,26 @@ const profileApi = (me: Me) => ({
       { id: 'a2', place: { id: 'pl2', code: 'LAS-1', title: 'Лазер' }, expiresAt: null, expired: true },
     ]),
   'GET /api/bookings/me': () => json(200, []),
+  'GET /api/papers': () =>
+    json(200, {
+      items: [
+        {
+          id: 'pp1',
+          title: 'Протокол зборів',
+          number: 'ПЗ-2026-002',
+          status: 'published',
+          visibility: 'members',
+          revision: 2,
+          author: { id: me.id, name: me.name, avatarUrl: null },
+          publishedAt: '2026-11-14T10:00:00Z',
+          createdAt: '2026-11-14T09:00:00Z',
+          updatedAt: '2026-11-14T10:00:00Z',
+        },
+      ],
+      total: 12,
+      page: 1,
+      limit: 10,
+    }),
 });
 
 describe('Мій профіль', () => {
@@ -184,6 +204,12 @@ describe('Мій профіль', () => {
     await userEvent.click(screen.getByText('Допуски'));
     expect(screen.getByRole('link', { name: /Фрезер/ })).toHaveAttribute('href', '/lab/CNC-1');
     expect(screen.getByRole('link', { name: /Лазер/ })).toHaveTextContent('термін минув');
+
+    expect(screen.getByText('12')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('Мої документи'));
+    expect(screen.getByRole('link', { name: /Протокол зборів/ })).toHaveAttribute('href', '/editor/pp1');
+    expect(screen.getByRole('link', { name: /Протокол зборів/ })).toHaveTextContent('ПЗ-2026-002 · Опубліковано · 14 лист.');
+    expect(screen.getByRole('link', { name: 'Усі мої документи (12)' })).toHaveAttribute('href', '/editor');
 
     expect(screen.getByRole('link', { name: 'Увімкнути 2FA' })).toHaveAttribute('href', '/profile/2fa');
   });

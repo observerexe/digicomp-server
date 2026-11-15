@@ -10,7 +10,7 @@ import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { formatDate } from '../../lib/format';
 import { disciplineTitle } from '../../lib/labels';
-import { templateChoices, useNewPaper, useTemplates } from '../../lib/paperTemplates';
+import { templateChoices, useNewPaper, usePaperForRecord, useTemplates } from '../../lib/paperTemplates';
 import { MemberSelect } from '../../components/MemberSelect';
 import s from './points.module.css';
 
@@ -19,7 +19,7 @@ type State = 'active' | 'revoked' | 'all';
 /**
  * Admin revokes any record, a moderator only own (API: DisciplineRevoke);
  * here — only records issued before documents: one with a document is
- * revoked by cancelling it.
+ * revoked by cancelling it. The same may give such a record its document.
  */
 export function canRevokeRecord(r: DisciplineRecord, me: Me): boolean {
   return !r.revoked && !r.paper && (me.role === 'admin' || r.issuedBy?.id === me.id);
@@ -28,7 +28,7 @@ export function canRevokeRecord(r: DisciplineRecord, me: Me): boolean {
 /**
  * Staff: discipline table with filters. Issued through «Подання про
  * стягнення» (a document); revoked by cancelling it — here only records
- * made before documents, with a reason.
+ * made before documents, with a reason, or they get their document.
  */
 export function DisciplinePage() {
   const { user } = useAuth();
@@ -40,6 +40,8 @@ export function DisciplinePage() {
   const [revokeReason, setRevokeReason] = useState('');
   const templates = useTemplates();
   const newPaper = useNewPaper();
+  const forRecord = usePaperForRecord('discipline');
+  const issueChoices = templateChoices(templates.data, { creates: 'discipline_record' });
 
   const list = useQuery({
     queryKey: ['discipline', 'list', filterUser, state],
@@ -62,7 +64,7 @@ export function DisciplinePage() {
       <PageHeader title="Дисципліна">
         <ChoiceButton
           label="Нове подання"
-          choices={templateChoices(templates.data, { creates: 'discipline_record' })}
+          choices={issueChoices}
           disabled={templates.isPending || newPaper.isPending}
           emptyNote="Немає шаблону, що видає стягнення: його додають у «Редактор» → «Шаблони»."
           // From a member's page — about them.
@@ -71,8 +73,8 @@ export function DisciplinePage() {
       </PageHeader>
       <Card>
         <p className="hint">
-          Попередження, штраф чи догану видають «Поданням про стягнення» в Редакторі; штраф знімає бали. Зняти стягнення — «Скасувати документ» у поданні. Учасник бачить свої
-          записи й подання про себе; інші — ні.
+          Попередження, штраф чи догану видають «Поданням про стягнення» в Редакторі; штраф знімає бали. Зняти стягнення — «Скасувати документ» у поданні. Видане до документів
+          знімається тут, а «Створити документ» оформлює його поданням. Учасник бачить свої записи й подання про себе; інші — ні.
         </p>
         <div className={s.filters}>
           <MemberSelect excludeSelf id="dc-filter" label="Учасник" allowAll value={filterUser} onChange={(id) => setParams(id ? { user: id } : {}, { replace: true })} />
@@ -85,7 +87,7 @@ export function DisciplinePage() {
             </select>
           </div>
         </div>
-        <ErrorMessage text={[newPaper, templates, revoke].map((q) => (q.isError ? errorOf(q.error) : null)).find(Boolean) ?? null} />
+        <ErrorMessage text={[newPaper, forRecord, templates, revoke].map((q) => (q.isError ? errorOf(q.error) : null)).find(Boolean) ?? null} />
         {list.isPending ? (
           <Skeleton height={160} />
         ) : list.isError ? (
@@ -107,9 +109,18 @@ export function DisciplinePage() {
                   </span>
                 </span>
                 {canRevokeRecord(r, user) && revoking !== r.id && (
-                  <button type="button" className="btn btn-ghost" onClick={() => setRevoking(r.id)}>
-                    Зняти
-                  </button>
+                  <span className={s.actions}>
+                    <ChoiceButton
+                      label="Створити документ"
+                      className="btn btn-ghost"
+                      choices={issueChoices}
+                      disabled={forRecord.isPending}
+                      onPick={(templateId) => templateId && forRecord.mutate({ templateId, targetId: r.id })}
+                    />
+                    <button type="button" className="btn btn-ghost" onClick={() => setRevoking(r.id)}>
+                      Зняти
+                    </button>
+                  </span>
                 )}
                 <RecordPapers label="Подання" paper={r.paper} papers={r.papers} />
                 {revoking === r.id && (

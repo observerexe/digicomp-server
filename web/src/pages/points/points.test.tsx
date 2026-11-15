@@ -98,6 +98,25 @@ describe('Бали (модератор)', () => {
     expect(within(list).queryByRole('button', { name: 'Зняти' })).not.toBeInTheDocument();
   });
 
+  it('старе нарахування: «Створити документ» — відомість з ним, одразу в редакторі', async () => {
+    const entry: PointsHistoryEntry = {
+      id: 'e1', kind: 'manual', amount: 5, reason: 'Чергування', taskId: null, taskTitle: null, reversesId: null,
+      createdBy: { id: staff.id, name: staff.name }, paper: null, revoked: false, createdAt: '2026-11-15T10:00:00Z',
+    };
+    const { calls } = mockApi({
+      ...base(staff),
+      'GET /api/points/users/u3': () => json(200, { balance: 5, history: [entry] }),
+      'GET /api/papers/templates': () => json(200, [sheetTemplate]),
+      'POST /api/papers/for-record': () => json(201, { id: 'p5' }),
+    });
+    const { router } = renderApp('/points?user=u3');
+    const list = await screen.findByRole('list', { name: 'Історія учасника' });
+    expect(within(list).getByRole('button', { name: 'Зняти' })).toBeInTheDocument();
+    await userEvent.click(within(list).getByRole('button', { name: 'Створити документ' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/editor/p5'));
+    expect(JSON.parse(calls.find((c) => c.path === '/api/papers/for-record')!.body)).toEqual({ templateId: 'vb', targetId: 'e1' });
+  });
+
   it('хто може зняти нарахування', () => {
     const e = (over: Partial<PointsHistoryEntry>): PointsHistoryEntry => ({
       id: 'e', kind: 'manual', amount: 10, reason: '', taskId: null, taskTitle: null, reversesId: null,
@@ -193,6 +212,7 @@ describe('Дисципліна (модератор)', () => {
     renderApp('/discipline');
     const [old, withPaper] = within(await screen.findByRole('list', { name: 'Записи дисципліни' })).getAllByRole('listitem');
     expect(within(withPaper!).queryByRole('button', { name: 'Зняти' })).not.toBeInTheDocument();
+    expect(within(withPaper!).queryByRole('button', { name: 'Створити документ' })).not.toBeInTheDocument();
     expect(within(withPaper!).getByRole('link', { name: 'Подання ПС-2026-001' })).toHaveAttribute('href', '/editor/p1');
     expect(within(withPaper!).getByRole('link', { name: 'Пояснювальна записка · чернетка' })).toHaveAttribute('href', '/editor/p2');
 
@@ -200,6 +220,20 @@ describe('Дисципліна (модератор)', () => {
     await userEvent.type(within(old!).getByLabelText('Причина зняття'), 'Помилка');
     await userEvent.click(within(old!).getByRole('button', { name: 'Зняти запис' }));
     await waitFor(() => expect(calls.some((c) => c.path === '/api/discipline/d1/revoke')).toBe(true));
+  });
+
+  it('старе стягнення: «Створити документ» — подання з нього, одразу в редакторі', async () => {
+    const { calls } = mockApi({
+      ...base(staff),
+      'GET /api/discipline': () => json(200, { items: [rec()], total: 1, page: 1, limit: 100 }),
+      'GET /api/papers/templates': () => json(200, [issueTemplate]),
+      'POST /api/papers/for-record': () => json(201, { id: 'p7' }),
+    });
+    const { router } = renderApp('/discipline');
+    const list = await screen.findByRole('list', { name: 'Записи дисципліни' });
+    await userEvent.click(await within(list).findByRole('button', { name: 'Створити документ' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/editor/p7'));
+    expect(JSON.parse(calls.find((c) => c.path === '/api/papers/for-record')!.body)).toEqual({ templateId: 'ps', targetId: 'd1' });
   });
 
   it('хто може зняти запис тут', () => {

@@ -4620,6 +4620,13 @@ export interface operations {
             query?: {
                 /** @description `true` — only the actor's own documents (tab «Мої»). */
                 mine?: "true";
+                /** @description Only documents in this state (the Home's «Мої чернетки» — `draft`). */
+                status?: "draft" | "published" | "frozen" | "signed" | "cancelled";
+                /**
+                 * @description `me` — documents published by others that refer to the actor: by a
+                 *     field `ref:user`, «@» or a cell of rows (the Home's «Нове про мене»).
+                 */
+                about?: "me";
                 /** @description Part of the title. */
                 search?: string;
                 page?: string;

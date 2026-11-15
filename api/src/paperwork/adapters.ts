@@ -56,6 +56,18 @@ export type PaperAdapter = {
    */
   canUpdate(id: string, actor: Actor, m: EntityManager): Promise<boolean>;
   /**
+   * A record made before documents gets its document (POST
+   * /papers/for-record; `paperId` is saved already, in this transaction):
+   * throws if the actor may not or the record no longer stands, keeps the
+   * document's id if the module keeps one.
+   */
+  adopt(
+    id: string,
+    paperId: string,
+    actor: Actor,
+    m: EntityManager,
+  ): Promise<void>;
+  /**
    * Changes the record: only the given fields (null — emptied), as the
    * module's own PATCH does it.
    */

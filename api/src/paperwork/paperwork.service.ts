@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   ConflictException,
-  ForbiddenException,
   HttpException,
   Injectable,
   NotFoundException,
@@ -326,6 +325,18 @@ function rowValues(rows: PaperField, row: FieldRow): RecordValues {
   return out;
 }
 
+/** A row of «рядок = запис» from a record: its bound columns (empty — left out). */
+function rowOf(rows: PaperField, record: RecordValues): FieldRow {
+  const row: FieldRow = {};
+  for (const c of rows.columns ?? []) {
+    if (c.binding === null) continue;
+    const v = normalizeValue(c, record[c.binding]);
+    // A column is never rows itself.
+    if (v !== null && v !== undefined) row[c.key] = v as FieldRow[string];
+  }
+  return row;
+}
+
 /** The records of a document in the audit: one — its id, of rows — their ids. */
 function targetMeta(p: Paper, ids: string[]) {
   return p.targetId ? { targetId: p.targetId } : { targetIds: ids };
@@ -606,6 +617,15 @@ export class PaperworkService {
       ]);
     whereSeen(qb, actor, this.adapters);
     if (q.mine === 'true') qb.andWhere('p.authorId = :me', { me: actor.id });
+    if (q.status) qb.andWhere('p.status = :status', { status: q.status });
+    if (q.about === 'me') {
+      qb.andWhere(
+        `p.status <> :draft AND p.authorId <> :me AND p.id IN (
+           SELECT l.from_id FROM record_links l
+            WHERE l.from_type = 'paper' AND l.to_type = 'user' AND l.to_id = :me)`,
+        { me: actor.id, draft: PaperStatus.Draft },
+      );
+    }
     if (q.search) {
       qb.andWhere('(p.title ILIKE :s OR p.number ILIKE :s)', {
         s: `%${escapeLike(q.search)}%`,
@@ -837,9 +857,10 @@ export class PaperworkService {
   /**
    * A document for a record made without one (before documents): from a
    * template that creates records of its type, with the bound fields taken
-   * from the record as it is now, published at once — with a number and the
-   * link to the record. Only who may change the record (its adapter), and
-   * only while it has no document (409 PAPER_TARGET_TAKEN).
+   * from the record as it is now (a template of rows — one row of it),
+   * published at once — with a number and the link to the record. Only who
+   * the record's adapter lets (`adopt`), and only while the record has no
+   * document (409 PAPER_TARGET_TAKEN).
    */
   async forRecord(dto: PaperForRecordDto, actor: Actor): Promise<PaperDto> {
     return this.ds.transaction(async (m) => {
@@ -858,24 +879,20 @@ export class PaperworkService {
         `paper-target:${type}:${dto.targetId}`,
       ]);
       const fields = await this.fieldsOf(m, template, version);
-      // A document of rows makes records of its rows, not of one.
-      if (recordRows(fields)) {
-        throw new BadRequestException(TemplateErrors.KindInvalid);
-      }
       const record = await adapter.resolve(dto.targetId, m);
       if (!record) throw new NotFoundException('Record not found');
-      if (!(await adapter.canUpdate(dto.targetId, actor, m))) {
-        throw new ForbiddenException();
-      }
-      if (await papersOf(m, type, dto.targetId)) {
-        throw new ConflictException(PaperErrors.TargetTaken);
-      }
-      const filled = withRecord(
-        fields,
-        record.values,
-        { content: version.body, values: {} },
-        false,
-      );
+      const rows = recordRows(fields);
+      const filled = rows
+        ? {
+            content: version.body,
+            values: { [rows.key]: [rowOf(rows, record.values)] },
+          }
+        : withRecord(
+            fields,
+            record.values,
+            { content: version.body, values: {} },
+            false,
+          );
       const fresh = new Set(
         (
           await seenRefs(
@@ -903,9 +920,15 @@ export class PaperworkService {
             ? await nextNumber(m, template.numberPrefix)
             : null,
           targetType: type,
-          targetId: dto.targetId,
+          // Records of rows are known by their links only.
+          targetId: rows ? null : dto.targetId,
         }),
       );
+      // The module may refer to the document: it must be saved first.
+      await adapter.adopt(dto.targetId, p.id, actor, m);
+      if (await papersOf(m, type, dto.targetId)) {
+        throw new ConflictException(PaperErrors.TargetTaken);
+      }
       await m.getRepository(RecordLink).insert({
         fromType: 'paper',
         fromId: p.id,
@@ -934,7 +957,7 @@ export class PaperworkService {
             authorId: p.authorId,
             number: p.number,
             targetType: type,
-            targetId: dto.targetId,
+            ...targetMeta(p, [dto.targetId]),
             templateId: template.id,
             version: version.number,
             fromRecord: true,
