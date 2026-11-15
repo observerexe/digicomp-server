@@ -16,7 +16,7 @@ import { RecordLink } from '../links/record-link.entity';
 import { OrgService } from '../org/org.service';
 import { RecordFieldsService } from '../records/record-fields.service';
 import type { RecordType } from '../records/field-types';
-import { User } from '../users/user.entity';
+import { Role, User } from '../users/user.entity';
 import type { OkDto, Plain } from '../common/responses.dto';
 import {
   dayText,
@@ -46,8 +46,10 @@ import type {
   CreatePaperDto,
   ListPapersQuery,
   PaperForRecordDto,
+  PrintPaperQuery,
   UpdatePaperDto,
 } from './dto';
+import { PaperSnapshot } from './paper-snapshot.entity';
 import { Paper, PaperStatus, PaperVisibility } from './paper.entity';
 import { seenThroughTarget, whereSeen } from './paper.links';
 import {
@@ -69,14 +71,18 @@ import {
   type PaperField,
 } from './paper-fields';
 import { papersOf, recordsOfPaper } from './paper-targets';
-import { paperPrintHtml } from './print';
-import type { FieldFill } from '../../../shared/editor-schema/render';
+import { paperPrintHtml, sheetHash, sheetHtml, type Seal } from './print';
+import {
+  footerText,
+  type FieldFill,
+} from '../../../shared/editor-schema/render';
 import type {
   PaperDto,
   PaperFieldDto,
   PaperItemDto,
   PaperListDto,
   PaperRefDto,
+  PaperVerifyDto,
 } from './responses.dto';
 import {
   PaperTemplate,
@@ -93,6 +99,9 @@ export const PaperErrors = {
   NotPublished: 'Paper is not published',
   RequiredMissing: 'Required paper field is missing',
   TargetTaken: 'Record already has a paper',
+  Frozen: 'Paper is frozen',
+  NotReady: 'Paper record is not ready',
+  SnapshotNotFound: 'Paper snapshot not found',
 } as const;
 
 /** Published, not cancelled: it shows its record as it is now. */
@@ -101,6 +110,37 @@ const LIVE = new Set([
   PaperStatus.Frozen,
   PaperStatus.Signed,
 ]);
+
+/** Over every page of a print that is not a snapshot's (a cancelled one — of a snapshot too). */
+const WATERMARK: Record<PaperStatus, string | null> = {
+  [PaperStatus.Draft]: 'Чернетка',
+  [PaperStatus.Published]: 'Не зафіксовано',
+  [PaperStatus.Frozen]: null,
+  [PaperStatus.Signed]: null,
+  [PaperStatus.Cancelled]: 'Скасовано',
+};
+
+/**
+ * Who may freeze: a member — only a free document of their own (one that
+ * created a record gives no owner); staff — any (policy: PapersFreeze).
+ */
+function freezeOwner(p: Paper) {
+  return p.targetType ? {} : { ownerId: p.authorId };
+}
+
+/** The check page of a snapshot (its QR); null — no PUBLIC_ORIGIN. */
+function verifyUrl(sha256: string) {
+  const origin = process.env.PUBLIC_ORIGIN?.replace(/\/+$/, '');
+  return origin ? `${origin}/papers/verify/${sha256}` : null;
+}
+
+function sealOf(snap: PaperSnapshot): Seal {
+  return {
+    sha256: snap.sha256,
+    frozenOn: dayText(snap.createdAt),
+    url: verifyUrl(snap.sha256),
+  };
+}
 
 /** Text and values as the document shows them (bound fields — from the record). */
 type Shown = { content: PaperContent; values: FieldValues };
@@ -494,19 +534,21 @@ export class PaperworkService {
       where: { id },
       ...(lock ? { lock: { mode: 'pessimistic_write' as const } } : {}),
     });
-    if (
-      !p ||
-      !can(actor, Action.PapersRead, {
-        ownerId: p.authorId,
-        shared: isShared(p) || (await this.seenThroughRecord(m, p, actor)),
-      })
-    ) {
+    if (!p || !(await this.sees(m, p, actor))) {
       throw new NotFoundException('Paper not found');
     }
     // The lock does not go with a join: the author is loaded apart.
     p.author =
       (await m.getRepository(User).findOneBy({ id: p.authorId })) ?? undefined;
     return p;
+  }
+
+  /** The actor sees the document (its own, shared, or through its record). */
+  private async sees(m: EntityManager, p: Paper, actor: Actor) {
+    return can(actor, Action.PapersRead, {
+      ownerId: p.authorId,
+      shared: isShared(p) || (await this.seenThroughRecord(m, p, actor)),
+    });
   }
 
   /** A published document the actor sees through the record it created. */
@@ -524,9 +566,10 @@ export class PaperworkService {
   }
 
   /**
-   * What the document shows: once published (until cancelled), fields bound
-   * to its record show the record as it is now; without the record — as
-   * they were written.
+   * What the document shows: once published (until frozen or cancelled),
+   * fields bound to its record show the record as it is now; without the
+   * record — as they were written. Freezing writes what it showed into the
+   * document itself.
    */
   private async shown(
     m: EntityManager,
@@ -534,7 +577,12 @@ export class PaperworkService {
     form: Form | null,
   ): Promise<Shown> {
     const own = { content: p.content, values: p.values };
-    if (!form || !p.targetType || !p.targetId || !LIVE.has(p.status)) {
+    if (
+      !form ||
+      !p.targetType ||
+      !p.targetId ||
+      p.status !== PaperStatus.Published
+    ) {
       return own;
     }
     const record = await this.adapters
@@ -556,6 +604,10 @@ export class PaperworkService {
     const { content, values } = shown;
     const may = await this.changer(m, p, form, actor);
     const owner = { ownerId: p.authorId };
+    const snap = await m.findOne(PaperSnapshot, {
+      where: { paperId: p.id },
+      order: { n: 'DESC' },
+    });
     return {
       ...itemView(p),
       content,
@@ -589,7 +641,32 @@ export class PaperworkService {
         p.status === PaperStatus.Draft &&
         can(actor, Action.PapersPublish, owner),
       canCancel: LIVE.has(p.status) && can(actor, Action.PapersCancel, owner),
+      canFreeze:
+        p.status === PaperStatus.Published &&
+        can(actor, Action.PapersFreeze, freezeOwner(p)) &&
+        (await this.ready(m, p)),
+      snapshot: snap && {
+        n: snap.n,
+        sha256: snap.sha256,
+        createdAt: snap.createdAt,
+      },
     };
+  }
+
+  /**
+   * The records of a document are ready (its adapter: a task done), so it
+   * may be frozen; a free document always is. A record gone does not hold
+   * it back.
+   */
+  private async ready(m: EntityManager, p: Paper) {
+    if (!p.targetType) return true;
+    const adapter = this.adapters.get(p.targetType);
+    if (!adapter) return false;
+    for (const id of await recordsOfPaper(m, p)) {
+      const r = await adapter.resolve(id, m);
+      if (r && !r.ready) return false;
+    }
+    return true;
   }
 
   async list(q: ListPapersQuery, actor: Actor): Promise<PaperListDto> {
@@ -608,6 +685,8 @@ export class PaperworkService {
         'p.visibility',
         'p.revision',
         'p.authorId',
+        'p.targetType',
+        'p.targetId',
         'p.publishedAt',
         'p.createdAt',
         'p.updatedAt',
@@ -626,15 +705,38 @@ export class PaperworkService {
         { me: actor.id, draft: PaperStatus.Draft },
       );
     }
+    if (q.due === 'freeze') {
+      qb.andWhere('p.status = :published', {
+        published: PaperStatus.Published,
+      }).andWhere(
+        `NOT EXISTS (
+           SELECT 1 FROM paper_template_versions v
+             JOIN paper_templates t ON t.id = v.template_id
+            WHERE v.id = p.template_version_id AND t.auto_freeze)`,
+      );
+      if (!can(actor, Action.PapersFreeze, {})) {
+        qb.andWhere('p.authorId = :me AND p.targetType IS NULL', {
+          me: actor.id,
+        });
+      }
+    }
     if (q.search) {
       qb.andWhere('(p.title ILIKE :s OR p.number ILIKE :s)', {
         s: `%${escapeLike(q.search)}%`,
       });
     }
-    qb.orderBy('p.updatedAt', 'DESC')
-      .addOrderBy('p.id', 'ASC')
-      .skip((page - 1) * limit)
-      .take(limit);
+    qb.orderBy('p.updatedAt', 'DESC').addOrderBy('p.id', 'ASC');
+    if (q.due === 'freeze') {
+      // Readiness is the records' modules': pages come after it. Documents
+      // waiting for freezing are few.
+      const due: Paper[] = [];
+      for (const p of await qb.getMany()) {
+        if (await this.ready(this.ds.manager, p)) due.push(p);
+      }
+      const items = due.slice((page - 1) * limit, page * limit);
+      return { items: items.map(itemView), total: due.length, page, limit };
+    }
+    qb.skip((page - 1) * limit).take(limit);
     const [rows, total] = await qb.getManyAndCount();
     return { items: rows.map(itemView), total, page, limit };
   }
@@ -645,21 +747,21 @@ export class PaperworkService {
   }
 
   /**
-   * Print page of the current content with the values of fields; the
-   * structure blocks take «Реквізити», the author and the day of publication.
+   * The values of fields and the requisites for the sheet: the structure
+   * blocks take «Реквізити», the author and the day of publication; records
+   * are named as `viewer` sees them.
    */
-  async printHtml(
-    id: string,
-    actor: Actor,
-  ): Promise<{ html: string; csp: string }> {
-    const m = this.ds.manager;
-    const p = await this.accessible(m, id, actor);
-    const form = await this.formOf(m, p);
-    const shown = await this.shown(m, p, form);
-    const { content, values } = shown;
+  private async fillOf(
+    m: EntityManager,
+    p: Paper,
+    shown: Shown,
+    form: Form | null,
+    viewer: Actor,
+  ): Promise<FieldFill> {
+    const { values } = shown;
     const fields = new Map((form?.fields ?? []).map((f) => [f.key, f]));
     const refs = new Map(
-      (await this.refsOf(m, shown, form, actor)).map((r) => [
+      (await this.refsOf(m, shown, form, viewer)).map((r) => [
         `${r.type}:${r.id}`,
         r.title,
       ]),
@@ -717,7 +819,235 @@ export class PaperworkService {
         year: yearText(p.publishedAt ?? new Date()),
       },
     };
-    return paperPrintHtml({ title: p.title, content, fill });
+    return fill;
+  }
+
+  /** A snapshot of the document: its number; none — the latest (null — not frozen). */
+  private async snapshotOf(
+    m: EntityManager,
+    paperId: string,
+    n?: number,
+  ): Promise<PaperSnapshot | null> {
+    if (n === undefined) {
+      return m.findOne(PaperSnapshot, {
+        where: { paperId },
+        order: { n: 'DESC' },
+      });
+    }
+    const snap = await m.findOneBy(PaperSnapshot, { paperId, n });
+    if (!snap) throw new NotFoundException(PaperErrors.SnapshotNotFound);
+    return snap;
+  }
+
+  /**
+   * Print page. A frozen document prints its snapshot (the latest or the
+   * given one) with the seal: QR to the check page and SHA-256; cancelled
+   * after freezing — the same with «Скасовано» across it. A document never
+   * frozen prints its current content with the values of fields, marked
+   * «Чернетка», «Не зафіксовано» or «Скасовано»: print and PDF come from
+   * snapshots only.
+   */
+  async printHtml(
+    id: string,
+    q: PrintPaperQuery,
+    actor: Actor,
+  ): Promise<{ html: string; csp: string }> {
+    const m = this.ds.manager;
+    const p = await this.accessible(m, id, actor);
+    const snap = await this.snapshotOf(
+      m,
+      p.id,
+      q.snapshot === undefined ? undefined : Number(q.snapshot),
+    );
+    if (snap) {
+      return paperPrintHtml({
+        title: p.title,
+        sheet: snap.html,
+        footer: footerText(p.content),
+        seal: sealOf(snap),
+        watermark:
+          p.status === PaperStatus.Cancelled
+            ? WATERMARK[PaperStatus.Cancelled]
+            : null,
+      });
+    }
+    const form = await this.formOf(m, p);
+    const shown = await this.shown(m, p, form);
+    const fill = await this.fillOf(m, p, shown, form, actor);
+    return paperPrintHtml({
+      title: p.title,
+      sheet: sheetHtml(shown.content, fill),
+      footer: footerText(shown.content),
+      watermark: WATERMARK[p.status],
+    });
+  }
+
+  /**
+   * Freezes a published document whose records are ready: the sheet as the
+   * server renders it now, its SHA-256 and the values it shows become a
+   * snapshot; the document keeps those values (bound fields stop following
+   * the record) and is «Зафіксовано». Once only: a frozen document is
+   * PAPER_FROZEN.
+   */
+  async freeze(id: string, actor: Actor): Promise<PaperDto> {
+    return this.ds.transaction(async (m) => {
+      const p = await this.accessible(m, id, actor, true);
+      assertCan(actor, Action.PapersFreeze, freezeOwner(p));
+      if (p.status === PaperStatus.Frozen || p.status === PaperStatus.Signed) {
+        throw new ConflictException(PaperErrors.Frozen);
+      }
+      if (p.status !== PaperStatus.Published) {
+        throw new ConflictException(PaperErrors.NotPublished);
+      }
+      if (!(await this.ready(m, p))) {
+        throw new ConflictException(PaperErrors.NotReady);
+      }
+      await this.snapshot(m, p, await this.formOf(m, p), actor, false);
+      return this.view(m, p, actor);
+    });
+  }
+
+  /**
+   * A module's record became ready (a task accepted): its documents whose
+   * template freezes them themselves are frozen now, in the module's
+   * transaction, by who made it ready.
+   */
+  async recordReady(
+    type: RecordType,
+    id: string,
+    actor: Actor,
+    m: EntityManager,
+  ): Promise<void> {
+    const links = await m.findBy(RecordLink, {
+      fromType: 'paper',
+      toType: type,
+      toId: id,
+      role: TARGET_ROLE,
+    });
+    for (const paperId of new Set(links.map((l) => l.fromId))) {
+      const p = await m.findOne(Paper, {
+        where: { id: paperId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (p) await this.autoFreeze(m, p, await this.formOf(m, p), actor);
+    }
+  }
+
+  /** Freezes a published document whose template says so, once its records are ready. */
+  private async autoFreeze(
+    m: EntityManager,
+    p: Paper,
+    form: Form | null,
+    actor: Actor,
+  ) {
+    if (
+      form?.template.autoFreeze &&
+      p.status === PaperStatus.Published &&
+      (await this.ready(m, p))
+    ) {
+      await this.snapshot(m, p, form, actor, true);
+    }
+  }
+
+  /**
+   * The snapshot: records are named in full (as staff see them) — the
+   * sheet is the same for every reader. Links follow what it shows (the
+   * record's fields included: assignees of a task, for one).
+   */
+  private async snapshot(
+    m: EntityManager,
+    p: Paper,
+    form: Form | null,
+    actor: Actor,
+    auto: boolean,
+  ) {
+    p.author ??=
+      (await m.getRepository(User).findOneBy({ id: p.authorId })) ?? undefined;
+    const shown = await this.shown(m, p, form);
+    const viewer: Actor = { id: actor.id, role: Role.Admin };
+    const fill = await this.fillOf(m, p, shown, form, viewer);
+    const [{ n }] = await m.query<{ n: number }[]>(
+      `SELECT COALESCE(MAX("n"), 0)::int + 1 AS "n" FROM "paper_snapshots" WHERE "paper_id" = $1`,
+      [p.id],
+    );
+    const html = sheetHtml(shown.content, fill, { paperId: p.id, n });
+    const sha256 = sheetHash(html);
+    await m.getRepository(PaperSnapshot).insert({
+      paperId: p.id,
+      n,
+      html,
+      sha256,
+      resolvedValues: shown.values,
+      createdById: actor.id,
+    });
+    const fresh = new Set(
+      (await this.refsOf(m, shown, form, viewer)).map(
+        (r) => `${r.type}:${r.id}`,
+      ),
+    );
+    p.content = shown.content;
+    p.values = shown.values;
+    p.status = PaperStatus.Frozen;
+    p.revision += 1;
+    await m.getRepository(Paper).save(p);
+    await syncLinks(
+      m,
+      p.id,
+      form?.fields ?? [],
+      p.values,
+      p.content,
+      fresh,
+      actor.id,
+    );
+    await this.audit.log(
+      {
+        actorId: actor.id,
+        action: 'paper.frozen',
+        entity: 'paper',
+        entityId: p.id,
+        meta: {
+          title: p.title,
+          authorId: p.authorId,
+          number: p.number,
+          n,
+          sha256,
+          ...(auto ? { auto: true } : {}),
+        },
+      },
+      m,
+    );
+  }
+
+  /**
+   * The check of a printed document by the hash of its sheet: for everyone
+   * signed in — the snapshot is genuine and what its document is now; the
+   * document's id only for who sees it.
+   */
+  async verify(sha256: string, actor: Actor): Promise<Plain<PaperVerifyDto>> {
+    const m = this.ds.manager;
+    const snap = /^[0-9a-f]{64}$/.test(sha256)
+      ? await m.findOne(PaperSnapshot, {
+          where: { sha256 },
+          relations: { createdBy: true },
+        })
+      : null;
+    if (!snap) throw new NotFoundException(PaperErrors.SnapshotNotFound);
+    const p = await m.findOneByOrFail(Paper, { id: snap.paperId });
+    const last = await m.maximum(PaperSnapshot, 'n', { paperId: p.id });
+    return {
+      sha256: snap.sha256,
+      n: snap.n,
+      latest: last === snap.n,
+      frozenAt: snap.createdAt,
+      frozenBy: snap.createdBy
+        ? { id: snap.createdBy.id, name: snap.createdBy.name }
+        : null,
+      number: p.number,
+      title: p.title,
+      status: p.status,
+      cancelReason: p.cancelReason,
+      paperId: (await this.sees(m, p, actor)) ? p.id : null,
+    };
   }
 
   /** A free document, or one made from a template's current version. */
@@ -965,6 +1295,7 @@ export class PaperworkService {
         },
         m,
       );
+      await this.autoFreeze(m, p, { template, version, fields }, actor);
       return this.view(m, await this.accessible(m, p.id, actor), actor);
     });
   }
@@ -1316,6 +1647,8 @@ export class PaperworkService {
         },
         m,
       );
+      // A record ready at once (a discipline record): frozen with it.
+      await this.autoFreeze(m, p, form, actor);
       return this.view(m, p, actor);
     });
   }

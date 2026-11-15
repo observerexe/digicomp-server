@@ -693,6 +693,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/papers/{id}/freeze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Freezes for print and signature: a snapshot of the sheet with its
+         *     SHA-256; once the records are ready (a member — own free document).
+         */
+        post: operations["PaperworkController_freeze"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/papers/verify/{sha}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The check of a printed document by its hash (the QR of its seal). */
+        get: operations["PaperworkController_verify"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/papers/{id}": {
         parameters: {
             query?: never;
@@ -717,7 +754,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Print-ready A4 page (print or save as PDF in the browser); own CSP, no scripts. */
+        /**
+         * Print-ready A4 page (print or save as PDF in the browser); own CSP, no
+         *     scripts. Frozen — a snapshot with its seal; otherwise marked as not final.
+         */
         get: operations["PaperworkController_print"];
         put?: never;
         post?: never;
@@ -2541,6 +2581,14 @@ export interface components {
             /** @description The record is in the archive (a member — blocked, a document — cancelled). */
             archived: boolean;
         };
+        PaperSnapshotDto: {
+            /** @description 1, 2, … within the document (`print?snapshot=`). */
+            n: number;
+            /** @description Hex SHA-256 of the sheet: the check page `/papers/verify/:sha`. */
+            sha256: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
         PaperDto: {
             /** @description `ТЗ-2026-014`: given when published, if the template has a prefix. */
             number: string | null;
@@ -2568,6 +2616,8 @@ export interface components {
             targetId: string | null;
             /** @description Why it was cancelled. */
             cancelReason: string | null;
+            /** @description The latest snapshot (frozen, signed; cancelled after freezing); null — none. */
+            snapshot: components["schemas"]["PaperSnapshotDto"] | null;
             /** @description The actor may change and delete it: their own draft (admin — any). */
             canEdit: boolean;
             /**
@@ -2582,6 +2632,11 @@ export interface components {
              *     bound ones while they may change the record, the rest in their own document (staff — any).
              */
             canChange: boolean;
+            /**
+             * @description Published, and its records are ready: the actor may freeze it for print
+             *     and signature (a member — own free document; staff — any).
+             */
+            canFreeze: boolean;
             id: string;
             title: string;
             author: components["schemas"]["UserRefDto"];
@@ -2614,6 +2669,26 @@ export interface components {
         CancelPaperDto: {
             /** @description Why: kept on the document and in the audit. */
             reason: string;
+        };
+        PaperVerifyPersonDto: {
+            id: string;
+            name: string;
+        };
+        PaperVerifyDto: {
+            frozenBy: components["schemas"]["PaperVerifyPersonDto"] | null;
+            number: string | null;
+            status: components["schemas"]["PaperStatus"];
+            cancelReason: string | null;
+            /** @description The document, if the reader sees it (open, print this snapshot); else null. */
+            paperId: string | null;
+            sha256: string;
+            /** @description The snapshot's number within its document. */
+            n: number;
+            /** @description No later snapshot of the document. */
+            latest: boolean;
+            /** Format: date-time */
+            frozenAt: string;
+            title: string;
         };
         UpdatePaperDto: {
             content?: {
@@ -4627,6 +4702,12 @@ export interface operations {
                  *     field `ref:user`, «@» or a cell of rows (the Home's «Нове про мене»).
                  */
                 about?: "me";
+                /**
+                 * @description `freeze` — published documents waiting to be frozen by hand: their
+                 *     template does not freeze them itself (or there is none) and their
+                 *     records are ready; only those the actor may freeze (the Home of staff).
+                 */
+                due?: "freeze";
                 /** @description Part of the title. */
                 search?: string;
                 page?: string;
@@ -4765,6 +4846,48 @@ export interface operations {
             };
         };
     };
+    PaperworkController_freeze: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperDto"];
+                };
+            };
+        };
+    };
+    PaperworkController_verify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sha: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperVerifyDto"];
+                };
+            };
+        };
+    };
     PaperworkController_get: {
         parameters: {
             query?: never;
@@ -4834,7 +4957,10 @@ export interface operations {
     };
     PaperworkController_print: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description The snapshot's number (1, 2, …); none — the latest one, if frozen. */
+                snapshot?: string;
+            };
             header?: never;
             path: {
                 id: string;

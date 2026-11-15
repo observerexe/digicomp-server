@@ -89,8 +89,9 @@ describe('Бали через відомість (e2e)', () => {
         {},
         { member: b.id, amount: 7, reason: 'прибрав склад' },
       ]);
+      // The sheet freezes itself: its awards are ready at once (4.1).
       expect(p).toMatchObject({
-        status: 'published',
+        status: 'frozen',
         number: `ВБ-${YEAR}-001`,
         targetType: 'points_entry',
         targetId: null,
@@ -195,8 +196,8 @@ describe('Бали через відомість (e2e)', () => {
             revision: p.revision,
             values: { awards: [{ member: a.id, amount: 50, reason: 'r' }] },
           }),
-        403,
-        'NOT_ALLOWED',
+        409,
+        'PAPER_NOT_DRAFT',
       );
     });
 

@@ -1,9 +1,9 @@
 import { createHash } from 'crypto';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { encode } from 'uqr';
 import { SHEET_COLORS, type PaperContent } from '../../../shared/editor-schema';
 import {
-  footerText,
   renderContent,
   type FieldFill,
 } from '../../../shared/editor-schema/render';
@@ -14,6 +14,10 @@ import {
  * centre from the second page). The header, «Затверджую» and signatures are
  * blocks of the text itself (requisites come in `fill.info`). The sheet's look is the editor's own
  * (shared/editor-schema/paper.css, copied next to the build by nest-cli.json).
+ *
+ * The sheet (`<main class="paper">`) is what a snapshot keeps and hashes;
+ * the page around it adds the seal of a snapshot (QR, SHA-256) or the
+ * watermark of a document that is not frozen (or cancelled).
  */
 
 const PAPER_CSS = readFileSync(
@@ -53,12 +57,17 @@ ${PAPER_CSS}
 html { background: color-mix(in srgb, var(--sheet-ink) 6%, var(--sheet-paper)); }
 body { margin: 0; padding: 16px 0 32px; }
 .hint { box-sizing: border-box; width: 210mm; margin: 0 auto 12px; color: var(--sheet-gray); font: 13px/1.4 var(--font-body); }
-.paper { box-sizing: border-box; width: 210mm; min-height: 297mm; margin: 0 auto; padding: 20mm 10mm 20mm 30mm; box-shadow: 0 1px 4px color-mix(in srgb, var(--sheet-ink) 25%, transparent); }
+.page { box-sizing: border-box; width: 210mm; min-height: 297mm; margin: 0 auto; padding: 20mm 10mm 20mm 30mm; background: var(--sheet-paper); box-shadow: 0 1px 4px color-mix(in srgb, var(--sheet-ink) 25%, transparent); }
+.seal { display: flex; gap: 4mm; align-items: center; margin-top: 10mm; break-inside: avoid; color: var(--sheet-ink); font: 9pt/1.35 ${SERIF_FONT}; }
+.seal svg { flex: none; width: 22mm; height: 22mm; }
+.seal p { margin: 0; }
+.seal-code { font-family: monospace; font-size: 8pt; word-break: break-all; }
+.watermark { position: fixed; top: 50%; left: 50%; z-index: 1; transform: translate(-50%, -50%) rotate(-35deg); color: color-mix(in srgb, var(--sheet-gray) 20%, transparent); font: 700 64pt ${SERIF_FONT}; text-transform: uppercase; white-space: nowrap; pointer-events: none; }
 @media print {
   html { background: none; }
   body { padding: 0; }
   .hint { display: none; }
-  .paper { width: auto; min-height: 0; padding: 0; box-shadow: none; }
+  .page { width: auto; min-height: 0; padding: 0; box-shadow: none; }
 }
 `;
 }
@@ -106,14 +115,73 @@ const NO_VALUES: FieldFill = {
   },
 };
 
+/**
+ * The sheet of a document: its content with the values of fields and
+ * requisites (without `fill` — fields as empty lines). A snapshot's sheet
+ * names the document and the snapshot (`mark`): two documents saying the
+ * same never share a hash.
+ */
+export function sheetHtml(
+  content: PaperContent,
+  fill: FieldFill = NO_VALUES,
+  mark?: { paperId: string; n: number },
+): string {
+  const data = mark
+    ? ` data-paper="${esc(mark.paperId)}" data-snapshot="${mark.n}"`
+    : '';
+  return `<main class="paper"${data}>${renderContent(content, fill)}</main>`;
+}
+
+/** SHA-256 of a sheet, hex: what the seal and the check page show. */
+export function sheetHash(sheet: string): string {
+  return createHash('sha256').update(sheet, 'utf8').digest('hex');
+}
+
+/** A QR code as inline SVG (no style attribute: the CSP stays strict). */
+export function qrSvg(value: string): string {
+  const { data } = encode(value, { ecc: 'M', border: 0 });
+  const n = data.length;
+  let d = '';
+  data.forEach((row, y) =>
+    row.forEach((on, x) => {
+      if (on) d += `M${x} ${y}h1v1h-1z`;
+    }),
+  );
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges" role="img" aria-label="QR-код перевірки"><rect width="${n}" height="${n}" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+}
+
+/** The seal of a snapshot under the sheet: QR to the check page and the hash. */
+export type Seal = {
+  sha256: string;
+  /** «15.11.2026» */
+  frozenOn: string;
+  /** The check page; null — no PUBLIC_ORIGIN: the hash alone. */
+  url: string | null;
+};
+
+function sealHtml(seal: Seal) {
+  const how = seal.url
+    ? 'Перевірити справжність — QR-код або код на сторінці перевірки.'
+    : '';
+  return `<footer class="seal">${seal.url ? qrSvg(seal.url) : ''}<p>Документ зафіксовано ${esc(seal.frozenOn)}. ${how}<br><span class="seal-code">SHA-256: ${esc(seal.sha256)}</span></p></footer>`;
+}
+
 /** The print page and its CSP (the hash of its style). */
 export function paperPrintHtml(paper: {
   title: string;
-  content: PaperContent;
-  /** Values of the template's fields, requisites; without it — fields as empty lines. */
-  fill?: FieldFill;
+  /** The sheet (sheetHtml or a snapshot's). */
+  sheet: string;
+  /** «Колонтитул» of the content: at the foot of every page. */
+  footer: string;
+  /** A snapshot's seal; none — not frozen. */
+  seal?: Seal | null;
+  /** Across every page: «Чернетка», «Скасовано»…; none — a clean print. */
+  watermark?: string | null;
 }): { html: string; csp: string } {
-  const style = pageStyle(footerText(paper.content));
+  const style = pageStyle(paper.footer);
+  const mark = paper.watermark
+    ? `<div class="watermark" aria-hidden="true">${esc(paper.watermark)}</div>\n`
+    : '';
   const html = `<!DOCTYPE html>
 <html lang="uk">
 <head>
@@ -123,7 +191,7 @@ export function paperPrintHtml(paper: {
 </head>
 <body>
 <p class="hint">Щоб роздрукувати або зберегти PDF: Ctrl+P (на телефоні — «Поділитися» → «Друк»). У вікні друку вимкніть колонтитули браузера, щоб він не додав свою адресу й дату. Ця підказка не друкується.</p>
-<main class="paper">${renderContent(paper.content, paper.fill ?? NO_VALUES)}</main>
+${mark}<div class="page">${paper.sheet}${paper.seal ? sealHtml(paper.seal) : ''}</div>
 </body>
 </html>
 `;

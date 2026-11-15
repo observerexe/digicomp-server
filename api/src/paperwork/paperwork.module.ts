@@ -9,6 +9,7 @@ import { OrgModule } from '../org/org.module';
 import { RecordsModule } from '../records/records.module';
 import { PaperAdapterRegistry } from './adapters';
 import { PaperCounter } from './paper-counter.entity';
+import { PaperSnapshot } from './paper-snapshot.entity';
 import { Paper } from './paper.entity';
 import { paperLinks } from './paper.links';
 import { PaperworkController } from './paperwork.controller';
@@ -17,12 +18,13 @@ import { PaperTemplate, PaperTemplateVersion } from './template.entities';
 import { TemplatesController } from './templates.controller';
 import { TemplatesService } from './templates.service';
 
-/** Editor documents (drafts, revisions, visibility, print) and their templates. */
+/** Editor documents (drafts, revisions, visibility, print, snapshots) and their templates. */
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       Paper,
       PaperCounter,
+      PaperSnapshot,
       PaperTemplate,
       PaperTemplateVersion,
     ]),

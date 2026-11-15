@@ -176,6 +176,10 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
       replace(p);
     },
   });
+  const freeze = useMutation({
+    mutationFn: () => unwrap(api.POST('/api/papers/{id}/freeze', { params: { path: { id: paper.id } } })),
+    onSuccess: replace,
+  });
   const [reason, setReason] = useState<string | null>(null);
   const cancel = useMutation({
     mutationFn: () => unwrap(api.POST('/api/papers/{id}/cancel', { params: { path: { id: paper.id } }, body: { reason: (reason ?? '').trim() } })),
@@ -238,8 +242,9 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
   };
 
   /**
-   * The print page in a new tab, after the changes are saved. The tab opens at
-   * once (a tab opened after waiting is blocked as a pop-up), the address comes after.
+   * The print page in a new tab, after the changes are saved: a frozen document's
+   * snapshot, otherwise a preview marked as not final. The tab opens at once
+   * (a tab opened after waiting is blocked as a pop-up), the address comes after.
    */
   const preview = () => {
     const tab = window.open('', '_blank');
@@ -271,7 +276,7 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
         </button>
       )}
       <button type="button" className="btn" onClick={preview}>
-        Попередній перегляд
+        {paper.snapshot ? 'Друк' : 'Попередній перегляд'}
       </button>
       {editable && (
         <ConfirmButton
@@ -290,6 +295,16 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
       )}
       {paper.canPublish && (
         <ConfirmButton label="Опублікувати" question={publishQuestion(paper)} confirmLabel="Опублікувати" primary disabled={publish.isPending} onConfirm={() => publish.mutate()} />
+      )}
+      {paper.canFreeze && (
+        <ConfirmButton
+          label="Зафіксувати для підпису"
+          question="Зафіксувати документ? Він стане остаточним: друк і PDF — з цього знімка, з QR-кодом перевірки."
+          confirmLabel="Зафіксувати"
+          primary
+          disabled={freeze.isPending}
+          onConfirm={() => freeze.mutate()}
+        />
       )}
     </>
   );
@@ -360,13 +375,15 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
               ? errorOf(remove.error)
               : copy.isError
                 ? errorOf(copy.error)
-                : saveError
-                  ? errorOf(saveError)
-                  : autosave.state === 'rejected'
-                    ? errorOf(autosave.rejection)
-                    : publishError
-                      ? errorOf(publishError)
-                      : null
+                : freeze.isError
+                  ? errorOf(freeze.error)
+                  : saveError
+                    ? errorOf(saveError)
+                    : autosave.state === 'rejected'
+                      ? errorOf(autosave.rejection)
+                      : publishError
+                        ? errorOf(publishError)
+                        : null
           }
         />
         {reason !== null && (
@@ -451,6 +468,7 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
 /** Why the text does not change, or what changes. */
 function readHint(paper: Paper, changing: boolean) {
   if (paper.status === 'draft') return 'Це чужа чернетка: її можна лише переглядати.';
+  if (paper.snapshot) return 'Документ зафіксовано: друк і PDF — зі знімка, з QR-кодом перевірки.';
   if (changing) {
     const record = paper.targetType ? ` Поля, пов’язані із записом «${recordLabel(paper.targetType)}», змінять і сам запис.` : '';
     return `Змініть поля, які можна змінити, і натисніть «Зберегти зміни».${record}`;

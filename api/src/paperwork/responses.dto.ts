@@ -154,6 +154,15 @@ export class PaperRefDto {
   code?: string;
 }
 
+/** A snapshot of a frozen document. */
+export class PaperSnapshotDto {
+  /** 1, 2, … within the document (`print?snapshot=`). */
+  n: number;
+  /** Hex SHA-256 of the sheet: the check page `/papers/verify/:sha`. */
+  sha256: string;
+  createdAt: Date;
+}
+
 export class PaperDto extends PaperItemDto {
   /** ProseMirror document. */
   @ApiProperty({ type: 'object', additionalProperties: true })
@@ -202,6 +211,54 @@ export class PaperDto extends PaperItemDto {
    * bound ones while they may change the record, the rest in their own document (staff — any).
    */
   canChange: boolean;
+
+  /**
+   * Published, and its records are ready: the actor may freeze it for print
+   * and signature (a member — own free document; staff — any).
+   */
+  canFreeze: boolean;
+
+  /** The latest snapshot (frozen, signed; cancelled after freezing); null — none. */
+  @ApiProperty({ type: PaperSnapshotDto, nullable: true })
+  snapshot: PaperSnapshotDto | null;
+}
+
+/** Who froze a snapshot. */
+export class PaperVerifyPersonDto {
+  id: string;
+  name: string;
+}
+
+/**
+ * The check of a printed document by its hash: the snapshot is genuine and
+ * what its document is now. Everyone signed in gets it; `paperId` — only who
+ * sees the document.
+ */
+export class PaperVerifyDto {
+  sha256: string;
+  /** The snapshot's number within its document. */
+  n: number;
+  /** No later snapshot of the document. */
+  latest: boolean;
+  frozenAt: Date;
+
+  @ApiProperty({ type: PaperVerifyPersonDto, nullable: true })
+  frozenBy: PaperVerifyPersonDto | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  number: string | null;
+
+  title: string;
+
+  @ApiProperty({ enum: PaperStatus, enumName: 'PaperStatus' })
+  status: PaperStatus;
+
+  @ApiProperty({ type: String, nullable: true })
+  cancelReason: string | null;
+
+  /** The document, if the reader sees it (open, print this snapshot); else null. */
+  @ApiProperty({ type: String, nullable: true })
+  paperId: string | null;
 }
 
 export class PaperListDto {

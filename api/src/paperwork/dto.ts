@@ -145,6 +145,15 @@ export class ListPapersQuery {
   @IsIn(['me'])
   about?: string;
 
+  /**
+   * `freeze` — published documents waiting to be frozen by hand: their
+   * template does not freeze them itself (or there is none) and their
+   * records are ready; only those the actor may freeze (the Home of staff).
+   */
+  @IsOptional()
+  @IsIn(['freeze'])
+  due?: string;
+
   /** Part of the title. */
   @IsOptional()
   @IsString()
@@ -160,6 +169,14 @@ export class ListPapersQuery {
   @IsNumberString({ no_symbols: true })
   @MaxLength(3)
   limit?: string;
+}
+
+export class PrintPaperQuery {
+  /** The snapshot's number (1, 2, …); none — the latest one, if frozen. */
+  @IsOptional()
+  @IsNumberString({ no_symbols: true })
+  @MaxLength(6)
+  snapshot?: string;
 }
 
 export class CancelPaperDto {

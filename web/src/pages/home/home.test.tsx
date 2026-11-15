@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { PaperItem, Place, Task } from '../../api/types';
-import { json, member, mockApi, renderApp } from '../../test/render';
+import { json, member, mockApi, moderator, renderApp } from '../../test/render';
 import { busyPlaces, greeting, homeTasks, recentPapers } from './HomePage';
 
 const iso = (d: Date) => d.toISOString();
@@ -50,12 +50,17 @@ const paper = (o: Partial<PaperItem>) =>
 
 const list = (items: PaperItem[]) => json(200, { items, total: items.length, page: 1, limit: 5 });
 
-/** «Мої чернетки» — `status=draft`, «Нове про мене» — `about=me`. */
-const papersApi = (drafts: PaperItem[], about: PaperItem[]) => ({
+/** Query strings of every `GET /api/papers`. */
+const queried: string[] = [];
+
+/** «Мої чернетки» — `status=draft`, «Нове про мене» — `about=me`, «Зафіксувати» (staff) — `due=freeze`. */
+const papersApi = (drafts: PaperItem[], about: PaperItem[], due: PaperItem[] = []) => ({
   'GET /api/papers': (req: Request) => {
     const q = new URL(req.url).searchParams;
+    queried.push(q.toString());
     if (q.get('mine') === 'true' && q.get('status') === 'draft') return list(drafts);
     if (q.get('about') === 'me') return list(about);
+    if (q.get('due') === 'freeze') return list(due);
     return json(400, { errorCode: 'VALIDATION_ERROR' });
   },
 });
@@ -153,6 +158,29 @@ describe('Головна', () => {
     expect(within(news).getByText(/^ВБ-2026-003 · Артур Машталер · /)).toBeInTheDocument();
     expect(within(news).getByText('Артур Машталер · скасовано')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'До Редактора' })).toHaveAttribute('href', '/editor');
+  });
+
+  it('модератору — «Зафіксувати»: документи, що чекають фіксації; учасник їх не запитує', async () => {
+    queried.length = 0;
+    mockApi({
+      ...homeApi(),
+      'GET /api/auth/me': () => json(200, moderator),
+      ...papersApi([], [], [paper({ id: 'f1', title: 'Протокол зборів', number: 'ПЗ-2026-002' })]),
+    });
+    renderApp('/');
+    const due = await screen.findByRole('list', { name: 'Зафіксувати' });
+    expect(within(due).getByRole('link')).toHaveAttribute('href', '/editor/f1');
+    expect(within(due).getByText(/^ПЗ-2026-002 · Артур Машталер · опубліковано /)).toBeInTheDocument();
+    expect(queried.some((q) => q.includes('due=freeze'))).toBe(true);
+  });
+
+  it('учасник «Зафіксувати» не бачить і не запитує', async () => {
+    queried.length = 0;
+    mockApi(homeApi());
+    renderApp('/');
+    await screen.findByRole('list', { name: 'Мої чернетки' });
+    expect(screen.queryByRole('list', { name: 'Зафіксувати' })).not.toBeInTheDocument();
+    expect(queried.some((q) => q.includes('due=freeze'))).toBe(false);
   });
 
   it('активний сеанс — посилання на обладнання', async () => {

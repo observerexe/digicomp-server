@@ -584,6 +584,34 @@ const ROWS: Record<string, Case[]> = {
       Deny.NotOwner,
     ],
   ],
+  // Учасник — лише свій вільний: для документа, що створює запис, сервіс
+  // не передає автора — test/paper-freeze.e2e-spec.ts.
+  'Документ редактора: зафіксувати': [
+    ['admin: чужий', admin, Action.PapersFreeze, { ownerId: 'u2' }, true],
+    ['moderator: чужий', mod, Action.PapersFreeze, { ownerId: 'u2' }, true],
+    ['moderator: що створює запис', mod, Action.PapersFreeze, {}, true],
+    [
+      'member: свій вільний',
+      member,
+      Action.PapersFreeze,
+      { ownerId: member.id },
+      true,
+    ],
+    [
+      'member: чужий',
+      member,
+      Action.PapersFreeze,
+      { ownerId: 'u2' },
+      Deny.NotOwner,
+    ],
+    [
+      'member: що створює запис',
+      member,
+      Action.PapersFreeze,
+      {},
+      Deny.NotOwner,
+    ],
+  ],
   // Учасник бачить лише опубліковані шаблони, відкриті для всіх, —
   // test/paper-templates.e2e-spec.ts.
   'Шаблон документа: створити, змінити, опублікувати версію (перегляд — усі)': [

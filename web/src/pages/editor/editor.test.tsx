@@ -30,6 +30,8 @@ const paper = (over: Partial<Paper> = {}): Paper => ({
   canPublish: false,
   canCancel: false,
   canChange: false,
+  canFreeze: false,
+  snapshot: null,
   ...over,
 });
 const item = (p: Paper) => {
@@ -211,6 +213,42 @@ describe('Редактор: документ', () => {
     renderApp('/editor/p1');
     expect(await screen.findByLabelText('Текст документа')).toHaveAttribute('contenteditable', 'false');
     expect(screen.getByText('Документ опубліковано: текст не змінюється.')).toBeInTheDocument();
+  });
+
+  it('«Зафіксувати для підпису» з підтвердженням; після — «Друк» зі знімка', async () => {
+    const published = paper({ status: 'published', canEdit: false, canFreeze: true, canCancel: true, publishedAt: '2026-11-15T10:00:00Z' });
+    const frozen = { ...published, status: 'frozen' as const, canFreeze: false, revision: 2, snapshot: { n: 1, sha256: 'a'.repeat(64), createdAt: '2026-11-15T11:00:00Z' } };
+    const { calls } = mockApi(base(writer, { 'GET /api/papers/p1': () => json(200, published), 'POST /api/papers/p1/freeze': () => json(200, frozen) }));
+    renderApp('/editor/p1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Зафіксувати для підпису' }));
+    expect(screen.getByText('Зафіксувати документ? Він стане остаточним: друк і PDF — з цього знімка, з QR-кодом перевірки.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Зафіксувати' }));
+    expect(await screen.findByText('Документ зафіксовано: друк і PDF — зі знімка, з QR-кодом перевірки.')).toBeInTheDocument();
+    expect(calls.filter((c) => c.method === 'POST' && c.path === '/api/papers/p1/freeze')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Друк' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Попередній перегляд' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Зафіксувати для підпису' })).not.toBeInTheDocument();
+    expect(screen.getAllByText('Зафіксовано').length).toBeGreaterThan(0);
+  });
+
+  it('без права чи поки запис не готовий — кнопки фіксації немає', async () => {
+    mockApi(base(writer, { 'GET /api/papers/p1': () => json(200, paper({ status: 'published', canEdit: false })) }));
+    renderApp('/editor/p1');
+    await screen.findByLabelText('Текст документа');
+    expect(screen.queryByRole('button', { name: 'Зафіксувати для підпису' })).not.toBeInTheDocument();
+  });
+
+  it('помилка фіксації показується текстом', async () => {
+    mockApi(
+      base(writer, {
+        'GET /api/papers/p1': () => json(200, paper({ status: 'published', canEdit: false, canFreeze: true })),
+        'POST /api/papers/p1/freeze': () => json(409, { statusCode: 409, message: 'Paper record is not ready', errorCode: 'PAPER_TARGET_NOT_READY' }),
+      }),
+    );
+    renderApp('/editor/p1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Зафіксувати для підпису' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Зафіксувати' }));
+    expect(await screen.findByText('Зафіксувати можна, коли запис завершено: наприклад, ТЗ прийнято.')).toBeInTheDocument();
   });
 
   it('видалення чернетки з підтвердженням веде до списку', async () => {

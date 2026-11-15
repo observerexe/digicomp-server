@@ -55,6 +55,7 @@ export type DocVersion = S['DocVersionDto'];
 export type AccessScope = S['AccessScope'];
 export type Paper = S['PaperDto'];
 export type PaperItem = S['PaperItemDto'];
+export type PaperVerify = S['PaperVerifyDto'];
 export type PaperStatus = S['PaperStatus'];
 export type PaperField = S['PaperFieldDto'];
 export type PaperTemplateRef = S['PaperTemplateRefDto'];

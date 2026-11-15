@@ -1,0 +1,39 @@
+.verdict {
+  margin: 0 0 8px;
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 700;
+}
+.good {
+  color: var(--c-success);
+}
+.bad {
+  color: var(--c-danger);
+}
+.facts {
+  margin: 16px 0 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+.facts dt {
+  color: var(--c-text3);
+  font-size: 13px;
+}
+.facts dd {
+  margin: 0;
+  font-weight: 500;
+}
+.wide {
+  grid-column: 1 / -1;
+}
+.code {
+  font-family: monospace;
+  font-size: 13px;
+  word-break: break-all;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

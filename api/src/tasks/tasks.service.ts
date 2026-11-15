@@ -16,6 +16,7 @@ import {
 } from '../files/file-validation';
 import { StorageService } from '../files/storage.service';
 import { PointsEntry, PointsKind } from '../points/points-entry.entity';
+import { PaperworkService } from '../paperwork/paperwork.service';
 import { RecordFieldsService } from '../records/record-fields.service';
 import { User } from '../users/user.entity';
 import {
@@ -141,6 +142,7 @@ export class TasksService {
     private storage: StorageService,
     private audit: AuditService,
     private fields: RecordFieldsService,
+    private papers: PaperworkService,
   ) {}
 
   async list(q: ListTasksQuery, actor: Actor): Promise<TaskDto[]> {
@@ -583,6 +585,10 @@ export class TasksService {
       const meta = (await extra?.(m, task, assignees)) ?? {};
       await m.save(Task, task);
       await this.log(m, actor, auditAction, id, { from, to, ...meta });
+      // Done: its document may be frozen (if its template says so — itself).
+      if (to === TaskStatus.Done) {
+        await this.papers.recordReady('task', id, actor, m);
+      }
     });
   }
 

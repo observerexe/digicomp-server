@@ -1518,6 +1518,18 @@
             }
           },
           {
+            "name": "due",
+            "required": false,
+            "in": "query",
+            "description": "`freeze` — published documents waiting to be frozen by hand: their\ntemplate does not freeze them itself (or there is none) and their\nrecords are ready; only those the actor may freeze (the Home of staff).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "freeze"
+              ]
+            }
+          },
+          {
             "name": "search",
             "required": false,
             "in": "query",
@@ -1737,6 +1749,68 @@
         ]
       }
     },
+    "/api/papers/{id}/freeze": {
+      "post": {
+        "operationId": "PaperworkController_freeze",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Freezes for print and signature: a snapshot of the sheet with its\nSHA-256; once the records are ready (a member — own free document).",
+        "tags": [
+          "Paperwork"
+        ]
+      }
+    },
+    "/api/papers/verify/{sha}": {
+      "get": {
+        "operationId": "PaperworkController_verify",
+        "parameters": [
+          {
+            "name": "sha",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperVerifyDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The check of a printed document by its hash (the QR of its seal).",
+        "tags": [
+          "Paperwork"
+        ]
+      }
+    },
     "/api/papers/{id}": {
       "get": {
         "operationId": "PaperworkController_get",
@@ -1845,6 +1919,16 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "snapshot",
+            "required": false,
+            "in": "query",
+            "description": "The snapshot's number (1, 2, …); none — the latest one, if frozen.",
+            "schema": {
+              "maxLength": 6,
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -1859,7 +1943,7 @@
             }
           }
         },
-        "summary": "Print-ready A4 page (print or save as PDF in the browser); own CSP, no scripts.",
+        "summary": "Print-ready A4 page (print or save as PDF in the browser); own CSP, no\nscripts. Frozen — a snapshot with its seal; otherwise marked as not final.",
         "tags": [
           "Paperwork"
         ]
@@ -7426,6 +7510,28 @@
           "archived"
         ]
       },
+      "PaperSnapshotDto": {
+        "type": "object",
+        "properties": {
+          "n": {
+            "type": "number",
+            "description": "1, 2, … within the document (`print?snapshot=`)."
+          },
+          "sha256": {
+            "type": "string",
+            "description": "Hex SHA-256 of the sheet: the check page `/papers/verify/:sha`."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "n",
+          "sha256",
+          "createdAt"
+        ]
+      },
       "PaperDto": {
         "type": "object",
         "properties": {
@@ -7498,6 +7604,16 @@
             "nullable": true,
             "description": "Why it was cancelled."
           },
+          "snapshot": {
+            "nullable": true,
+            "description": "The latest snapshot (frozen, signed; cancelled after freezing); null — none.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperSnapshotDto"
+              }
+            ]
+          },
           "canEdit": {
             "type": "boolean",
             "description": "The actor may change and delete it: their own draft (admin — any)."
@@ -7513,6 +7629,10 @@
           "canChange": {
             "type": "boolean",
             "description": "Published: the actor may change some fields «можна змінити» (`canFill`) —\nbound ones while they may change the record, the rest in their own document (staff — any)."
+          },
+          "canFreeze": {
+            "type": "boolean",
+            "description": "Published, and its records are ready: the actor may freeze it for print\nand signature (a member — own free document; staff — any)."
           },
           "id": {
             "type": "string"
@@ -7548,10 +7668,12 @@
           "targetType",
           "targetId",
           "cancelReason",
+          "snapshot",
           "canEdit",
           "canPublish",
           "canCancel",
           "canChange",
+          "canFreeze",
           "id",
           "title",
           "author",
@@ -7610,6 +7732,85 @@
         },
         "required": [
           "reason"
+        ]
+      },
+      "PaperVerifyPersonDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "PaperVerifyDto": {
+        "type": "object",
+        "properties": {
+          "frozenBy": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperVerifyPersonDto"
+              }
+            ]
+          },
+          "number": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperStatus"
+              }
+            ]
+          },
+          "cancelReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "paperId": {
+            "type": "string",
+            "nullable": true,
+            "description": "The document, if the reader sees it (open, print this snapshot); else null."
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "n": {
+            "type": "number",
+            "description": "The snapshot's number within its document."
+          },
+          "latest": {
+            "type": "boolean",
+            "description": "No later snapshot of the document."
+          },
+          "frozenAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "frozenBy",
+          "number",
+          "status",
+          "cancelReason",
+          "paperId",
+          "sha256",
+          "n",
+          "latest",
+          "frozenAt",
+          "title"
         ]
       },
       "UpdatePaperDto": {

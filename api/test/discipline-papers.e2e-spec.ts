@@ -128,8 +128,9 @@ describe('Дисципліна через документ (e2e)', () => {
         });
       const res = await publish(mod, d.id);
       expect(res.status).toBe(200);
+      // «Подання» freezes itself: the record is ready at once (4.1).
       expect(res.body).toMatchObject({
-        status: 'published',
+        status: 'frozen',
         number: `ПС-${YEAR}-001`,
         targetType: 'discipline_record',
         canChange: false,
@@ -217,8 +218,8 @@ describe('Дисципліна через документ (e2e)', () => {
             revision: p.revision,
             values: { userId: a.id, type: 'reprimand' },
           }),
-        403,
-        'NOT_ALLOWED',
+        409,
+        'PAPER_NOT_DRAFT',
       );
     });
   });

@@ -60,7 +60,7 @@ export function HomePage() {
         </div>
         <div className={s.column}>
           {user && <PointsCard userId={user.id} />}
-          <PapersCard />
+          <PapersCard staff={!!user && user.role !== 'member'} />
           <BookingsCard />
         </div>
       </div>
@@ -156,8 +156,11 @@ function TasksCard() {
   );
 }
 
-/** My drafts and what others published about me lately; the rest — in «Редактор». */
-function PapersCard() {
+/**
+ * My drafts and what others published about me lately; to staff — documents
+ * waiting to be frozen by hand. The rest — in «Редактор».
+ */
+function PapersCard({ staff }: { staff: boolean }) {
   const limit = String(HOME_LIMIT);
   const drafts = useQuery({
     queryKey: ['papers', 'list', 'home', 'drafts'],
@@ -167,20 +170,31 @@ function PapersCard() {
     queryKey: ['papers', 'list', 'home', 'about'],
     queryFn: () => unwrap(api.GET('/api/papers', { params: { query: { about: 'me', limit } } })),
   });
-  const error = drafts.error ?? about.error;
+  const due = useQuery({
+    queryKey: ['papers', 'list', 'home', 'freeze'],
+    queryFn: () => unwrap(api.GET('/api/papers', { params: { query: { due: 'freeze', limit } } })),
+    enabled: staff,
+  });
+  const error = drafts.error ?? about.error ?? due.error;
   const mine = drafts.data?.items ?? [];
   const news = about.data ? recentPapers(about.data.items) : [];
+  const toFreeze = due.data?.items ?? [];
   return (
     <Card>
       <h2 className={s.caption}>Документи</h2>
-      {drafts.isPending || about.isPending ? (
+      {drafts.isPending || about.isPending || (staff && due.isPending) ? (
         <Skeleton height={88} />
       ) : error ? (
         <ErrorMessage text={errorOf(error)} />
-      ) : mine.length === 0 && news.length === 0 ? (
-        <p className="hint">Чернеток і нових документів про вас немає.</p>
+      ) : mine.length === 0 && news.length === 0 && toFreeze.length === 0 ? (
+        <p className="hint">{staff ? 'Чернеток, нових документів про вас і документів до фіксації немає.' : 'Чернеток і нових документів про вас немає.'}</p>
       ) : (
         <>
+          <PaperRows
+            title="Зафіксувати"
+            items={toFreeze}
+            sub={(p) => [p.number, p.author.name, p.publishedAt && `опубліковано ${formatDate(p.publishedAt)}`].filter(Boolean).join(' · ')}
+          />
           <PaperRows title="Мої чернетки" items={mine} sub={(p) => `змінено ${formatDate(p.updatedAt)}`} />
           <PaperRows
             title="Нове про мене"
@@ -234,7 +248,10 @@ function BusyCard() {
         <ul className={s.rows} aria-label="Зайняте обладнання">
           {busy.map((p) => {
             const sessions = p.activeSessions;
-            const who = sessions.map((x) => x.user.name).filter(Boolean).join(', ');
+            const who = sessions
+              .map((x) => x.user.name)
+              .filter(Boolean)
+              .join(', ');
             const since = sessions[0]?.startedAt;
             return (
               <li key={p.id}>

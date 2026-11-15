@@ -108,7 +108,7 @@ describe('Документи для старих записів (e2e)', () => {
       const res = await forRecord(mod, issue, id);
       expect(res.status).toBe(201);
       expect(res.body).toMatchObject({
-        status: 'published',
+        status: 'frozen',
         number: `ПС-${YEAR}-001`,
         targetType: 'discipline_record',
         targetId: id,
@@ -197,7 +197,7 @@ describe('Документи для старих записів (e2e)', () => {
       const res = await forRecord(mod, sheet, entry.id);
       expect(res.status).toBe(201);
       expect(res.body).toMatchObject({
-        status: 'published',
+        status: 'frozen',
         number: `ВБ-${YEAR}-001`,
         targetType: 'points_entry',
         targetId: null,

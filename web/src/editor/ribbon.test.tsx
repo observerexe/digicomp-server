@@ -33,6 +33,8 @@ const paper = (over: Partial<Paper> = {}): Paper => ({
   canPublish: false,
   canCancel: false,
   canChange: false,
+  canFreeze: false,
+  snapshot: null,
   ...over,
 });
 

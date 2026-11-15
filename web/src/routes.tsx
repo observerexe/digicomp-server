@@ -21,6 +21,7 @@ import { DocPage } from './pages/docs/DocPage';
 import { DocsPage } from './pages/docs/DocsPage';
 import { PaperLoading } from './pages/editor/PaperLoading';
 import { PapersPage } from './pages/editor/PapersPage';
+import { VerifyPage } from './pages/editor/VerifyPage';
 import { InventoryPage } from './pages/inventory/InventoryPage';
 import { ItemFormPage } from './pages/inventory/ItemFormPage';
 import { ItemPage } from './pages/inventory/ItemPage';
@@ -174,6 +175,8 @@ export const routes: RouteObject[] = [
       },
       { path: 'docs/:id', element: <DocPage /> },
       { path: 'editor', element: <PapersPage /> },
+      // The QR of a printed (frozen) document leads here.
+      { path: 'papers/verify/:sha', element: <VerifyPage /> },
       { path: 'rating', element: <RatingPage /> },
       {
         path: 'points',

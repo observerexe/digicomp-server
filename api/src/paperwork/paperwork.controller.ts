@@ -29,10 +29,16 @@ import {
   CreatePaperDto,
   ListPapersQuery,
   PaperForRecordDto,
+  PrintPaperQuery,
   UpdatePaperDto,
 } from './dto';
 import { PaperworkService } from './paperwork.service';
-import { PaperDto, PaperItemDto, PaperListDto } from './responses.dto';
+import {
+  PaperDto,
+  PaperItemDto,
+  PaperListDto,
+  PaperVerifyDto,
+} from './responses.dto';
 
 type Req = { user: { id: string; role: string } };
 
@@ -100,6 +106,26 @@ export class PaperworkController {
     return this.papers.cancel(id, dto, req.user);
   }
 
+  /**
+   * Freezes for print and signature: a snapshot of the sheet with its
+   * SHA-256; once the records are ready (a member — own free document).
+   */
+  @Can(Action.PapersFreeze)
+  @ApiOkResponse({ type: PaperDto })
+  @Post(':id/freeze')
+  @HttpCode(200)
+  freeze(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
+    return this.papers.freeze(id, req.user);
+  }
+
+  /** The check of a printed document by its hash (the QR of its seal). */
+  @Can(Action.PapersRead)
+  @ApiOkResponse({ type: PaperVerifyDto })
+  @Get('verify/:sha')
+  verify(@Param('sha') sha: string, @Req() req: Req) {
+    return this.papers.verify(sha, req.user);
+  }
+
   @Can(Action.PapersRead)
   @ApiOkResponse({ type: PaperDto })
   @Get(':id')
@@ -107,17 +133,21 @@ export class PaperworkController {
     return this.papers.get(id, req.user);
   }
 
-  /** Print-ready A4 page (print or save as PDF in the browser); own CSP, no scripts. */
+  /**
+   * Print-ready A4 page (print or save as PDF in the browser); own CSP, no
+   * scripts. Frozen — a snapshot with its seal; otherwise marked as not final.
+   */
   @Can(Action.PapersRead)
   @ApiProduces('text/html')
   @ApiOkResponse({ description: 'HTML page', schema: { type: 'string' } })
   @Get(':id/print')
   async print(
     @Param('id', ParseUUIDPipe) id: string,
+    @Query() q: PrintPaperQuery,
     @Req() req: Req,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { html, csp } = await this.papers.printHtml(id, req.user);
+    const { html, csp } = await this.papers.printHtml(id, q, req.user);
     res.set({
       'Content-Type': 'text/html; charset=utf-8',
       'Content-Security-Policy': csp,

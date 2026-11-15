@@ -118,6 +118,7 @@ export enum Action {
   PapersPublish = 'papers.publish',
   PapersCancel = 'papers.cancel',
   PapersChange = 'papers.change',
+  PapersFreeze = 'papers.freeze',
   PaperTemplatesRead = 'paper_templates.read',
   PaperTemplatesManage = 'paper_templates.manage',
 
@@ -236,6 +237,9 @@ export const ROLES: Record<Action, readonly Role[]> = {
   // A field «можна змінити» of a published document, not bound to its
   // record (a bound one changes as the record does — its adapter).
   [Action.PapersChange]: ALL,
+  // Freeze for print and signature: a member — own free documents only (the
+  // service gives no owner for a document that creates a record); staff — any.
+  [Action.PapersFreeze]: ALL,
   // Members see only published templates open to all (service).
   [Action.PaperTemplatesRead]: ALL,
   [Action.PaperTemplatesManage]: STAFF,
@@ -351,6 +355,7 @@ const REFINE: Partial<Record<Action, Refine>> = {
   [Action.PapersPublish]: ownRecordForMember,
   [Action.PapersCancel]: ownRecordForMember,
   [Action.PapersChange]: ownRecordForMember,
+  [Action.PapersFreeze]: ownRecordForMember,
 };
 
 export function roleAllowed(role: string, action: Action): boolean {

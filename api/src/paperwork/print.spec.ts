@@ -12,7 +12,14 @@ import {
   type FieldFill,
   type PaperInfo,
 } from '../../../shared/editor-schema/render';
-import { paperPrintHtml, SANS_FONT } from './print';
+import { footerText } from '../../../shared/editor-schema/render';
+import {
+  paperPrintHtml,
+  qrSvg,
+  SANS_FONT,
+  sheetHash,
+  sheetHtml,
+} from './print';
 
 const REPO = join(__dirname, '../../..');
 
@@ -45,13 +52,23 @@ const fill = (over: Partial<PaperInfo> = {}): FieldFill => ({
   info: info(over),
 });
 
-const page = (over: Partial<Parameters<typeof paperPrintHtml>[0]> = {}) =>
-  paperPrintHtml({
+const styleOf = (html: string) => /<style>([\s\S]*)<\/style>/.exec(html)![1]!;
+
+type PageInput = Parameters<typeof paperPrintHtml>[0];
+
+const page = (
+  over: Partial<Omit<PageInput, 'sheet' | 'footer'>> & {
+    content?: PaperContent;
+  } = {},
+) => {
+  const { content = doc(p(text('Текст'))), ...rest } = over;
+  return paperPrintHtml({
     title: 'Документ',
-    content: doc(p(text('Текст'))),
-    fill: fill(),
-    ...over,
+    sheet: sheetHtml(content, fill()),
+    footer: footerText(content),
+    ...rest,
   });
+};
 
 describe('Рендер вмісту для друку (shared/editor-schema/render.ts)', () => {
   it('екранує текст', () => {
@@ -129,7 +146,6 @@ describe('Рендер вмісту для друку (shared/editor-schema/rend
 });
 
 describe('Сторінка друку документа', () => {
-  const styleOf = (html: string) => /<style>([\s\S]*)<\/style>/.exec(html)![1]!;
   const hashOf = (style: string) =>
     createHash('sha256').update(style).digest('base64');
 
@@ -181,6 +197,67 @@ describe('Сторінка друку документа', () => {
     expect(html).toContain('&lt;/title&gt;&lt;script&gt;x&lt;/script&gt;');
     expect(html).not.toMatch(/<script/i);
     expect(html).not.toContain('style=');
+  });
+});
+
+describe('Знімок: аркуш, хеш, печатка, водяний знак', () => {
+  const SHA = 'a'.repeat(64);
+
+  it('аркуш знімка називає документ і знімок; хеш — SHA-256 саме цього HTML', () => {
+    const sheet = sheetHtml(doc(p(text('Текст'))), fill(), {
+      paperId: 'p1',
+      n: 2,
+    });
+    expect(sheet).toBe(
+      '<main class="paper" data-paper="p1" data-snapshot="2"><p>Текст</p></main>',
+    );
+    expect(sheetHash(sheet)).toBe(
+      createHash('sha256').update(sheet, 'utf8').digest('hex'),
+    );
+    // Той самий текст іншого документа — інший хеш.
+    const other = sheetHtml(doc(p(text('Текст'))), fill(), {
+      paperId: 'p2',
+      n: 2,
+    });
+    expect(sheetHash(other)).not.toBe(sheetHash(sheet));
+  });
+
+  it('печатка: QR на сторінку перевірки, дата й повний хеш; поза аркушем', () => {
+    const url = `https://digicomp.example/papers/verify/${SHA}`;
+    const { html, csp } = page({
+      seal: { sha256: SHA, frozenOn: '21.11.2026', url },
+    });
+    expect(html).toContain(
+      '<main class="paper"><p>Текст</p></main><footer class="seal"><svg',
+    );
+    expect(html).toContain(qrSvg(url));
+    expect(html).toContain('Документ зафіксовано 21.11.2026.');
+    expect(html).toContain(`SHA-256: ${SHA}`);
+    expect(html).not.toContain('style=');
+    expect(csp).toContain("default-src 'none'");
+  });
+
+  it('без PUBLIC_ORIGIN — лише хеш, без QR', () => {
+    const { html } = page({
+      seal: { sha256: SHA, frozenOn: '21.11.2026', url: null },
+    });
+    expect(html).toContain(`SHA-256: ${SHA}`);
+    expect(html).not.toContain('<svg');
+  });
+
+  it('QR — SVG без атрибута style', () => {
+    const svg = qrSvg('https://digicomp.example/papers/verify/x');
+    expect(svg).toMatch(/^<svg [^>]*viewBox="0 0 \d+ \d+"/);
+    expect(svg).not.toContain('style');
+  });
+
+  it('водяний знак — на кожній сторінці, екранований; без нього — чистий друк', () => {
+    const { html } = page({ watermark: 'Не <зафіксовано>' });
+    expect(html).toContain(
+      '<div class="watermark" aria-hidden="true">Не &lt;зафіксовано&gt;</div>',
+    );
+    expect(styleOf(html)).toMatch(/\.watermark \{ position: fixed;/);
+    expect(page().html).not.toContain('class="watermark"');
   });
 });
 
