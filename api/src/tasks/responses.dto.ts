@@ -32,8 +32,17 @@ export class TaskDto {
   createdAt: Date;
   updatedAt: Date;
 
+  /** When it was last sent for review. */
+  @ApiProperty({ type: Date, nullable: true })
+  submittedAt: Date | null;
+
+  /** When it was accepted. */
   @ApiProperty({ type: Date, nullable: true })
   completedAt: Date | null;
+
+  /** Who accepted it. */
+  @ApiProperty({ type: String, nullable: true })
+  acceptedById: string | null;
 
   /** In the order of taking. */
   @ApiProperty({ type: [TaskAssigneeDto] })

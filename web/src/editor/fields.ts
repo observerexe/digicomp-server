@@ -23,17 +23,56 @@ export type FieldLook = {
   /**
    * A document: filled — light blue; missing — required and empty; empty; staff — a moderator fills it.
    * The constructor: field, data — a field and a record of the app, in the colours of their groups.
+   * «Авто» (the number): auto — comes later (grey; green in the constructor); fixed — given, plain text.
    */
-  state: 'filled' | 'missing' | 'empty' | 'staff' | 'field' | 'data';
+  state: 'filled' | 'missing' | 'empty' | 'staff' | 'field' | 'data' | 'auto' | 'fixed';
 };
-export type FieldsLook = { fields: Record<string, FieldLook>; zones: Record<string, { label: string; missing: boolean }>; active: string | null };
+export type FieldsLook = {
+  fields: Record<string, FieldLook>;
+  zones: Record<string, { label: string; missing: boolean }>;
+  active: string | null;
+  /** «Авто: номер» (`paperNumber`). */
+  number: FieldLook;
+};
 
-const EMPTY_LOOK: FieldsLook = { fields: {}, zones: {}, active: null };
+/** The number before the document is published. */
+export const NUMBER_PENDING: FieldLook = { text: 'з’явиться після публікації', state: 'auto' };
+
+const EMPTY_LOOK: FieldsLook = { fields: {}, zones: {}, active: null, number: NUMBER_PENDING };
 const lookKey = new PluginKey<FieldsLook>('fieldsLook');
 
 /** Classes of a field on the sheet (format.css). */
 function fieldClass(look: FieldLook | undefined, active: boolean) {
   return ['paper-field', look ? `is-${look.state}` : '', active ? 'is-active' : ''].filter(Boolean).join(' ');
+}
+
+/**
+ * A node view drawn from its decoration (`spec.look`): what a field or the
+ * number shows comes from the panel, not from the document.
+ */
+function lookView(name: string, fallback: FieldLook | null, key: (n: PMNode) => string | null) {
+  return ({ node, decorations }: { node: PMNode; decorations: readonly unknown[] }) => {
+    const dom = document.createElement('span');
+    dom.contentEditable = 'false';
+    const k = key(node);
+    if (k !== null) dom.dataset.field = k;
+    const paint = (decos: readonly Decoration[]) => {
+      const spec = decos.find((d) => (d.spec as { look?: unknown }).look !== undefined)?.spec as { look: FieldLook; active: boolean } | undefined;
+      const look = spec?.look ?? fallback ?? undefined;
+      dom.textContent = look?.text ?? '';
+      dom.className = fieldClass(look, !!spec?.active);
+    };
+    paint(decorations as readonly Decoration[]);
+    return {
+      dom,
+      update: (n: PMNode, decos: readonly Decoration[]) => {
+        if (n.type.name !== name || key(n) !== k) return false;
+        paint(decos);
+        return true;
+      },
+      ignoreMutation: () => true,
+    };
+  };
 }
 
 /** An inline field: the value is drawn by the node view, the HTML holds only the key. */
@@ -54,26 +93,29 @@ export const Field = Node.create({
     return ['span', mergeAttributes({ class: 'paper-field' }, HTMLAttributes)];
   },
   addNodeView() {
-    return ({ node, decorations }) => {
-      const dom = document.createElement('span');
-      dom.contentEditable = 'false';
-      dom.dataset.field = node.attrs.key as string;
-      const paint = (decos: readonly Decoration[]) => {
-        const spec = decos.find((d) => (d.spec as { look?: unknown }).look !== undefined)?.spec as { look: FieldLook; active: boolean } | undefined;
-        dom.textContent = spec?.look.text ?? '';
-        dom.className = fieldClass(spec?.look, !!spec?.active);
-      };
-      paint(decorations as unknown as readonly Decoration[]);
-      return {
-        dom,
-        update: (n: PMNode, decos: readonly Decoration[]) => {
-          if (n.type.name !== 'field' || n.attrs.key !== node.attrs.key) return false;
-          paint(decos);
-          return true;
-        },
-        ignoreMutation: () => true,
-      };
-    };
+    return lookView('field', null, (n) => n.attrs.key as string);
+  },
+});
+
+/**
+ * «Авто: номер»: the document's number, given when it is published. The
+ * HTML is an empty placeholder; the sheet shows the number or «з’явиться після публікації».
+ */
+export const PaperNumber = Node.create({
+  name: 'paperNumber',
+  group: 'inline',
+  inline: true,
+  atom: true,
+  selectable: true,
+  draggable: false,
+  parseHTML() {
+    return [{ tag: 'span.paper-number' }];
+  },
+  renderHTML() {
+    return ['span', { class: 'paper-number' }];
+  },
+  addNodeView() {
+    return lookView('paperNumber', NUMBER_PENDING, () => null);
   },
 });
 
@@ -272,6 +314,8 @@ export function templateExtension(opts: TemplateOptions) {
                 const key = n.attrs.key as string;
                 if (n.type.name === 'field') {
                   decos.push(Decoration.node(pos, pos + n.nodeSize, {}, { look: look.fields[key], active: look.active === key }));
+                } else if (n.type.name === 'paperNumber') {
+                  decos.push(Decoration.node(pos, pos + n.nodeSize, {}, { look: look.number, active: false }));
                 } else if (n.type.name === 'fieldZone') {
                   const z = look.zones[key];
                   const cls = ['is-zone', z?.missing ? 'is-missing' : '', look.active === key ? 'is-active' : '', opts.locked.has(key) ? 'is-staff' : ''];

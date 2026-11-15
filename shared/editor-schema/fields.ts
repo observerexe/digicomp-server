@@ -315,3 +315,11 @@ export function zoneText(zone: PaperNode): string {
   }
   return lines.join('\n').trim();
 }
+
+/** The document with the zone `key` holding `text`: a paragraph a line, no formatting. */
+export function withZoneText<T extends PaperNode>(doc: T, key: string, text: string): T {
+  const paragraphs: PaperNode[] = text.split('\n').map((l) => (l ? { type: 'paragraph', content: [{ type: 'text', text: l }] } : { type: 'paragraph' }));
+  const put = (n: PaperNode): PaperNode =>
+    n.type === 'fieldZone' && n.attrs?.key === key ? { ...n, content: paragraphs } : n.content ? { ...n, content: n.content.map(put) } : n;
+  return put(doc) as T;
+}

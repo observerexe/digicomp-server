@@ -25,6 +25,7 @@ import {
   UpdateTaskDto,
 } from './dto';
 import { removeLinksOf } from '../links/links.sql';
+import { papersOf } from '../paperwork/paper-targets';
 import { splitPoints } from './split-points';
 import {
   Task,
@@ -51,6 +52,7 @@ export const TaskErrors = {
   Transition: 'Invalid task status transition',
   HasAssignees: 'Task has assignees',
   MaxTooLow: 'Max assignees is below the current number of assignees',
+  HasPaper: 'Task has a paper',
 } as const;
 
 const STORAGE_DIR = 'tasks';
@@ -80,7 +82,9 @@ function taskView(t: Task): Plain<TaskDto> {
     extra: t.extra,
     createdAt: t.createdAt,
     updatedAt: t.updatedAt,
+    submittedAt: t.submittedAt,
     completedAt: t.completedAt,
+    acceptedById: t.acceptedById,
     assignees: sortAssignees(t.assignees ?? []).map((a) => ({
       ...userRef(a.user, a.userId),
       takenAt: a.takenAt,
@@ -168,8 +172,16 @@ export class TasksService {
     };
   }
 
-  create(dto: CreateTaskDto, actor: Actor): Promise<TaskDto> {
-    return this.ds.transaction(async (m) => {
+  /**
+   * In its own transaction, or in the given one (a document creating the
+   * task: the caller checks TasksCreate, as the controller does).
+   */
+  create(
+    dto: CreateTaskDto,
+    actor: Actor,
+    tx?: EntityManager,
+  ): Promise<TaskDto> {
+    const run = async (m: EntityManager) => {
       const { extra } = await this.fields.applyExtra(
         m,
         'task',
@@ -193,7 +205,8 @@ export class TasksService {
         ...(Object.keys(extra).length ? { extra } : {}),
       });
       return taskView(task);
-    });
+    };
+    return tx ? run(tx) : this.ds.transaction(run);
   }
 
   update(id: string, dto: UpdateTaskDto, actor: Actor): Promise<TaskDto> {
@@ -237,22 +250,63 @@ export class TasksService {
     });
   }
 
+  /** A task with a document goes only with it: the document is cancelled. */
   async remove(id: string, actor: Actor): Promise<OkDto> {
-    const stored = await this.ds.transaction(async (m) => {
-      const task = await this.lock(m, id);
-      const count = await m.count(TaskAssignee, { where: { taskId: id } });
-      if (task.status !== TaskStatus.Todo || count > 0) {
-        throw new ConflictException(TaskErrors.HasAssignees);
-      }
-      const files = await m.find(TaskFile, { where: { taskId: id } });
-      await removeLinksOf(m, 'task', id);
-      await m.delete(Task, { id });
-      await this.log(m, actor, 'task.deleted', id, { title: task.title });
-      return files.map((f) => f.storedName);
+    const stored = await this.ds.transaction((m) =>
+      this.drop(m, id, actor, {}, true),
+    );
+    await this.removeFiles(stored);
+    return { ok: true };
+  }
+
+  /**
+   * Its document is cancelled (in the document's transaction): the task
+   * goes as by DELETE — only free, without assignees. Files are removed
+   * after the commit (the returned function).
+   */
+  async cancelByPaper(
+    m: EntityManager,
+    id: string,
+    reason: string,
+    actor: Actor,
+  ): Promise<() => Promise<void>> {
+    assertCan(actor, Action.TasksManage);
+    const stored = await this.drop(m, id, actor, { reason }, false);
+    return () => this.removeFiles(stored);
+  }
+
+  /**
+   * Deletes a free task without assignees; returns its stored files.
+   * `alone` — not through its document: a task with one stays.
+   */
+  private async drop(
+    m: EntityManager,
+    id: string,
+    actor: Actor,
+    meta: Record<string, unknown>,
+    alone: boolean,
+  ) {
+    const task = await this.lock(m, id);
+    if (alone && (await papersOf(m, 'task', id))) {
+      throw new ConflictException(TaskErrors.HasPaper);
+    }
+    const count = await m.count(TaskAssignee, { where: { taskId: id } });
+    if (task.status !== TaskStatus.Todo || count > 0) {
+      throw new ConflictException(TaskErrors.HasAssignees);
+    }
+    const files = await m.find(TaskFile, { where: { taskId: id } });
+    await removeLinksOf(m, 'task', id);
+    await m.delete(Task, { id });
+    await this.log(m, actor, 'task.deleted', id, {
+      title: task.title,
+      ...meta,
     });
+    return files.map((f) => f.storedName);
+  }
+
+  private async removeFiles(stored: string[]) {
     for (const name of stored)
       await this.storage.remove(`${STORAGE_DIR}/${name}`);
-    return { ok: true };
   }
 
   /** Take a free or queued task while there are free slots. */
@@ -327,6 +381,10 @@ export class TasksService {
       TaskStatus.InProgress,
       TaskStatus.Review,
       'task.submitted',
+      (_m, task) => {
+        task.submittedAt = new Date();
+        return Promise.resolve();
+      },
     );
   }
 
@@ -361,6 +419,7 @@ export class TasksService {
       'task.accepted',
       async (m, task, assignees) => {
         task.completedAt = new Date();
+        task.acceptedById = actor.id;
         const shares = splitPoints(task.points, assignees);
         for (const s of shares) {
           await m.insert(PointsEntry, {

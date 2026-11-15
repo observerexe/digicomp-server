@@ -536,6 +536,40 @@ const ROWS: Record<string, Case[]> = {
     ['moderator', mod, Action.PapersFillStaff, undefined, true],
     ['member', member, Action.PapersFillStaff, undefined, Deny.Forbidden],
   ],
+  // Документ, що створює запис, потребує ще права на сам запис (адаптер) —
+  // test/paper-publish.e2e-spec.ts.
+  'Документ редактора: опублікувати': [
+    ['admin: чужий', admin, Action.PapersPublish, { ownerId: 'u2' }, true],
+    ['moderator: чужий', mod, Action.PapersPublish, { ownerId: 'u2' }, true],
+    [
+      'member: свій',
+      member,
+      Action.PapersPublish,
+      { ownerId: member.id },
+      true,
+    ],
+    [
+      'member: чужий',
+      member,
+      Action.PapersPublish,
+      { ownerId: 'u2' },
+      Deny.NotOwner,
+    ],
+  ],
+  // Скасувати документ, що створив запис, — за правилом зняття запису
+  // (адаптер): ТЗ — лише модератор і адмін — test/paper-publish.e2e-spec.ts.
+  'Документ редактора: скасувати опублікований': [
+    ['admin: чужий', admin, Action.PapersCancel, { ownerId: 'u2' }, true],
+    ['moderator: чужий', mod, Action.PapersCancel, { ownerId: 'u2' }, true],
+    ['member: свій', member, Action.PapersCancel, { ownerId: member.id }, true],
+    [
+      'member: чужий',
+      member,
+      Action.PapersCancel,
+      { ownerId: 'u2' },
+      Deny.NotOwner,
+    ],
+  ],
   // Учасник бачить лише опубліковані шаблони, відкриті для всіх, —
   // test/paper-templates.e2e-spec.ts.
   'Шаблон документа: створити, змінити, опублікувати версію (перегляд — усі)': [

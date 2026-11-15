@@ -17,7 +17,10 @@ export const TEMPLATE_KIND_LABEL: Record<TemplateKind, string> = {
   report: 'Звіт про запис',
 };
 
-/** Every record type with its name and whether a template may create its records (from the schemas). */
+/**
+ * Every record type with its name (from the schemas) and whether a template
+ * may create its records (the API's list: modules that create them from documents).
+ */
 function useRecordTypes() {
   const schemas = useQueries({
     queries: RECORD_TYPES.map((type) => ({
@@ -26,9 +29,15 @@ function useRecordTypes() {
       staleTime: 5 * 60_000,
     })),
   });
+  const targets = useQuery({
+    queryKey: ['paper-templates', 'targets'],
+    queryFn: () => unwrap(api.GET('/api/papers/templates/targets')),
+    staleTime: 5 * 60_000,
+  });
+  const creates = new Set<string>(targets.data?.creates ?? []);
   return RECORD_TYPES.map((type, i) => {
     const schema = schemas[i]!.data;
-    return { type: type as RecordType, label: schema?.label ?? type, creatable: !!schema?.fields.some((f) => f.create), ready: !!schema };
+    return { type: type as RecordType, label: schema?.label ?? type, creatable: creates.has(type), ready: !!schema && targets.isSuccess };
   });
 }
 

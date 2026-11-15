@@ -64,8 +64,21 @@ export class Task {
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt: Date;
 
+  /** When the task was last sent for review. */
+  @Column({ name: 'submitted_at', type: 'timestamptz', nullable: true })
+  submittedAt: Date | null;
+
+  /** Set when the task is accepted (review -> done): that is when it was completed. */
   @Column({ name: 'completed_at', type: 'timestamp', nullable: true })
   completedAt: Date | null;
+
+  /** Who accepted the task; null — not accepted yet, or the user is gone. */
+  @Column({ name: 'accepted_by_id', type: 'uuid', nullable: true })
+  acceptedById: string | null;
+
+  @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'accepted_by_id' })
+  acceptedBy?: User | null;
 }
 
 @Entity('task_assignees')

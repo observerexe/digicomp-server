@@ -5,7 +5,7 @@ import { insertPoint } from '@tiptap/pm/transform';
 import { Decoration, DecorationSet, type EditorView } from '@tiptap/pm/view';
 import Suggestion from '@tiptap/suggestion';
 import { plural } from '../lib/format';
-import { textBlockOf, type Block, type BlockGroup } from './blocks';
+import { autoBlockOf, textBlockOf, type Block, type BlockGroup } from './blocks';
 import { zoneAtSelection, type FieldLook } from './fields';
 
 /**
@@ -55,12 +55,24 @@ function keysIn(node: PMNode): string[] {
   return [...keys];
 }
 
+/** The first auto node (the number) inside a node. */
+function autoIn(node: PMNode) {
+  let found: string | null = null;
+  node.descendants((n) => {
+    if (!found && autoBlockOf(n.type.name)) found = n.type.name;
+    return !found;
+  });
+  return found === null ? null : autoBlockOf(found);
+}
+
 /** What a block of the top level is: its label on the sheet and the colour of the label. */
 export function blockTag(node: PMNode, look: BuilderLook): { label: string; group: BlockGroup } {
   const keys = keysIn(node);
   const one = keys.length === 1 && (node.type.name === 'fieldZone' || node.isTextblock) ? look.fields[keys[0]!] : undefined;
   if (one) return { label: one.tag, group: one.group };
   const base = textBlockOf(node.type.name)?.label ?? node.type.name;
+  const auto = !keys.length && node.isTextblock ? autoIn(node) : null;
+  if (auto) return { label: `Авто: ${auto.label.toLowerCase()}`, group: 'auto' };
   if (!keys.length) return { label: base, group: 'text' };
   return { label: `${base} · ${keys.length} ${plural(keys.length, ['поле', 'поля', 'полів'])}`, group: 'text' };
 }
@@ -121,6 +133,7 @@ function zoneKeys(doc: PMNode): Set<string> {
 /** What a block puts on the sheet; `key` — of the new field (field blocks). */
 export function blockContent(block: Block, key: string | null): { content: JSONContent; inline: boolean } {
   if (block.kind === 'text') return { content: block.content(), inline: false };
+  if (block.kind === 'auto') return { content: { type: block.node }, inline: true };
   if (block.type === 'richtext') return { content: { type: 'fieldZone', attrs: { key }, content: [{ type: 'paragraph' }] }, inline: false };
   return { content: { type: 'field', attrs: { key } }, inline: true };
 }
@@ -267,9 +280,12 @@ export function builderExtension(opts: BuilderOptions) {
               state.doc.descendants((n, pos, parent) => {
                 const key = n.attrs.key as string;
                 const f = look.fields[key];
+                const auto = autoBlockOf(n.type.name);
                 if (n.type.name === 'field') {
                   const look1: FieldLook = { text: f?.text ?? `{${key}}`, state: f?.state ?? 'empty' };
                   decos.push(Decoration.node(pos, pos + n.nodeSize, {}, { look: look1, active: sel instanceof NodeSelection && sel.from === pos }));
+                } else if (auto) {
+                  decos.push(Decoration.node(pos, pos + n.nodeSize, {}, { look: { text: auto.text, state: 'auto' }, active: sel instanceof NodeSelection && sel.from === pos }));
                 } else if (n.type.name === 'fieldZone' && parent !== state.doc) {
                   decos.push(Decoration.node(pos, pos + n.nodeSize, { class: 'is-zone', 'data-label': f?.tag ?? key }));
                 }

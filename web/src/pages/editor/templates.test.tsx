@@ -69,6 +69,7 @@ const base = (me: Me, extra: Record<string, (r: Request) => Response | Promise<R
   'GET /api/work-sessions': () => json(200, { items: [], total: 0, page: 1, limit: 1 }),
   'GET /api/papers': () => json(200, { items: [], total: 0, page: 1, limit: 100 }),
   'GET /api/papers/templates': () => json(200, []),
+  'GET /api/papers/templates/targets': () => json(200, { creates: ['task'] }),
   ...schemas,
   ...extra,
 });
@@ -107,7 +108,7 @@ describe('Редактор: вкладка «Шаблони»', () => {
     expect(screen.queryByRole('button', { name: 'Шаблони' })).not.toBeInTheDocument();
   });
 
-  it('«Новий шаблон»: «Створює запис» — лише типи, записи яких можна створити; шаблон відкривається в конструкторі', async () => {
+  it('«Новий шаблон»: «Створює запис» — лише типи зі списку API (є адаптер); шаблон відкривається в конструкторі', async () => {
     const { calls } = mockApi(
       builder(version(), template(), {
         'POST /api/papers/templates': () => json(201, template()),
@@ -192,6 +193,21 @@ describe('Конструктор шаблону', () => {
         dictionary: null,
       },
     ]);
+  });
+
+  it('блок «Авто: номер»: у групі «Авто», на аркуші — {Номер} у рамці з міткою; полів не додає', async () => {
+    let rev = 1;
+    const { calls } = mockApi(builder(version(), template(), { 'PATCH /api/papers/templates/t1/versions/1': () => saved(++rev) }));
+    renderApp('/editor/templates/t1');
+    const sheet = await screen.findByLabelText('Аркуш шаблону');
+    const palette = within(screen.getByRole('complementary', { name: 'Конструктор' })).getByRole('tabpanel');
+    await userEvent.click(within(within(palette).getByRole('region', { name: 'Авто' })).getByRole('button', { name: 'Номер' }));
+    await waitFor(() => expect(sheet.querySelector('.paper-field.is-auto')).toHaveTextContent('{Номер}'));
+    expect(sheet.querySelector('.paper-block.is-auto')).toHaveAttribute('data-label', 'Авто: номер');
+    await waitFor(() => expect(calls.filter((c) => c.method === 'PATCH').length).toBeGreaterThan(0), { timeout: 4000 });
+    const last = JSON.parse(calls.filter((c) => c.method === 'PATCH').at(-1)!.body) as { body: unknown; fields: unknown[] };
+    expect(JSON.stringify(last.body)).toContain('"type":"paperNumber"');
+    expect(last.fields).toEqual([]);
   });
 
   it('зв’язок із записом: поля запису того самого типу; прив’язка бере назву й обов’язковість поля запису', async () => {

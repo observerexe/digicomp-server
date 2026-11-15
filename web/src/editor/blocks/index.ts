@@ -1,5 +1,6 @@
 import type { JSONContent } from '@tiptap/core';
 import type { IconName } from '../../components/Icon';
+import { autoNumber } from './autoNumber';
 import { checkbox } from './checkbox';
 import { choice } from './choice';
 import { date } from './date';
@@ -22,9 +23,10 @@ import { zone } from './zone';
 
 /**
  * Groups of the palette; the colour of a group is the colour of its labels on
- * the sheet. `schema` — fields of the template's record (blocks/schema.ts).
+ * the sheet. `schema` — fields of the template's record (blocks/schema.ts);
+ * `auto` — what the document gets by itself (the number).
  */
-export type BlockGroup = 'text' | 'field' | 'data' | 'schema';
+export type BlockGroup = 'text' | 'field' | 'data' | 'auto' | 'schema';
 
 export type GroupDef = { key: BlockGroup; label: string };
 
@@ -32,6 +34,7 @@ export const BLOCK_GROUPS: GroupDef[] = [
   { key: 'text', label: 'Текст' },
   { key: 'field', label: 'Поля' },
   { key: 'data', label: 'Дані застосунку' },
+  { key: 'auto', label: 'Авто' },
 ];
 
 /** One kind of a field's type («Ціле» / «Дробове»): the choice in «Властивості». */
@@ -65,9 +68,17 @@ export type FieldBlock = BlockBase & {
   required?: boolean;
 };
 
-export type Block = TextBlock | FieldBlock;
+/** Filled by the document itself (an inline node of the shared description); `text` — on the constructor's sheet. */
+export type AutoBlock = BlockBase & { kind: 'auto'; node: string; text: string };
 
-export const BLOCKS: Block[] = [heading, paragraph, list, table, pageBreak, line, zone, number, date, choice, checkbox, ...RECORD_BLOCKS];
+export type Block = TextBlock | FieldBlock | AutoBlock;
+
+export const BLOCKS: Block[] = [heading, paragraph, list, table, pageBreak, line, zone, number, date, choice, checkbox, ...RECORD_BLOCKS, autoNumber];
+
+/** The auto block of a node on the sheet (`paperNumber`); null — none. */
+export function autoBlockOf(node: string): AutoBlock | null {
+  return (BLOCKS.find((b) => b.kind === 'auto' && b.node === node) as AutoBlock | undefined) ?? null;
+}
 
 /** What the palette and «/» offer in a template: groups in order and their blocks. */
 export type Palette = { groups: GroupDef[]; blocks: Block[] };

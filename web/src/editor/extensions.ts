@@ -16,7 +16,7 @@ import {
   type FontSize,
   type TextColor,
 } from '../../../shared/editor-schema';
-import { Field, FieldZone, templateExtension, type TemplateOptions } from './fields';
+import { Field, FieldZone, PaperNumber, templateExtension, type TemplateOptions } from './fields';
 import { Mention, type MentionOptions } from './mention';
 
 /**
@@ -212,6 +212,7 @@ export function paperExtensions(opts: { template?: TemplateOptions; mention?: Pa
     withoutAlign(TableHeader),
     Field,
     FieldZone,
+    PaperNumber,
     mention ? Mention.configure(mention) : Mention,
     ...(template ? [templateExtension(template)] : []),
   ];

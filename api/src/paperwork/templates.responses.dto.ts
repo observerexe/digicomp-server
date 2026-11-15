@@ -6,6 +6,13 @@ import { PaperVisibility } from './paper.entity';
 import { TemplateCreators, TemplateKind } from './template.entities';
 import { TemplateFieldDto } from './templates.dto';
 
+/** Record types templates may work with. */
+export class TemplateTargetsDto {
+  /** Types whose records a `creates` template may create (a module registered its adapter). */
+  @ApiProperty({ enum: RECORD_TYPES, enumName: 'RecordType', isArray: true })
+  creates: RecordType[];
+}
+
 /** A template without its versions (lists). */
 export class TemplateItemDto {
   id: string;

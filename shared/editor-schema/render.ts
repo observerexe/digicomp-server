@@ -46,6 +46,8 @@ export type FieldFill = {
   hidden(key: string): boolean;
   /** Title of a record the text refers to («@»); null — not seen (or no more). */
   title(type: string, id: string): string | null;
+  /** The document's number; null — none yet (a line to fill in by hand). */
+  number: string | null;
 };
 
 /** Classes of a paragraph or heading: alignment, then indent. */
@@ -147,6 +149,12 @@ function renderMention(n: PaperNode, fill: FieldFill | undefined): string {
   return `<span class="paper-ref">${escapeText(title ?? RECORD_MISSING)}</span>`;
 }
 
+/** «Авто: номер»: the number in the print; in the editor's HTML — an empty placeholder. */
+function renderNumber(fill: FieldFill | undefined): string {
+  if (!fill) return '<span class="paper-number"></span>';
+  return fill.number === null ? '<span class="paper-field-blank"></span>' : `<span class="paper-field">${escapeText(fill.number)}</span>`;
+}
+
 function renderInline(children: PaperNode[], fill: FieldFill | undefined): string {
   let out = '';
   const open: { mark: { type: string; attrs: PaperAttrs }; close: string }[] = [];
@@ -167,6 +175,7 @@ function renderInline(children: PaperNode[], fill: FieldFill | undefined): strin
     else if (n.type === 'hardBreak') out += '<br>';
     else if (n.type === 'field') out += renderField(n, fill);
     else if (n.type === 'mention') out += renderMention(n, fill);
+    else if (n.type === 'paperNumber') out += renderNumber(fill);
   }
   while (open.length) out += open.pop()!.close;
   return out;

@@ -7,7 +7,7 @@ import type { RecordView } from '../lib/records';
 import { valueText, type FieldValue, type FieldValues, type RecordTitle } from '../../../shared/editor-schema/fields';
 import { paperExtensions } from './extensions';
 import type { RibbonLock } from './Ribbon';
-import { fieldPosition, setFieldsLook, zoneAtSelection, zoneTexts, type FieldsLook } from './fields';
+import { fieldPosition, NUMBER_PENDING, setFieldsLook, zoneAtSelection, zoneTexts, type FieldsLook } from './fields';
 import { fieldControlId, isFilled } from './FieldsPanel';
 import type { MentionMenuState, MentionSuggest } from './mention';
 import { recordKey, type PaperRecords } from './records';
@@ -20,8 +20,8 @@ import { recordKey, type PaperRecords } from './records';
  */
 
 /** What the sheet shows for each field and zone now. */
-export function lookOf(template: PaperTemplateRef, values: FieldValues, zones: Record<string, string>, active: string | null, title: RecordTitle): FieldsLook {
-  const look: FieldsLook = { fields: {}, zones: {}, active };
+export function lookOf(template: PaperTemplateRef, values: FieldValues, zones: Record<string, string>, active: string | null, title: RecordTitle, number: string | null = null): FieldsLook {
+  const look: FieldsLook = { fields: {}, zones: {}, active, number: number === null ? NUMBER_PENDING : { text: number, state: 'fixed' } };
   for (const f of template.fields) {
     const filled = isFilled(f, values, zones);
     if (f.type === 'richtext') {
@@ -165,16 +165,17 @@ export type Fill = ReturnType<typeof useFill>;
 
 /**
  * After the editor: the sheet shows the state of filling; `refused` — a
- * field the server refused (shown as the active one).
+ * field the server refused (shown as the active one); `number` — the
+ * document's, once published.
  */
-export function useFillSheet(editor: Editor, fill: Fill, refused: string | null = null) {
+export function useFillSheet(editor: Editor, fill: Fill, refused: string | null = null, number: string | null = null) {
   const { template, values, zones, active, recordTitle, recordsVersion, editable } = fill;
   const zone = useEditorState({ editor, selector: ({ editor: e }) => (template ? zoneAtSelection(e.state) : null) });
   const shownActive = zone ?? refused ?? active;
   useEffect(() => {
-    if (template) setFieldsLook(editor, lookOf(template, values, zones, shownActive, recordTitle));
+    if (template) setFieldsLook(editor, lookOf(template, values, zones, shownActive, recordTitle, number));
     // recordsVersion: a picked record's title is shown on the sheet.
-  }, [editor, template, values, zones, shownActive, recordsVersion]);
+  }, [editor, template, values, zones, shownActive, recordsVersion, number]);
 
   /** Bring a field into view on the sheet; a zone — put the cursor in it. */
   const showField = (key: string, focusZone: boolean) => {

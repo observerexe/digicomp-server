@@ -8,6 +8,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import type { RecordType } from '../records/field-types';
 import { User } from '../users/user.entity';
 import type { FieldValues, PaperContent } from './content';
 // Type only: template.entities imports this file (by name below, no cycle at load).
@@ -35,12 +36,18 @@ export enum PaperVisibility {
 @Entity('papers')
 @Index('IDX_papers_author_updated', ['authorId', 'updatedAt'])
 @Index('IDX_papers_updated', ['updatedAt'])
+@Index('IDX_papers_target', ['targetType', 'targetId'])
 export class Paper {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ type: 'varchar', length: 200 })
   title: string;
+
+  /** `<prefix>-<year>-<n>`, given when published (if the template has a prefix). */
+  @Index('UQ_papers_number', { unique: true })
+  @Column({ type: 'varchar', length: 30, nullable: true })
+  number: string | null;
 
   /** ProseMirror document (`{ type: 'doc', content: [...] }`). */
   @Column({ type: 'jsonb' })
@@ -70,6 +77,23 @@ export class Paper {
   /** Values of the template's fields by key (zones live in `content`). */
   @Column({ type: 'jsonb', default: {} })
   values: FieldValues;
+
+  /**
+   * The record the document created (a `creates` template): its type and
+   * id. Stays when the record is gone (the document was cancelled).
+   */
+  @Column({ name: 'target_type', type: 'varchar', length: 40, nullable: true })
+  targetType: RecordType | null;
+
+  @Column({ name: 'target_id', type: 'uuid', nullable: true })
+  targetId: string | null;
+
+  @Column({ name: 'published_at', type: 'timestamptz', nullable: true })
+  publishedAt: Date | null;
+
+  /** Why the document was cancelled. */
+  @Column({ name: 'cancel_reason', type: 'text', nullable: true })
+  cancelReason: string | null;
 
   /** Grows with every change; a save with an older one is a conflict. */
   @Column({ type: 'int', default: 1 })

@@ -64,7 +64,9 @@ Home Assistant і агент для локальної роботи не пот�
   «Форма» телефона — `PaperForm.tsx` (ті самі `FieldGroups`; тести телефона — `vi.stubGlobal('matchMedia', …)` з `matches: false`),
   віджети — реєстр `web/src/editor/fieldTypes/` (новий тип поля — новий файл і рядок у `index.ts`; текст значення — спільний `valueText`).
   Тести полів на бекенді — `api/src/paperwork/fields.spec.ts`, `api/test/paper-fields.e2e-spec.ts`; посилань на записи (`ref:*`, «@», зв'язки документа) —
-  `api/test/paper-refs.e2e-spec.ts`. Початкові шаблони з міграції `StarterTemplates` перевіряє `api/src/paperwork/starter-templates.spec.ts`.
+  `api/test/paper-refs.e2e-spec.ts`; публікації й скасування (номери, документ, що створює ТЗ, видимість через запис) —
+  `api/test/paper-publish.e2e-spec.ts`, міграцій `PaperPublishing` і `TaskReview` — `api/test/migration-paper-publishing.e2e-spec.ts`.
+  Початкові шаблони з міграції `StarterTemplates` перевіряє `api/src/paperwork/starter-templates.spec.ts`.
 - Новий вузол чи атрибут додається в опис, у розширення `web/src/editor/extensions.ts`, у `render.ts` і, якщо це клас, — правилом у `paper.css`;
   тести підкажуть, якщо щось пропущено. Змінили кольори палітри в `tokens.json` — оновіть `SHEET_COLORS`.
 

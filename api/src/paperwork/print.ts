@@ -92,6 +92,7 @@ const NO_VALUES: FieldFill = {
   text: () => null,
   hidden: () => false,
   title: () => null,
+  number: null,
 };
 
 export function paperPrintHtml(paper: {

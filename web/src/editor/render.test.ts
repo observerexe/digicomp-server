@@ -85,6 +85,7 @@ const CASES: [string, PaperContent][] = [
       ]),
     ),
   ],
+  ['«Авто: номер»', doc(p([text('№ '), { type: 'paperNumber' }, text(' від')]))],
 ];
 
 describe('Рендер друку = HTML редактора', () => {

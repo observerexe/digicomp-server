@@ -100,7 +100,7 @@ export type NodeRule = {
 };
 
 const BLOCKS = ['paragraph', 'heading', 'bulletList', 'orderedList', 'table', 'pageBreak', 'fieldZone'] as const;
-const INLINE = ['text', 'hardBreak', 'field', 'mention'] as const;
+const INLINE = ['text', 'hardBreak', 'field', 'mention', 'paperNumber'] as const;
 
 /** Key of a template field: Latin, starts with a small letter (`title`, `goal_2`). */
 export const FIELD_KEY = /^[a-z][a-zA-Z0-9_]{0,39}$/;
@@ -136,6 +136,8 @@ export const NODES: Record<string, NodeRule> = {
   fieldZone: { attrs: { key: fieldKey }, children: BLOCKS },
   /** A reference to a record («@»): only type and id; the title comes from the record itself. */
   mention: { attrs: { type: recordType, id: recordId } },
+  /** «Авто: номер»: the document's number, given when it is published. */
+  paperNumber: { attrs: {} },
 };
 
 /** In the editor's order: marks nest in it (textStyle outermost, underline innermost). */

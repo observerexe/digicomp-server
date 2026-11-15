@@ -25,6 +25,7 @@ const f = (type: string, over: Partial<PaperField> = {}): PaperField => ({
   scale: null,
   options: null,
   plain: false,
+  binding: null,
   canFill: true,
   ...over,
 });

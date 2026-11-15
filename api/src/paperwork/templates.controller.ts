@@ -24,6 +24,7 @@ import {
 import {
   TemplateDto,
   TemplateItemDto,
+  TemplateTargetsDto,
   TemplateVersionDto,
   TemplateVersionItemDto,
 } from './templates.responses.dto';
@@ -43,6 +44,14 @@ export class TemplatesController {
   @Get()
   list(@Req() req: Req) {
     return this.templates.list(req.user);
+  }
+
+  /** What a new template may be for. Before `:id`. */
+  @Can(Action.PaperTemplatesManage)
+  @ApiOkResponse({ type: TemplateTargetsDto })
+  @Get('targets')
+  targets(): TemplateTargetsDto {
+    return this.templates.targets();
   }
 
   /** With an empty draft version 1. */

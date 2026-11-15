@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -23,6 +24,7 @@ import { Action } from '../auth/policy';
 import { Can, JwtAuthGuard, PolicyGuard } from '../auth/roles';
 import { OkDto } from '../common/responses.dto';
 import {
+  CancelPaperDto,
   CopyPaperDto,
   CreatePaperDto,
   ListPapersQuery,
@@ -63,6 +65,28 @@ export class PaperworkController {
     @Req() req: Req,
   ) {
     return this.papers.copy(id, dto, req.user);
+  }
+
+  /** A draft becomes final: a record, a number (see the template). */
+  @Can(Action.PapersPublish)
+  @ApiOkResponse({ type: PaperDto })
+  @Post(':id/publish')
+  @HttpCode(200)
+  publish(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
+    return this.papers.publish(id, req.user);
+  }
+
+  /** With a reason; the record the document created is taken off too. */
+  @Can(Action.PapersCancel)
+  @ApiOkResponse({ type: PaperDto })
+  @Post(':id/cancel')
+  @HttpCode(200)
+  cancel(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CancelPaperDto,
+    @Req() req: Req,
+  ) {
+    return this.papers.cancel(id, dto, req.user);
   }
 
   @Can(Action.PapersRead)

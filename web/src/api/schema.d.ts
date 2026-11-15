@@ -843,6 +843,245 @@ export interface paths {
         patch: operations["DictionariesController_updateItem"];
         trace?: never;
     };
+    "/api/papers/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Staff — every template; members — published ones open to all, not archived. */
+        get: operations["TemplatesController_list"];
+        put?: never;
+        /** With an empty draft version 1. */
+        post: operations["TemplatesController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/papers/templates/targets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What a new template may be for. Before `:id`. */
+        get: operations["TemplatesController_targets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/papers/templates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TemplatesController_get"];
+        put?: never;
+        post?: never;
+        /** Only a template with no published version. */
+        delete: operations["TemplatesController_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["TemplatesController_update"];
+        trace?: never;
+    };
+    "/api/papers/templates/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The draft version; if there is none, a new one copied from the current version. */
+        post: operations["TemplatesController_draft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/papers/templates/{id}/versions/{v}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Members — only the current version. */
+        get: operations["TemplatesController_version"];
+        put?: never;
+        post?: never;
+        /** Throws away a draft version. */
+        delete: operations["TemplatesController_discard"];
+        options?: never;
+        head?: never;
+        /** A draft only; answers without body and fields: the client has just sent them. */
+        patch: operations["TemplatesController_save"];
+        trace?: never;
+    };
+    "/api/papers/templates/{id}/versions/{v}/fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fields as a document fills them: to try the template in the constructor. Nothing is saved. */
+        get: operations["TemplatesController_fields"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/papers/templates/{id}/versions/{v}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Checks fields and bindings against the target's schema; the version never changes after. */
+        post: operations["TemplatesController_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/papers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PaperworkController_list"];
+        put?: never;
+        post: operations["PaperworkController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/papers/{id}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A copy of a document the actor sees: its own draft, same template version. */
+        post: operations["PaperworkController_copy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/papers/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A draft becomes final: a record, a number (see the template). */
+        post: operations["PaperworkController_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/papers/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** With a reason; the record the document created is taken off too. */
+        post: operations["PaperworkController_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/papers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PaperworkController_get"];
+        put?: never;
+        post?: never;
+        delete: operations["PaperworkController_remove"];
+        options?: never;
+        head?: never;
+        /** Answers without the content: the client has just sent it. */
+        patch: operations["PaperworkController_update"];
+        trace?: never;
+    };
+    "/api/papers/{id}/print": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Print-ready A4 page (print or save as PDF in the browser); own CSP, no scripts. */
+        get: operations["PaperworkController_print"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/org-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["OrgController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["OrgController_update"];
+        trace?: never;
+    };
     "/api/discipline/me": {
         parameters: {
             query?: never;
@@ -1606,194 +1845,6 @@ export interface paths {
         patch: operations["SmartController_update"];
         trace?: never;
     };
-    "/api/org-settings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["OrgController_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch: operations["OrgController_update"];
-        trace?: never;
-    };
-    "/api/papers/templates": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Staff — every template; members — published ones open to all, not archived. */
-        get: operations["TemplatesController_list"];
-        put?: never;
-        /** With an empty draft version 1. */
-        post: operations["TemplatesController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/papers/templates/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["TemplatesController_get"];
-        put?: never;
-        post?: never;
-        /** Only a template with no published version. */
-        delete: operations["TemplatesController_remove"];
-        options?: never;
-        head?: never;
-        patch: operations["TemplatesController_update"];
-        trace?: never;
-    };
-    "/api/papers/templates/{id}/versions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** The draft version; if there is none, a new one copied from the current version. */
-        post: operations["TemplatesController_draft"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/papers/templates/{id}/versions/{v}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Members — only the current version. */
-        get: operations["TemplatesController_version"];
-        put?: never;
-        post?: never;
-        /** Throws away a draft version. */
-        delete: operations["TemplatesController_discard"];
-        options?: never;
-        head?: never;
-        /** A draft only; answers without body and fields: the client has just sent them. */
-        patch: operations["TemplatesController_save"];
-        trace?: never;
-    };
-    "/api/papers/templates/{id}/versions/{v}/fields": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Fields as a document fills them: to try the template in the constructor. Nothing is saved. */
-        get: operations["TemplatesController_fields"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/papers/templates/{id}/versions/{v}/publish": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Checks fields and bindings against the target's schema; the version never changes after. */
-        post: operations["TemplatesController_publish"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/papers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["PaperworkController_list"];
-        put?: never;
-        post: operations["PaperworkController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/papers/{id}/copy": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** A copy of a document the actor sees: its own draft, same template version. */
-        post: operations["PaperworkController_copy"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/papers/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["PaperworkController_get"];
-        put?: never;
-        post?: never;
-        delete: operations["PaperworkController_remove"];
-        options?: never;
-        head?: never;
-        /** Answers without the content: the client has just sent it. */
-        patch: operations["PaperworkController_update"];
-        trace?: never;
-    };
-    "/api/papers/{id}/print": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Print-ready A4 page (print or save as PDF in the browser); own CSP, no scripts. */
-        get: operations["PaperworkController_print"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/admin-panel/overview": {
         parameters: {
             query?: never;
@@ -2184,8 +2235,18 @@ export interface components {
             extra: {
                 [key: string]: unknown;
             };
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description When it was last sent for review.
+             */
+            submittedAt: string | null;
+            /**
+             * Format: date-time
+             * @description When it was accepted.
+             */
             completedAt: string | null;
+            /** @description Who accepted it. */
+            acceptedById: string | null;
             /** @description In the order of taking. */
             assignees: components["schemas"]["TaskAssigneeDto"][];
             id: string;
@@ -2236,8 +2297,18 @@ export interface components {
             extra: {
                 [key: string]: unknown;
             };
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description When it was last sent for review.
+             */
+            submittedAt: string | null;
+            /**
+             * Format: date-time
+             * @description When it was accepted.
+             */
             completedAt: string | null;
+            /** @description Who accepted it. */
+            acceptedById: string | null;
             /** @description In the order of taking. */
             assignees: components["schemas"]["TaskAssigneeDto"][];
             /** @description Oldest first. */
@@ -2435,6 +2506,374 @@ export interface components {
             color?: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
             /** @description true — to the archive, false — back. */
             archived?: boolean;
+        };
+        /** @enum {string} */
+        TemplateKind: "creates" | "report" | "free";
+        /** @enum {string} */
+        TemplateCreators: "all" | "staff";
+        /**
+         * @description Visibility of new documents.
+         * @enum {string}
+         */
+        PaperVisibility: "author" | "members";
+        TemplateItemDto: {
+            kind: components["schemas"]["TemplateKind"];
+            target: components["schemas"]["RecordType"] | null;
+            numberPrefix: string | null;
+            creators: components["schemas"]["TemplateCreators"];
+            /** @description Visibility of new documents. */
+            visibility: components["schemas"]["PaperVisibility"];
+            /** @description Number of the version new documents are made from; null — none published yet. */
+            currentVersion: number | null;
+            /** @description Number of the draft version; always null for members. */
+            draftVersion: number | null;
+            id: string;
+            title: string;
+            autoFreeze: boolean;
+            archived: boolean;
+            /** @description The target's schema changed and a binding of the current version broke: no new documents until a new version is published. */
+            needsUpdate: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        TemplateTargetsDto: {
+            /** @description Types whose records a `creates` template may create (a module registered its adapter). */
+            creates: components["schemas"]["RecordType"][];
+        };
+        CreateTemplateDto: {
+            /** @description Cannot be changed later. */
+            kind: components["schemas"]["TemplateKind"];
+            /** @description Record type: required for `creates` and `report`, none for `free`. Cannot be changed later. */
+            target?: components["schemas"]["RecordType"];
+            /** @description Default `staff`. */
+            creators?: components["schemas"]["TemplateCreators"];
+            /** @description Visibility of new documents. Default `author`. */
+            visibility?: components["schemas"]["PaperVisibility"];
+            title: string;
+            /** @description Without it documents get no number. */
+            numberPrefix?: string;
+            /** @description `creates` only. Default false. */
+            autoFreeze?: boolean;
+        };
+        TemplateVersionRowDto: {
+            /**
+             * Format: date-time
+             * @description null — a draft.
+             */
+            publishedAt: string | null;
+            publishedBy: components["schemas"]["UserRefDto"] | null;
+            /** @description Documents made from the version; null for members. */
+            documents: number | null;
+            number: number;
+            /** @description Send it with the next save of the draft (PATCH). */
+            revision: number;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        TemplateDto: {
+            kind: components["schemas"]["TemplateKind"];
+            target: components["schemas"]["RecordType"] | null;
+            numberPrefix: string | null;
+            creators: components["schemas"]["TemplateCreators"];
+            /** @description Visibility of new documents. */
+            visibility: components["schemas"]["PaperVisibility"];
+            /** @description Number of the version new documents are made from; null — none published yet. */
+            currentVersion: number | null;
+            /** @description Number of the draft version; always null for members. */
+            draftVersion: number | null;
+            /** @description Newest first. Members get only the current version. */
+            versions: components["schemas"]["TemplateVersionRowDto"][];
+            id: string;
+            title: string;
+            autoFreeze: boolean;
+            archived: boolean;
+            /** @description The target's schema changed and a binding of the current version broke: no new documents until a new version is published. */
+            needsUpdate: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        UpdateTemplateDto: {
+            /** @description null — documents get no number. */
+            numberPrefix?: string | null;
+            creators?: components["schemas"]["TemplateCreators"];
+            visibility?: components["schemas"]["PaperVisibility"];
+            title?: string;
+            autoFreeze?: boolean;
+            /** @description true — to the archive (no new documents), false — back. */
+            archived?: boolean;
+        };
+        /**
+         * @description `author` — the author of the document; `staff` — a moderator or the admin.
+         * @enum {string}
+         */
+        TemplateFieldFiller: "author" | "staff";
+        TemplateFieldDto: {
+            /**
+             * @description `text`, `richtext`, `int`, …, `ref:<record type>` or `list<…>` of one of them.
+             * @enum {string}
+             */
+            type: "text" | "richtext" | "int" | "decimal" | "date" | "datetime" | "bool" | "enum" | "color" | "ref:user" | "ref:task" | "ref:project" | "ref:place" | "ref:inventory_item" | "ref:discipline_record" | "ref:points_entry" | "ref:session" | "ref:fault" | "ref:place_authorization" | "ref:document" | "ref:paper" | "list<text>" | "list<richtext>" | "list<int>" | "list<decimal>" | "list<date>" | "list<datetime>" | "list<bool>" | "list<enum>" | "list<color>" | "list<ref:user>" | "list<ref:task>" | "list<ref:project>" | "list<ref:place>" | "list<ref:inventory_item>" | "list<ref:discipline_record>" | "list<ref:points_entry>" | "list<ref:session>" | "list<ref:fault>" | "list<ref:place_authorization>" | "list<ref:document>" | "list<ref:paper>";
+            /** @description `author` — the author of the document; `staff` — a moderator or the admin. */
+            fill: components["schemas"]["TemplateFieldFiller"];
+            /** @description Key of a field of the target's schema (`/records/:type/schema`); null — not bound. */
+            binding?: string | null;
+            /** @description int, decimal. */
+            min?: number | null;
+            max?: number | null;
+            /** @description text, richtext, list<text>. */
+            maxLength?: number | null;
+            /** @description list<…>. */
+            maxItems?: number | null;
+            /** @description enum, list<enum> not bound: key of the dictionary of its values. */
+            dictionary?: string | null;
+            key: string;
+            label: string;
+            required: boolean;
+            /** @description May be changed after the document is published. */
+            editable: boolean;
+            /** @description Shown in the print. */
+            print: boolean;
+        };
+        TemplateVersionDto: {
+            /**
+             * Format: date-time
+             * @description null — a draft.
+             */
+            publishedAt: string | null;
+            publishedBy: components["schemas"]["UserRefDto"] | null;
+            /** @description ProseMirror document. */
+            body: {
+                [key: string]: unknown;
+            };
+            fields: components["schemas"]["TemplateFieldDto"][];
+            /** @description Version of the target's schema the bindings were checked against when published. */
+            schemaVersion: string | null;
+            templateId: string;
+            number: number;
+            /** @description Send it with the next save of the draft (PATCH). */
+            revision: number;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        UpdateTemplateVersionDto: {
+            /** @description ProseMirror document. */
+            body?: {
+                [key: string]: unknown;
+            };
+            /** @description Every field of the version, in order. */
+            fields?: components["schemas"]["TemplateFieldDto"][];
+            /** @description The revision the change is based on; another one — 409 PAPER_CONFLICT. */
+            revision: number;
+        };
+        TemplateVersionItemDto: {
+            /**
+             * Format: date-time
+             * @description null — a draft.
+             */
+            publishedAt: string | null;
+            publishedBy: components["schemas"]["UserRefDto"] | null;
+            number: number;
+            /** @description Send it with the next save of the draft (PATCH). */
+            revision: number;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PaperFieldOptionDto: {
+            key: string;
+            label: string;
+            /** @description Stays where already chosen; not offered. */
+            archived?: boolean;
+        };
+        PaperFieldDto: {
+            fill: components["schemas"]["TemplateFieldFiller"];
+            /** @description Limits: the template's and the bound field's of the record, the tighter. */
+            min: number | null;
+            max: number | null;
+            maxLength: number | null;
+            maxItems: number | null;
+            /** @description decimal: digits after the point (null — 2). */
+            scale: number | null;
+            /** @description enum, list<enum>: the choices in order; null for other types. */
+            options: components["schemas"]["PaperFieldOptionDto"][] | null;
+            /** @description Key of the record's field it is bound to; once published it shows the record as it is now. */
+            binding: string | null;
+            key: string;
+            label: string;
+            /** @description `text`, `int`, …, `ref:<record type>`, `list<…>`; `richtext` — a zone on the sheet. */
+            type: string;
+            required: boolean;
+            /** @description May be changed after the document is published. */
+            editable: boolean;
+            /** @description Shown in the print. */
+            print: boolean;
+            /** @description A zone of plain paragraphs (bound to a text field of the record). */
+            plain: boolean;
+            /** @description The actor may fill it now. */
+            canFill: boolean;
+        };
+        PaperTemplateRefDto: {
+            /** @description `creates` — publishing creates a record of `target`. */
+            kind: components["schemas"]["TemplateKind"];
+            target: components["schemas"]["RecordType"] | null;
+            fields: components["schemas"]["PaperFieldDto"][];
+            id: string;
+            title: string;
+            version: number;
+        };
+        /** @enum {string} */
+        PaperStatus: "draft" | "published" | "frozen" | "signed" | "cancelled";
+        PaperItemDto: {
+            /** @description `ТЗ-2026-014`: given when published, if the template has a prefix. */
+            number: string | null;
+            status: components["schemas"]["PaperStatus"];
+            visibility: components["schemas"]["PaperVisibility"];
+            /** Format: date-time */
+            publishedAt: string | null;
+            id: string;
+            title: string;
+            author: components["schemas"]["UserRefDto"];
+            /** @description Send it with the next change (PATCH). */
+            revision: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PaperListDto: {
+            items: components["schemas"]["PaperItemDto"][];
+            total: number;
+            page: number;
+            limit: number;
+        };
+        CreatePaperDto: {
+            /** @description ProseMirror document; without it — one empty paragraph. Not with `templateId`. */
+            content?: {
+                [key: string]: unknown;
+            };
+            /** @description Without a title — «Без назви» (from a template — its title). */
+            title?: string;
+            /**
+             * Format: uuid
+             * @description Make the document from the template's current version (its body, its fields).
+             */
+            templateId?: string;
+        };
+        PaperRefDto: {
+            type: components["schemas"]["RecordType"];
+            /** @description QR code, for records opened by it (equipment, inventory). */
+            code?: string;
+            id: string;
+            title: string;
+            /** @description The record is in the archive (a member — blocked, a document — cancelled). */
+            archived: boolean;
+        };
+        PaperDto: {
+            /** @description `ТЗ-2026-014`: given when published, if the template has a prefix. */
+            number: string | null;
+            status: components["schemas"]["PaperStatus"];
+            visibility: components["schemas"]["PaperVisibility"];
+            /** Format: date-time */
+            publishedAt: string | null;
+            /** @description ProseMirror document. */
+            content: {
+                [key: string]: unknown;
+            };
+            /** @description Values of the template's fields by key. */
+            values: {
+                [key: string]: unknown;
+            };
+            /** @description null — a free document. */
+            template: components["schemas"]["PaperTemplateRefDto"] | null;
+            /**
+             * @description Records of `ref:*` values and «@» in the text the reader sees. One
+             *     not here — not seen, or deleted: «запис недоступний».
+             */
+            refs: components["schemas"]["PaperRefDto"][];
+            /** @description The record the document created; it stays when the record is gone (cancelled). */
+            targetType: components["schemas"]["RecordType"] | null;
+            targetId: string | null;
+            /** @description Why it was cancelled. */
+            cancelReason: string | null;
+            /** @description The actor may change and delete it: their own draft (admin — any). */
+            canEdit: boolean;
+            /**
+             * @description The actor may publish it (a draft: their own, staff — any). A document
+             *     that creates a record also needs the record's right (checked on publishing).
+             */
+            canPublish: boolean;
+            /** @description The actor may cancel it (published: their own, staff — any; the record's rule — on cancelling). */
+            canCancel: boolean;
+            id: string;
+            title: string;
+            author: components["schemas"]["UserRefDto"];
+            /** @description Send it with the next change (PATCH). */
+            revision: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        CopyPaperDto: {
+            content: {
+                [key: string]: unknown;
+            };
+            /** @description Field key → value; keys left out are emptied */
+            values?: {
+                [key: string]: unknown;
+            };
+            title?: string;
+        };
+        CancelPaperDto: {
+            /** @description Why: kept on the document and in the audit. */
+            reason: string;
+        };
+        UpdatePaperDto: {
+            content?: {
+                [key: string]: unknown;
+            };
+            /** @description Field key → value; keys left out are emptied */
+            values?: {
+                [key: string]: unknown;
+            };
+            /** @description The revision the change is based on; another one — 409 PAPER_CONFLICT. */
+            revision: number;
+            title?: string;
+            /**
+             * @description Staff only. Takes effect once the document is published.
+             * @enum {string}
+             */
+            visibility?: "author" | "members";
+        };
+        OrgSignerDto: {
+            id: string;
+            name: string;
+            /** @description false — blocked: staff should pick another signer. */
+            active: boolean;
+        };
+        OrgSettingsDto: {
+            /** @description Default signer of documents; null — not chosen. */
+            signer: components["schemas"]["OrgSignerDto"] | null;
+            /** @description Document header, printed as stored. */
+            institution: string;
+            groupName: string;
+            /** @description Printed under the signature. */
+            signerPosition: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        UpdateOrgSettingsDto: {
+            institution?: string;
+            groupName?: string;
+            /**
+             * Format: uuid
+             * @description An active user; null — no default signer.
+             */
+            signerId?: string | null;
+            signerPosition?: string;
         };
         /** @enum {string} */
         DisciplineType: "warning" | "fine" | "reprimand";
@@ -3054,341 +3493,6 @@ export interface components {
             label?: string;
             room?: string;
             enabled?: boolean;
-        };
-        OrgSignerDto: {
-            id: string;
-            name: string;
-            /** @description false — blocked: staff should pick another signer. */
-            active: boolean;
-        };
-        OrgSettingsDto: {
-            /** @description Default signer of documents; null — not chosen. */
-            signer: components["schemas"]["OrgSignerDto"] | null;
-            /** @description Document header, printed as stored. */
-            institution: string;
-            groupName: string;
-            /** @description Printed under the signature. */
-            signerPosition: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        UpdateOrgSettingsDto: {
-            institution?: string;
-            groupName?: string;
-            /**
-             * Format: uuid
-             * @description An active user; null — no default signer.
-             */
-            signerId?: string | null;
-            signerPosition?: string;
-        };
-        /** @enum {string} */
-        TemplateKind: "creates" | "report" | "free";
-        /** @enum {string} */
-        TemplateCreators: "all" | "staff";
-        /**
-         * @description Visibility of new documents.
-         * @enum {string}
-         */
-        PaperVisibility: "author" | "members";
-        TemplateItemDto: {
-            kind: components["schemas"]["TemplateKind"];
-            target: components["schemas"]["RecordType"] | null;
-            numberPrefix: string | null;
-            creators: components["schemas"]["TemplateCreators"];
-            /** @description Visibility of new documents. */
-            visibility: components["schemas"]["PaperVisibility"];
-            /** @description Number of the version new documents are made from; null — none published yet. */
-            currentVersion: number | null;
-            /** @description Number of the draft version; always null for members. */
-            draftVersion: number | null;
-            id: string;
-            title: string;
-            autoFreeze: boolean;
-            archived: boolean;
-            /** @description The target's schema changed and a binding of the current version broke: no new documents until a new version is published. */
-            needsUpdate: boolean;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        CreateTemplateDto: {
-            /** @description Cannot be changed later. */
-            kind: components["schemas"]["TemplateKind"];
-            /** @description Record type: required for `creates` and `report`, none for `free`. Cannot be changed later. */
-            target?: components["schemas"]["RecordType"];
-            /** @description Default `staff`. */
-            creators?: components["schemas"]["TemplateCreators"];
-            /** @description Visibility of new documents. Default `author`. */
-            visibility?: components["schemas"]["PaperVisibility"];
-            title: string;
-            /** @description Without it documents get no number. */
-            numberPrefix?: string;
-            /** @description `creates` only. Default false. */
-            autoFreeze?: boolean;
-        };
-        TemplateVersionRowDto: {
-            /**
-             * Format: date-time
-             * @description null — a draft.
-             */
-            publishedAt: string | null;
-            publishedBy: components["schemas"]["UserRefDto"] | null;
-            /** @description Documents made from the version; null for members. */
-            documents: number | null;
-            number: number;
-            /** @description Send it with the next save of the draft (PATCH). */
-            revision: number;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        TemplateDto: {
-            kind: components["schemas"]["TemplateKind"];
-            target: components["schemas"]["RecordType"] | null;
-            numberPrefix: string | null;
-            creators: components["schemas"]["TemplateCreators"];
-            /** @description Visibility of new documents. */
-            visibility: components["schemas"]["PaperVisibility"];
-            /** @description Number of the version new documents are made from; null — none published yet. */
-            currentVersion: number | null;
-            /** @description Number of the draft version; always null for members. */
-            draftVersion: number | null;
-            /** @description Newest first. Members get only the current version. */
-            versions: components["schemas"]["TemplateVersionRowDto"][];
-            id: string;
-            title: string;
-            autoFreeze: boolean;
-            archived: boolean;
-            /** @description The target's schema changed and a binding of the current version broke: no new documents until a new version is published. */
-            needsUpdate: boolean;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        UpdateTemplateDto: {
-            /** @description null — documents get no number. */
-            numberPrefix?: string | null;
-            creators?: components["schemas"]["TemplateCreators"];
-            visibility?: components["schemas"]["PaperVisibility"];
-            title?: string;
-            autoFreeze?: boolean;
-            /** @description true — to the archive (no new documents), false — back. */
-            archived?: boolean;
-        };
-        /**
-         * @description `author` — the author of the document; `staff` — a moderator or the admin.
-         * @enum {string}
-         */
-        TemplateFieldFiller: "author" | "staff";
-        TemplateFieldDto: {
-            /**
-             * @description `text`, `richtext`, `int`, …, `ref:<record type>` or `list<…>` of one of them.
-             * @enum {string}
-             */
-            type: "text" | "richtext" | "int" | "decimal" | "date" | "datetime" | "bool" | "enum" | "color" | "ref:user" | "ref:task" | "ref:project" | "ref:place" | "ref:inventory_item" | "ref:discipline_record" | "ref:points_entry" | "ref:session" | "ref:fault" | "ref:place_authorization" | "ref:document" | "ref:paper" | "list<text>" | "list<richtext>" | "list<int>" | "list<decimal>" | "list<date>" | "list<datetime>" | "list<bool>" | "list<enum>" | "list<color>" | "list<ref:user>" | "list<ref:task>" | "list<ref:project>" | "list<ref:place>" | "list<ref:inventory_item>" | "list<ref:discipline_record>" | "list<ref:points_entry>" | "list<ref:session>" | "list<ref:fault>" | "list<ref:place_authorization>" | "list<ref:document>" | "list<ref:paper>";
-            /** @description `author` — the author of the document; `staff` — a moderator or the admin. */
-            fill: components["schemas"]["TemplateFieldFiller"];
-            /** @description Key of a field of the target's schema (`/records/:type/schema`); null — not bound. */
-            binding?: string | null;
-            /** @description int, decimal. */
-            min?: number | null;
-            max?: number | null;
-            /** @description text, richtext, list<text>. */
-            maxLength?: number | null;
-            /** @description list<…>. */
-            maxItems?: number | null;
-            /** @description enum, list<enum> not bound: key of the dictionary of its values. */
-            dictionary?: string | null;
-            key: string;
-            label: string;
-            required: boolean;
-            /** @description May be changed after the document is published. */
-            editable: boolean;
-            /** @description Shown in the print. */
-            print: boolean;
-        };
-        TemplateVersionDto: {
-            /**
-             * Format: date-time
-             * @description null — a draft.
-             */
-            publishedAt: string | null;
-            publishedBy: components["schemas"]["UserRefDto"] | null;
-            /** @description ProseMirror document. */
-            body: {
-                [key: string]: unknown;
-            };
-            fields: components["schemas"]["TemplateFieldDto"][];
-            /** @description Version of the target's schema the bindings were checked against when published. */
-            schemaVersion: string | null;
-            templateId: string;
-            number: number;
-            /** @description Send it with the next save of the draft (PATCH). */
-            revision: number;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        UpdateTemplateVersionDto: {
-            /** @description ProseMirror document. */
-            body?: {
-                [key: string]: unknown;
-            };
-            /** @description Every field of the version, in order. */
-            fields?: components["schemas"]["TemplateFieldDto"][];
-            /** @description The revision the change is based on; another one — 409 PAPER_CONFLICT. */
-            revision: number;
-        };
-        TemplateVersionItemDto: {
-            /**
-             * Format: date-time
-             * @description null — a draft.
-             */
-            publishedAt: string | null;
-            publishedBy: components["schemas"]["UserRefDto"] | null;
-            number: number;
-            /** @description Send it with the next save of the draft (PATCH). */
-            revision: number;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        PaperFieldOptionDto: {
-            key: string;
-            label: string;
-            /** @description Stays where already chosen; not offered. */
-            archived?: boolean;
-        };
-        PaperFieldDto: {
-            fill: components["schemas"]["TemplateFieldFiller"];
-            /** @description Limits: the template's and the bound field's of the record, the tighter. */
-            min: number | null;
-            max: number | null;
-            maxLength: number | null;
-            maxItems: number | null;
-            /** @description decimal: digits after the point (null — 2). */
-            scale: number | null;
-            /** @description enum, list<enum>: the choices in order; null for other types. */
-            options: components["schemas"]["PaperFieldOptionDto"][] | null;
-            key: string;
-            label: string;
-            /** @description `text`, `int`, …, `ref:<record type>`, `list<…>`; `richtext` — a zone on the sheet. */
-            type: string;
-            required: boolean;
-            /** @description May be changed after the document is published. */
-            editable: boolean;
-            /** @description Shown in the print. */
-            print: boolean;
-            /** @description A zone of plain paragraphs (bound to a text field of the record). */
-            plain: boolean;
-            /** @description The actor may fill it now. */
-            canFill: boolean;
-        };
-        PaperTemplateRefDto: {
-            fields: components["schemas"]["PaperFieldDto"][];
-            id: string;
-            title: string;
-            version: number;
-        };
-        /** @enum {string} */
-        PaperStatus: "draft" | "published" | "frozen" | "signed" | "cancelled";
-        PaperItemDto: {
-            status: components["schemas"]["PaperStatus"];
-            visibility: components["schemas"]["PaperVisibility"];
-            id: string;
-            title: string;
-            author: components["schemas"]["UserRefDto"];
-            /** @description Send it with the next change (PATCH). */
-            revision: number;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        PaperListDto: {
-            items: components["schemas"]["PaperItemDto"][];
-            total: number;
-            page: number;
-            limit: number;
-        };
-        CreatePaperDto: {
-            /** @description ProseMirror document; without it — one empty paragraph. Not with `templateId`. */
-            content?: {
-                [key: string]: unknown;
-            };
-            /** @description Without a title — «Без назви» (from a template — its title). */
-            title?: string;
-            /**
-             * Format: uuid
-             * @description Make the document from the template's current version (its body, its fields).
-             */
-            templateId?: string;
-        };
-        PaperRefDto: {
-            type: components["schemas"]["RecordType"];
-            /** @description QR code, for records opened by it (equipment, inventory). */
-            code?: string;
-            id: string;
-            title: string;
-            /** @description The record is in the archive (a member — blocked, a document — cancelled). */
-            archived: boolean;
-        };
-        PaperDto: {
-            status: components["schemas"]["PaperStatus"];
-            visibility: components["schemas"]["PaperVisibility"];
-            /** @description ProseMirror document. */
-            content: {
-                [key: string]: unknown;
-            };
-            /** @description Values of the template's fields by key. */
-            values: {
-                [key: string]: unknown;
-            };
-            /** @description null — a free document. */
-            template: components["schemas"]["PaperTemplateRefDto"] | null;
-            /**
-             * @description Records of `ref:*` values and «@» in the text the reader sees. One
-             *     not here — not seen, or deleted: «запис недоступний».
-             */
-            refs: components["schemas"]["PaperRefDto"][];
-            /** @description The actor may change and delete it: their own draft (admin — any). */
-            canEdit: boolean;
-            id: string;
-            title: string;
-            author: components["schemas"]["UserRefDto"];
-            /** @description Send it with the next change (PATCH). */
-            revision: number;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        CopyPaperDto: {
-            content: {
-                [key: string]: unknown;
-            };
-            /** @description Field key → value; keys left out are emptied */
-            values?: {
-                [key: string]: unknown;
-            };
-            title?: string;
-        };
-        UpdatePaperDto: {
-            content?: {
-                [key: string]: unknown;
-            };
-            /** @description Field key → value; keys left out are emptied */
-            values?: {
-                [key: string]: unknown;
-            };
-            /** @description The revision the change is based on; another one — 409 PAPER_CONFLICT. */
-            revision: number;
-            title?: string;
-            /**
-             * @description Staff only. Takes effect once the document is published.
-             * @enum {string}
-             */
-            visibility?: "author" | "members";
         };
         ContainerDto: {
             /** @description healthy, unhealthy, starting or null (no healthcheck). */
@@ -4893,6 +4997,520 @@ export interface operations {
             };
         };
     };
+    TemplatesController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateItemDto"][];
+                };
+            };
+        };
+    };
+    TemplatesController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTemplateDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_targets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateTargetsDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTemplateDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_draft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateVersionDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_version: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                v: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateVersionDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_discard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                v: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                v: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTemplateVersionDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateVersionItemDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_fields: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                v: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperTemplateRefDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_publish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                v: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateDto"];
+                };
+            };
+        };
+    };
+    PaperworkController_list: {
+        parameters: {
+            query?: {
+                /** @description `true` — only the actor's own documents (tab «Мої»). */
+                mine?: "true";
+                /** @description Part of the title. */
+                search?: string;
+                page?: string;
+                limit?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperListDto"];
+                };
+            };
+        };
+    };
+    PaperworkController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePaperDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperDto"];
+                };
+            };
+        };
+    };
+    PaperworkController_copy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CopyPaperDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperDto"];
+                };
+            };
+        };
+    };
+    PaperworkController_publish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperDto"];
+                };
+            };
+        };
+    };
+    PaperworkController_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelPaperDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperDto"];
+                };
+            };
+        };
+    };
+    PaperworkController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperDto"];
+                };
+            };
+        };
+    };
+    PaperworkController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    PaperworkController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePaperDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperItemDto"];
+                };
+            };
+        };
+    };
+    PaperworkController_print: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description HTML page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
+                };
+            };
+        };
+    };
+    OrgController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgSettingsDto"];
+                };
+            };
+        };
+    };
+    OrgController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateOrgSettingsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgSettingsDto"];
+                };
+            };
+        };
+    };
     DisciplineController_mine: {
         parameters: {
             query?: never;
@@ -6289,455 +6907,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SmartAllowedDto"];
-                };
-            };
-        };
-    };
-    OrgController_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrgSettingsDto"];
-                };
-            };
-        };
-    };
-    OrgController_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateOrgSettingsDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrgSettingsDto"];
-                };
-            };
-        };
-    };
-    TemplatesController_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TemplateItemDto"][];
-                };
-            };
-        };
-    };
-    TemplatesController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateTemplateDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TemplateDto"];
-                };
-            };
-        };
-    };
-    TemplatesController_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TemplateDto"];
-                };
-            };
-        };
-    };
-    TemplatesController_remove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OkDto"];
-                };
-            };
-        };
-    };
-    TemplatesController_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateTemplateDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TemplateDto"];
-                };
-            };
-        };
-    };
-    TemplatesController_draft: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TemplateVersionDto"];
-                };
-            };
-        };
-    };
-    TemplatesController_version: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                v: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TemplateVersionDto"];
-                };
-            };
-        };
-    };
-    TemplatesController_discard: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                v: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OkDto"];
-                };
-            };
-        };
-    };
-    TemplatesController_save: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                v: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateTemplateVersionDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TemplateVersionItemDto"];
-                };
-            };
-        };
-    };
-    TemplatesController_fields: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                v: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaperTemplateRefDto"];
-                };
-            };
-        };
-    };
-    TemplatesController_publish: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                v: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TemplateDto"];
-                };
-            };
-        };
-    };
-    PaperworkController_list: {
-        parameters: {
-            query?: {
-                /** @description `true` — only the actor's own documents (tab «Мої»). */
-                mine?: "true";
-                /** @description Part of the title. */
-                search?: string;
-                page?: string;
-                limit?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaperListDto"];
-                };
-            };
-        };
-    };
-    PaperworkController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreatePaperDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaperDto"];
-                };
-            };
-        };
-    };
-    PaperworkController_copy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CopyPaperDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaperDto"];
-                };
-            };
-        };
-    };
-    PaperworkController_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaperDto"];
-                };
-            };
-        };
-    };
-    PaperworkController_remove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OkDto"];
-                };
-            };
-        };
-    };
-    PaperworkController_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdatePaperDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaperItemDto"];
-                };
-            };
-        };
-    };
-    PaperworkController_print: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description HTML page */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/html": string;
                 };
             };
         };

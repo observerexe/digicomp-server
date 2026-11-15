@@ -71,6 +71,12 @@
   gap: 8px;
   font-weight: 500;
 }
+.number {
+  color: var(--c-text2);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
 .tag {
   padding: 1px 8px;
   border-radius: var(--radius-pill);

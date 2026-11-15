@@ -2166,6 +2166,794 @@
         ]
       }
     },
+    "/api/papers/templates": {
+      "get": {
+        "operationId": "TemplatesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TemplateItemDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Staff — every template; members — published ones open to all, not archived.",
+        "tags": [
+          "Templates"
+        ]
+      },
+      "post": {
+        "operationId": "TemplatesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTemplateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "With an empty draft version 1.",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
+    "/api/papers/templates/targets": {
+      "get": {
+        "operationId": "TemplatesController_targets",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateTargetsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "What a new template may be for. Before `:id`.",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
+    "/api/papers/templates/{id}": {
+      "get": {
+        "operationId": "TemplatesController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Templates"
+        ]
+      },
+      "patch": {
+        "operationId": "TemplatesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTemplateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Templates"
+        ]
+      },
+      "delete": {
+        "operationId": "TemplatesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Only a template with no published version.",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
+    "/api/papers/templates/{id}/versions": {
+      "post": {
+        "operationId": "TemplatesController_draft",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateVersionDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The draft version; if there is none, a new one copied from the current version.",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
+    "/api/papers/templates/{id}/versions/{v}": {
+      "get": {
+        "operationId": "TemplatesController_version",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "v",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateVersionDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Members — only the current version.",
+        "tags": [
+          "Templates"
+        ]
+      },
+      "patch": {
+        "operationId": "TemplatesController_save",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "v",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTemplateVersionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateVersionItemDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "A draft only; answers without body and fields: the client has just sent them.",
+        "tags": [
+          "Templates"
+        ]
+      },
+      "delete": {
+        "operationId": "TemplatesController_discard",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "v",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Throws away a draft version.",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
+    "/api/papers/templates/{id}/versions/{v}/fields": {
+      "get": {
+        "operationId": "TemplatesController_fields",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "v",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperTemplateRefDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Fields as a document fills them: to try the template in the constructor. Nothing is saved.",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
+    "/api/papers/templates/{id}/versions/{v}/publish": {
+      "post": {
+        "operationId": "TemplatesController_publish",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "v",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Checks fields and bindings against the target's schema; the version never changes after.",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
+    "/api/papers": {
+      "get": {
+        "operationId": "PaperworkController_list",
+        "parameters": [
+          {
+            "name": "mine",
+            "required": false,
+            "in": "query",
+            "description": "`true` — only the actor's own documents (tab «Мої»).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Part of the title.",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 6,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 3,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperListDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Paperwork"
+        ]
+      },
+      "post": {
+        "operationId": "PaperworkController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePaperDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Paperwork"
+        ]
+      }
+    },
+    "/api/papers/{id}/copy": {
+      "post": {
+        "operationId": "PaperworkController_copy",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CopyPaperDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "A copy of a document the actor sees: its own draft, same template version.",
+        "tags": [
+          "Paperwork"
+        ]
+      }
+    },
+    "/api/papers/{id}/publish": {
+      "post": {
+        "operationId": "PaperworkController_publish",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "A draft becomes final: a record, a number (see the template).",
+        "tags": [
+          "Paperwork"
+        ]
+      }
+    },
+    "/api/papers/{id}/cancel": {
+      "post": {
+        "operationId": "PaperworkController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelPaperDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "With a reason; the record the document created is taken off too.",
+        "tags": [
+          "Paperwork"
+        ]
+      }
+    },
+    "/api/papers/{id}": {
+      "get": {
+        "operationId": "PaperworkController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Paperwork"
+        ]
+      },
+      "patch": {
+        "operationId": "PaperworkController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePaperDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperItemDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Answers without the content: the client has just sent it.",
+        "tags": [
+          "Paperwork"
+        ]
+      },
+      "delete": {
+        "operationId": "PaperworkController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Paperwork"
+        ]
+      }
+    },
+    "/api/papers/{id}/print": {
+      "get": {
+        "operationId": "PaperworkController_print",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "HTML page",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Print-ready A4 page (print or save as PDF in the browser); own CSP, no scripts.",
+        "tags": [
+          "Paperwork"
+        ]
+      }
+    },
+    "/api/org-settings": {
+      "get": {
+        "operationId": "OrgController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrgSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Org"
+        ]
+      },
+      "patch": {
+        "operationId": "OrgController_update",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrgSettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrgSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Org"
+        ]
+      }
+    },
     "/api/discipline/me": {
       "get": {
         "operationId": "DisciplineController_mine",
@@ -4509,700 +5297,6 @@
         ]
       }
     },
-    "/api/org-settings": {
-      "get": {
-        "operationId": "OrgController_get",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrgSettingsDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Org"
-        ]
-      },
-      "patch": {
-        "operationId": "OrgController_update",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateOrgSettingsDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrgSettingsDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Org"
-        ]
-      }
-    },
-    "/api/papers/templates": {
-      "get": {
-        "operationId": "TemplatesController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TemplateItemDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "Staff — every template; members — published ones open to all, not archived.",
-        "tags": [
-          "Templates"
-        ]
-      },
-      "post": {
-        "operationId": "TemplatesController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateTemplateDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TemplateDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "With an empty draft version 1.",
-        "tags": [
-          "Templates"
-        ]
-      }
-    },
-    "/api/papers/templates/{id}": {
-      "get": {
-        "operationId": "TemplatesController_get",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TemplateDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Templates"
-        ]
-      },
-      "patch": {
-        "operationId": "TemplatesController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateTemplateDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TemplateDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Templates"
-        ]
-      },
-      "delete": {
-        "operationId": "TemplatesController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Only a template with no published version.",
-        "tags": [
-          "Templates"
-        ]
-      }
-    },
-    "/api/papers/templates/{id}/versions": {
-      "post": {
-        "operationId": "TemplatesController_draft",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TemplateVersionDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "The draft version; if there is none, a new one copied from the current version.",
-        "tags": [
-          "Templates"
-        ]
-      }
-    },
-    "/api/papers/templates/{id}/versions/{v}": {
-      "get": {
-        "operationId": "TemplatesController_version",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "v",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TemplateVersionDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Members — only the current version.",
-        "tags": [
-          "Templates"
-        ]
-      },
-      "patch": {
-        "operationId": "TemplatesController_save",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "v",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateTemplateVersionDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TemplateVersionItemDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "A draft only; answers without body and fields: the client has just sent them.",
-        "tags": [
-          "Templates"
-        ]
-      },
-      "delete": {
-        "operationId": "TemplatesController_discard",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "v",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Throws away a draft version.",
-        "tags": [
-          "Templates"
-        ]
-      }
-    },
-    "/api/papers/templates/{id}/versions/{v}/fields": {
-      "get": {
-        "operationId": "TemplatesController_fields",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "v",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaperTemplateRefDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Fields as a document fills them: to try the template in the constructor. Nothing is saved.",
-        "tags": [
-          "Templates"
-        ]
-      }
-    },
-    "/api/papers/templates/{id}/versions/{v}/publish": {
-      "post": {
-        "operationId": "TemplatesController_publish",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "v",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TemplateDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Checks fields and bindings against the target's schema; the version never changes after.",
-        "tags": [
-          "Templates"
-        ]
-      }
-    },
-    "/api/papers": {
-      "get": {
-        "operationId": "PaperworkController_list",
-        "parameters": [
-          {
-            "name": "mine",
-            "required": false,
-            "in": "query",
-            "description": "`true` — only the actor's own documents (tab «Мої»).",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "true"
-              ]
-            }
-          },
-          {
-            "name": "search",
-            "required": false,
-            "in": "query",
-            "description": "Part of the title.",
-            "schema": {
-              "maxLength": 100,
-              "type": "string"
-            }
-          },
-          {
-            "name": "page",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "maxLength": 6,
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "maxLength": 3,
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaperListDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Paperwork"
-        ]
-      },
-      "post": {
-        "operationId": "PaperworkController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreatePaperDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaperDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Paperwork"
-        ]
-      }
-    },
-    "/api/papers/{id}/copy": {
-      "post": {
-        "operationId": "PaperworkController_copy",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CopyPaperDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaperDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "A copy of a document the actor sees: its own draft, same template version.",
-        "tags": [
-          "Paperwork"
-        ]
-      }
-    },
-    "/api/papers/{id}": {
-      "get": {
-        "operationId": "PaperworkController_get",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaperDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Paperwork"
-        ]
-      },
-      "patch": {
-        "operationId": "PaperworkController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdatePaperDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaperItemDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Answers without the content: the client has just sent it.",
-        "tags": [
-          "Paperwork"
-        ]
-      },
-      "delete": {
-        "operationId": "PaperworkController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Paperwork"
-        ]
-      }
-    },
-    "/api/papers/{id}/print": {
-      "get": {
-        "operationId": "PaperworkController_print",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "HTML page",
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Print-ready A4 page (print or save as PDF in the browser); own CSP, no scripts.",
-        "tags": [
-          "Paperwork"
-        ]
-      }
-    },
     "/api/admin-panel/overview": {
       "get": {
         "operationId": "AdminPanelController_overview",
@@ -6436,10 +6530,22 @@
             "additionalProperties": true,
             "description": "Extra fields: key → value (string, number, boolean or list of item keys)."
           },
+          "submittedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "When it was last sent for review."
+          },
           "completedAt": {
             "format": "date-time",
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "When it was accepted."
+          },
+          "acceptedById": {
+            "type": "string",
+            "nullable": true,
+            "description": "Who accepted it."
           },
           "assignees": {
             "description": "In the order of taking.",
@@ -6477,7 +6583,9 @@
           "status",
           "dueDate",
           "extra",
+          "submittedAt",
           "completedAt",
+          "acceptedById",
           "assignees",
           "id",
           "title",
@@ -6607,10 +6715,22 @@
             "additionalProperties": true,
             "description": "Extra fields: key → value (string, number, boolean or list of item keys)."
           },
+          "submittedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "When it was last sent for review."
+          },
           "completedAt": {
             "format": "date-time",
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "When it was accepted."
+          },
+          "acceptedById": {
+            "type": "string",
+            "nullable": true,
+            "description": "Who accepted it."
           },
           "assignees": {
             "description": "In the order of taking.",
@@ -6662,7 +6782,9 @@
           "status",
           "dueDate",
           "extra",
+          "submittedAt",
           "completedAt",
+          "acceptedById",
           "assignees",
           "comments",
           "files",
@@ -7273,6 +7395,1206 @@
           "archived": {
             "type": "boolean",
             "description": "true — to the archive, false — back."
+          }
+        }
+      },
+      "TemplateKind": {
+        "type": "string",
+        "enum": [
+          "creates",
+          "report",
+          "free"
+        ]
+      },
+      "TemplateCreators": {
+        "type": "string",
+        "enum": [
+          "all",
+          "staff"
+        ]
+      },
+      "PaperVisibility": {
+        "type": "string",
+        "enum": [
+          "author",
+          "members"
+        ],
+        "description": "Visibility of new documents."
+      },
+      "TemplateItemDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TemplateKind"
+              }
+            ]
+          },
+          "target": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "numberPrefix": {
+            "type": "string",
+            "nullable": true
+          },
+          "creators": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TemplateCreators"
+              }
+            ]
+          },
+          "visibility": {
+            "description": "Visibility of new documents.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperVisibility"
+              }
+            ]
+          },
+          "currentVersion": {
+            "type": "number",
+            "nullable": true,
+            "description": "Number of the version new documents are made from; null — none published yet."
+          },
+          "draftVersion": {
+            "type": "number",
+            "nullable": true,
+            "description": "Number of the draft version; always null for members."
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "autoFreeze": {
+            "type": "boolean"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "needsUpdate": {
+            "type": "boolean",
+            "description": "The target's schema changed and a binding of the current version broke: no new documents until a new version is published."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "target",
+          "numberPrefix",
+          "creators",
+          "visibility",
+          "currentVersion",
+          "draftVersion",
+          "id",
+          "title",
+          "autoFreeze",
+          "archived",
+          "needsUpdate",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "TemplateTargetsDto": {
+        "type": "object",
+        "properties": {
+          "creates": {
+            "type": "array",
+            "description": "Types whose records a `creates` template may create (a module registered its adapter).",
+            "items": {
+              "$ref": "#/components/schemas/RecordType"
+            }
+          }
+        },
+        "required": [
+          "creates"
+        ]
+      },
+      "CreateTemplateDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "description": "Cannot be changed later.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TemplateKind"
+              }
+            ]
+          },
+          "target": {
+            "description": "Record type: required for `creates` and `report`, none for `free`. Cannot be changed later.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "creators": {
+            "description": "Default `staff`.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TemplateCreators"
+              }
+            ]
+          },
+          "visibility": {
+            "description": "Visibility of new documents. Default `author`.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperVisibility"
+              }
+            ]
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "numberPrefix": {
+            "type": "string",
+            "description": "Without it documents get no number."
+          },
+          "autoFreeze": {
+            "type": "boolean",
+            "description": "`creates` only. Default false."
+          }
+        },
+        "required": [
+          "kind",
+          "title"
+        ]
+      },
+      "TemplateVersionRowDto": {
+        "type": "object",
+        "properties": {
+          "publishedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "null — a draft."
+          },
+          "publishedBy": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserRefDto"
+              }
+            ]
+          },
+          "documents": {
+            "type": "number",
+            "nullable": true,
+            "description": "Documents made from the version; null for members."
+          },
+          "number": {
+            "type": "number"
+          },
+          "revision": {
+            "type": "number",
+            "description": "Send it with the next save of the draft (PATCH)."
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "publishedAt",
+          "publishedBy",
+          "documents",
+          "number",
+          "revision",
+          "updatedAt"
+        ]
+      },
+      "TemplateDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TemplateKind"
+              }
+            ]
+          },
+          "target": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "numberPrefix": {
+            "type": "string",
+            "nullable": true
+          },
+          "creators": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TemplateCreators"
+              }
+            ]
+          },
+          "visibility": {
+            "description": "Visibility of new documents.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperVisibility"
+              }
+            ]
+          },
+          "currentVersion": {
+            "type": "number",
+            "nullable": true,
+            "description": "Number of the version new documents are made from; null — none published yet."
+          },
+          "draftVersion": {
+            "type": "number",
+            "nullable": true,
+            "description": "Number of the draft version; always null for members."
+          },
+          "versions": {
+            "description": "Newest first. Members get only the current version.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplateVersionRowDto"
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "autoFreeze": {
+            "type": "boolean"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "needsUpdate": {
+            "type": "boolean",
+            "description": "The target's schema changed and a binding of the current version broke: no new documents until a new version is published."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "target",
+          "numberPrefix",
+          "creators",
+          "visibility",
+          "currentVersion",
+          "draftVersion",
+          "versions",
+          "id",
+          "title",
+          "autoFreeze",
+          "archived",
+          "needsUpdate",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateTemplateDto": {
+        "type": "object",
+        "properties": {
+          "numberPrefix": {
+            "type": "string",
+            "nullable": true,
+            "description": "null — documents get no number."
+          },
+          "creators": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TemplateCreators"
+              }
+            ]
+          },
+          "visibility": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperVisibility"
+              }
+            ]
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "autoFreeze": {
+            "type": "boolean"
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "true — to the archive (no new documents), false — back."
+          }
+        }
+      },
+      "TemplateFieldFiller": {
+        "type": "string",
+        "enum": [
+          "author",
+          "staff"
+        ],
+        "description": "`author` — the author of the document; `staff` — a moderator or the admin."
+      },
+      "TemplateFieldDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "description": "`text`, `richtext`, `int`, …, `ref:<record type>` or `list<…>` of one of them.",
+            "enum": [
+              "text",
+              "richtext",
+              "int",
+              "decimal",
+              "date",
+              "datetime",
+              "bool",
+              "enum",
+              "color",
+              "ref:user",
+              "ref:task",
+              "ref:project",
+              "ref:place",
+              "ref:inventory_item",
+              "ref:discipline_record",
+              "ref:points_entry",
+              "ref:session",
+              "ref:fault",
+              "ref:place_authorization",
+              "ref:document",
+              "ref:paper",
+              "list<text>",
+              "list<richtext>",
+              "list<int>",
+              "list<decimal>",
+              "list<date>",
+              "list<datetime>",
+              "list<bool>",
+              "list<enum>",
+              "list<color>",
+              "list<ref:user>",
+              "list<ref:task>",
+              "list<ref:project>",
+              "list<ref:place>",
+              "list<ref:inventory_item>",
+              "list<ref:discipline_record>",
+              "list<ref:points_entry>",
+              "list<ref:session>",
+              "list<ref:fault>",
+              "list<ref:place_authorization>",
+              "list<ref:document>",
+              "list<ref:paper>"
+            ],
+            "type": "string"
+          },
+          "fill": {
+            "description": "`author` — the author of the document; `staff` — a moderator or the admin.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TemplateFieldFiller"
+              }
+            ]
+          },
+          "binding": {
+            "type": "string",
+            "nullable": true,
+            "description": "Key of a field of the target's schema (`/records/:type/schema`); null — not bound.",
+            "maxLength": 40
+          },
+          "min": {
+            "type": "number",
+            "nullable": true,
+            "description": "int, decimal.",
+            "minimum": -1000000000,
+            "maximum": 1000000000
+          },
+          "max": {
+            "type": "number",
+            "nullable": true,
+            "minimum": -1000000000,
+            "maximum": 1000000000
+          },
+          "maxLength": {
+            "type": "number",
+            "nullable": true,
+            "description": "text, richtext, list<text>.",
+            "minimum": 1,
+            "maximum": 20000
+          },
+          "maxItems": {
+            "type": "number",
+            "nullable": true,
+            "description": "list<…>.",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "dictionary": {
+            "type": "string",
+            "nullable": true,
+            "description": "enum, list<enum> not bound: key of the dictionary of its values.",
+            "maxLength": 40
+          },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "editable": {
+            "type": "boolean",
+            "description": "May be changed after the document is published."
+          },
+          "print": {
+            "type": "boolean",
+            "description": "Shown in the print."
+          }
+        },
+        "required": [
+          "type",
+          "fill",
+          "key",
+          "label",
+          "required",
+          "editable",
+          "print"
+        ]
+      },
+      "TemplateVersionDto": {
+        "type": "object",
+        "properties": {
+          "publishedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "null — a draft."
+          },
+          "publishedBy": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserRefDto"
+              }
+            ]
+          },
+          "body": {
+            "type": "object",
+            "description": "ProseMirror document.",
+            "additionalProperties": true
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplateFieldDto"
+            }
+          },
+          "schemaVersion": {
+            "type": "string",
+            "nullable": true,
+            "description": "Version of the target's schema the bindings were checked against when published."
+          },
+          "templateId": {
+            "type": "string"
+          },
+          "number": {
+            "type": "number"
+          },
+          "revision": {
+            "type": "number",
+            "description": "Send it with the next save of the draft (PATCH)."
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "publishedAt",
+          "publishedBy",
+          "body",
+          "fields",
+          "schemaVersion",
+          "templateId",
+          "number",
+          "revision",
+          "updatedAt"
+        ]
+      },
+      "UpdateTemplateVersionDto": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object",
+            "description": "ProseMirror document.",
+            "additionalProperties": true
+          },
+          "fields": {
+            "description": "Every field of the version, in order.",
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplateFieldDto"
+            }
+          },
+          "revision": {
+            "type": "number",
+            "description": "The revision the change is based on; another one — 409 PAPER_CONFLICT.",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "revision"
+        ]
+      },
+      "TemplateVersionItemDto": {
+        "type": "object",
+        "properties": {
+          "publishedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "null — a draft."
+          },
+          "publishedBy": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserRefDto"
+              }
+            ]
+          },
+          "number": {
+            "type": "number"
+          },
+          "revision": {
+            "type": "number",
+            "description": "Send it with the next save of the draft (PATCH)."
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "publishedAt",
+          "publishedBy",
+          "number",
+          "revision",
+          "updatedAt"
+        ]
+      },
+      "PaperFieldOptionDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "Stays where already chosen; not offered."
+          }
+        },
+        "required": [
+          "key",
+          "label"
+        ]
+      },
+      "PaperFieldDto": {
+        "type": "object",
+        "properties": {
+          "fill": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TemplateFieldFiller"
+              }
+            ]
+          },
+          "min": {
+            "type": "number",
+            "nullable": true,
+            "description": "Limits: the template's and the bound field's of the record, the tighter."
+          },
+          "max": {
+            "type": "number",
+            "nullable": true
+          },
+          "maxLength": {
+            "type": "number",
+            "nullable": true
+          },
+          "maxItems": {
+            "type": "number",
+            "nullable": true
+          },
+          "scale": {
+            "type": "number",
+            "nullable": true,
+            "description": "decimal: digits after the point (null — 2)."
+          },
+          "options": {
+            "nullable": true,
+            "description": "enum, list<enum>: the choices in order; null for other types.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaperFieldOptionDto"
+            }
+          },
+          "binding": {
+            "type": "string",
+            "nullable": true,
+            "description": "Key of the record's field it is bound to; once published it shows the record as it is now."
+          },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "description": "`text`, `int`, …, `ref:<record type>`, `list<…>`; `richtext` — a zone on the sheet."
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "editable": {
+            "type": "boolean",
+            "description": "May be changed after the document is published."
+          },
+          "print": {
+            "type": "boolean",
+            "description": "Shown in the print."
+          },
+          "plain": {
+            "type": "boolean",
+            "description": "A zone of plain paragraphs (bound to a text field of the record)."
+          },
+          "canFill": {
+            "type": "boolean",
+            "description": "The actor may fill it now."
+          }
+        },
+        "required": [
+          "fill",
+          "min",
+          "max",
+          "maxLength",
+          "maxItems",
+          "scale",
+          "options",
+          "binding",
+          "key",
+          "label",
+          "type",
+          "required",
+          "editable",
+          "print",
+          "plain",
+          "canFill"
+        ]
+      },
+      "PaperTemplateRefDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "description": "`creates` — publishing creates a record of `target`.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TemplateKind"
+              }
+            ]
+          },
+          "target": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaperFieldDto"
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "version": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "target",
+          "fields",
+          "id",
+          "title",
+          "version"
+        ]
+      },
+      "PaperStatus": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "published",
+          "frozen",
+          "signed",
+          "cancelled"
+        ]
+      },
+      "PaperItemDto": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string",
+            "nullable": true,
+            "description": "`ТЗ-2026-014`: given when published, if the template has a prefix."
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperStatus"
+              }
+            ]
+          },
+          "visibility": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperVisibility"
+              }
+            ]
+          },
+          "publishedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "author": {
+            "$ref": "#/components/schemas/UserRefDto"
+          },
+          "revision": {
+            "type": "number",
+            "description": "Send it with the next change (PATCH)."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "number",
+          "status",
+          "visibility",
+          "publishedAt",
+          "id",
+          "title",
+          "author",
+          "revision",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PaperListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaperItemDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit"
+        ]
+      },
+      "CreatePaperDto": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "object",
+            "description": "ProseMirror document; without it — one empty paragraph. Not with `templateId`.",
+            "additionalProperties": true
+          },
+          "title": {
+            "type": "string",
+            "description": "Without a title — «Без назви» (from a template — its title).",
+            "maxLength": 200
+          },
+          "templateId": {
+            "type": "string",
+            "description": "Make the document from the template's current version (its body, its fields).",
+            "format": "uuid"
+          }
+        }
+      },
+      "PaperRefDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "code": {
+            "type": "string",
+            "description": "QR code, for records opened by it (equipment, inventory)."
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "The record is in the archive (a member — blocked, a document — cancelled)."
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "title",
+          "archived"
+        ]
+      },
+      "PaperDto": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string",
+            "nullable": true,
+            "description": "`ТЗ-2026-014`: given when published, if the template has a prefix."
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperStatus"
+              }
+            ]
+          },
+          "visibility": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperVisibility"
+              }
+            ]
+          },
+          "publishedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "content": {
+            "type": "object",
+            "description": "ProseMirror document.",
+            "additionalProperties": true
+          },
+          "values": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Values of the template's fields by key."
+          },
+          "template": {
+            "nullable": true,
+            "description": "null — a free document.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperTemplateRefDto"
+              }
+            ]
+          },
+          "refs": {
+            "description": "Records of `ref:*` values and «@» in the text the reader sees. One\nnot here — not seen, or deleted: «запис недоступний».",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaperRefDto"
+            }
+          },
+          "targetType": {
+            "nullable": true,
+            "description": "The record the document created; it stays when the record is gone (cancelled).",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "targetId": {
+            "type": "string",
+            "nullable": true
+          },
+          "cancelReason": {
+            "type": "string",
+            "nullable": true,
+            "description": "Why it was cancelled."
+          },
+          "canEdit": {
+            "type": "boolean",
+            "description": "The actor may change and delete it: their own draft (admin — any)."
+          },
+          "canPublish": {
+            "type": "boolean",
+            "description": "The actor may publish it (a draft: their own, staff — any). A document\nthat creates a record also needs the record's right (checked on publishing)."
+          },
+          "canCancel": {
+            "type": "boolean",
+            "description": "The actor may cancel it (published: their own, staff — any; the record's rule — on cancelling)."
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "author": {
+            "$ref": "#/components/schemas/UserRefDto"
+          },
+          "revision": {
+            "type": "number",
+            "description": "Send it with the next change (PATCH)."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "number",
+          "status",
+          "visibility",
+          "publishedAt",
+          "content",
+          "values",
+          "template",
+          "refs",
+          "targetType",
+          "targetId",
+          "cancelReason",
+          "canEdit",
+          "canPublish",
+          "canCancel",
+          "id",
+          "title",
+          "author",
+          "revision",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CopyPaperDto": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "values": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Field key → value; keys left out are emptied"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "content"
+        ]
+      },
+      "CancelPaperDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Why: kept on the document and in the audit.",
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "UpdatePaperDto": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "values": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Field key → value; keys left out are emptied"
+          },
+          "revision": {
+            "type": "number",
+            "description": "The revision the change is based on; another one — 409 PAPER_CONFLICT.",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "visibility": {
+            "type": "string",
+            "description": "Staff only. Takes effect once the document is published.",
+            "enum": [
+              "author",
+              "members"
+            ]
+          }
+        },
+        "required": [
+          "revision"
+        ]
+      },
+      "OrgSignerDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "false — blocked: staff should pick another signer."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "active"
+        ]
+      },
+      "OrgSettingsDto": {
+        "type": "object",
+        "properties": {
+          "signer": {
+            "nullable": true,
+            "description": "Default signer of documents; null — not chosen.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrgSignerDto"
+              }
+            ]
+          },
+          "institution": {
+            "type": "string",
+            "description": "Document header, printed as stored."
+          },
+          "groupName": {
+            "type": "string"
+          },
+          "signerPosition": {
+            "type": "string",
+            "description": "Printed under the signature."
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signer",
+          "institution",
+          "groupName",
+          "signerPosition",
+          "updatedAt"
+        ]
+      },
+      "UpdateOrgSettingsDto": {
+        "type": "object",
+        "properties": {
+          "institution": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "groupName": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "signerId": {
+            "type": "string",
+            "nullable": true,
+            "description": "An active user; null — no default signer.",
+            "format": "uuid"
+          },
+          "signerPosition": {
+            "type": "string",
+            "maxLength": 200
           }
         }
       },
@@ -9567,1099 +10889,6 @@
             "type": "boolean"
           }
         }
-      },
-      "OrgSignerDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "active": {
-            "type": "boolean",
-            "description": "false — blocked: staff should pick another signer."
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "active"
-        ]
-      },
-      "OrgSettingsDto": {
-        "type": "object",
-        "properties": {
-          "signer": {
-            "nullable": true,
-            "description": "Default signer of documents; null — not chosen.",
-            "type": "object",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/OrgSignerDto"
-              }
-            ]
-          },
-          "institution": {
-            "type": "string",
-            "description": "Document header, printed as stored."
-          },
-          "groupName": {
-            "type": "string"
-          },
-          "signerPosition": {
-            "type": "string",
-            "description": "Printed under the signature."
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "signer",
-          "institution",
-          "groupName",
-          "signerPosition",
-          "updatedAt"
-        ]
-      },
-      "UpdateOrgSettingsDto": {
-        "type": "object",
-        "properties": {
-          "institution": {
-            "type": "string",
-            "maxLength": 200
-          },
-          "groupName": {
-            "type": "string",
-            "maxLength": 200
-          },
-          "signerId": {
-            "type": "string",
-            "nullable": true,
-            "description": "An active user; null — no default signer.",
-            "format": "uuid"
-          },
-          "signerPosition": {
-            "type": "string",
-            "maxLength": 200
-          }
-        }
-      },
-      "TemplateKind": {
-        "type": "string",
-        "enum": [
-          "creates",
-          "report",
-          "free"
-        ]
-      },
-      "TemplateCreators": {
-        "type": "string",
-        "enum": [
-          "all",
-          "staff"
-        ]
-      },
-      "PaperVisibility": {
-        "type": "string",
-        "enum": [
-          "author",
-          "members"
-        ],
-        "description": "Visibility of new documents."
-      },
-      "TemplateItemDto": {
-        "type": "object",
-        "properties": {
-          "kind": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TemplateKind"
-              }
-            ]
-          },
-          "target": {
-            "nullable": true,
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RecordType"
-              }
-            ]
-          },
-          "numberPrefix": {
-            "type": "string",
-            "nullable": true
-          },
-          "creators": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TemplateCreators"
-              }
-            ]
-          },
-          "visibility": {
-            "description": "Visibility of new documents.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PaperVisibility"
-              }
-            ]
-          },
-          "currentVersion": {
-            "type": "number",
-            "nullable": true,
-            "description": "Number of the version new documents are made from; null — none published yet."
-          },
-          "draftVersion": {
-            "type": "number",
-            "nullable": true,
-            "description": "Number of the draft version; always null for members."
-          },
-          "id": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "autoFreeze": {
-            "type": "boolean"
-          },
-          "archived": {
-            "type": "boolean"
-          },
-          "needsUpdate": {
-            "type": "boolean",
-            "description": "The target's schema changed and a binding of the current version broke: no new documents until a new version is published."
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "kind",
-          "target",
-          "numberPrefix",
-          "creators",
-          "visibility",
-          "currentVersion",
-          "draftVersion",
-          "id",
-          "title",
-          "autoFreeze",
-          "archived",
-          "needsUpdate",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "CreateTemplateDto": {
-        "type": "object",
-        "properties": {
-          "kind": {
-            "description": "Cannot be changed later.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TemplateKind"
-              }
-            ]
-          },
-          "target": {
-            "description": "Record type: required for `creates` and `report`, none for `free`. Cannot be changed later.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RecordType"
-              }
-            ]
-          },
-          "creators": {
-            "description": "Default `staff`.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TemplateCreators"
-              }
-            ]
-          },
-          "visibility": {
-            "description": "Visibility of new documents. Default `author`.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PaperVisibility"
-              }
-            ]
-          },
-          "title": {
-            "type": "string",
-            "maxLength": 200
-          },
-          "numberPrefix": {
-            "type": "string",
-            "description": "Without it documents get no number."
-          },
-          "autoFreeze": {
-            "type": "boolean",
-            "description": "`creates` only. Default false."
-          }
-        },
-        "required": [
-          "kind",
-          "title"
-        ]
-      },
-      "TemplateVersionRowDto": {
-        "type": "object",
-        "properties": {
-          "publishedAt": {
-            "format": "date-time",
-            "type": "string",
-            "nullable": true,
-            "description": "null — a draft."
-          },
-          "publishedBy": {
-            "nullable": true,
-            "type": "object",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/UserRefDto"
-              }
-            ]
-          },
-          "documents": {
-            "type": "number",
-            "nullable": true,
-            "description": "Documents made from the version; null for members."
-          },
-          "number": {
-            "type": "number"
-          },
-          "revision": {
-            "type": "number",
-            "description": "Send it with the next save of the draft (PATCH)."
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "publishedAt",
-          "publishedBy",
-          "documents",
-          "number",
-          "revision",
-          "updatedAt"
-        ]
-      },
-      "TemplateDto": {
-        "type": "object",
-        "properties": {
-          "kind": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TemplateKind"
-              }
-            ]
-          },
-          "target": {
-            "nullable": true,
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RecordType"
-              }
-            ]
-          },
-          "numberPrefix": {
-            "type": "string",
-            "nullable": true
-          },
-          "creators": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TemplateCreators"
-              }
-            ]
-          },
-          "visibility": {
-            "description": "Visibility of new documents.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PaperVisibility"
-              }
-            ]
-          },
-          "currentVersion": {
-            "type": "number",
-            "nullable": true,
-            "description": "Number of the version new documents are made from; null — none published yet."
-          },
-          "draftVersion": {
-            "type": "number",
-            "nullable": true,
-            "description": "Number of the draft version; always null for members."
-          },
-          "versions": {
-            "description": "Newest first. Members get only the current version.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TemplateVersionRowDto"
-            }
-          },
-          "id": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "autoFreeze": {
-            "type": "boolean"
-          },
-          "archived": {
-            "type": "boolean"
-          },
-          "needsUpdate": {
-            "type": "boolean",
-            "description": "The target's schema changed and a binding of the current version broke: no new documents until a new version is published."
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "kind",
-          "target",
-          "numberPrefix",
-          "creators",
-          "visibility",
-          "currentVersion",
-          "draftVersion",
-          "versions",
-          "id",
-          "title",
-          "autoFreeze",
-          "archived",
-          "needsUpdate",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "UpdateTemplateDto": {
-        "type": "object",
-        "properties": {
-          "numberPrefix": {
-            "type": "string",
-            "nullable": true,
-            "description": "null — documents get no number."
-          },
-          "creators": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TemplateCreators"
-              }
-            ]
-          },
-          "visibility": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PaperVisibility"
-              }
-            ]
-          },
-          "title": {
-            "type": "string",
-            "maxLength": 200
-          },
-          "autoFreeze": {
-            "type": "boolean"
-          },
-          "archived": {
-            "type": "boolean",
-            "description": "true — to the archive (no new documents), false — back."
-          }
-        }
-      },
-      "TemplateFieldFiller": {
-        "type": "string",
-        "enum": [
-          "author",
-          "staff"
-        ],
-        "description": "`author` — the author of the document; `staff` — a moderator or the admin."
-      },
-      "TemplateFieldDto": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "description": "`text`, `richtext`, `int`, …, `ref:<record type>` or `list<…>` of one of them.",
-            "enum": [
-              "text",
-              "richtext",
-              "int",
-              "decimal",
-              "date",
-              "datetime",
-              "bool",
-              "enum",
-              "color",
-              "ref:user",
-              "ref:task",
-              "ref:project",
-              "ref:place",
-              "ref:inventory_item",
-              "ref:discipline_record",
-              "ref:points_entry",
-              "ref:session",
-              "ref:fault",
-              "ref:place_authorization",
-              "ref:document",
-              "ref:paper",
-              "list<text>",
-              "list<richtext>",
-              "list<int>",
-              "list<decimal>",
-              "list<date>",
-              "list<datetime>",
-              "list<bool>",
-              "list<enum>",
-              "list<color>",
-              "list<ref:user>",
-              "list<ref:task>",
-              "list<ref:project>",
-              "list<ref:place>",
-              "list<ref:inventory_item>",
-              "list<ref:discipline_record>",
-              "list<ref:points_entry>",
-              "list<ref:session>",
-              "list<ref:fault>",
-              "list<ref:place_authorization>",
-              "list<ref:document>",
-              "list<ref:paper>"
-            ],
-            "type": "string"
-          },
-          "fill": {
-            "description": "`author` — the author of the document; `staff` — a moderator or the admin.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TemplateFieldFiller"
-              }
-            ]
-          },
-          "binding": {
-            "type": "string",
-            "nullable": true,
-            "description": "Key of a field of the target's schema (`/records/:type/schema`); null — not bound.",
-            "maxLength": 40
-          },
-          "min": {
-            "type": "number",
-            "nullable": true,
-            "description": "int, decimal.",
-            "minimum": -1000000000,
-            "maximum": 1000000000
-          },
-          "max": {
-            "type": "number",
-            "nullable": true,
-            "minimum": -1000000000,
-            "maximum": 1000000000
-          },
-          "maxLength": {
-            "type": "number",
-            "nullable": true,
-            "description": "text, richtext, list<text>.",
-            "minimum": 1,
-            "maximum": 20000
-          },
-          "maxItems": {
-            "type": "number",
-            "nullable": true,
-            "description": "list<…>.",
-            "minimum": 1,
-            "maximum": 100
-          },
-          "dictionary": {
-            "type": "string",
-            "nullable": true,
-            "description": "enum, list<enum> not bound: key of the dictionary of its values.",
-            "maxLength": 40
-          },
-          "key": {
-            "type": "string"
-          },
-          "label": {
-            "type": "string",
-            "maxLength": 100
-          },
-          "required": {
-            "type": "boolean"
-          },
-          "editable": {
-            "type": "boolean",
-            "description": "May be changed after the document is published."
-          },
-          "print": {
-            "type": "boolean",
-            "description": "Shown in the print."
-          }
-        },
-        "required": [
-          "type",
-          "fill",
-          "key",
-          "label",
-          "required",
-          "editable",
-          "print"
-        ]
-      },
-      "TemplateVersionDto": {
-        "type": "object",
-        "properties": {
-          "publishedAt": {
-            "format": "date-time",
-            "type": "string",
-            "nullable": true,
-            "description": "null — a draft."
-          },
-          "publishedBy": {
-            "nullable": true,
-            "type": "object",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/UserRefDto"
-              }
-            ]
-          },
-          "body": {
-            "type": "object",
-            "description": "ProseMirror document.",
-            "additionalProperties": true
-          },
-          "fields": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TemplateFieldDto"
-            }
-          },
-          "schemaVersion": {
-            "type": "string",
-            "nullable": true,
-            "description": "Version of the target's schema the bindings were checked against when published."
-          },
-          "templateId": {
-            "type": "string"
-          },
-          "number": {
-            "type": "number"
-          },
-          "revision": {
-            "type": "number",
-            "description": "Send it with the next save of the draft (PATCH)."
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "publishedAt",
-          "publishedBy",
-          "body",
-          "fields",
-          "schemaVersion",
-          "templateId",
-          "number",
-          "revision",
-          "updatedAt"
-        ]
-      },
-      "UpdateTemplateVersionDto": {
-        "type": "object",
-        "properties": {
-          "body": {
-            "type": "object",
-            "description": "ProseMirror document.",
-            "additionalProperties": true
-          },
-          "fields": {
-            "description": "Every field of the version, in order.",
-            "maxItems": 200,
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TemplateFieldDto"
-            }
-          },
-          "revision": {
-            "type": "number",
-            "description": "The revision the change is based on; another one — 409 PAPER_CONFLICT.",
-            "minimum": 1
-          }
-        },
-        "required": [
-          "revision"
-        ]
-      },
-      "TemplateVersionItemDto": {
-        "type": "object",
-        "properties": {
-          "publishedAt": {
-            "format": "date-time",
-            "type": "string",
-            "nullable": true,
-            "description": "null — a draft."
-          },
-          "publishedBy": {
-            "nullable": true,
-            "type": "object",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/UserRefDto"
-              }
-            ]
-          },
-          "number": {
-            "type": "number"
-          },
-          "revision": {
-            "type": "number",
-            "description": "Send it with the next save of the draft (PATCH)."
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "publishedAt",
-          "publishedBy",
-          "number",
-          "revision",
-          "updatedAt"
-        ]
-      },
-      "PaperFieldOptionDto": {
-        "type": "object",
-        "properties": {
-          "key": {
-            "type": "string"
-          },
-          "label": {
-            "type": "string"
-          },
-          "archived": {
-            "type": "boolean",
-            "description": "Stays where already chosen; not offered."
-          }
-        },
-        "required": [
-          "key",
-          "label"
-        ]
-      },
-      "PaperFieldDto": {
-        "type": "object",
-        "properties": {
-          "fill": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TemplateFieldFiller"
-              }
-            ]
-          },
-          "min": {
-            "type": "number",
-            "nullable": true,
-            "description": "Limits: the template's and the bound field's of the record, the tighter."
-          },
-          "max": {
-            "type": "number",
-            "nullable": true
-          },
-          "maxLength": {
-            "type": "number",
-            "nullable": true
-          },
-          "maxItems": {
-            "type": "number",
-            "nullable": true
-          },
-          "scale": {
-            "type": "number",
-            "nullable": true,
-            "description": "decimal: digits after the point (null — 2)."
-          },
-          "options": {
-            "nullable": true,
-            "description": "enum, list<enum>: the choices in order; null for other types.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PaperFieldOptionDto"
-            }
-          },
-          "key": {
-            "type": "string"
-          },
-          "label": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "description": "`text`, `int`, …, `ref:<record type>`, `list<…>`; `richtext` — a zone on the sheet."
-          },
-          "required": {
-            "type": "boolean"
-          },
-          "editable": {
-            "type": "boolean",
-            "description": "May be changed after the document is published."
-          },
-          "print": {
-            "type": "boolean",
-            "description": "Shown in the print."
-          },
-          "plain": {
-            "type": "boolean",
-            "description": "A zone of plain paragraphs (bound to a text field of the record)."
-          },
-          "canFill": {
-            "type": "boolean",
-            "description": "The actor may fill it now."
-          }
-        },
-        "required": [
-          "fill",
-          "min",
-          "max",
-          "maxLength",
-          "maxItems",
-          "scale",
-          "options",
-          "key",
-          "label",
-          "type",
-          "required",
-          "editable",
-          "print",
-          "plain",
-          "canFill"
-        ]
-      },
-      "PaperTemplateRefDto": {
-        "type": "object",
-        "properties": {
-          "fields": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PaperFieldDto"
-            }
-          },
-          "id": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "version": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "fields",
-          "id",
-          "title",
-          "version"
-        ]
-      },
-      "PaperStatus": {
-        "type": "string",
-        "enum": [
-          "draft",
-          "published",
-          "frozen",
-          "signed",
-          "cancelled"
-        ]
-      },
-      "PaperItemDto": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PaperStatus"
-              }
-            ]
-          },
-          "visibility": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PaperVisibility"
-              }
-            ]
-          },
-          "id": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "author": {
-            "$ref": "#/components/schemas/UserRefDto"
-          },
-          "revision": {
-            "type": "number",
-            "description": "Send it with the next change (PATCH)."
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "status",
-          "visibility",
-          "id",
-          "title",
-          "author",
-          "revision",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "PaperListDto": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PaperItemDto"
-            }
-          },
-          "total": {
-            "type": "number"
-          },
-          "page": {
-            "type": "number"
-          },
-          "limit": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "items",
-          "total",
-          "page",
-          "limit"
-        ]
-      },
-      "CreatePaperDto": {
-        "type": "object",
-        "properties": {
-          "content": {
-            "type": "object",
-            "description": "ProseMirror document; without it — one empty paragraph. Not with `templateId`.",
-            "additionalProperties": true
-          },
-          "title": {
-            "type": "string",
-            "description": "Without a title — «Без назви» (from a template — its title).",
-            "maxLength": 200
-          },
-          "templateId": {
-            "type": "string",
-            "description": "Make the document from the template's current version (its body, its fields).",
-            "format": "uuid"
-          }
-        }
-      },
-      "PaperRefDto": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RecordType"
-              }
-            ]
-          },
-          "code": {
-            "type": "string",
-            "description": "QR code, for records opened by it (equipment, inventory)."
-          },
-          "id": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "archived": {
-            "type": "boolean",
-            "description": "The record is in the archive (a member — blocked, a document — cancelled)."
-          }
-        },
-        "required": [
-          "type",
-          "id",
-          "title",
-          "archived"
-        ]
-      },
-      "PaperDto": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PaperStatus"
-              }
-            ]
-          },
-          "visibility": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PaperVisibility"
-              }
-            ]
-          },
-          "content": {
-            "type": "object",
-            "description": "ProseMirror document.",
-            "additionalProperties": true
-          },
-          "values": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "Values of the template's fields by key."
-          },
-          "template": {
-            "nullable": true,
-            "description": "null — a free document.",
-            "type": "object",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PaperTemplateRefDto"
-              }
-            ]
-          },
-          "refs": {
-            "description": "Records of `ref:*` values and «@» in the text the reader sees. One\nnot here — not seen, or deleted: «запис недоступний».",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PaperRefDto"
-            }
-          },
-          "canEdit": {
-            "type": "boolean",
-            "description": "The actor may change and delete it: their own draft (admin — any)."
-          },
-          "id": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "author": {
-            "$ref": "#/components/schemas/UserRefDto"
-          },
-          "revision": {
-            "type": "number",
-            "description": "Send it with the next change (PATCH)."
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "status",
-          "visibility",
-          "content",
-          "values",
-          "template",
-          "refs",
-          "canEdit",
-          "id",
-          "title",
-          "author",
-          "revision",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "CopyPaperDto": {
-        "type": "object",
-        "properties": {
-          "content": {
-            "type": "object",
-            "additionalProperties": true
-          },
-          "values": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "Field key → value; keys left out are emptied"
-          },
-          "title": {
-            "type": "string",
-            "maxLength": 200
-          }
-        },
-        "required": [
-          "content"
-        ]
-      },
-      "UpdatePaperDto": {
-        "type": "object",
-        "properties": {
-          "content": {
-            "type": "object",
-            "additionalProperties": true
-          },
-          "values": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "Field key → value; keys left out are emptied"
-          },
-          "revision": {
-            "type": "number",
-            "description": "The revision the change is based on; another one — 409 PAPER_CONFLICT.",
-            "minimum": 1
-          },
-          "title": {
-            "type": "string",
-            "maxLength": 200
-          },
-          "visibility": {
-            "type": "string",
-            "description": "Staff only. Takes effect once the document is published.",
-            "enum": [
-              "author",
-              "members"
-            ]
-          }
-        },
-        "required": [
-          "revision"
-        ]
       },
       "ContainerDto": {
         "type": "object",

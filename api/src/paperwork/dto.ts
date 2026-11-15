@@ -113,3 +113,11 @@ export class ListPapersQuery {
   @MaxLength(3)
   limit?: string;
 }
+
+export class CancelPaperDto {
+  /** Why: kept on the document and in the audit. */
+  @IsString()
+  @Matches(NOT_BLANK)
+  @MaxLength(1000)
+  reason: string;
+}

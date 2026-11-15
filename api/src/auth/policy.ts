@@ -115,6 +115,8 @@ export enum Action {
   PapersEdit = 'papers.edit',
   PapersVisibility = 'papers.visibility',
   PapersFillStaff = 'papers.fill_staff',
+  PapersPublish = 'papers.publish',
+  PapersCancel = 'papers.cancel',
   PaperTemplatesRead = 'paper_templates.read',
   PaperTemplatesManage = 'paper_templates.manage',
 
@@ -226,6 +228,10 @@ export const ROLES: Record<Action, readonly Role[]> = {
   [Action.PapersVisibility]: STAFF,
   // Fields of a template marked «заповнює модератор» (`fill: staff`).
   [Action.PapersFillStaff]: STAFF,
+  // A member — own documents; staff — any. A document that creates a record
+  // also needs the record's own right (its adapter checks it).
+  [Action.PapersPublish]: ALL,
+  [Action.PapersCancel]: ALL,
   // Members see only published templates open to all (service).
   [Action.PaperTemplatesRead]: ALL,
   [Action.PaperTemplatesManage]: STAFF,
@@ -338,6 +344,8 @@ const REFINE: Partial<Record<Action, Refine>> = {
       : Deny.NotOwner,
   // Change or delete a draft: its author; the admin — any.
   [Action.PapersEdit]: ownRecordForNonAdmin,
+  [Action.PapersPublish]: ownRecordForMember,
+  [Action.PapersCancel]: ownRecordForMember,
 };
 
 export function roleAllowed(role: string, action: Action): boolean {

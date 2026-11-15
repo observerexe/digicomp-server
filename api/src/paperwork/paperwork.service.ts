@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -11,6 +12,7 @@ import { Action, Actor, assertCan, can } from '../auth/policy';
 import { escapeLike } from '../common/like';
 import { LinkRegistry } from '../links/link-registry';
 import { removeLinksOf } from '../links/links.sql';
+import { RecordLink } from '../links/record-link.entity';
 import { OrgService } from '../org/org.service';
 import { RecordFieldsService } from '../records/record-fields.service';
 import type { RecordType } from '../records/field-types';
@@ -18,23 +20,37 @@ import { User } from '../users/user.entity';
 import type { OkDto, Plain } from '../common/responses.dto';
 import {
   EMPTY_CONTENT,
+  isFillable,
+  normalizeValue,
   valueText,
+  withZoneText,
+  zonesOf,
+  zoneText,
   type FieldValues,
   type PaperContent,
 } from './content';
+import { PaperAdapterRegistry, type RecordValues } from './adapters';
 import type {
+  CancelPaperDto,
   CopyPaperDto,
   CreatePaperDto,
   ListPapersQuery,
   UpdatePaperDto,
 } from './dto';
 import { Paper, PaperStatus, PaperVisibility } from './paper.entity';
-import { whereSeen } from './paper.links';
-import { checkNewRefs, fillableType, seenRefs, syncLinks } from './paper-refs';
+import { seenThroughTarget, whereSeen } from './paper.links';
+import {
+  checkNewRefs,
+  fillableType,
+  seenRefs,
+  syncLinks,
+  TARGET_ROLE,
+} from './paper-refs';
 import {
   checkContent,
   checkValues,
   fieldInvalid,
+  PaperFieldErrors,
   resolveFields,
   type PaperField,
 } from './paper-fields';
@@ -46,10 +62,31 @@ import type {
   PaperListDto,
   PaperRefDto,
 } from './responses.dto';
-import { PaperTemplate, PaperTemplateVersion } from './template.entities';
+import {
+  PaperTemplate,
+  PaperTemplateVersion,
+  TemplateKind,
+} from './template.entities';
 import { TemplatesService } from './templates.service';
 
 const UNTITLED = 'Без назви';
+
+/** Messages mapped to stable errorCode in common/http-exception.filter.ts. */
+export const PaperErrors = {
+  NotDraft: 'Paper is not a draft',
+  NotPublished: 'Paper is not published',
+  RequiredMissing: 'Required paper field is missing',
+} as const;
+
+/** Published, not cancelled: it shows its record as it is now. */
+const LIVE = new Set([
+  PaperStatus.Published,
+  PaperStatus.Frozen,
+  PaperStatus.Signed,
+]);
+
+/** Text and values as the document shows them (bound fields — from the record). */
+type Shown = { content: PaperContent; values: FieldValues };
 
 /** Seen by every member: published (or later) and visible to all. */
 function isShared(p: Paper) {
@@ -62,6 +99,7 @@ function itemView(p: Paper): Plain<PaperItemDto> {
   return {
     id: p.id,
     title: p.title,
+    number: p.number,
     status: p.status,
     visibility: p.visibility,
     author: {
@@ -70,6 +108,7 @@ function itemView(p: Paper): Plain<PaperItemDto> {
       avatarUrl: p.author?.avatarUrl ?? null,
     },
     revision: p.revision,
+    publishedAt: p.publishedAt,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
   };
@@ -80,6 +119,81 @@ function canEdit(p: Paper, actor: Actor) {
     p.status === PaperStatus.Draft &&
     can(actor, Action.PapersEdit, { ownerId: p.authorId })
   );
+}
+
+/** A zone's text; '' — empty. */
+function zoneOf(content: PaperContent, key: string) {
+  const zone = zonesOf(content).find((z) => z.attrs?.key === key);
+  return zone ? zoneText(zone) : '';
+}
+
+/** Every required field has a value (a zone — some text). */
+function requireFilled(
+  fields: PaperField[],
+  p: { values: FieldValues; content: PaperContent },
+) {
+  const missing = fields.find((f) =>
+    !f.required
+      ? false
+      : isFillable(f.type)
+        ? p.values[f.key] === undefined
+        : zoneOf(p.content, f.key) === '',
+  );
+  if (missing) {
+    throw new BadRequestException({
+      message: PaperErrors.RequiredMissing,
+      field: missing.key,
+    });
+  }
+}
+
+/** Values of bound fields by the keys of the record's fields (empty — null). */
+function recordValues(
+  fields: PaperField[],
+  p: { values: FieldValues; content: PaperContent },
+): RecordValues {
+  const out: RecordValues = {};
+  for (const f of fields) {
+    if (f.binding === null) continue;
+    out[f.binding] = isFillable(f.type)
+      ? (p.values[f.key] ?? null)
+      : zoneOf(p.content, f.key) || null;
+  }
+  return out;
+}
+
+/**
+ * Runs the record's module; an error about a field of the record (`field`
+ * — its key) comes out with the key of the template's field bound to it.
+ */
+async function withFieldKeys<T>(
+  fields: PaperField[],
+  run: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await run();
+  } catch (e) {
+    if (!(e instanceof HttpException) || e.getStatus() !== 400) throw e;
+    const body = e.getResponse();
+    if (typeof body !== 'object') throw e;
+    const key = (body as { field?: unknown }).field;
+    const f = fields.find((x) => x.binding !== null && x.binding === key);
+    if (!f) throw e;
+    throw new BadRequestException({ ...body, field: f.key });
+  }
+}
+
+/** The next number of the prefix this year (Kyiv time): `ТЗ-2026-014`. */
+async function nextNumber(m: EntityManager, prefix: string) {
+  const [row] = await m.query<{ year: number; last: number }[]>(
+    `INSERT INTO "paper_counters" ("prefix", "year", "last")
+     VALUES ($1, EXTRACT(YEAR FROM now() AT TIME ZONE 'Europe/Kyiv')::int, 1)
+     ON CONFLICT ("prefix", "year")
+       DO UPDATE SET "last" = "paper_counters"."last" + 1
+     RETURNING "year", "last"`,
+    [prefix],
+  );
+  return `${prefix}-${row.year}-${String(row.last).padStart(3, '0')}`;
 }
 
 /** The template of a document, the version it keeps to and its fields. */
@@ -98,6 +212,7 @@ export class PaperworkService {
     private templates: TemplatesService,
     private recordFields: RecordFieldsService,
     private links: LinkRegistry,
+    private adapters: PaperAdapterRegistry,
   ) {}
 
   /** Records the document refers to that the actor sees. */
@@ -185,7 +300,7 @@ export class PaperworkService {
       !p ||
       !can(actor, Action.PapersRead, {
         ownerId: p.authorId,
-        shared: isShared(p),
+        shared: isShared(p) || (await this.seenThroughRecord(m, p, actor)),
       })
     ) {
       throw new NotFoundException('Paper not found');
@@ -196,6 +311,58 @@ export class PaperworkService {
     return p;
   }
 
+  /** A published document the actor sees through the record it created. */
+  private async seenThroughRecord(m: EntityManager, p: Paper, actor: Actor) {
+    if (p.status === PaperStatus.Draft || !p.targetType) return false;
+    if (can(actor, Action.PapersReadAll)) return true;
+    const seen = seenThroughTarget(this.adapters, actor);
+    if (!seen) return false;
+    return m
+      .getRepository(Paper)
+      .createQueryBuilder('p')
+      .where('p.id = :id', { id: p.id })
+      .andWhere(`(${seen.sql})`, seen.params)
+      .getExists();
+  }
+
+  /**
+   * What the document shows: once published (until cancelled), fields bound
+   * to its record show the record as it is now; without the record — as
+   * they were written.
+   */
+  private async shown(
+    m: EntityManager,
+    p: Paper,
+    form: Form | null,
+  ): Promise<Shown> {
+    const own = { content: p.content, values: p.values };
+    if (!form || !p.targetType || !p.targetId || !LIVE.has(p.status)) {
+      return own;
+    }
+    const record = await this.adapters
+      .get(p.targetType)
+      ?.resolve(p.targetId, m);
+    if (!record) return own;
+    let content = p.content;
+    const values = { ...p.values };
+    for (const f of form.fields) {
+      if (f.binding === null) continue;
+      const raw = record.values[f.binding];
+      if (!isFillable(f.type)) {
+        content = withZoneText(
+          content,
+          f.key,
+          typeof raw === 'string' ? raw : '',
+        );
+        continue;
+      }
+      const v = raw === undefined ? undefined : normalizeValue(f, raw);
+      if (v === null) delete values[f.key];
+      else if (v !== undefined) values[f.key] = v;
+    }
+    return { content, values };
+  }
+
   private async view(
     m: EntityManager,
     p: Paper,
@@ -204,13 +371,20 @@ export class PaperworkService {
     const form = await this.formOf(m, p);
     const editable = canEdit(p, actor);
     const staff = can(actor, Action.PapersFillStaff);
+    const { content, values } = await this.shown(m, p, form);
+    const owner = { ownerId: p.authorId };
     return {
       ...itemView(p),
-      content: p.content,
-      values: p.values,
+      content,
+      values,
+      targetType: p.targetType,
+      targetId: p.targetId,
+      cancelReason: p.cancelReason,
       template: form && {
         id: form.template.id,
         title: form.template.title,
+        kind: form.template.kind,
+        target: form.template.target,
         version: form.version.number,
         fields: form.fields.map((f): Plain<PaperFieldDto> => ({
           ...f,
@@ -224,6 +398,10 @@ export class PaperworkService {
         (r): Plain<PaperRefDto> => ({ ...r, type: r.type as RecordType }),
       ),
       canEdit: editable,
+      canPublish:
+        p.status === PaperStatus.Draft &&
+        can(actor, Action.PapersPublish, owner),
+      canCancel: LIVE.has(p.status) && can(actor, Action.PapersCancel, owner),
     };
   }
 
@@ -238,20 +416,24 @@ export class PaperworkService {
       .select([
         'p.id',
         'p.title',
+        'p.number',
         'p.status',
         'p.visibility',
         'p.revision',
         'p.authorId',
+        'p.publishedAt',
         'p.createdAt',
         'p.updatedAt',
         'author.id',
         'author.name',
         'author.avatarUrl',
       ]);
-    whereSeen(qb, actor);
+    whereSeen(qb, actor, this.adapters);
     if (q.mine === 'true') qb.andWhere('p.authorId = :me', { me: actor.id });
     if (q.search) {
-      qb.andWhere('p.title ILIKE :s', { s: `%${escapeLike(q.search)}%` });
+      qb.andWhere('(p.title ILIKE :s OR p.number ILIKE :s)', {
+        s: `%${escapeLike(q.search)}%`,
+      });
     }
     qb.orderBy('p.updatedAt', 'DESC')
       .addOrderBy('p.id', 'ASC')
@@ -274,6 +456,7 @@ export class PaperworkService {
     const m = this.ds.manager;
     const p = await this.accessible(m, id, actor);
     const form = await this.formOf(m, p);
+    const { content, values } = await this.shown(m, p, form);
     const fields = new Map((form?.fields ?? []).map((f) => [f.key, f]));
     const refs = new Map(
       (await this.refsOf(m, p, form, actor)).map((r) => [
@@ -286,12 +469,13 @@ export class PaperworkService {
     const { institution, groupName } = await this.org.get();
     return paperPrintHtml({
       title: p.title,
-      content: p.content,
+      content,
       requisites: { institution, groupName },
       fill: {
+        number: p.number,
         text: (key) => {
           const f = fields.get(key);
-          const v = p.values[key];
+          const v = values[key];
           return f && v !== undefined
             ? valueText(f.type, v, f.options, title)
             : null;
@@ -480,7 +664,7 @@ export class PaperworkService {
         assertCan(actor, Action.PapersVisibility);
       }
       if (text && p.status !== PaperStatus.Draft) {
-        throw new ConflictException('Paper is not a draft');
+        throw new ConflictException(PaperErrors.NotDraft);
       }
       if (dto.revision !== p.revision) {
         throw new ConflictException('Paper was changed by someone else');
@@ -546,6 +730,123 @@ export class PaperworkService {
     });
   }
 
+  /**
+   * Makes a draft final. Required fields must be filled. A document of a
+   * `creates` template creates its record through the record's module (its
+   * rights, audit and errors; an error about a field of the record comes
+   * with the key of the template's field bound to it); a template with a
+   * prefix gives the next number. All in one transaction.
+   */
+  async publish(id: string, actor: Actor): Promise<PaperDto> {
+    return this.ds.transaction(async (m) => {
+      const p = await this.accessible(m, id, actor, true);
+      assertCan(actor, Action.PapersPublish, { ownerId: p.authorId });
+      if (p.status !== PaperStatus.Draft) {
+        throw new ConflictException(PaperErrors.NotDraft);
+      }
+      const form = await this.formOf(m, p);
+      if (form) {
+        requireFilled(form.fields, p);
+        if (form.template.kind === TemplateKind.Creates) {
+          await this.templates.assertCurrent(form.template, form.version);
+          const type = form.template.target!;
+          const adapter = this.adapters.get(type);
+          if (!adapter)
+            throw new ConflictException(PaperFieldErrors.NeedsUpdate);
+          const targetId = await withFieldKeys(form.fields, () =>
+            adapter.publish(recordValues(form.fields, p), actor, m),
+          );
+          p.targetType = type;
+          p.targetId = targetId;
+          await m.getRepository(RecordLink).insert({
+            fromType: 'paper',
+            fromId: p.id,
+            toType: type,
+            toId: targetId,
+            role: TARGET_ROLE,
+            createdById: actor.id,
+          });
+        }
+        if (form.template.numberPrefix) {
+          p.number = await nextNumber(m, form.template.numberPrefix);
+        }
+      }
+      p.status = PaperStatus.Published;
+      p.publishedAt = new Date();
+      p.revision += 1;
+      await m.getRepository(Paper).save(p);
+      await this.audit.log(
+        {
+          actorId: actor.id,
+          action: 'paper.published',
+          entity: 'paper',
+          entityId: p.id,
+          meta: {
+            title: p.title,
+            authorId: p.authorId,
+            number: p.number,
+            ...(p.targetType
+              ? { targetType: p.targetType, targetId: p.targetId }
+              : {}),
+          },
+        },
+        m,
+      );
+      return this.view(m, p, actor);
+    });
+  }
+
+  /**
+   * Cancels a published document with a reason; it is never deleted. The
+   * record it created is taken off by its module, by that module's rule
+   * (a task — only while free without assignees).
+   */
+  async cancel(
+    id: string,
+    dto: CancelPaperDto,
+    actor: Actor,
+  ): Promise<PaperDto> {
+    const [view, after] = await this.ds.transaction(async (m) => {
+      const p = await this.accessible(m, id, actor, true);
+      assertCan(actor, Action.PapersCancel, { ownerId: p.authorId });
+      if (!LIVE.has(p.status)) {
+        throw new ConflictException(PaperErrors.NotPublished);
+      }
+      const reason = dto.reason.trim();
+      let after: (() => Promise<void>) | void = undefined;
+      if (p.targetType && p.targetId) {
+        after = await this.adapters
+          .get(p.targetType)
+          ?.cancel(p.targetId, reason, actor, m);
+      }
+      p.status = PaperStatus.Cancelled;
+      p.cancelReason = reason;
+      p.revision += 1;
+      await m.getRepository(Paper).save(p);
+      await this.audit.log(
+        {
+          actorId: actor.id,
+          action: 'paper.cancelled',
+          entity: 'paper',
+          entityId: p.id,
+          meta: {
+            title: p.title,
+            authorId: p.authorId,
+            number: p.number,
+            reason,
+            ...(p.targetType
+              ? { targetType: p.targetType, targetId: p.targetId }
+              : {}),
+          },
+        },
+        m,
+      );
+      return [await this.view(m, p, actor), after] as const;
+    });
+    if (after) await after();
+    return view;
+  }
+
   /** How many documents hold this item in a field of a template (not bound). */
   async countItem(m: EntityManager, dictionary: string, item: string) {
     const [row] = await m.query<{ n: number }[]>(
@@ -566,7 +867,7 @@ export class PaperworkService {
       const p = await this.accessible(m, id, actor, true);
       assertCan(actor, Action.PapersEdit, { ownerId: p.authorId });
       if (p.status !== PaperStatus.Draft) {
-        throw new ConflictException('Paper is not a draft');
+        throw new ConflictException(PaperErrors.NotDraft);
       }
       await removeLinksOf(m, 'paper', p.id);
       await m.getRepository(Paper).delete(p.id);

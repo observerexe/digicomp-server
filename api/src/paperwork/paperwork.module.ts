@@ -7,8 +7,10 @@ import { LinkRegistry } from '../links/link-registry';
 import { LinksModule } from '../links/links.module';
 import { OrgModule } from '../org/org.module';
 import { RecordsModule } from '../records/records.module';
+import { PaperAdapterRegistry } from './adapters';
+import { PaperCounter } from './paper-counter.entity';
 import { Paper } from './paper.entity';
-import { PAPER_LINKS } from './paper.links';
+import { paperLinks } from './paper.links';
 import { PaperworkController } from './paperwork.controller';
 import { PaperworkService } from './paperwork.service';
 import { PaperTemplate, PaperTemplateVersion } from './template.entities';
@@ -18,7 +20,12 @@ import { TemplatesService } from './templates.service';
 /** Editor documents (drafts, revisions, visibility, print) and their templates. */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Paper, PaperTemplate, PaperTemplateVersion]),
+    TypeOrmModule.forFeature([
+      Paper,
+      PaperCounter,
+      PaperTemplate,
+      PaperTemplateVersion,
+    ]),
     AuditModule,
     DictionariesModule,
     LinksModule,
@@ -27,8 +34,8 @@ import { TemplatesService } from './templates.service';
   ],
   // Templates first: `/papers/templates` must not reach `/papers/:id`.
   controllers: [TemplatesController, PaperworkController],
-  providers: [PaperworkService, TemplatesService],
-  exports: [PaperworkService],
+  providers: [PaperworkService, TemplatesService, PaperAdapterRegistry],
+  exports: [PaperworkService, PaperAdapterRegistry],
 })
 export class PaperworkModule implements OnModuleInit {
   constructor(
@@ -36,6 +43,7 @@ export class PaperworkModule implements OnModuleInit {
     private templates: TemplatesService,
     private papers: PaperworkService,
     private links: LinkRegistry,
+    private adapters: PaperAdapterRegistry,
   ) {}
 
   onModuleInit() {
@@ -45,6 +53,6 @@ export class PaperworkModule implements OnModuleInit {
       dictionaries: (m) => this.templates.usedDictionaries(m),
       countItem: (d, item, m) => this.papers.countItem(m, d, item),
     });
-    this.links.register('paper', PAPER_LINKS);
+    this.links.register('paper', paperLinks(this.adapters));
   }
 }

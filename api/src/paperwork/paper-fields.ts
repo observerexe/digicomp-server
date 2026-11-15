@@ -49,6 +49,8 @@ export type PaperField = FieldSpec & {
   options: FieldOption[] | null;
   /** richtext bound to a text field of the record: paragraphs without formatting. */
   plain: boolean;
+  /** Key of the record's field it is bound to; null — not bound. */
+  binding: string | null;
 };
 
 const tighter = (
@@ -117,6 +119,7 @@ export async function resolveFields(
           : (s?.options ?? [])
         : null,
       plain: f.type === 'richtext' && f.binding !== null,
+      binding: f.binding,
     };
   });
 }

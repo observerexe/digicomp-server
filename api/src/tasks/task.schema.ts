@@ -75,6 +75,18 @@ export const TASK_SCHEMA: RecordSchemaDef = {
     },
     { key: 'createdById', label: 'Автор', type: 'ref:user' },
     { key: 'createdAt', label: 'Створено', type: 'datetime' },
+    {
+      key: 'submittedAt',
+      label: 'Здано на перевірку',
+      type: 'datetime',
+      nullable: true,
+    },
     { key: 'completedAt', label: 'Виконано', type: 'datetime', nullable: true },
+    {
+      key: 'acceptedById',
+      label: 'Прийняв',
+      type: 'ref:user',
+      nullable: true,
+    },
   ],
 };

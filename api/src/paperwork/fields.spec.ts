@@ -11,6 +11,7 @@ import {
   isPlainZone,
   sameNodes,
   valueText,
+  withZoneText,
   zoneText,
   type FieldSpec,
 } from '../../../shared/editor-schema/fields';
@@ -194,6 +195,7 @@ describe('Посилання «@» у вмісті', () => {
       text: () => null,
       hidden: () => false,
       title: (_t: string, id: string) => (id === U1 ? '<ТЗ>' : null),
+      number: null,
     };
     expect(renderContent(body, fill)).toBe(
       '<p><span class="paper-ref">&lt;ТЗ&gt;</span> <span class="paper-ref">запис недоступний</span></p>',
@@ -342,6 +344,7 @@ describe('Рендер полів', () => {
       text: (k: string) => values[k] ?? null,
       hidden: (k: string) => hidden.includes(k),
       title: () => null,
+      number: null,
     });
     expect(renderContent(body, fill({ name: '<Іван>' }))).toBe(
       '<p>Ім’я: <span class="paper-field">&lt;Іван&gt;</span></p><div class="paper-zone" data-field="goal"><p>Мета</p></div>',
@@ -352,5 +355,64 @@ describe('Рендер полів', () => {
     expect(renderContent(body, fill({ name: 'І' }, ['name', 'goal']))).toBe(
       '<p>Ім’я: </p>',
     );
+  });
+});
+
+describe('«Авто: номер»', () => {
+  const body: PaperContent = {
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: '№ ' }, { type: 'paperNumber' }],
+      },
+    ],
+  };
+  const fill = (number: string | null) => ({
+    text: () => null,
+    hidden: () => false,
+    title: () => null,
+    number,
+  });
+
+  it('вузол спільного опису; у редакторі — порожнє місце, у друці — номер або лінія', () => {
+    expect(checkContent(body)).toBe(true);
+    expect(renderContent(body)).toBe(
+      '<p>№ <span class="paper-number"></span></p>',
+    );
+    expect(renderContent(body, fill('ТЗ-2026-001'))).toBe(
+      '<p>№ <span class="paper-field">ТЗ-2026-001</span></p>',
+    );
+    expect(renderContent(body, fill(null))).toBe(
+      '<p>№ <span class="paper-field-blank"></span></p>',
+    );
+  });
+});
+
+describe('withZoneText', () => {
+  it('текст у зоні — абзац на рядок без форматування; решта не змінюється', () => {
+    const doc: PaperContent = {
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Мета:' }] },
+        {
+          type: 'fieldZone',
+          attrs: { key: 'goal' },
+          content: [{ type: 'paragraph' }],
+        },
+      ],
+    };
+    const out = withZoneText(doc, 'goal', 'Перший\n\nТретій');
+    expect(out.content![0]).toEqual(doc.content![0]);
+    expect(out.content![1]).toEqual({
+      type: 'fieldZone',
+      attrs: { key: 'goal' },
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Перший' }] },
+        { type: 'paragraph' },
+        { type: 'paragraph', content: [{ type: 'text', text: 'Третій' }] },
+      ],
+    });
+    expect(withZoneText(doc, 'other', 'x')).toEqual(doc);
   });
 });

@@ -4,11 +4,16 @@ import { RECORD_TYPES, type RecordType } from '../records/field-types';
 import type { FieldValues, PaperContent } from './content';
 import { PaperStatus, PaperVisibility } from './paper.entity';
 import { FIELD_FILLERS, type FieldFiller } from './template-fields';
+import { TemplateKind } from './template.entities';
 
 /** A document without its content (lists, the answer to a save). */
 export class PaperItemDto {
   id: string;
   title: string;
+
+  /** `ТЗ-2026-014`: given when published, if the template has a prefix. */
+  @ApiProperty({ type: String, nullable: true })
+  number: string | null;
 
   @ApiProperty({ enum: PaperStatus, enumName: 'PaperStatus' })
   status: PaperStatus;
@@ -20,6 +25,9 @@ export class PaperItemDto {
 
   /** Send it with the next change (PATCH). */
   revision: number;
+
+  @ApiProperty({ type: Date, nullable: true })
+  publishedAt: Date | null;
 
   createdAt: Date;
   updatedAt: Date;
@@ -77,6 +85,10 @@ export class PaperFieldDto {
   /** A zone of plain paragraphs (bound to a text field of the record). */
   plain: boolean;
 
+  /** Key of the record's field it is bound to; once published it shows the record as it is now. */
+  @ApiProperty({ type: String, nullable: true })
+  binding: string | null;
+
   /** The actor may fill it now. */
   canFill: boolean;
 }
@@ -86,6 +98,13 @@ export class PaperTemplateRefDto {
   id: string;
   title: string;
   version: number;
+
+  /** `creates` — publishing creates a record of `target`. */
+  @ApiProperty({ enum: TemplateKind, enumName: 'TemplateKind' })
+  kind: TemplateKind;
+
+  @ApiProperty({ enum: RECORD_TYPES, enumName: 'RecordType', nullable: true })
+  target: RecordType | null;
 
   @ApiProperty({ type: [PaperFieldDto] })
   fields: PaperFieldDto[];
@@ -127,8 +146,28 @@ export class PaperDto extends PaperItemDto {
   @ApiProperty({ type: [PaperRefDto] })
   refs: PaperRefDto[];
 
+  /** The record the document created; it stays when the record is gone (cancelled). */
+  @ApiProperty({ enum: RECORD_TYPES, enumName: 'RecordType', nullable: true })
+  targetType: RecordType | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  targetId: string | null;
+
+  /** Why it was cancelled. */
+  @ApiProperty({ type: String, nullable: true })
+  cancelReason: string | null;
+
   /** The actor may change and delete it: their own draft (admin — any). */
   canEdit: boolean;
+
+  /**
+   * The actor may publish it (a draft: their own, staff — any). A document
+   * that creates a record also needs the record's right (checked on publishing).
+   */
+  canPublish: boolean;
+
+  /** The actor may cancel it (published: their own, staff — any; the record's rule — on cancelling). */
+  canCancel: boolean;
 }
 
 export class PaperListDto {

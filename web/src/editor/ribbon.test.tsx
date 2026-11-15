@@ -25,6 +25,13 @@ const paper = (over: Partial<Paper> = {}): Paper => ({
   template: null,
   refs: [],
   canEdit: true,
+  number: null,
+  publishedAt: null,
+  targetType: null,
+  targetId: null,
+  cancelReason: null,
+  canPublish: false,
+  canCancel: false,
   ...over,
 });
 

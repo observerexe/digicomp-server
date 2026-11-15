@@ -22,6 +22,12 @@ import { fieldInvalid } from './paper-fields';
 
 const refKey = (r: RecordRef) => `${r.type}:${r.id}`;
 
+/**
+ * Role of the link from a document to the record it created (publication
+ * writes it; not a field key, so syncLinks leaves it).
+ */
+export const TARGET_ROLE = '@target';
+
 /** A field of this type may be filled: not a reference, or one to a type that may be referred to. */
 export function fillableType(links: LinkRegistry, type: string): boolean {
   const ref = refType(type);
@@ -131,10 +137,9 @@ export async function syncLinks(
   for (const r of mentionsOf(content)) {
     want.set(`${refKey(r)}:`, { ...r, role: '' });
   }
-  const have = await m.findBy(RecordLink, {
-    fromType: 'paper',
-    fromId: paperId,
-  });
+  const have = (
+    await m.findBy(RecordLink, { fromType: 'paper', fromId: paperId })
+  ).filter((l) => l.role !== TARGET_ROLE);
   const known = new Set(fresh);
   for (const l of have) known.add(`${l.toType}:${l.toId}`);
   const kept = new Set<string>();

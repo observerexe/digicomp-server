@@ -12,7 +12,8 @@ import type { OkDto, Plain } from '../common/responses.dto';
 import { Dictionary } from '../dictionaries/dictionary.entities';
 import { LinkRegistry } from '../links/link-registry';
 import { RecordFieldsService } from '../records/record-fields.service';
-import { schemaDef, type PublishedSchema } from '../records/records.registry';
+import type { PublishedSchema } from '../records/records.registry';
+import { PaperAdapterRegistry } from './adapters';
 import { EMPTY_CONTENT } from './content';
 import { PaperFieldErrors, resolveFields } from './paper-fields';
 import { fillableType } from './paper-refs';
@@ -40,6 +41,7 @@ import type {
   UpdateTemplateVersionDto,
 } from './templates.dto';
 import type {
+  TemplateTargetsDto,
   TemplateDto,
   TemplateItemDto,
   TemplateVersionDto,
@@ -108,10 +110,12 @@ function versionView(v: PaperTemplateVersion): TemplateVersionDto {
 
 /**
  * The kind fits the target: `free` has none; `report` — any record type;
- * `creates` — a type whose records can be created. Auto-freeze needs a
- * record that gets done: `creates` only.
+ * `creates` — a type whose module creates records from documents (its
+ * adapter is registered). Auto-freeze needs a record that gets done:
+ * `creates` only.
  */
 function assertKind(
+  adapters: PaperAdapterRegistry,
   kind: TemplateKind,
   target: string | null,
   autoFreeze: boolean,
@@ -120,8 +124,7 @@ function assertKind(
     kind === TemplateKind.Free
       ? target === null
       : target !== null &&
-        (kind === TemplateKind.Report ||
-          schemaDef(target).fields.some((f) => f.create));
+        (kind === TemplateKind.Report || adapters.get(target) !== undefined);
   if (!ok || (autoFreeze && kind !== TemplateKind.Creates)) {
     throw new BadRequestException(TemplateErrors.KindInvalid);
   }
@@ -154,7 +157,22 @@ export class TemplatesService {
     private audit: AuditService,
     private recordFields: RecordFieldsService,
     private links: LinkRegistry,
+    private adapters: PaperAdapterRegistry,
   ) {}
+
+  targets(): TemplateTargetsDto {
+    return { creates: this.adapters.registered() };
+  }
+
+  /**
+   * A document is published from its version only while the version's
+   * bindings hold against the target's schema of now (409 TEMPLATE_NEEDS_UPDATE).
+   */
+  async assertCurrent(t: PaperTemplate, v: PaperTemplateVersion) {
+    if (await this.broken(t, v, new Schemas(this.recordFields))) {
+      throw new ConflictException(PaperFieldErrors.NeedsUpdate);
+    }
+  }
 
   async list(actor: Actor): Promise<TemplateItemDto[]> {
     const staff = can(actor, Action.PaperTemplatesManage);
@@ -188,7 +206,7 @@ export class TemplatesService {
   async create(dto: CreateTemplateDto, actor: Actor): Promise<TemplateDto> {
     const target = dto.target ?? null;
     const autoFreeze = dto.autoFreeze ?? false;
-    assertKind(dto.kind, target, autoFreeze);
+    assertKind(this.adapters, dto.kind, target, autoFreeze);
     return this.ds.transaction(async (m) => {
       const t = await m.save(
         m.create(PaperTemplate, {
@@ -252,7 +270,7 @@ export class TemplatesService {
         changes.archived = { from: !!t.archivedAt, to: dto.archived };
         t.archivedAt = dto.archived ? new Date() : null;
       }
-      assertKind(t.kind, t.target, t.autoFreeze);
+      assertKind(this.adapters, t.kind, t.target, t.autoFreeze);
       if (Object.keys(changes).length) {
         await m.save(t);
         await this.log(m, actor, 'paper_template.updated', t, { changes });
@@ -304,6 +322,8 @@ export class TemplatesService {
       id: t.id,
       title: t.title,
       version: v.number,
+      kind: t.kind,
+      target: t.target,
       fields: fields.map((f): Plain<PaperFieldDto> => ({
         ...f,
         canFill: fillableType(this.links, f.type),
@@ -519,9 +539,18 @@ export class TemplatesService {
    * A published version whose target's schema changed is checked again:
    * a broken binding — the template needs a new version.
    */
-  private async needsUpdate(t: PaperTemplate, schemas: Schemas) {
-    const v = t.currentVersion;
-    if (!v || t.kind === TemplateKind.Free) return false;
+  private needsUpdate(t: PaperTemplate, schemas: Schemas) {
+    return t.currentVersion
+      ? this.broken(t, t.currentVersion, schemas)
+      : Promise.resolve(false);
+  }
+
+  private async broken(
+    t: PaperTemplate,
+    v: PaperTemplateVersion,
+    schemas: Schemas,
+  ) {
+    if (t.kind === TemplateKind.Free) return false;
     const schema = await schemas.of(t.target);
     if (!schema || schema.version === v.schemaVersion) return false;
     return bindingProblem(v.fields, t.kind, schema) !== null;

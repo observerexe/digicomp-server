@@ -3,7 +3,7 @@ import type { JSONContent } from '@tiptap/core';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { api, unwrap } from '../../api/client';
+import { api, ApiError, unwrap } from '../../api/client';
 import type { Paper } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
 import { Icon } from '../../components/Icon';
@@ -26,7 +26,7 @@ import { usePageStats } from '../../editor/usePageStats';
 import { errorOf } from '../../errors/messages';
 import { formatTime } from '../../lib/format';
 import { PAPER_STATUS_LABEL } from '../../lib/labels';
-import type { RecordView } from '../../lib/records';
+import { recordHref, recordLabel, type RecordView } from '../../lib/records';
 import { useDropdown } from '../../lib/useDropdown';
 import { useMediaQuery } from '../../lib/useMediaQuery';
 import s from './editor.module.css';
@@ -128,9 +128,32 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
       autosave.change({ content: e.getJSON() });
     },
   });
-  // A value the server refused: its field is shown (the error says what to fix).
-  const refused = autosave.state === 'rejected' ? (autosave.rejection?.field ?? null) : null;
-  const sheet = useFillSheet(editor, fill, refused);
+  /** The page shows what the server answered (the editor starts again with it). */
+  const replace = (p: Paper) => {
+    qc.setQueryData(['papers', 'one', paper.id], p);
+    void qc.invalidateQueries({ queryKey: ['papers', 'list'] });
+  };
+  const publish = useMutation({
+    mutationFn: async () => {
+      if (!(await autosave.flush())) throw new Error('not saved');
+      return unwrap(api.POST('/api/papers/{id}/publish', { params: { path: { id: paper.id } } }));
+    },
+    onSuccess: (p) => {
+      autosave.cancel();
+      replace(p);
+    },
+  });
+  const [reason, setReason] = useState<string | null>(null);
+  const cancel = useMutation({
+    mutationFn: () => unwrap(api.POST('/api/papers/{id}/cancel', { params: { path: { id: paper.id } }, body: { reason: (reason ?? '').trim() } })),
+    onSuccess: replace,
+  });
+  // Unsaved changes stop the publication: the autosave's own message says why.
+  const publishError = publish.error instanceof ApiError ? publish.error : null;
+
+  // A value the server refused (on saving or publishing): its field is shown (the error says what to fix).
+  const refused = autosave.state === 'rejected' ? (autosave.rejection?.field ?? null) : (publishError?.field ?? null);
+  const sheet = useFillSheet(editor, fill, refused, paper.number);
 
   const changeValue = (key: string, v: FieldValue | null) => autosave.change({ values: fill.change(key, v) });
   /** A zone from the form: to it on the page, the cursor in it. */
@@ -199,6 +222,21 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
           onConfirm={() => remove.mutate()}
         />
       )}
+      {paper.canCancel && reason === null && (
+        <button type="button" className="btn" onClick={() => setReason('')}>
+          Скасувати документ
+        </button>
+      )}
+      {paper.canPublish && (
+        <ConfirmButton
+          label="Опублікувати"
+          question={publishQuestion(paper)}
+          confirmLabel="Опублікувати"
+          primary
+          disabled={publish.isPending}
+          onConfirm={() => publish.mutate()}
+        />
+      )}
     </>
   );
   const groups = template && {
@@ -224,7 +262,7 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
             </nav>
           ) : (
             <span className={s.path}>
-              {template?.title ?? 'Документ'} · {PAPER_STATUS_LABEL[paper.status].toLowerCase()}
+              {[template?.title ?? 'Документ', paper.number && `№ ${paper.number}`, PAPER_STATUS_LABEL[paper.status].toLowerCase()].filter(Boolean).join(' · ')}
             </span>
           )}
           <div className={s.titleRow}>
@@ -240,6 +278,7 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
             ) : (
               <h1 className={s.titleText}>{paper.title}</h1>
             )}
+            {wide && paper.number && <span className={s.number}>№ {paper.number}</span>}
             {wide && <span className={s.tag}>{PAPER_STATUS_LABEL[paper.status]}</span>}
           </div>
           {wide && saved}
@@ -259,7 +298,45 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
       <OfflineBanner />
       {editable && (wide ? <Ribbon editor={editor} lock={sheet.ribbonLock} /> : !formShown && <MiniRibbon editor={editor} lock={sheet.ribbonLock} />)}
       <div className={s.notices}>
-        <ErrorMessage text={remove.isError ? errorOf(remove.error) : copy.isError ? errorOf(copy.error) : autosave.state === 'rejected' ? errorOf(autosave.rejection) : null} />
+        <ErrorMessage
+          text={
+            remove.isError
+              ? errorOf(remove.error)
+              : copy.isError
+                ? errorOf(copy.error)
+                : autosave.state === 'rejected'
+                  ? errorOf(autosave.rejection)
+                  : publishError
+                    ? errorOf(publishError)
+                    : null
+          }
+        />
+        {reason !== null && (
+          <form
+            className={s.conflict}
+            onSubmit={(e) => {
+              e.preventDefault();
+              cancel.mutate();
+            }}
+          >
+            <div className="field">
+              <label htmlFor="paper-cancel-reason">Причина скасування</label>
+              <input id="paper-cancel-reason" maxLength={1000} autoFocus value={reason} onChange={(e) => setReason(e.target.value)} />
+            </div>
+            <p className="hint">{cancelHint(paper)}</p>
+            <ErrorMessage text={cancel.isError ? errorOf(cancel.error) : null} />
+            <div className={s.conflictActions}>
+              <button type="submit" className="btn btn-danger" disabled={!reason.trim() || cancel.isPending}>
+                Скасувати документ
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={() => setReason(null)}>
+                Назад
+              </button>
+            </div>
+          </form>
+        )}
+        {paper.status === 'cancelled' && <p className="hint">Документ скасовано{paper.cancelReason ? `: ${paper.cancelReason}` : ''}.</p>}
+        {paper.status !== 'cancelled' && paper.targetType && paper.targetId && <CreatedRecord type={paper.targetType} id={paper.targetId} />}
         {autosave.state === 'conflict' && (
           <div className={s.conflict} role="alert">
             <p>
@@ -276,7 +353,9 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
             </div>
           </div>
         )}
-        {!editable && <p className="hint">{paper.status === 'draft' ? 'Це чужа чернетка: її можна лише переглядати.' : 'Документ уже не чернетка: текст не змінюється.'}</p>}
+        {!editable && paper.status !== 'cancelled' && (
+          <p className="hint">{paper.status === 'draft' ? 'Це чужа чернетка: її можна лише переглядати.' : 'Документ опубліковано: текст не змінюється.'}</p>
+        )}
       </div>
       <div className={s.work}>
         <main id="main" className={`${s.desk} ${formShown ? s.gone : ''}`} tabIndex={-1}>
@@ -310,6 +389,28 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
         />
       )}
     </div>
+  );
+}
+
+/** What publishing does: a document of a `creates` template makes a record. */
+function publishQuestion(paper: Paper) {
+  const t = paper.template;
+  const record = t?.kind === 'creates' && t.target ? ` Буде створено запис «${recordLabel(t.target)}».` : '';
+  return `Опублікувати документ?${record} Після публікації текст не змінюється.`;
+}
+
+function cancelHint(paper: Paper) {
+  return paper.targetType ? `Разом із документом буде знято запис «${recordLabel(paper.targetType)}».` : 'Документ лишиться з позначкою «Скасовано» і причиною.';
+}
+
+/** A link to the record the document created. */
+function CreatedRecord({ type, id }: { type: NonNullable<Paper['targetType']>; id: string }) {
+  const href = recordHref(type, id);
+  if (!href) return null;
+  return (
+    <p className="hint">
+      З документа створено запис «{recordLabel(type)}». <Link to={href}>Відкрити</Link>
+    </p>
   );
 }
 

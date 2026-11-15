@@ -15,7 +15,9 @@ export const task = (over: Partial<Task> = {}): Task => ({
   extra: {},
   createdAt: '2026-11-01T10:00:00Z',
   updatedAt: '2026-11-01T10:00:00Z',
+  submittedAt: null,
   completedAt: null,
+  acceptedById: null,
   assignees: [],
   ...over,
 });
