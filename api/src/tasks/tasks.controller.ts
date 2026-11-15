@@ -14,7 +14,6 @@ import {
   HttpCode,
   Param,
   ParseUUIDPipe,
-  Patch,
   Post,
   Query,
   Req,
@@ -30,12 +29,7 @@ import { Action } from '../auth/policy';
 import { Can, JwtAuthGuard, PolicyGuard } from '../auth/roles';
 import { contentDisposition } from '../files/content-disposition';
 import type { UploadedFileLike } from '../files/file-validation';
-import {
-  CommentDto,
-  CreateTaskDto,
-  ListTasksQuery,
-  UpdateTaskDto,
-} from './dto';
+import { CancelTaskDto, CommentDto, ListTasksQuery } from './dto';
 import { TasksService } from './tasks.service';
 
 type Req = { user: { id: string; role: string } };
@@ -61,30 +55,21 @@ export class TasksController {
     return this.tasks.get(id);
   }
 
-  @Can(Action.TasksCreate)
-  @ApiCreatedResponse({ type: TaskDto })
-  @Post()
-  create(@Body() dto: CreateTaskDto, @Req() req: Req) {
-    return this.tasks.create(dto, req.user);
-  }
-
-  @Can(Action.TasksManage)
-  @ApiOkResponse({ type: TaskDto })
-  @Patch(':id')
-  update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateTaskDto,
-    @Req() req: Req,
-  ) {
-    return this.tasks.update(id, dto, req.user);
-  }
-
-  /** Only a free task without assignees. */
+  /**
+   * Only a free task without assignees and without a document (one with a
+   * document is cancelled with it). Tasks are created and changed through
+   * documents of the editor.
+   */
   @Can(Action.TasksManage)
   @ApiOkResponse({ type: OkDto })
-  @Delete(':id')
-  remove(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
-    return this.tasks.remove(id, req.user);
+  @Post(':id/cancel')
+  @HttpCode(200)
+  cancel(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CancelTaskDto,
+    @Req() req: Req,
+  ) {
+    return this.tasks.cancel(id, dto, req.user);
   }
 
   @Can(Action.TasksTake)

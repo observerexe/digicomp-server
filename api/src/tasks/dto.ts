@@ -112,3 +112,11 @@ export class CommentDto {
   @MaxLength(2000)
   body: string;
 }
+
+export class CancelTaskDto {
+  /** Why: kept in the audit. */
+  @IsString()
+  @Matches(NOT_BLANK)
+  @MaxLength(1000)
+  reason: string;
+}

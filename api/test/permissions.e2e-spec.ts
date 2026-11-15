@@ -8,9 +8,12 @@ import {
   as,
   category,
   createTestApp,
+  makeTask,
   makeUser,
   PNG_1PX,
+  publishTaskPaper,
   resetDb,
+  taskTemplates,
   TestUser,
 } from './helpers';
 
@@ -514,38 +517,76 @@ describe('Матриця прав (e2e)', () => {
     });
   });
 
-  describe('Створити ТЗ, проєкт', () => {
-    const task = { title: 'ТЗ', points: 10 };
+  describe('Створити ТЗ (документом, що створює ТЗ), проєкт', () => {
     const project = { title: 'Проєкт' };
+    /** «Коротке ТЗ», з якого документи може робити кожен: право на ТЗ — під час публікації. */
+    const openTemplate = async () => {
+      const { short } = await taskTemplates(app);
+      await as(app, admin)
+        .patch(`/api/papers/templates/${short}`)
+        .send({ creators: 'all' })
+        .expect(200);
+      return short;
+    };
     it('admin так', async () => {
-      expect((await as(app, admin).post('/api/tasks').send(task)).status).toBe(
-        201,
-      );
+      allowed(await publishTaskPaper(app, admin, await openTemplate()));
       expect(
         (await as(app, admin).post('/api/projects').send(project)).status,
       ).toBe(201);
     });
     it('moderator так', async () => {
-      expect((await as(app, mod).post('/api/tasks').send(task)).status).toBe(
-        201,
-      );
+      allowed(await publishTaskPaper(app, mod, await openTemplate()));
       expect(
         (await as(app, mod).post('/api/projects').send(project)).status,
       ).toBe(201);
     });
     it('member ні', async () => {
-      denied(await as(app, member).post('/api/tasks').send(task));
+      denied(await publishTaskPaper(app, member, await openTemplate()));
       denied(await as(app, member).post('/api/projects').send(project));
+    });
+  });
+
+  describe('Скасувати ТЗ без документа (з причиною)', () => {
+    const cancel = async (who: TestUser) =>
+      as(app, who)
+        .post(`/api/tasks/${(await makeTask(app, admin)).id}/cancel`)
+        .send({ reason: 'Не потрібно' });
+    it('admin так', async () => allowed(await cancel(admin)));
+    it('moderator так', async () => allowed(await cancel(mod)));
+    it('member ні', async () => denied(await cancel(member)));
+  });
+
+  describe('Документ для наявного запису (старе ТЗ): як зміна самого запису', () => {
+    const forRecord = async (who: TestUser, status = 'todo') => {
+      const { full } = await taskTemplates(app);
+      // Шаблон відкрито всім: перевіряється право на сам запис.
+      await as(app, admin)
+        .patch(`/api/papers/templates/${full}`)
+        .send({ creators: 'all' })
+        .expect(200);
+      const task = await makeTask(app, admin);
+      await app
+        .get(DataSource)
+        .query(`UPDATE tasks SET status = $1 WHERE id = $2`, [status, task.id]);
+      return as(app, who)
+        .post('/api/papers/for-record')
+        .send({ templateId: full, targetId: task.id });
+    };
+    it('admin так', async () => {
+      allowed(await forRecord(admin));
+    });
+    it('moderator так, доки ТЗ не виконане', async () => {
+      allowed(await forRecord(mod));
+      denied(await forRecord(mod, 'done'));
+    });
+    it('member ні', async () => {
+      denied(await forRecord(member));
     });
   });
 
   describe("Взяти ТЗ і здати на рев'ю", () => {
     const newTask = async (max = 3) =>
-      (
-        await as(app, admin)
-          .post('/api/tasks')
-          .send({ title: 'ТЗ', points: 10, maxAssignees: max })
-      ).body.id as string;
+      (await makeTask(app, admin, { maxAssignees: max })).id;
 
     it('admin, moderator, member самі беруть вільне ТЗ', async () => {
       const id = await newTask();
@@ -576,11 +617,7 @@ describe('Матриця прав (e2e)', () => {
   describe('Прийняти ТЗ (нарахування балів)', () => {
     /** Task in review with the given assignee. */
     const inReview = async (assignee: TestUser) => {
-      const id = (
-        await as(app, admin)
-          .post('/api/tasks')
-          .send({ title: 'ТЗ', points: 10 })
-      ).body.id as string;
+      const id = (await makeTask(app, admin)).id;
       for (const step of ['take', 'start', 'submit']) {
         allowed(await as(app, assignee).post(`/api/tasks/${id}/${step}`));
       }
@@ -784,9 +821,7 @@ describe('Матриця прав (e2e)', () => {
     let taskId: string;
     let projectId: string;
     beforeEach(async () => {
-      taskId = (
-        await as(app, admin).post('/api/tasks').send({ title: 'ТЗ', points: 1 })
-      ).body.id;
+      taskId = (await makeTask(app, admin, { points: 1 })).id;
       projectId = (
         await as(app, admin)
           .post('/api/projects')

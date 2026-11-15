@@ -28,6 +28,7 @@ import {
   CopyPaperDto,
   CreatePaperDto,
   ListPapersQuery,
+  PaperForRecordDto,
   UpdatePaperDto,
 } from './dto';
 import { PaperworkService } from './paperwork.service';
@@ -52,6 +53,17 @@ export class PaperworkController {
   @Post()
   create(@Body() dto: CreatePaperDto, @Req() req: Req) {
     return this.papers.create(dto, req.user);
+  }
+
+  /**
+   * A document for a record made before documents (its bound fields from
+   * the record), published at once; who may change the record.
+   */
+  @Can(Action.PapersCreate)
+  @ApiCreatedResponse({ type: PaperDto })
+  @Post('for-record')
+  forRecord(@Body() dto: PaperForRecordDto, @Req() req: Req) {
+    return this.papers.forRecord(dto, req.user);
   }
 
   /** A copy of a document the actor sees: its own draft, same template version. */

@@ -104,6 +104,7 @@ const MESSAGE_CODES: Record<string, string> = {
   'Paper is not a draft': 'PAPER_NOT_DRAFT',
   'Paper is not published': 'PAPER_NOT_PUBLISHED',
   'Required paper field is missing': 'PAPER_REQUIRED_MISSING',
+  'Record already has a paper': 'PAPER_TARGET_TAKEN',
   'Template was changed by someone else': 'PAPER_CONFLICT',
   'Template version is published': 'TEMPLATE_VERSION_PUBLISHED',
   'Invalid template field': 'TEMPLATE_FIELD_INVALID',

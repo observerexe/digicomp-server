@@ -1,13 +1,20 @@
-import { INestApplication } from '@nestjs/common';
+import { HttpException, INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import * as argon2 from 'argon2';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { DataSource } from 'typeorm';
+import { DataSource, type EntityManager } from 'typeorm';
 import { AppModule } from '../src/app.module';
+import { codeFor } from '../src/common/http-exception.filter';
+import {
+  TASK_TEMPLATES,
+  TaskTemplates1812000000000,
+} from '../src/migrations/1812000000000-TaskTemplates';
 import { slugify } from '../src/dictionaries/keys';
 import { setupApp } from '../src/setup-app';
+import type { CreateTaskDto } from '../src/tasks/dto';
+import { TasksService } from '../src/tasks/tasks.service';
 import { Role, User } from '../src/users/user.entity';
 
 export async function createTestApp(): Promise<INestApplication<App>> {
@@ -58,6 +65,80 @@ export async function makeUser(
     .get(JwtService)
     .signAsync({ sub: u.id, role: u.role });
   return Object.assign(u, { token });
+}
+
+/**
+ * A task made by `by` as publishing its document would make it (no
+ * document): for tests about anything but making tasks. Making and
+ * changing tasks through documents — paper-publish, paper-change.
+ */
+export async function makeTask(
+  app: INestApplication,
+  by: User,
+  over: Partial<CreateTaskDto> = {},
+) {
+  return app
+    .get(DataSource)
+    .transaction((m) =>
+      app.get(TasksService).create({ title: 'ТЗ', points: 10, ...over }, by, m),
+    );
+}
+
+/**
+ * Runs the tasks service in a transaction, as a document's adapter does,
+ * and answers as the API would: `{ status, body }`, errors with errorCode.
+ */
+export async function withTasks(
+  app: INestApplication,
+  run: (tasks: TasksService, m: EntityManager) => Promise<unknown>,
+): Promise<{ status: number; body: Record<string, any> }> {
+  try {
+    const body = await app
+      .get(DataSource)
+      .transaction((m) => run(app.get(TasksService), m));
+    return { status: 200, body: body as Record<string, any> };
+  } catch (e) {
+    if (!(e instanceof HttpException)) throw e;
+    const raw = e.getResponse();
+    const body: Record<string, any> =
+      typeof raw === 'string' ? { message: raw } : { ...raw };
+    body.errorCode ??= codeFor(e.getStatus(), body.message);
+    return { status: e.getStatus(), body };
+  }
+}
+
+/**
+ * «Технічне завдання» and «Коротке ТЗ» as the migration makes them (it
+ * needs an active admin; on an empty database at start it makes nothing).
+ */
+export async function taskTemplates(app: INestApplication) {
+  const q = app.get(DataSource).createQueryRunner();
+  try {
+    await new TaskTemplates1812000000000().up(q);
+  } finally {
+    await q.release();
+  }
+  const [full, short] = TASK_TEMPLATES.map((t) => t.id);
+  return { full, short };
+}
+
+/**
+ * A task made through a document of «Коротке ТЗ» (see taskTemplates): the
+ * document is made, filled and published by `by`; the response of publish.
+ */
+export async function publishTaskPaper(
+  app: INestApplication<App>,
+  by: { token: string },
+  templateId: string,
+  values: Record<string, unknown> = { title: 'ТЗ', points: 10 },
+) {
+  const p = await as(app, by).post('/api/papers').send({ templateId });
+  if (p.status !== 201) return p;
+  const saved = await as(app, by)
+    .patch(`/api/papers/${p.body.id}`)
+    .send({ revision: p.body.revision, values });
+  if (saved.status !== 200) return saved;
+  return as(app, by).post(`/api/papers/${p.body.id}/publish`);
 }
 
 /** Requests with a Bearer token (no cookies, so no CSRF header needed). */

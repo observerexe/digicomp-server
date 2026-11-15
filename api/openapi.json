@@ -1161,35 +1161,6 @@
         "tags": [
           "Tasks"
         ]
-      },
-      "post": {
-        "operationId": "TasksController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateTaskDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TaskDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Tasks"
-        ]
       }
     },
     "/api/tasks/{id}": {
@@ -1221,9 +1192,11 @@
         "tags": [
           "Tasks"
         ]
-      },
-      "patch": {
-        "operationId": "TasksController_update",
+      }
+    },
+    "/api/tasks/{id}/cancel": {
+      "post": {
+        "operationId": "TasksController_cancel",
         "parameters": [
           {
             "name": "id",
@@ -1239,39 +1212,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateTaskDto"
+                "$ref": "#/components/schemas/CancelTaskDto"
               }
             }
           }
         },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TaskDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Tasks"
-        ]
-      },
-      "delete": {
-        "operationId": "TasksController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": "",
@@ -1284,7 +1229,7 @@
             }
           }
         },
-        "summary": "Only a free task without assignees.",
+        "summary": "Only a free task without assignees and without a document (one with a\ndocument is cancelled with it). Tasks are created and changed through\ndocuments of the editor.",
         "tags": [
           "Tasks"
         ]
@@ -2658,6 +2603,38 @@
             }
           }
         },
+        "tags": [
+          "Paperwork"
+        ]
+      }
+    },
+    "/api/papers/for-record": {
+      "post": {
+        "operationId": "PaperworkController_forRecord",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaperForRecordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "A document for a record made before documents (its bound fields from\nthe record), published at once; who may change the record.",
         "tags": [
           "Paperwork"
         ]
@@ -6506,6 +6483,23 @@
           "id"
         ]
       },
+      "TaskPaperDto": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string",
+            "nullable": true,
+            "description": "«ТЗ-2026-014»; null — the template gives no numbers."
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "number",
+          "id"
+        ]
+      },
       "TaskDto": {
         "type": "object",
         "properties": {
@@ -6554,6 +6548,16 @@
               "$ref": "#/components/schemas/TaskAssigneeDto"
             }
           },
+          "paper": {
+            "nullable": true,
+            "description": "null — an old task made before documents (no document yet).",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TaskPaperDto"
+              }
+            ]
+          },
           "id": {
             "type": "string"
           },
@@ -6587,6 +6591,7 @@
           "completedAt",
           "acceptedById",
           "assignees",
+          "paper",
           "id",
           "title",
           "points",
@@ -6739,6 +6744,16 @@
               "$ref": "#/components/schemas/TaskAssigneeDto"
             }
           },
+          "paper": {
+            "nullable": true,
+            "description": "null — an old task made before documents (no document yet).",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TaskPaperDto"
+              }
+            ]
+          },
           "comments": {
             "description": "Oldest first.",
             "type": "array",
@@ -6786,6 +6801,7 @@
           "completedAt",
           "acceptedById",
           "assignees",
+          "paper",
           "comments",
           "files",
           "id",
@@ -6797,75 +6813,18 @@
           "updatedAt"
         ]
       },
-      "CreateTaskDto": {
+      "CancelTaskDto": {
         "type": "object",
         "properties": {
-          "extra": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "Extra fields: key → value (GET /records/task/field-defs)."
-          },
-          "title": {
+          "reason": {
             "type": "string",
-            "maxLength": 200
-          },
-          "description": {
-            "type": "string",
-            "maxLength": 5000
-          },
-          "points": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1000
-          },
-          "maxAssignees": {
-            "type": "number",
-            "description": "How many members may take the task. Default 1.",
-            "minimum": 1,
-            "maximum": 20
-          },
-          "dueDate": {
-            "type": "string"
+            "description": "Why: kept in the audit.",
+            "maxLength": 1000
           }
         },
         "required": [
-          "title",
-          "points"
+          "reason"
         ]
-      },
-      "UpdateTaskDto": {
-        "type": "object",
-        "properties": {
-          "extra": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "Only the keys given change; null clears a field."
-          },
-          "title": {
-            "type": "string",
-            "maxLength": 200
-          },
-          "description": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 5000
-          },
-          "points": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1000
-          },
-          "maxAssignees": {
-            "type": "number",
-            "minimum": 1,
-            "maximum": 20
-          },
-          "dueDate": {
-            "type": "string",
-            "nullable": true,
-            "description": "ISO date or null to clear the deadline."
-          }
-        }
       },
       "CommentDto": {
         "type": "object",
@@ -8458,6 +8417,24 @@
           "revision",
           "createdAt",
           "updatedAt"
+        ]
+      },
+      "PaperForRecordDto": {
+        "type": "object",
+        "properties": {
+          "templateId": {
+            "type": "string",
+            "description": "A template that creates records of the record's type.",
+            "format": "uuid"
+          },
+          "targetId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "templateId",
+          "targetId"
         ]
       },
       "CopyPaperDto": {

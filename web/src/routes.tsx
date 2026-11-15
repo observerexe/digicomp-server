@@ -30,7 +30,6 @@ import { ProjectsPage } from './pages/projects/ProjectsPage';
 import { DisciplinePage } from './pages/points/DisciplinePage';
 import { PointsPage } from './pages/points/PointsPage';
 import { RatingPage } from './pages/points/RatingPage';
-import { TaskFormPage } from './pages/tasks/TaskFormPage';
 import { TaskPage } from './pages/tasks/TaskPage';
 import { TasksPage } from './pages/tasks/TasksPage';
 import { EquipmentPage } from './pages/lab/EquipmentPage';
@@ -89,22 +88,6 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: <HomePage /> },
       { path: 'tasks', element: <TasksPage /> },
-      {
-        path: 'tasks/new',
-        element: (
-          <RequirePermission action="tasks.create" fallback={<ForbiddenPage />}>
-            <TaskFormPage />
-          </RequirePermission>
-        ),
-      },
-      {
-        path: 'tasks/:id/edit',
-        element: (
-          <RequirePermission action="tasks.manage" fallback={<ForbiddenPage />}>
-            <TaskFormPage />
-          </RequirePermission>
-        ),
-      },
       { path: 'tasks/:id', element: <TaskPage /> },
       { path: 'lab', element: <LabPage /> },
       { path: 'lab/journal', element: <JournalPage /> },

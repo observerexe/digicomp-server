@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router';
 import { api, unwrap } from '../../api/client';
 import type { Me, Task, TaskStatus } from '../../api/types';
 import { predict, type ActionKind } from './logic';
@@ -70,6 +71,25 @@ export function useTaskAction(me: Me | null) {
       void qc.invalidateQueries({ queryKey: taskKey(task.id) });
       // Accepting gives points.
       void qc.invalidateQueries({ queryKey: ['points'] });
+    },
+  });
+}
+
+/**
+ * Tasks are made and changed through documents: «Нове ТЗ» — a draft of a
+ * template that creates tasks; «Редагувати» an old task without one — its
+ * document from its values, opened for a change at once.
+ */
+export function useTaskPaper() {
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  return useMutation({
+    mutationFn: ({ templateId, taskId }: { templateId: string; taskId?: string }) =>
+      taskId ? unwrap(api.POST('/api/papers/for-record', { body: { templateId, targetId: taskId } })) : unwrap(api.POST('/api/papers', { body: { templateId } })),
+    onSuccess: (p, { taskId }) => {
+      void qc.invalidateQueries({ queryKey: ['papers', 'list'] });
+      if (taskId) void qc.invalidateQueries({ queryKey: ['tasks'] });
+      void navigate(`/editor/${p.id}`, taskId ? { state: { change: true } } : undefined);
     },
   });
 }

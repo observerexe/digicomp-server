@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { JSONContent } from '@tiptap/core';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { api, ApiError, unwrap } from '../../api/client';
 import type { Paper } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
@@ -52,7 +52,9 @@ export function PaperPage() {
   // The list shows titles and dates: refresh it when leaving.
   useEffect(() => () => void qc.invalidateQueries({ queryKey: ['papers', 'list'] }), [qc]);
   // A published document being changed (fields «можна змінити»): the editor starts again for it.
-  const [changing, setChanging] = useState(false);
+  // A record's «Редагувати» opens its document so at once: `navigate(…, { state: { change: true } })`.
+  const asked = (useLocation().state as { change?: boolean } | null)?.change === true;
+  const [changing, setChanging] = useState(asked);
 
   if (paper.isPending) return <PaperLoading />;
   if (paper.isError) {
@@ -65,9 +67,9 @@ export function PaperPage() {
   }
   return (
     <PaperEditor
-      key={`${paper.data.id}:${paper.dataUpdatedAt}:${changing}`}
+      key={`${paper.data.id}:${paper.dataUpdatedAt}:${changing && paper.data.canChange}`}
       paper={paper.data}
-      changing={changing}
+      changing={changing && paper.data.canChange}
       onChanging={setChanging}
       onReload={() => void paper.refetch()}
     />

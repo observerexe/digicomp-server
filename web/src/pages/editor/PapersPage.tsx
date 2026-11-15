@@ -1,16 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useId, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { api, unwrap } from '../../api/client';
 import { useAuth } from '../../auth/AuthProvider';
+import { ChoiceButton } from '../../components/ChoiceButton';
 import { SearchField } from '../../components/Filters';
 import { Icon } from '../../components/Icon';
 import { ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { formatDate } from '../../lib/format';
 import { PAPER_STATUS_LABEL } from '../../lib/labels';
+import { templateChoices, useTemplates } from '../../lib/paperTemplates';
 import { useDebounced } from '../../lib/useDebounced';
-import { useDropdown } from '../../lib/useDropdown';
 import s from './editor.module.css';
 import { NewTemplate, TemplatesList } from './TemplatesTab';
 
@@ -68,10 +69,14 @@ export function PapersPage() {
   );
 }
 
-/** «Новий документ» and what it may fail with. */
+/**
+ * «Новий документ»: with templates to make documents from — a choice
+ * («Порожній документ» or a template); without — an empty document at once.
+ */
 function NewPaperButton() {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const templates = useTemplates();
   const create = useMutation({
     mutationFn: (templateId: string | null) => unwrap(api.POST('/api/papers', { body: templateId ? { templateId } : {} })),
     onSuccess: (p) => {
@@ -81,7 +86,12 @@ function NewPaperButton() {
   });
   return (
     <>
-      <NewPaper pending={create.isPending} onCreate={(templateId) => create.mutate(templateId)} />
+      <ChoiceButton
+        label="Новий документ"
+        choices={[{ id: null, title: 'Порожній документ' }, ...templateChoices(templates.data)]}
+        disabled={create.isPending || templates.isPending}
+        onPick={(id) => create.mutate(id)}
+      />
       {create.isError && (
         <div className={s.headerError}>
           <ErrorMessage text={errorOf(create.error)} />
@@ -137,55 +147,5 @@ function Papers({ mine }: { mine: boolean }) {
         </p>
       )}
     </>
-  );
-}
-
-/**
- * «Новий документ»: with templates to make documents from — a choice
- * («Порожній документ» or a template); without — an empty document at once.
- */
-function NewPaper({ pending, onCreate }: { pending: boolean; onCreate: (templateId: string | null) => void }) {
-  const d = useDropdown();
-  const id = useId();
-  const templates = useQuery({
-    queryKey: ['paper-templates', 'list'],
-    queryFn: () => unwrap(api.GET('/api/papers/templates')),
-  });
-  const ready = (templates.data ?? []).filter((t) => t.currentVersion !== null && !t.archived);
-  const pick = (templateId: string | null) => {
-    d.setOpen(false);
-    onCreate(templateId);
-  };
-  if (!ready.length) {
-    return (
-      <button type="button" className="btn btn-primary" disabled={pending || templates.isPending} onClick={() => onCreate(null)}>
-        Новий документ
-      </button>
-    );
-  }
-  return (
-    <div className={s.newPaper} ref={d.root} onKeyDown={d.onKeyDown}>
-      <button type="button" className="btn btn-primary" aria-haspopup="true" aria-expanded={d.open} aria-controls={id} disabled={pending} onClick={() => d.setOpen(!d.open)}>
-        Новий документ
-        <Icon name="down" size={18} />
-      </button>
-      {d.open && (
-        <ul id={id} className={s.menu} aria-label="Новий документ">
-          <li>
-            <button type="button" onClick={() => pick(null)}>
-              Порожній документ
-            </button>
-          </li>
-          {ready.map((t) => (
-            <li key={t.id}>
-              <button type="button" disabled={t.needsUpdate} onClick={() => pick(t.id)}>
-                {t.title}
-                {t.needsUpdate && <span className={s.sub}>Шаблон потребує оновлення</span>}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
   );
 }

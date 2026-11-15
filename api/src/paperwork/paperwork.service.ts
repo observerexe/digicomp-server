@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   HttpException,
   Injectable,
   NotFoundException,
@@ -40,6 +41,7 @@ import type {
   CopyPaperDto,
   CreatePaperDto,
   ListPapersQuery,
+  PaperForRecordDto,
   UpdatePaperDto,
 } from './dto';
 import { Paper, PaperStatus, PaperVisibility } from './paper.entity';
@@ -60,6 +62,7 @@ import {
   resolveFields,
   type PaperField,
 } from './paper-fields';
+import { papersOf } from './paper-targets';
 import { paperPrintHtml } from './print';
 import type {
   PaperDto,
@@ -73,7 +76,7 @@ import {
   PaperTemplateVersion,
   TemplateKind,
 } from './template.entities';
-import { TemplatesService } from './templates.service';
+import { TemplateErrors, TemplatesService } from './templates.service';
 
 const UNTITLED = 'Без назви';
 
@@ -82,6 +85,7 @@ export const PaperErrors = {
   NotDraft: 'Paper is not a draft',
   NotPublished: 'Paper is not published',
   RequiredMissing: 'Required paper field is missing',
+  TargetTaken: 'Record already has a paper',
 } as const;
 
 /** Published, not cancelled: it shows its record as it is now. */
@@ -151,6 +155,36 @@ function requireFilled(
       field: missing.key,
     });
   }
+}
+
+/**
+ * Text and values with the fields bound to the record taken from it (zones —
+ * as plain paragraphs); `auto` — the fields nobody fills too.
+ */
+function withRecord(
+  fields: PaperField[],
+  record: RecordValues,
+  own: Shown,
+  auto: boolean,
+): Shown {
+  let content = own.content;
+  const values = { ...own.values };
+  for (const f of fields) {
+    if (f.binding === null || (f.auto && !auto)) continue;
+    const raw = record[f.binding];
+    if (!isFillable(f.type)) {
+      content = withZoneText(
+        content,
+        f.key,
+        typeof raw === 'string' ? raw : '',
+      );
+      continue;
+    }
+    const v = raw === undefined ? undefined : normalizeValue(f, raw);
+    if (v === null) delete values[f.key];
+    else if (v !== undefined) values[f.key] = v;
+  }
+  return { content, values };
 }
 
 /** Values of bound fields by the keys of the record's fields (empty — null). */
@@ -384,24 +418,7 @@ export class PaperworkService {
       .get(p.targetType)
       ?.resolve(p.targetId, m);
     if (!record) return own;
-    let content = p.content;
-    const values = { ...p.values };
-    for (const f of form.fields) {
-      if (f.binding === null) continue;
-      const raw = record.values[f.binding];
-      if (!isFillable(f.type)) {
-        content = withZoneText(
-          content,
-          f.key,
-          typeof raw === 'string' ? raw : '',
-        );
-        continue;
-      }
-      const v = raw === undefined ? undefined : normalizeValue(f, raw);
-      if (v === null) delete values[f.key];
-      else if (v !== undefined) values[f.key] = v;
-    }
-    return { content, values };
+    return withRecord(form.fields, record.values, own, true);
   }
 
   private async view(
@@ -660,6 +677,114 @@ export class PaperworkService {
         fresh,
         meta: { copyOf: source.id },
       });
+    });
+  }
+
+  /**
+   * A document for a record made without one (before documents): from a
+   * template that creates records of its type, with the bound fields taken
+   * from the record as it is now, published at once — with a number and the
+   * link to the record. Only who may change the record (its adapter), and
+   * only while it has no document (409 PAPER_TARGET_TAKEN).
+   */
+  async forRecord(dto: PaperForRecordDto, actor: Actor): Promise<PaperDto> {
+    return this.ds.transaction(async (m) => {
+      const from = await this.templates.forPaper(m, dto.templateId, actor);
+      const { template, version } = from;
+      const type = template.target;
+      const adapter =
+        template.kind === TemplateKind.Creates && type
+          ? this.adapters.get(type)
+          : undefined;
+      if (!type || !adapter) {
+        throw new BadRequestException(TemplateErrors.KindInvalid);
+      }
+      // Two at once would both see the record without a document.
+      await m.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [
+        `paper-target:${type}:${dto.targetId}`,
+      ]);
+      const record = await adapter.resolve(dto.targetId, m);
+      if (!record) throw new NotFoundException('Record not found');
+      if (!(await adapter.canUpdate(dto.targetId, actor, m))) {
+        throw new ForbiddenException();
+      }
+      if (await papersOf(m, type, dto.targetId)) {
+        throw new ConflictException(PaperErrors.TargetTaken);
+      }
+      const fields = await this.fieldsOf(m, template, version);
+      const filled = withRecord(
+        fields,
+        record.values,
+        { content: version.body, values: {} },
+        false,
+      );
+      const fresh = new Set(
+        (
+          await seenRefs(
+            this.links,
+            fields,
+            filled.values,
+            filled.content,
+            actor,
+            m,
+          )
+        ).map((r) => `${r.type}:${r.id}`),
+      );
+      const repo = m.getRepository(Paper);
+      const p = await repo.save(
+        repo.create({
+          title: template.title,
+          content: filled.content,
+          values: filled.values,
+          templateVersionId: version.id,
+          visibility: template.visibility,
+          authorId: actor.id,
+          status: PaperStatus.Published,
+          publishedAt: new Date(),
+          number: template.numberPrefix
+            ? await nextNumber(m, template.numberPrefix)
+            : null,
+          targetType: type,
+          targetId: dto.targetId,
+        }),
+      );
+      await m.getRepository(RecordLink).insert({
+        fromType: 'paper',
+        fromId: p.id,
+        toType: type,
+        toId: dto.targetId,
+        role: TARGET_ROLE,
+        createdById: actor.id,
+      });
+      await syncLinks(
+        m,
+        p.id,
+        fields,
+        filled.values,
+        filled.content,
+        fresh,
+        actor.id,
+      );
+      await this.audit.log(
+        {
+          actorId: actor.id,
+          action: 'paper.published',
+          entity: 'paper',
+          entityId: p.id,
+          meta: {
+            title: p.title,
+            authorId: p.authorId,
+            number: p.number,
+            targetType: type,
+            targetId: dto.targetId,
+            templateId: template.id,
+            version: version.number,
+            fromRecord: true,
+          },
+        },
+        m,
+      );
+      return this.view(m, await this.accessible(m, p.id, actor), actor);
     });
   }
 

@@ -7,6 +7,7 @@ import {
   as,
   category,
   createTestApp,
+  makeTask,
   makeUser,
   resetDb,
   TestUser,
@@ -65,12 +66,7 @@ describe("Зв'язки між записами (e2e)", () => {
     await category(app, 'place_category', 'Верстати');
     await category(app, 'document_category', 'Паспорти');
     await category(app, 'inventory_category', 'Матеріали');
-    taskId = (
-      await as(app, mod)
-        .post('/api/tasks')
-        .send({ title: 'Корпус', points: 5 })
-        .expect(201)
-    ).body.id;
+    taskId = (await makeTask(app, mod, { title: 'Корпус', points: 5 })).id;
     projectId = (
       await as(app, mod)
         .post('/api/projects')
@@ -246,7 +242,10 @@ describe("Зв'язки між записами (e2e)", () => {
   it('видалене ТЗ забирає свої зв’язки', async () => {
     await link(mod, 'task', taskId, 'project', projectId).expect(201);
     await link(mod, 'document', docId, 'task', taskId).expect(201);
-    await as(app, mod).delete(`/api/tasks/${taskId}`).expect(200);
+    await as(app, mod)
+      .post(`/api/tasks/${taskId}/cancel`)
+      .send({ reason: 'Не потрібно' })
+      .expect(200);
     expect(await links(mod, 'project', projectId)).toEqual([]);
     expect(await links(mod, 'document', docId)).toEqual([]);
   });

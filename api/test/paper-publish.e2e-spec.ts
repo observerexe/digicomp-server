@@ -3,7 +3,15 @@ import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
 import { AuditLog } from '../src/audit/audit-log.entity';
 import { Role } from '../src/users/user.entity';
-import { as, createTestApp, makeUser, resetDb, TestUser } from './helpers';
+import {
+  as,
+  createTestApp,
+  makeTask,
+  makeUser,
+  resetDb,
+  TestUser,
+  withTasks,
+} from './helpers';
 
 // Публікація й скасування документів (3.1а): обов'язкові поля, номери,
 // документ, що створює ТЗ (адаптер), видимість через запис, поточні дані
@@ -386,10 +394,16 @@ describe('Публікація документів (e2e)', () => {
     it('прив’язані поля показують ТЗ як воно є зараз; неприв’язані — як записали', async () => {
       const p = await taskPaper();
       const { targetId } = (await publish(mod, p.id).expect(200)).body as Paper;
-      await as(app, mod)
-        .patch(`/api/tasks/${targetId}`)
-        .send({ title: 'Логотип 2', description: 'Інша мета', dueDate: null })
-        .expect(200);
+      // ТЗ змінили не через цей документ (як змінив би інший шлях до сервісу).
+      const changed = await withTasks(app, (tasks, m) =>
+        tasks.update(
+          targetId!,
+          { title: 'Логотип 2', description: 'Інша мета', dueDate: null },
+          mod,
+          m,
+        ),
+      );
+      expect(changed.status).toBe(200);
       const now = await get(member, p.id);
       expect(now.values).toEqual({
         name: 'Логотип 2',
@@ -463,12 +477,25 @@ describe('Публікація документів (e2e)', () => {
       expect((await get(mod, p.id)).status).toBe('draft');
     });
 
-    it('ТЗ з документом не видаляється — 409 TASK_HAS_PAPER', async () => {
+    it('ТЗ з документом не скасовується без нього — 409 TASK_HAS_PAPER; ТЗ знає свій документ', async () => {
       const p = await taskPaper();
-      const { targetId } = (await publish(mod, p.id).expect(200)).body as Paper;
-      const res = await as(app, mod).delete(`/api/tasks/${targetId}`);
+      const done = (await publish(mod, p.id).expect(200)).body as Paper;
+      const res = await as(app, mod)
+        .post(`/api/tasks/${done.targetId}/cancel`)
+        .send({ reason: 'Не потрібно' });
       expect(res.status).toBe(409);
       expect(res.body.errorCode).toBe('TASK_HAS_PAPER');
+      const paper = { id: p.id, number: `ТЗ-${YEAR}-001` };
+      const one = await as(app, member)
+        .get(`/api/tasks/${done.targetId}`)
+        .expect(200);
+      expect(one.body.paper).toEqual(paper);
+      const board = await as(app, member).get('/api/tasks').expect(200);
+      expect(board.body[0].paper).toEqual(paper);
+      const taken = await as(app, member)
+        .post(`/api/tasks/${done.targetId}/take`)
+        .expect(200);
+      expect(taken.body.paper).toEqual(paper);
     });
 
     it('скасування документа знімає вільне ТЗ; учасник не скасовує', async () => {
@@ -515,12 +542,7 @@ describe('Публікація документів (e2e)', () => {
 
   describe('ТЗ: здано й прийнято', () => {
     it('здача пише час, прийняття — хто прийняв', async () => {
-      const t = (
-        await as(app, mod)
-          .post('/api/tasks')
-          .send({ title: 'Афіша', points: 10 })
-          .expect(201)
-      ).body as { id: string };
+      const t = await makeTask(app, mod, { title: 'Афіша', points: 10 });
       const url = `/api/tasks/${t.id}`;
       await as(app, member).post(`${url}/take`).expect(200);
       await as(app, member).post(`${url}/start`).expect(200);

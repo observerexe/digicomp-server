@@ -19,6 +19,7 @@ export const task = (over: Partial<Task> = {}): Task => ({
   completedAt: null,
   acceptedById: null,
   assignees: [],
+  paper: null,
   ...over,
 });
 

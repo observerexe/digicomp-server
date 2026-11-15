@@ -3,7 +3,14 @@ import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
 import { AuditLog } from '../src/audit/audit-log.entity';
 import { Role } from '../src/users/user.entity';
-import { as, createTestApp, makeUser, resetDb, TestUser } from './helpers';
+import {
+  as,
+  createTestApp,
+  makeUser,
+  resetDb,
+  TestUser,
+  withTasks,
+} from './helpers';
 
 // Додаткові поля записів (0.3а): визначення в record_field_defs, значення в tasks.extra.
 
@@ -64,14 +71,14 @@ describe('Додаткові поля (e2e)', () => {
   const typeField = () =>
     field({ label: 'Тип', type: 'enum', dictionary: 'typ_tz' });
 
-  function newTask(extra?: Record<string, unknown>) {
-    return as(app, mod)
-      .post('/api/tasks')
-      .send({ title: 'Логотип', points: 10, extra });
-  }
+  // ТЗ створюють і змінюють документи; тут — сервіс ТЗ, як адаптер документа.
+  const newTask = (extra?: Record<string, unknown>) =>
+    withTasks(app, (tasks, m) =>
+      tasks.create({ title: 'Логотип', points: 10, extra }, mod, m),
+    );
 
-  const patchTask = (id: string, extra: Record<string, unknown>) =>
-    as(app, mod).patch(`/api/tasks/${id}`).send({ extra });
+  const patchTask = (id: string, dto: Record<string, unknown>) =>
+    withTasks(app, (tasks, m) => tasks.update(id, dto, mod, m));
 
   it('створення: ключ з назви, поле в схемі, версія схеми змінюється, аудит', async () => {
     const before = await as(app, member).get('/api/records/task/schema');
@@ -170,13 +177,12 @@ describe('Додаткові поля (e2e)', () => {
     await field({ label: 'Мітки', type: 'list<enum>', dictionary: 'tehy' });
 
     const created = await newTask({ typ: 'dyzain', skladnist: 3 });
-    expect(created.status).toBe(201);
+    expect(created.status).toBe(200);
     expect(created.body.extra).toEqual({ typ: 'dyzain', skladnist: 3 });
 
     const id = created.body.id as string;
     const patched = await patchTask(id, {
-      skladnist: null,
-      mitky: ['urgent', 'team'],
+      extra: { skladnist: null, mitky: ['urgent', 'team'] },
     });
     expect(patched.status).toBe(200);
     expect(patched.body.extra).toEqual({
@@ -224,12 +230,10 @@ describe('Додаткові поля (e2e)', () => {
     const ok = await newTask({ zamovnyk: '  Кафедра  ' });
     expect(ok.body.extra).toEqual({ zamovnyk: 'Кафедра' });
 
-    const cleared = await patchTask(ok.body.id, { zamovnyk: null });
+    const cleared = await patchTask(ok.body.id, { extra: { zamovnyk: null } });
     expect(cleared.body.field).toBe('zamovnyk');
 
-    const rename = await as(app, mod)
-      .patch(`/api/tasks/${old.body.id}`)
-      .send({ title: 'Нова назва' });
+    const rename = await patchTask(old.body.id, { title: 'Нова назва' });
     expect(rename.status).toBe(200);
   });
 
@@ -240,7 +244,9 @@ describe('Додаткові поля (e2e)', () => {
       .patch('/api/dictionaries/typ_tz/items/dyzain')
       .send({ archived: true });
 
-    expect((await patchTask(task.body.id, { typ: 'dyzain' })).status).toBe(200);
+    expect(
+      (await patchTask(task.body.id, { extra: { typ: 'dyzain' } })).status,
+    ).toBe(200);
     const again = await newTask({ typ: 'dyzain' });
     expect(again.body).toMatchObject({
       errorCode: 'RECORD_EXTRA_INVALID',
@@ -296,12 +302,14 @@ describe('Додаткові поля (e2e)', () => {
     });
 
     // Те саме значення можна надіслати знову, нове — ні, очистити — можна.
-    expect((await patchTask(task.body.id, { typ: 'video' })).status).toBe(200);
-    const other = await patchTask(task.body.id, { typ: 'dyzain' });
+    expect(
+      (await patchTask(task.body.id, { extra: { typ: 'video' } })).status,
+    ).toBe(200);
+    const other = await patchTask(task.body.id, { extra: { typ: 'dyzain' } });
     expect(other.body.field).toBe('typ');
-    expect((await patchTask(task.body.id, { typ: null })).body.extra).toEqual(
-      {},
-    );
+    expect(
+      (await patchTask(task.body.id, { extra: { typ: null } })).body.extra,
+    ).toEqual({});
 
     const del = await as(app, mod).delete('/api/records/task/field-defs/typ');
     expect(del.status).toBe(200);

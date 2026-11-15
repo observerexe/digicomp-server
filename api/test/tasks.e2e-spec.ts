@@ -5,6 +5,7 @@ import { Role } from '../src/users/user.entity';
 import {
   as,
   createTestApp,
+  makeTask,
   makeUser,
   PNG_1PX,
   resetDb,
@@ -12,7 +13,9 @@ import {
 } from './helpers';
 
 // Увесь шлях ТЗ: Вільне → В черзі → В роботі → На перевірці → Виконано,
-// повернення на допрацювання, ліміт виконавців, поділ балів, коментарі, файли.
+// повернення на допрацювання, ліміт виконавців, поділ балів, коментарі, файли,
+// скасування з причиною. Створюють і змінюють ТЗ документи (paper-publish,
+// paper-change, task-papers); тут ТЗ створює сервіс, як адаптер документа.
 
 type Res = { status: number; body: Record<string, any> };
 
@@ -48,13 +51,15 @@ describe('ТЗ (e2e)', () => {
     c = await makeUser(app, Role.Member);
   });
 
-  const create = async (over: Record<string, unknown> = {}) => {
-    const res = await as(app, mod)
-      .post('/api/tasks')
-      .send({ title: 'Зняти відео', points: 10, maxAssignees: 3, ...over });
-    expect(res.status).toBe(201);
-    return res.body.id as string;
-  };
+  const create = async (over: Record<string, unknown> = {}) =>
+    (
+      await makeTask(app, mod, {
+        title: 'Зняти відео',
+        points: 10,
+        maxAssignees: 3,
+        ...over,
+      })
+    ).id;
   const act = (u: TestUser, id: string, step: string, body?: object) =>
     as(app, u)
       .post(`/api/tasks/${id}/${step}`)
@@ -162,9 +167,9 @@ describe('ТЗ (e2e)', () => {
     code(await act(mod, id, 'accept'), 409, 'TASK_ALREADY_COMPLETED');
     code(await act(a, id, 'leave'), 409, 'TASK_ALREADY_COMPLETED');
     code(
-      await as(app, mod).patch(`/api/tasks/${id}`).send({ points: 50 }),
+      await act(mod, id, 'cancel', { reason: 'x' }),
       409,
-      'TASK_ALREADY_COMPLETED',
+      'TASK_HAS_ASSIGNEES',
     );
     expect(await ledger(id)).toEqual({ [a.id]: 4, [b.id]: 3, [c.id]: 3 });
 
@@ -259,40 +264,34 @@ describe('ТЗ (e2e)', () => {
     expect(await ledger(id)).toEqual({ [mod.id]: 5, [a.id]: 5 });
   });
 
-  it('редагування і видалення', async () => {
-    const id = await create({ maxAssignees: 3 });
-    const upd = await as(app, mod)
-      .patch(`/api/tasks/${id}`)
-      .send({ title: 'Нова назва', dueDate: '2026-12-01T00:00:00.000Z' });
-    expect(upd.body).toMatchObject({ title: 'Нова назва' });
-    expect(new Date(upd.body.dueDate as string).toISOString()).toBe(
-      '2026-12-01T00:00:00.000Z',
-    );
-    expect(
-      (await as(app, mod).patch(`/api/tasks/${id}`).send({ dueDate: null }))
-        .body.dueDate,
-    ).toBeNull();
-    expect(
-      (await as(app, a).patch(`/api/tasks/${id}`).send({ title: 'x' })).status,
-    ).toBe(403);
-
+  it('скасування з причиною: лише вільне без виконавців, лише модератор', async () => {
+    const id = await create();
     await act(a, id, 'take');
-    await act(b, id, 'take');
     code(
-      await as(app, mod).patch(`/api/tasks/${id}`).send({ maxAssignees: 1 }),
-      409,
-      'MAX_ASSIGNEES_TOO_LOW',
-    );
-    code(
-      await as(app, mod).delete(`/api/tasks/${id}`),
+      await act(mod, id, 'cancel', { reason: 'Не потрібно' }),
       409,
       'TASK_HAS_ASSIGNEES',
     );
 
     const free = await create();
-    expect((await as(app, a).delete(`/api/tasks/${free}`)).status).toBe(403);
-    expect((await as(app, mod).delete(`/api/tasks/${free}`)).status).toBe(200);
+    expect((await act(a, free, 'cancel', { reason: 'x' })).status).toBe(403);
+    code(
+      await act(mod, free, 'cancel', { reason: ' ' }),
+      400,
+      'VALIDATION_ERROR',
+    );
+    expect(
+      (await act(mod, free, 'cancel', { reason: 'Не потрібно' })).status,
+    ).toBe(200);
     expect((await as(app, a).get(`/api/tasks/${free}`)).status).toBe(404);
+    const [log] = await ds.query<{ meta: Record<string, unknown> }[]>(
+      `SELECT meta FROM audit_log WHERE action = 'task.deleted' AND entity_id = $1`,
+      [free],
+    );
+    expect(log.meta).toMatchObject({
+      title: 'Зняти відео',
+      reason: 'Не потрібно',
+    });
   });
 
   it('фільтри дошки: статус і «мої»', async () => {
@@ -357,21 +356,20 @@ describe('ТЗ (e2e)', () => {
     expect(detail.body.files).toHaveLength(1);
   });
 
-  it('старий PATCH /tasks/:id/status і assigneeIds прибрано', async () => {
+  it('старі ендпоінти прибрано: ТЗ створюють і змінюють лише документи', async () => {
     const id = await create();
-    expect(
-      (
-        await as(app, mod)
-          .patch(`/api/tasks/${id}/status`)
-          .send({ status: 'done' })
-      ).status,
-    ).toBe(404);
-    code(
+    const gone = [
       await as(app, mod)
-        .post('/api/tasks')
-        .send({ title: 'x', points: 1, assigneeIds: [a.id] }),
-      400,
-      'VALIDATION_ERROR',
-    );
+        .patch(`/api/tasks/${id}/status`)
+        .send({ status: 'done' }),
+      await as(app, mod).post('/api/tasks').send({ title: 'x', points: 1 }),
+      await as(app, mod).patch(`/api/tasks/${id}`).send({ title: 'x' }),
+      await as(app, mod).delete(`/api/tasks/${id}`),
+    ];
+    expect(gone.map((r) => r.status)).toEqual([404, 404, 404, 404]);
+    expect((await as(app, a).get(`/api/tasks/${id}`)).body).toMatchObject({
+      title: 'Зняти відео',
+      paper: null,
+    });
   });
 });

@@ -57,6 +57,11 @@
 .stripe {
   border-left: 4px solid var(--pal-solid);
 }
+.cardNumber {
+  color: var(--c-text2);
+  font-size: 13px;
+  line-height: 18px;
+}
 .cardTitle {
   color: var(--c-text);
   font-weight: 700;
@@ -311,4 +316,9 @@
     grid-template-columns: repeat(5, minmax(0, 1fr));
     overflow: visible;
   }
+}
+
+.paperNumber {
+  margin: 0 0 8px;
+  font-weight: 700;
 }

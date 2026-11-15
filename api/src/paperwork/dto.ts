@@ -43,6 +43,16 @@ export class CreatePaperDto {
   templateId?: string;
 }
 
+/** A document for a record made without one: published at once. */
+export class PaperForRecordDto {
+  /** A template that creates records of the record's type. */
+  @IsUUID()
+  templateId: string;
+
+  @IsUUID()
+  targetId: string;
+}
+
 /** A copy of a document: same template version, the given text and values. */
 export class CopyPaperDto {
   @IsOptional()

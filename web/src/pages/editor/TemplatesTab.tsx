@@ -7,6 +7,7 @@ import { Icon } from '../../components/Icon';
 import { ErrorMessage, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { recordsKey } from '../../lib/fields';
+import { useTemplates } from '../../lib/paperTemplates';
 import { RECORD_TYPES } from '../../lib/records';
 import s from './editor.module.css';
 
@@ -43,10 +44,7 @@ function useRecordTypes() {
 
 /** «Шаблони»: every template with its versions; a template opens in the constructor. */
 export function TemplatesList() {
-  const templates = useQuery({
-    queryKey: ['paper-templates', 'list'],
-    queryFn: () => unwrap(api.GET('/api/papers/templates')),
-  });
+  const templates = useTemplates();
   const types = useRecordTypes();
   const typeLabel = (t: string | null) => types.find((x) => x.type === t)?.label ?? t;
 

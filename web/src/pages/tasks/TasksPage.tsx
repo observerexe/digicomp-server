@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
 import type { FieldDef, Task } from '../../api/types';
 import { Board } from '../../components/Board';
 import { useAuth } from '../../auth/AuthProvider';
+import { ChoiceButton } from '../../components/ChoiceButton';
 import { Chips } from '../../components/Filters';
 import { ErrorMessage, PageHeader } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { useDictionary, usedItems } from '../../lib/dictionaries';
 import { choiceKeys, filterFields, matchesFilters, stripeField, useFieldDefs } from '../../lib/fields';
+import { templateChoices, useTemplates } from '../../lib/paperTemplates';
 import { COLUMNS, dropAction, type ActionKind } from './logic';
-import { DONE_PAGE, useBoard, useTaskAction } from './queries';
+import { DONE_PAGE, useBoard, useTaskAction, useTaskPaper } from './queries';
 import { TaskCard } from './TaskCard';
 import s from './tasks.module.css';
 
@@ -25,6 +26,10 @@ export function TasksPage() {
   const [filters, setFilters] = useState<Record<string, string | null>>({});
   const board = useBoard(mine, doneLimit);
   const action = useTaskAction(user);
+  // «Нове ТЗ» opens a document of a template that creates tasks.
+  const staff = can('tasks.create');
+  const templates = useTemplates(staff);
+  const newTask = useTaskPaper();
   const defs = useFieldDefs('task').data;
   const stripe = stripeField(defs);
   const stripeDict = useDictionary(stripe?.dictionary).data;
@@ -54,10 +59,14 @@ export function TasksPage() {
               Мої
             </button>
           </div>
-          {can('tasks.create') && (
-            <Link to="/tasks/new" className="btn btn-primary">
-              Нове ТЗ
-            </Link>
+          {staff && (
+            <ChoiceButton
+              label="Нове ТЗ"
+              choices={templateChoices(templates.data, 'task')}
+              disabled={templates.isPending || newTask.isPending}
+              emptyNote="Немає шаблону, що створює ТЗ: його додають у «Редактор» → «Шаблони»."
+              onPick={(templateId) => templateId && newTask.mutate({ templateId })}
+            />
           )}
         </div>
       </PageHeader>
@@ -68,7 +77,7 @@ export function TasksPage() {
           ))}
         </div>
       )}
-      <ErrorMessage text={action.isError ? errorOf(action.error) : board.isError ? errorOf(board.error) : null} />
+      <ErrorMessage text={[action, board, newTask, templates].map((q) => (q.isError ? errorOf(q.error) : null)).find(Boolean) ?? null} />
       <Board
         columns={COLUMNS.map((c) => ({ key: c.status, title: c.title }))}
         items={shown}

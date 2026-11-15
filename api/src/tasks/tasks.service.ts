@@ -19,13 +19,18 @@ import { PointsEntry, PointsKind } from '../points/points-entry.entity';
 import { RecordFieldsService } from '../records/record-fields.service';
 import { User } from '../users/user.entity';
 import {
+  CancelTaskDto,
   CommentDto,
   CreateTaskDto,
   ListTasksQuery,
   UpdateTaskDto,
 } from './dto';
 import { removeLinksOf } from '../links/links.sql';
-import { papersOf } from '../paperwork/paper-targets';
+import {
+  paperOfRecords,
+  papersOf,
+  type RecordPaper,
+} from '../paperwork/paper-targets';
 import { splitPoints } from './split-points';
 import {
   Task,
@@ -69,7 +74,7 @@ function sortAssignees(list: TaskAssignee[]) {
   );
 }
 
-function taskView(t: Task): Plain<TaskDto> {
+function taskView(t: Task, paper: RecordPaper | undefined): Plain<TaskDto> {
   return {
     id: t.id,
     title: t.title,
@@ -89,7 +94,18 @@ function taskView(t: Task): Plain<TaskDto> {
       ...userRef(a.user, a.userId),
       takenAt: a.takenAt,
     })),
+    paper: paper ?? null,
   };
+}
+
+/** Views of tasks with their documents (one query). */
+async function taskViews(m: EntityManager, tasks: Task[]) {
+  const papers = await paperOfRecords(
+    m,
+    'task',
+    tasks.map((t) => t.id),
+  );
+  return tasks.map((t) => taskView(t, papers.get(t.id)));
 }
 
 function commentView(c: TaskComment): TaskCommentDto {
@@ -148,7 +164,7 @@ export class TasksService {
         { me: actor.id },
       );
     }
-    return (await qb.getMany()).map(taskView);
+    return taskViews(this.ds.manager, await qb.getMany());
   }
 
   async get(id: string): Promise<TaskDetailDto> {
@@ -165,56 +181,49 @@ export class TasksService {
       }),
       this.files.find({ where: { taskId: id }, order: { createdAt: 'ASC' } }),
     ]);
+    const [view] = await taskViews(this.ds.manager, [task]);
     return {
-      ...taskView(task),
+      ...view,
       comments: comments.map(commentView),
       files: files.map(fileView),
     };
   }
 
   /**
-   * In its own transaction, or in the given one (a document creating the
-   * task: the caller checks TasksCreate, as the controller does).
+   * Only through a document (its adapter, in the document's transaction):
+   * the caller checks TasksCreate.
    */
-  create(
+  async create(
     dto: CreateTaskDto,
     actor: Actor,
-    tx?: EntityManager,
+    m: EntityManager,
   ): Promise<TaskDto> {
-    const run = async (m: EntityManager) => {
-      const { extra } = await this.fields.applyExtra(
-        m,
-        'task',
-        dto.extra,
-        null,
-      );
-      const task = await m.save(
-        m.create(Task, {
-          title: dto.title.trim(),
-          description: dto.description ?? null,
-          points: dto.points,
-          maxAssignees: dto.maxAssignees ?? 1,
-          dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
-          createdById: actor.id,
-          extra,
-        }),
-      );
-      await this.log(m, actor, 'task.created', task.id, {
-        title: task.title,
-        points: task.points,
-        ...(Object.keys(extra).length ? { extra } : {}),
-      });
-      return taskView(task);
-    };
-    return tx ? run(tx) : this.ds.transaction(run);
+    const { extra } = await this.fields.applyExtra(m, 'task', dto.extra, null);
+    const task = await m.save(
+      m.create(Task, {
+        title: dto.title.trim(),
+        description: dto.description ?? null,
+        points: dto.points,
+        maxAssignees: dto.maxAssignees ?? 1,
+        dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
+        createdById: actor.id,
+        extra,
+      }),
+    );
+    await this.log(m, actor, 'task.created', task.id, {
+      title: task.title,
+      points: task.points,
+      ...(Object.keys(extra).length ? { extra } : {}),
+    });
+    return taskView(task, undefined);
   }
 
-  /** In its own transaction, or in the given one (a document changing the task). */
+  /** Only through its document (the document's transaction): staff, until done. */
   update(
     id: string,
     dto: UpdateTaskDto,
     actor: Actor,
-    tx?: EntityManager,
+    m: EntityManager,
   ): Promise<TaskDto> {
     return this.locked(
       id,
@@ -259,14 +268,17 @@ export class TasksService {
         await m.save(Task, task);
         await this.log(m, actor, 'task.updated', task.id, changes);
       },
-      tx,
+      m,
     );
   }
 
-  /** A task with a document goes only with it: the document is cancelled. */
-  async remove(id: string, actor: Actor): Promise<OkDto> {
+  /**
+   * A task without a document is taken off with a reason (only free,
+   * without assignees); one with a document — by cancelling the document.
+   */
+  async cancel(id: string, dto: CancelTaskDto, actor: Actor): Promise<OkDto> {
     const stored = await this.ds.transaction((m) =>
-      this.drop(m, id, actor, {}, true),
+      this.drop(m, id, actor, { reason: dto.reason.trim() }, true),
     );
     await this.removeFiles(stored);
     return { ok: true };
@@ -274,7 +286,7 @@ export class TasksService {
 
   /**
    * Its document is cancelled (in the document's transaction): the task
-   * goes as by DELETE — only free, without assignees. Files are removed
+   * goes as by cancel() — only free, without assignees. Files are removed
    * after the commit (the returned function).
    */
   async cancelByPaper(
@@ -289,8 +301,9 @@ export class TasksService {
   }
 
   /**
-   * Deletes a free task without assignees; returns its stored files.
-   * `alone` — not through its document: a task with one stays.
+   * Deletes a free task without assignees (the reason — in the audit);
+   * returns its stored files. `alone` — not through its document: a task
+   * with one stays.
    */
   private async drop(
     m: EntityManager,
@@ -596,11 +609,13 @@ export class TasksService {
     };
     if (tx) await run(tx);
     else await this.ds.transaction(run);
-    const fresh = await (tx ?? this.ds.manager).findOneOrFail(Task, {
+    const m = tx ?? this.ds.manager;
+    const fresh = await m.findOneOrFail(Task, {
       where: { id },
       relations: { assignees: { user: true } },
     });
-    return taskView(fresh);
+    const [view] = await taskViews(m, [fresh]);
+    return view;
   }
 
   private async lock(m: EntityManager, id: string) {

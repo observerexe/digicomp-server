@@ -66,6 +66,7 @@ export function TaskCard(props: {
       onDragEnd={props.drag.onDragEnd}
       aria-busy={props.busy}
     >
+      {t.paper?.number && <span className={s.cardNumber}>{t.paper.number}</span>}
       <Link to={`/tasks/${t.id}`} className={s.cardTitle}>
         {t.title}
       </Link>

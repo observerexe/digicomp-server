@@ -508,7 +508,7 @@ export interface paths {
         /** Board: all tasks, filter by status or `mine=true`. */
         get: operations["TasksController_list"];
         put?: never;
-        post: operations["TasksController_create"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -526,11 +526,31 @@ export interface paths {
         get: operations["TasksController_get"];
         put?: never;
         post?: never;
-        /** Only a free task without assignees. */
-        delete: operations["TasksController_remove"];
+        delete?: never;
         options?: never;
         head?: never;
-        patch: operations["TasksController_update"];
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Only a free task without assignees and without a document (one with a
+         *     document is cancelled with it). Tasks are created and changed through
+         *     documents of the editor.
+         */
+        post: operations["TasksController_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/tasks/{id}/take": {
@@ -975,6 +995,26 @@ export interface paths {
         get: operations["PaperworkController_list"];
         put?: never;
         post: operations["PaperworkController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/papers/for-record": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * A document for a record made before documents (its bound fields from
+         *     the record), published at once; who may change the record.
+         */
+        post: operations["PaperworkController_forRecord"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2226,6 +2266,11 @@ export interface components {
             takenAt: string;
             id: string;
         };
+        TaskPaperDto: {
+            /** @description «ТЗ-2026-014»; null — the template gives no numbers. */
+            number: string | null;
+            id: string;
+        };
         TaskDto: {
             description: string | null;
             status: components["schemas"]["TaskStatus"];
@@ -2249,6 +2294,8 @@ export interface components {
             acceptedById: string | null;
             /** @description In the order of taking. */
             assignees: components["schemas"]["TaskAssigneeDto"][];
+            /** @description null — an old task made before documents (no document yet). */
+            paper: components["schemas"]["TaskPaperDto"] | null;
             id: string;
             title: string;
             points: number;
@@ -2311,6 +2358,8 @@ export interface components {
             acceptedById: string | null;
             /** @description In the order of taking. */
             assignees: components["schemas"]["TaskAssigneeDto"][];
+            /** @description null — an old task made before documents (no document yet). */
+            paper: components["schemas"]["TaskPaperDto"] | null;
             /** @description Oldest first. */
             comments: components["schemas"]["TaskCommentDto"][];
             /** @description GET /tasks/:id/files/:fileId/download */
@@ -2325,29 +2374,9 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
-        CreateTaskDto: {
-            /** @description Extra fields: key → value (GET /records/task/field-defs). */
-            extra?: {
-                [key: string]: unknown;
-            };
-            title: string;
-            description?: string;
-            points: number;
-            /** @description How many members may take the task. Default 1. */
-            maxAssignees?: number;
-            dueDate?: string;
-        };
-        UpdateTaskDto: {
-            /** @description Only the keys given change; null clears a field. */
-            extra?: {
-                [key: string]: unknown;
-            };
-            title?: string;
-            description?: string | null;
-            points?: number;
-            maxAssignees?: number;
-            /** @description ISO date or null to clear the deadline. */
-            dueDate?: string | null;
+        CancelTaskDto: {
+            /** @description Why: kept in the audit. */
+            reason: string;
         };
         CommentDto: {
             body: string;
@@ -2823,6 +2852,15 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+        };
+        PaperForRecordDto: {
+            /**
+             * Format: uuid
+             * @description A template that creates records of the record's type.
+             */
+            templateId: string;
+            /** Format: uuid */
+            targetId: string;
         };
         CopyPaperDto: {
             content: {
@@ -4349,29 +4387,6 @@ export interface operations {
             };
         };
     };
-    TasksController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateTaskDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskDto"];
-                };
-            };
-        };
-    };
     TasksController_get: {
         parameters: {
             query?: never;
@@ -4393,28 +4408,7 @@ export interface operations {
             };
         };
     };
-    TasksController_remove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OkDto"];
-                };
-            };
-        };
-    };
-    TasksController_update: {
+    TasksController_cancel: {
         parameters: {
             query?: never;
             header?: never;
@@ -4425,7 +4419,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdateTaskDto"];
+                "application/json": components["schemas"]["CancelTaskDto"];
             };
         };
         responses: {
@@ -4434,7 +4428,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskDto"];
+                    "application/json": components["schemas"]["OkDto"];
                 };
             };
         };
@@ -5303,6 +5297,29 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["CreatePaperDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperDto"];
+                };
+            };
+        };
+    };
+    PaperworkController_forRecord: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaperForRecordDto"];
             };
         };
         responses: {

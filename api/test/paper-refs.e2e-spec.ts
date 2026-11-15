@@ -7,6 +7,7 @@ import {
   as,
   category,
   createTestApp,
+  makeTask,
   makeUser,
   resetDb,
   TestUser,
@@ -91,12 +92,7 @@ describe('Посилання документа на записи (e2e)', () => 
     member = await makeUser(app, Role.Member);
     other = await makeUser(app, Role.Member);
     await category(app, 'document_category', 'Паспорти');
-    taskId = (
-      await as(app, mod)
-        .post('/api/tasks')
-        .send({ title: 'Корпус', points: 5 })
-        .expect(201)
-    ).body.id;
+    taskId = (await makeTask(app, mod, { title: 'Корпус', points: 5 })).id;
     projectId = (
       await as(app, mod)
         .post('/api/projects')
@@ -222,7 +218,10 @@ describe('Посилання документа на записи (e2e)', () => 
     it('видалений запис лишається в документі: зберігається, у друці — «запис недоступний»', async () => {
       const p = await fromTemplate(member);
       await save(member, p, { values: { task: taskId, also: taskId } });
-      await as(app, mod).delete(`/api/tasks/${taskId}`).expect(200);
+      await as(app, mod)
+        .post(`/api/tasks/${taskId}/cancel`)
+        .send({ reason: 'Не потрібно' })
+        .expect(200);
       expect(await paperLinks()).toEqual([]);
       await save(member, p, { values: { task: taskId } });
       // Зв'язок на видалений запис не повертається.
@@ -349,7 +348,10 @@ describe('Посилання документа на записи (e2e)', () => 
       await save(member, p, {
         content: docOf(mention('task', taskId), mention('project', projectId)),
       });
-      await as(app, mod).delete(`/api/tasks/${taskId}`).expect(200);
+      await as(app, mod)
+        .post(`/api/tasks/${taskId}/cancel`)
+        .send({ reason: 'Не потрібно' })
+        .expect(200);
       const content = docOf(
         mention('task', taskId),
         mention('project', projectId),

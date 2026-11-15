@@ -7,6 +7,15 @@ export class TaskAssigneeDto extends UserRefDto {
   takenAt: Date;
 }
 
+/** The document of the task (editor): open it to read or change the task. */
+export class TaskPaperDto {
+  id: string;
+
+  /** «ТЗ-2026-014»; null — the template gives no numbers. */
+  @ApiProperty({ type: String, nullable: true })
+  number: string | null;
+}
+
 export class TaskDto {
   id: string;
   title: string;
@@ -47,6 +56,10 @@ export class TaskDto {
   /** In the order of taking. */
   @ApiProperty({ type: [TaskAssigneeDto] })
   assignees: TaskAssigneeDto[];
+
+  /** null — an old task made before documents (no document yet). */
+  @ApiProperty({ type: TaskPaperDto, nullable: true })
+  paper: TaskPaperDto | null;
 }
 
 export class TaskCommentDto {
