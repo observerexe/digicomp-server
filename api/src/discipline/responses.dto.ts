@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRefDto } from '../common/responses.dto';
+import { RecordPaperDto, ReferringPaperDto } from '../paperwork/responses.dto';
 import { DisciplineType } from './discipline.entity';
 
 export class DisciplineRecordDto {
@@ -31,6 +32,14 @@ export class DisciplineRecordDto {
 
   @ApiProperty({ type: String, nullable: true })
   revokeReason: string | null;
+
+  /** «Подання про стягнення» it was issued with; null — issued before documents. */
+  @ApiProperty({ type: RecordPaperDto, nullable: true })
+  paper: RecordPaperDto | null;
+
+  /** Documents about it the reader sees («Пояснювальна записка»), oldest first. */
+  @ApiProperty({ type: [ReferringPaperDto] })
+  papers: ReferringPaperDto[];
 }
 
 export class DisciplineListDto {

@@ -297,6 +297,7 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
     template,
     values,
     zones: fill.zones,
+    conditions: fill.conditions,
     mode: filling ? ('fill' as const) : changing ? ('change' as const) : ('view' as const),
     published,
     active: sheet.shownActive,

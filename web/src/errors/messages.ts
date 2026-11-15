@@ -70,6 +70,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   ENTRY_NOT_REVOCABLE: 'Бали за ТЗ не знімаються, а штраф знімається в розділі дисципліни.',
   FINE_AMOUNT_REQUIRED: 'Вкажіть, скільки балів знімає штраф.',
   AMOUNT_ONLY_FOR_FINE: 'Суму можна вказати лише для штрафу.',
+  DISCIPLINE_HAS_PAPER: 'Стягнення видано поданням: щоб зняти, скасуйте документ.',
   REASON_REQUIRED: 'Вкажіть причину.',
 
   // Обладнання, сеанси, допуски

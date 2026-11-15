@@ -24,6 +24,7 @@ const item = (over: Partial<TemplateItem> = {}): TemplateItem => ({
   currentVersion: null,
   draftVersion: 1,
   needsUpdate: false,
+  about: [],
   createdAt: '2026-11-15T10:00:00Z',
   updatedAt: '2026-11-15T10:00:00Z',
   ...over,

@@ -1,19 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRefDto } from '../common/responses.dto';
+import { RecordPaperDto } from '../paperwork/responses.dto';
 import { TaskCommentKind, TaskStatus } from './task.entities';
 
 export class TaskAssigneeDto extends UserRefDto {
   /** Order of taking decides who gets the remainder of a points split. */
   takenAt: Date;
-}
-
-/** The document of the task (editor): open it to read or change the task. */
-export class TaskPaperDto {
-  id: string;
-
-  /** «ТЗ-2026-014»; null — the template gives no numbers. */
-  @ApiProperty({ type: String, nullable: true })
-  number: string | null;
 }
 
 export class TaskDto {
@@ -58,8 +50,8 @@ export class TaskDto {
   assignees: TaskAssigneeDto[];
 
   /** null — an old task made before documents (no document yet). */
-  @ApiProperty({ type: TaskPaperDto, nullable: true })
-  paper: TaskPaperDto | null;
+  @ApiProperty({ type: RecordPaperDto, nullable: true })
+  paper: RecordPaperDto | null;
 }
 
 export class TaskCommentDto {

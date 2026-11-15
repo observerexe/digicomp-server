@@ -158,6 +158,16 @@ describe('Конструктор: блоки на аркуші', () => {
     expect(blockTag(node({ type: 'pageBreak' }), LOOK)).toEqual({ label: 'Розрив сторінки', group: 'text' });
   });
 
+  it('умовний блок: жовта мітка з умовою словами (без підписів — ключі)', () => {
+    const { editor } = open(doc());
+    const cond = editor.schema.nodeFromJSON({ type: 'conditional', attrs: { field: 'type', value: 'fine' }, content: [p(f('points'))] });
+    expect(blockTag(cond, { ...LOOK, condition: (_field, value) => `«Вид» = «${value === 'fine' ? 'Штраф' : value}»` })).toEqual({
+      label: 'Умовний блок · якщо «Вид» = «Штраф»',
+      group: 'structure',
+    });
+    expect(blockTag(cond, LOOK).label).toBe('Умовний блок · якщо type = fine');
+  });
+
   it('на аркуші — рамки з мітками, активний блок, поля як {Підпис}; опублікована версія — рамки без підказки внизу й без «/»', () => {
     const { editor } = open(doc({ type: 'heading', attrs: { level: 2 }, content: [t('Мета')] }, zone('goal'), p(t('Бали '), f('points'))));
     setBuilderLook(editor, LOOK);

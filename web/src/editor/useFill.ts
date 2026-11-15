@@ -4,7 +4,8 @@ import { useEditorState } from '@tiptap/react';
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { PaperTemplateRef } from '../api/types';
 import type { RecordView } from '../lib/records';
-import { valueText, type FieldValue, type FieldValues, type RecordTitle } from '../../../shared/editor-schema/fields';
+import { valueText, type Condition, type FieldValue, type FieldValues, type RecordTitle } from '../../../shared/editor-schema/fields';
+import { conditionsIn } from './conditional';
 import { paperExtensions } from './extensions';
 import type { RibbonLock } from './Ribbon';
 import { fieldPosition, setFieldsLook, zoneAtSelection, zoneTexts, type FieldsLook } from './fields';
@@ -24,7 +25,7 @@ import { recordKey, type PaperRecords } from './records';
  * record holds (plain text), or grey — when it comes.
  */
 export function lookOf(template: PaperTemplateRef, values: FieldValues, zones: Record<string, string>, active: string | null, title: RecordTitle, published: boolean): FieldsLook {
-  const look: FieldsLook = { fields: {}, zones: {}, active };
+  const look: FieldsLook = { fields: {}, zones: {}, active, values };
   for (const f of template.fields) {
     const filled = isFilled(f, values, zones);
     if (f.auto && f.type !== 'richtext') {
@@ -67,6 +68,7 @@ type FillOptions = {
 export function useFill({ template, values: initial, refs, editable, published = false, showControls }: FillOptions) {
   const [values, setValues] = useState<FieldValues>(initial);
   const [zones, setZones] = useState<Record<string, string>>({});
+  const [conditions, setConditions] = useState<Record<string, Condition>>({});
   const [active, setActive] = useState<string | null>(null);
   // A click on a field on the sheet opens its control in the panel (on the phone — in the form).
   const show = useRef(showControls);
@@ -140,10 +142,12 @@ export function useFill({ template, values: initial, refs, editable, published =
     // Built once: the editor keeps its extensions; `records` reads the same map.
   }, [template, editable]);
 
-  /** Texts of zones from the editor's document (on create and on each change). */
+  /** Texts of zones and fields of conditional blocks from the editor's document (on create and on each change). */
   const syncZones = (doc: PMNode) => {
     const texts = zoneTexts(doc);
     setZones((prev) => (JSON.stringify(prev) === JSON.stringify(texts) ? prev : texts));
+    const conds = conditionsIn(doc);
+    setConditions((prev) => (JSON.stringify(prev) === JSON.stringify(conds) ? prev : conds));
   };
   /** A field's new value (null — emptied); returns every value. */
   const change = (key: string, v: FieldValue | null): FieldValues => {
@@ -161,6 +165,7 @@ export function useFill({ template, values: initial, refs, editable, published =
     values,
     change,
     zones,
+    conditions,
     syncZones,
     active,
     setActive,

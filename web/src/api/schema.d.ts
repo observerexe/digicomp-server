@@ -1149,8 +1149,7 @@ export interface paths {
         /** Discipline table for the control panel (staff). */
         get: operations["DisciplineController_list"];
         put?: never;
-        /** Warning, fine (takes points) or reprimand; a moderator not to self. */
-        post: operations["DisciplineController_issue"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1166,7 +1165,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Revoke with a reason; a revoked fine returns the points. */
+        /**
+         * Revoke a record made before documents, with a reason; a revoked fine
+         *     returns the points. Issued through a document («Подання про
+         *     стягнення») — only by cancelling it: 409 DISCIPLINE_HAS_PAPER.
+         */
         post: operations["DisciplineController_revoke"];
         delete?: never;
         options?: never;
@@ -2266,7 +2269,7 @@ export interface components {
             takenAt: string;
             id: string;
         };
-        TaskPaperDto: {
+        RecordPaperDto: {
             /** @description «ТЗ-2026-014»; null — the template gives no numbers. */
             number: string | null;
             id: string;
@@ -2295,7 +2298,7 @@ export interface components {
             /** @description In the order of taking. */
             assignees: components["schemas"]["TaskAssigneeDto"][];
             /** @description null — an old task made before documents (no document yet). */
-            paper: components["schemas"]["TaskPaperDto"] | null;
+            paper: components["schemas"]["RecordPaperDto"] | null;
             id: string;
             title: string;
             points: number;
@@ -2359,7 +2362,7 @@ export interface components {
             /** @description In the order of taking. */
             assignees: components["schemas"]["TaskAssigneeDto"][];
             /** @description null — an old task made before documents (no document yet). */
-            paper: components["schemas"]["TaskPaperDto"] | null;
+            paper: components["schemas"]["RecordPaperDto"] | null;
             /** @description Oldest first. */
             comments: components["schemas"]["TaskCommentDto"][];
             /** @description GET /tasks/:id/files/:fileId/download */
@@ -2556,6 +2559,8 @@ export interface components {
             currentVersion: number | null;
             /** @description Number of the draft version; always null for members. */
             draftVersion: number | null;
+            /** @description Record types a new document may be about (`POST /papers` `about`): those the current version's fields refer to. */
+            about: components["schemas"]["RecordType"][];
             id: string;
             title: string;
             autoFreeze: boolean;
@@ -2612,6 +2617,8 @@ export interface components {
             currentVersion: number | null;
             /** @description Number of the draft version; always null for members. */
             draftVersion: number | null;
+            /** @description Record types a new document may be about (`POST /papers` `about`): those the current version's fields refer to. */
+            about: components["schemas"]["RecordType"][];
             /** @description Newest first. Members get only the current version. */
             versions: components["schemas"]["TemplateVersionRowDto"][];
             id: string;
@@ -2780,6 +2787,11 @@ export interface components {
             page: number;
             limit: number;
         };
+        PaperAboutDto: {
+            type: components["schemas"]["RecordType"];
+            /** Format: uuid */
+            id: string;
+        };
         CreatePaperDto: {
             /** @description ProseMirror document; without it — one empty paragraph. Not with `templateId`. */
             content?: {
@@ -2792,6 +2804,13 @@ export interface components {
              * @description Make the document from the template's current version (its body, its fields).
              */
             templateId?: string;
+            /**
+             * @description With `templateId`: the record the document is about — it goes into the
+             *     first field of the template the actor fills that refers to its type
+             *     (`ref:<type>`); checked as any save of the draft. A template without
+             *     such a field — as without `about`.
+             */
+            about?: components["schemas"]["PaperAboutDto"];
         };
         PaperRefDto: {
             type: components["schemas"]["RecordType"];
@@ -2922,6 +2941,13 @@ export interface components {
         };
         /** @enum {string} */
         DisciplineType: "warning" | "fine" | "reprimand";
+        ReferringPaperDto: {
+            /** @description «ТЗ-2026-014»; null — the template gives no numbers. */
+            number: string | null;
+            status: components["schemas"]["PaperStatus"];
+            title: string;
+            id: string;
+        };
         DisciplineRecordDto: {
             type: components["schemas"]["DisciplineType"];
             /** @description Fine size in points; null for warnings and reprimands. */
@@ -2932,6 +2958,10 @@ export interface components {
             revokedAt: string | null;
             revokedBy: components["schemas"]["UserRefDto"] | null;
             revokeReason: string | null;
+            /** @description «Подання про стягнення» it was issued with; null — issued before documents. */
+            paper: components["schemas"]["RecordPaperDto"] | null;
+            /** @description Documents about it the reader sees («Пояснювальна записка»), oldest first. */
+            papers: components["schemas"]["ReferringPaperDto"][];
             id: string;
             reason: string;
             /** Format: date-time */
@@ -2943,15 +2973,6 @@ export interface components {
             total: number;
             page: number;
             limit: number;
-        };
-        IssueDisciplineDto: {
-            /** Format: uuid */
-            userId: string;
-            /** @enum {string} */
-            type: "warning" | "fine" | "reprimand";
-            reason: string;
-            /** @description Points taken by a fine; required for `fine`, not allowed otherwise. */
-            amount?: number;
         };
         /** @enum {string} */
         PlaceStatus: "active" | "maintenance" | "archived";
@@ -5575,29 +5596,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DisciplineListDto"];
-                };
-            };
-        };
-    };
-    DisciplineController_issue: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["IssueDisciplineDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DisciplineRecordDto"];
                 };
             };
         };

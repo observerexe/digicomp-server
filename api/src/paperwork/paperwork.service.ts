@@ -28,6 +28,7 @@ import {
   SIGNER_ORG,
   yearText,
   normalizeValue,
+  offFields,
   valueText,
   withZoneText,
   zonesOf,
@@ -137,13 +138,17 @@ function zoneOf(content: PaperContent, key: string) {
   return zone ? zoneText(zone) : '';
 }
 
-/** Every required field has a value (a zone — some text). */
+/**
+ * Every required field has a value (a zone — some text); a field of a
+ * conditional block that is off is not required.
+ */
 function requireFilled(
   fields: PaperField[],
   p: { values: FieldValues; content: PaperContent },
 ) {
+  const off = offFields(p.content, p.values);
   const missing = fields.find((f) =>
-    !f.required
+    !f.required || off.has(f.key)
       ? false
       : isFillable(f.type)
         ? p.values[f.key] === undefined
@@ -187,19 +192,45 @@ function withRecord(
   return { content, values };
 }
 
-/** Values of bound fields by the keys of the record's fields (empty — null). */
+/**
+ * Values of bound fields by the keys of the record's fields (empty — null;
+ * a field of a conditional block that is off — empty too).
+ */
 function recordValues(
   fields: PaperField[],
   p: { values: FieldValues; content: PaperContent },
 ): RecordValues {
+  const off = offFields(p.content, p.values);
   const out: RecordValues = {};
   for (const f of fields) {
     if (f.binding === null || f.auto) continue;
-    out[f.binding] = isFillable(f.type)
-      ? (p.values[f.key] ?? null)
-      : zoneOf(p.content, f.key) || null;
+    out[f.binding] = off.has(f.key)
+      ? null
+      : isFillable(f.type)
+        ? (p.values[f.key] ?? null)
+        : zoneOf(p.content, f.key) || null;
   }
   return out;
+}
+
+/**
+ * The document without what conditional blocks that are off hold: their
+ * values go, their zones are emptied (a draft kept them in case the
+ * condition came back; a published document keeps only what it says).
+ */
+function withoutOff(
+  p: { values: FieldValues; content: PaperContent },
+  off = offFields(p.content, p.values),
+) {
+  const values = { ...p.values };
+  let content = p.content;
+  for (const key of off) {
+    delete values[key];
+    if (zonesOf(content).some((z) => z.attrs?.key === key)) {
+      content = withZoneText(content, key, '');
+    }
+  }
+  return { values, content };
 }
 
 /**
@@ -548,6 +579,7 @@ export class PaperworkService {
             : null;
         },
         hidden: (key) => !fields.get(key)?.print,
+        holds: (field, value) => values[field] === value,
         title,
         info: {
           institution: org.institution,
@@ -582,35 +614,49 @@ export class PaperworkService {
         ? await this.templates.forPaper(m, dto.templateId, actor)
         : null;
       const content = from?.version.body ?? dto.content ?? EMPTY_CONTENT;
-      // A free document's own content: checked as any save of it.
-      if (!from) {
-        this.checked(
-          null,
-          actor,
-          { content },
-          {
-            content: EMPTY_CONTENT,
-            values: {},
-          },
-        );
+      const form = from && {
+        ...from,
+        fields: await this.fieldsOf(m, from.template, from.version),
+      };
+      if (dto.about && !form) {
+        throw new BadRequestException('A free document is about nothing');
       }
+      // The record it is about: in the first field the actor fills that refers to its type.
+      const about =
+        dto.about &&
+        form!.fields.find(
+          (f) =>
+            f.type === `ref:${dto.about!.type}` &&
+            !f.auto &&
+            (f.fill === 'author' || can(actor, Action.PapersFillStaff)),
+        );
+      // A free document's own content and the value of `about`: checked as
+      // any save of it.
+      const values =
+        this.checked(
+          form,
+          actor,
+          {
+            ...(from ? {} : { content }),
+            values: about ? { [about.key]: dto.about!.id } : {},
+          },
+          { content: from ? content : EMPTY_CONTENT, values: {} },
+        ) ?? {};
       // What a template's body refers to is the template's own.
-      const fresh = from
-        ? new Set<string>()
-        : await checkNewRefs(
-            this.links,
-            [],
-            { values: {}, content },
-            { values: {}, content: EMPTY_CONTENT },
-            actor,
-            m,
-          );
+      const fresh = await checkNewRefs(
+        this.links,
+        form?.fields ?? [],
+        { values, content },
+        { values: {}, content: from ? content : EMPTY_CONTENT },
+        actor,
+        m,
+      );
       return this.insert(m, actor, {
         title: dto.title?.trim() || from?.template.title || UNTITLED,
         content,
-        values: {},
+        values,
         from,
-        fields: [],
+        fields: form?.fields ?? [],
         fresh,
         meta: {},
       });
@@ -1003,7 +1049,11 @@ export class PaperworkService {
       if (v === null) delete own[key];
       else own[key] = v;
     }
-    const stored = { values: own, content: next.content };
+    // Off by what the document shows (a bound condition is the record's).
+    const stored = withoutOff(
+      { values: own, content: next.content },
+      offFields(next.content, next.values),
+    );
     const fresh = await checkNewRefs(
       this.links,
       form.fields,
@@ -1062,6 +1112,7 @@ export class PaperworkService {
       const form = await this.formOf(m, p);
       if (form) {
         requireFilled(form.fields, p);
+        Object.assign(p, withoutOff(p));
         if (form.template.kind === TemplateKind.Creates) {
           await this.templates.assertCurrent(form.template, form.version);
           const type = form.template.target!;

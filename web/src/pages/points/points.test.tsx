@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import type { DisciplineRecord, Me, PointsHistoryEntry } from '../../api/types';
+import type { DisciplineRecord, Me, PointsHistoryEntry, TemplateItem } from '../../api/types';
 import { json, member, mockApi, moderator, renderApp } from '../../test/render';
 import { canRevokeRecord } from './DisciplinePage';
 import { canRevokeEntry } from './PointsPage';
@@ -84,42 +84,93 @@ describe('Бали (модератор)', () => {
 
 describe('Дисципліна (модератор)', () => {
   const rec = (over: Partial<DisciplineRecord> = {}): DisciplineRecord => ({
-    id: 'd1', type: 'warning', reason: 'Запізнення', amount: null,
-    user: { id: 'u3', name: 'Ірина Бойко', avatarUrl: null }, issuedBy: { id: staff.id, name: staff.name, avatarUrl: null },
-    createdAt: '2026-11-01T10:00:00Z', revoked: false, revokedAt: null, revokedBy: null, revokeReason: null, ...over,
+    id: 'd1',
+    type: 'warning',
+    reason: 'Запізнення',
+    amount: null,
+    user: { id: 'u3', name: 'Ірина Бойко', avatarUrl: null },
+    issuedBy: { id: staff.id, name: staff.name, avatarUrl: null },
+    createdAt: '2026-11-01T10:00:00Z',
+    revoked: false,
+    revokedAt: null,
+    revokedBy: null,
+    revokeReason: null,
+    paper: null,
+    papers: [],
+    ...over,
   });
+  const issueTemplate: TemplateItem = {
+    id: 'ps',
+    title: 'Подання про стягнення',
+    kind: 'creates',
+    target: 'discipline_record',
+    numberPrefix: 'ПС',
+    autoFreeze: true,
+    creators: 'staff',
+    visibility: 'author',
+    archived: false,
+    currentVersion: 1,
+    draftVersion: null,
+    needsUpdate: false,
+    about: ['user'],
+    createdAt: '2026-11-15T10:00:00Z',
+    updatedAt: '2026-11-15T10:00:00Z',
+  };
 
-  it('штраф вимагає суму; видача; зняття з причиною', async () => {
+  it('«Нове подання» зі сторінки учасника — документ про нього, відкривається в редакторі', async () => {
     const { calls } = mockApi({
       ...base(staff),
-      'GET /api/discipline': () => json(200, { items: [rec()], total: 1, page: 1, limit: 100 }),
-      'POST /api/discipline': () => json(201, rec()),
+      'GET /api/discipline': () => json(200, { items: [], total: 0, page: 1, limit: 100 }),
+      'GET /api/papers/templates': () => json(200, [issueTemplate]),
+      'POST /api/papers': () => json(201, { id: 'p1' }),
+    });
+    const { router } = renderApp('/discipline?user=u3');
+    await userEvent.click(await screen.findByRole('button', { name: 'Нове подання' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/editor/p1'));
+    expect(JSON.parse(calls.find((c) => c.path === '/api/papers' && c.method === 'POST')!.body)).toEqual({
+      templateId: 'ps',
+      about: { type: 'user', id: 'u3' },
+    });
+  });
+
+  it('стягнення без документа знімається тут з причиною; з документом — посилання на подання й пояснення', async () => {
+    const { calls } = mockApi({
+      ...base(staff),
+      'GET /api/discipline': () =>
+        json(200, {
+          items: [
+            rec(),
+            rec({
+              id: 'd2',
+              reason: 'Кабель',
+              paper: { id: 'p1', number: 'ПС-2026-001' },
+              papers: [{ id: 'p2', title: 'Пояснювальна записка', number: null, status: 'draft' }],
+            }),
+          ],
+          total: 2,
+          page: 1,
+          limit: 100,
+        }),
+      'GET /api/papers/templates': () => json(200, [issueTemplate]),
       'POST /api/discipline/d1/revoke': () => json(200, rec({ revoked: true })),
     });
-    renderApp('/discipline?user=u3');
-    expect(await screen.findByText('Запізнення')).toBeInTheDocument();
-    await userEvent.click(screen.getByLabelText('Штраф'));
-    await userEvent.clear(screen.getByLabelText('Скільки балів зняти'));
-    await userEvent.type(screen.getByLabelText('Причина'), 'Не повернула камеру');
-    expect(screen.getByRole('button', { name: 'Видати' })).toBeDisabled();
-    await userEvent.type(screen.getByLabelText('Скільки балів зняти'), '15');
-    await userEvent.click(screen.getByRole('button', { name: 'Видати' }));
-    await waitFor(() => expect(calls.some((c) => c.path === '/api/discipline' && c.method === 'POST')).toBe(true));
-    expect(JSON.parse(calls.find((c) => c.path === '/api/discipline' && c.method === 'POST')!.body)).toEqual({
-      userId: 'u3', type: 'fine', reason: 'Не повернула камеру', amount: 15,
-    });
+    renderApp('/discipline');
+    const [old, withPaper] = within(await screen.findByRole('list', { name: 'Записи дисципліни' })).getAllByRole('listitem');
+    expect(within(withPaper!).queryByRole('button', { name: 'Зняти' })).not.toBeInTheDocument();
+    expect(within(withPaper!).getByRole('link', { name: 'Подання ПС-2026-001' })).toHaveAttribute('href', '/editor/p1');
+    expect(within(withPaper!).getByRole('link', { name: 'Пояснювальна записка · чернетка' })).toHaveAttribute('href', '/editor/p2');
 
-    const item = within(screen.getByRole('list', { name: 'Записи дисципліни' })).getByRole('listitem');
-    await userEvent.click(within(item).getByRole('button', { name: 'Зняти' }));
-    await userEvent.type(within(item).getByLabelText('Причина зняття'), 'Помилка');
-    await userEvent.click(within(item).getByRole('button', { name: 'Зняти запис' }));
+    await userEvent.click(within(old!).getByRole('button', { name: 'Зняти' }));
+    await userEvent.type(within(old!).getByLabelText('Причина зняття'), 'Помилка');
+    await userEvent.click(within(old!).getByRole('button', { name: 'Зняти запис' }));
     await waitFor(() => expect(calls.some((c) => c.path === '/api/discipline/d1/revoke')).toBe(true));
   });
 
-  it('хто може зняти запис', () => {
+  it('хто може зняти запис тут', () => {
     expect(canRevokeRecord(rec(), staff)).toBe(true);
     expect(canRevokeRecord(rec({ issuedBy: { id: 'x', name: 'Х', avatarUrl: null } }), staff)).toBe(false);
     expect(canRevokeRecord(rec({ issuedBy: { id: 'x', name: 'Х', avatarUrl: null } }), admin)).toBe(true);
     expect(canRevokeRecord(rec({ revoked: true }), admin)).toBe(false);
+    expect(canRevokeRecord(rec({ paper: { id: 'p1', number: null } }), admin)).toBe(false);
   });
 });

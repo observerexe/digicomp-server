@@ -29,6 +29,7 @@ const MESSAGE_CODES: Record<string, string> = {
   'Entry cannot be revoked': 'ENTRY_NOT_REVOCABLE',
   'Fine amount is required': 'FINE_AMOUNT_REQUIRED',
   'Amount is allowed only for a fine': 'AMOUNT_ONLY_FOR_FINE',
+  'Discipline record has a paper': 'DISCIPLINE_HAS_PAPER',
   'Place is in use': 'PLACE_IN_USE',
   'Place is booked': 'PLACE_BOOKED',
   'Time slot is already booked': 'BOOKING_OVERLAP',

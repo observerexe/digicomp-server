@@ -265,6 +265,12 @@ function TemplateBuilder({ template, version, schema, onReload, onTemplate, onPu
       const group = auto ? 'auto' : fieldBlockOf(f.type)?.group === 'data' ? 'data' : 'field';
       look.fields[f.key] = { text: showKeys ? `{${f.key}}` : `{${f.label}}`, state: group, tag: fieldTag(f, schema), group };
     }
+    // A conditional block: its field and the choice by their names (a choice of the record's field — its label).
+    look.condition = (field, value) => {
+      const f = defs.get(field);
+      const choice = schema?.fields.find((x) => x.key === f?.binding)?.options?.find((o) => o.key === value)?.label ?? value;
+      return `«${f ? (showKeys ? f.key : f.label) : field}» = «${choice}»`;
+    };
     setBuilderLook(editor, look);
   }, [editor, defs, showKeys, schema, readOnly, template.kind]);
 

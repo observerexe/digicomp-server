@@ -68,6 +68,8 @@ const profileApi = (me: Me) => ({
         revokedAt: '2026-09-20T10:00:00Z',
         revokedBy: null,
         revokeReason: 'Камеру знайшли в кейсі.',
+        paper: null,
+        papers: [],
       },
     ]),
   'GET /api/tasks': () =>
@@ -85,6 +87,77 @@ const profileApi = (me: Me) => ({
 });
 
 describe('Мій профіль', () => {
+  it('стягнення з документом: посилання на подання; «Пояснення» — документ про це стягнення', async () => {
+    const { calls } = mockApi({
+      ...profileApi(member),
+      'GET /api/discipline/me': () =>
+        json(200, [
+          {
+            id: 'd2',
+            type: 'warning',
+            amount: null,
+            reason: 'Запізнення',
+            user: null,
+            issuedBy: { id: 'm1', name: 'Олег Петренко', avatarUrl: null },
+            createdAt: '2026-11-10T10:00:00Z',
+            revoked: false,
+            revokedAt: null,
+            revokedBy: null,
+            revokeReason: null,
+            paper: { id: 'p1', number: 'ПС-2026-001' },
+            papers: [],
+          },
+        ]),
+      'GET /api/papers/templates': () =>
+        json(200, [
+          {
+            id: 'pz',
+            title: 'Пояснювальна записка',
+            kind: 'free',
+            target: null,
+            numberPrefix: null,
+            autoFreeze: false,
+            creators: 'all',
+            visibility: 'author',
+            archived: false,
+            currentVersion: 1,
+            draftVersion: null,
+            needsUpdate: false,
+            about: ['discipline_record'],
+            createdAt: '2026-11-15T10:00:00Z',
+            updatedAt: '2026-11-15T10:00:00Z',
+          },
+          {
+            id: 'pr',
+            title: 'Протокол зборів',
+            kind: 'free',
+            target: null,
+            numberPrefix: 'ПЗ',
+            autoFreeze: false,
+            creators: 'all',
+            visibility: 'members',
+            archived: false,
+            currentVersion: 1,
+            draftVersion: null,
+            needsUpdate: false,
+            about: ['user'],
+            createdAt: '2026-11-15T10:00:00Z',
+            updatedAt: '2026-11-15T10:00:00Z',
+          },
+        ]),
+      'POST /api/papers': () => json(201, { id: 'n1' }),
+    });
+    const { router } = renderApp('/profile');
+    const records = await screen.findByRole('list', { name: 'Попередження й штрафи' });
+    expect(within(records).getByRole('link', { name: 'Подання ПС-2026-001' })).toHaveAttribute('href', '/editor/p1');
+    await userEvent.click(await within(records).findByRole('button', { name: 'Пояснення' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/editor/n1'));
+    expect(JSON.parse(calls.find((c) => c.path === '/api/papers' && c.method === 'POST')!.body)).toEqual({
+      templateId: 'pz',
+      about: { type: 'discipline_record', id: 'd2' },
+    });
+  });
+
   it('баланс, місця, історія, дисципліна, моє', async () => {
     mockApi(profileApi(member));
     renderApp('/profile');

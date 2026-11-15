@@ -49,6 +49,10 @@ export class TemplateItemDto {
   /** The target's schema changed and a binding of the current version broke: no new documents until a new version is published. */
   needsUpdate: boolean;
 
+  /** Record types a new document may be about (`POST /papers` `about`): those the current version's fields refer to. */
+  @ApiProperty({ enum: RECORD_TYPES, enumName: 'RecordType', isArray: true })
+  about: RecordType[];
+
   createdAt: Date;
   updatedAt: Date;
 }

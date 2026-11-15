@@ -251,6 +251,7 @@ describe('Редактор: новий документ із шаблону', ()
     currentVersion: 1,
     draftVersion: null,
     needsUpdate: false,
+    about: [],
     createdAt: '2026-11-14T10:00:00Z',
     updatedAt: '2026-11-14T10:00:00Z',
     ...over,

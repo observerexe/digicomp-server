@@ -196,7 +196,14 @@ export function checkContent(
   if (body === null) {
     let found = false;
     walkNodes(content, (n) => {
-      if (n.type === 'field' || n.type === 'fieldZone') found = true;
+      // A conditional block waits for a field: a free document has none.
+      if (
+        n.type === 'field' ||
+        n.type === 'fieldZone' ||
+        n.type === 'conditional'
+      ) {
+        found = true;
+      }
       // Signatures of a field's member: a free document has no fields.
       if (
         n.type === 'signatures' &&

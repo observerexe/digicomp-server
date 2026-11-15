@@ -11,7 +11,10 @@ import {
   Matches,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { RECORD_TYPES, type RecordType } from '../records/field-types';
 import { NOT_BLANK } from '../points/dto';
 import { IsPaperContent, type PaperContent } from './content';
 import { PaperVisibility } from './paper.entity';
@@ -22,6 +25,16 @@ const VALUES = {
   additionalProperties: true,
   description: 'Field key → value; keys left out are emptied',
 } as const;
+
+/** A record a new document is about. */
+export class PaperAboutDto {
+  @ApiProperty({ enum: RECORD_TYPES, enumName: 'RecordType' })
+  @IsIn(RECORD_TYPES)
+  type: RecordType;
+
+  @IsUUID()
+  id: string;
+}
 
 export class CreatePaperDto {
   /** Without a title — «Без назви» (from a template — its title). */
@@ -41,6 +54,17 @@ export class CreatePaperDto {
   @IsOptional()
   @IsUUID()
   templateId?: string;
+
+  /**
+   * With `templateId`: the record the document is about — it goes into the
+   * first field of the template the actor fills that refers to its type
+   * (`ref:<type>`); checked as any save of the draft. A template without
+   * such a field — as without `about`.
+   */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PaperAboutDto)
+  about?: PaperAboutDto;
 }
 
 /** A document for a record made without one: published at once. */

@@ -1,5 +1,6 @@
 import type { PaperField, PaperTemplateRef } from '../api/types';
-import { valueText, type FieldValue, type FieldValues } from '../../../shared/editor-schema/fields';
+import { valueText, type Condition, type FieldValue, type FieldValues } from '../../../shared/editor-schema/fields';
+import { isOff } from './conditional';
 import { fieldType } from './fieldTypes';
 import { usePaperRecords } from './records';
 import s from './FieldsPanel.module.css';
@@ -12,9 +13,12 @@ export function isFilled(f: PaperField, values: FieldValues, zones: Record<strin
   return f.type === 'richtext' ? !!zones[f.key]?.trim() : values[f.key] !== undefined;
 }
 
-/** How much of what the actor fills is filled, what required is still empty. */
-export function fillProgress(template: PaperTemplateRef, values: FieldValues, zones: Record<string, string>) {
-  const mine = template.fields.filter((f) => f.canFill);
+/** Fields of conditional blocks: the condition each waits for, by key (conditional.ts conditionsIn). */
+export type Conditions = Readonly<Record<string, Condition>>;
+
+/** How much of what the actor fills is filled, what required is still empty; fields of blocks that are off do not count. */
+export function fillProgress(template: PaperTemplateRef, values: FieldValues, zones: Record<string, string>, conditions: Conditions = {}) {
+  const mine = template.fields.filter((f) => f.canFill && !isOff(f.key, conditions, values));
   const required = mine.filter((f) => f.required);
   return {
     total: mine.length,
@@ -39,6 +43,8 @@ export type GroupsProps = {
   values: FieldValues;
   /** Text of each zone on the sheet. */
   zones: Record<string, string>;
+  /** Fields of conditional blocks: shown only while the block is on. */
+  conditions: Conditions;
   mode: FieldsMode;
   /** Published (or later): auto fields show the record. */
   published: boolean;
@@ -56,9 +62,10 @@ export type GroupsProps = {
  * those that may change, then the rest; reading — all in one list. Auto
  * fields last: «Підставить система».
  */
-export function FieldGroups({ template, values, zones, mode, published, active, onChange, onActive, onJump, onZoneText }: GroupsProps) {
-  const auto = template.fields.filter((f) => f.auto);
-  const rest = template.fields.filter((f) => !f.auto);
+export function FieldGroups({ template, values, zones, conditions, mode, published, active, onChange, onActive, onJump, onZoneText }: GroupsProps) {
+  const shown = template.fields.filter((f) => !isOff(f.key, conditions, values));
+  const auto = shown.filter((f) => f.auto);
+  const rest = shown.filter((f) => !f.auto);
   // The actor's own: what they fill now, and author fields they cannot (a reference to a type without a picker).
   const own = rest.filter((f) => (mode === 'fill' ? f.canFill || f.fill === 'author' : f.canFill));
   const others = rest.filter((f) => !own.includes(f));
@@ -93,6 +100,7 @@ export function FieldGroups({ template, values, zones, mode, published, active, 
       >
         {group || (f.type === 'richtext' && !(zone && f.plain)) ? <span className={s.label}>{label}</span> : <label htmlFor={id}>{label}</label>}
         <Widget id={id} field={f} value={values[f.key]} disabled={!f.canFill} onChange={(v) => onChange(f.key, v)} onJump={() => onJump(f.key)} zone={zone} />
+        {mode === 'fill' && conditions[f.key] && <p className="hint">{conditionNote(template, conditions[f.key]!)}</p>}
       </div>
     );
   };
@@ -137,9 +145,9 @@ function AutoRow({ field: f, value, published }: { field: PaperField; value: Fie
  * missing; fields the actor fills, then those a moderator fills.
  */
 export function FieldsPanel(props: Omit<GroupsProps, 'onZoneText'>) {
-  const { template, values, zones } = props;
+  const { template, values, zones, conditions } = props;
   const editable = props.mode === 'fill';
-  const p = fillProgress(template, values, zones);
+  const p = fillProgress(template, values, zones, conditions);
   return (
     <aside className={s.panel} aria-label="Поля документа">
       <h2 className={s.tab}>Поля</h2>
@@ -168,4 +176,10 @@ export function FieldsPanel(props: Omit<GroupsProps, 'onZoneText'>) {
 
 export function MissingNote({ fields }: { fields: readonly PaperField[] }) {
   return <p className={s.missing}>Не заповнено: {fields.map((f) => f.label).join(', ')}</p>;
+}
+
+/** Why a field of a conditional block is shown: «Поле з'явилось, бо обрано «Штраф»». */
+export function conditionNote(template: PaperTemplateRef, c: Condition): string {
+  const choice = template.fields.find((f) => f.key === c.field)?.options?.find((o) => o.key === c.value)?.label ?? c.value;
+  return `Поле з'явилось, бо обрано «${choice}»`;
 }

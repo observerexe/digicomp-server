@@ -102,6 +102,8 @@ export type NodeRule = {
 const BLOCKS = ['paragraph', 'heading', 'bulletList', 'orderedList', 'table', 'pageBreak', 'fieldZone'] as const;
 /** Structure of the sheet: only on its top level (not in a list, a table or a zone). */
 export const STRUCTURE = ['orgHeader', 'approval', 'signatures', 'pageFooter'] as const;
+/** «Умовний блок»: also only on the top level, never one in another. */
+export const CONDITIONAL = 'conditional';
 const INLINE = ['text', 'hardBreak', 'field', 'mention', 'paperNumber', 'paperDate', 'paperAuthor'] as const;
 
 /** Key of a template field: Latin, starts with a small letter (`title`, `goal_2`). */
@@ -129,11 +131,15 @@ export function signerField(v: unknown): string | null {
   return typeof v === 'string' && FIELD_KEY.test(v) ? v : null;
 }
 
+/** The choice a conditional block waits for: a key of an `enum` option (up to 40 characters, one line). */
+export const CONDITION_VALUE_MAX = 40;
+const conditionValue: AttrRule = { default: null, valid: (v) => typeof v === 'string' && v.length > 0 && lineOf(CONDITION_VALUE_MAX)(v) };
+
 const recordType: AttrRule = { default: null, valid: (v) => typeof v === 'string' && RECORD_TYPE_KEY.test(v) };
 const recordId: AttrRule = { default: null, valid: (v) => typeof v === 'string' && RECORD_ID.test(v) };
 
 export const NODES: Record<string, NodeRule> = {
-  doc: { attrs: {}, children: [...BLOCKS, ...STRUCTURE] },
+  doc: { attrs: {}, children: [...BLOCKS, ...STRUCTURE, CONDITIONAL] },
   paragraph: { attrs: BLOCK_FORMAT, children: INLINE },
   heading: {
     attrs: { level: { default: 1, valid: oneOf(HEADING_LEVELS, false) }, ...BLOCK_FORMAT },
@@ -176,6 +182,11 @@ export const NODES: Record<string, NodeRule> = {
   },
   /** «Колонтитул»: a line at the foot of every printed page. */
   pageFooter: { attrs: { text: { default: '', valid: lineOf(FOOTER_MAX) } } },
+  /**
+   * «Умовний блок»: its blocks are in the document only while the `enum` field
+   * `field` of the template holds `value` (see offFields in fields.ts).
+   */
+  conditional: { attrs: { field: fieldKey, value: conditionValue }, children: BLOCKS },
 };
 
 /** In the editor's order: marks nest in it (textStyle outermost, underline innermost). */
@@ -254,6 +265,8 @@ export function checkContent(v: unknown): v is PaperContent {
     if (!validAttrs(n.attrs, rule.attrs)) return false;
     // A field carries its key: it may not be left out.
     if ((n.type === 'field' || n.type === 'fieldZone') && !(isPlainObject(n.attrs) && own(n.attrs, 'key'))) return false;
+    // A conditional block carries its condition whole.
+    if (n.type === CONDITIONAL && !(isPlainObject(n.attrs) && own(n.attrs, 'field') && own(n.attrs, 'value'))) return false;
     // A reference carries both.
     if (n.type === 'mention' && !(isPlainObject(n.attrs) && own(n.attrs, 'type') && own(n.attrs, 'id'))) return false;
     if (n.marks !== undefined) {

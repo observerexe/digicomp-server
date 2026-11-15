@@ -1,4 +1,4 @@
-import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
+import { ApiOkResponse } from '@nestjs/swagger';
 import { DisciplineListDto, DisciplineRecordDto } from './responses.dto';
 import {
   Body,
@@ -16,7 +16,7 @@ import { Action } from '../auth/policy';
 import { Can, JwtAuthGuard, PolicyGuard } from '../auth/roles';
 import { RevokeDto } from '../points/dto';
 import { DisciplineService } from './discipline.service';
-import { IssueDisciplineDto, ListDisciplineQuery } from './dto';
+import { ListDisciplineQuery } from './dto';
 
 type Req = { user: { id: string; role: string } };
 
@@ -30,26 +30,22 @@ export class DisciplineController {
   @ApiOkResponse({ type: [DisciplineRecordDto] })
   @Get('me')
   mine(@Req() req: Req) {
-    return this.discipline.mine(req.user.id);
+    return this.discipline.mine(req.user);
   }
 
   /** Discipline table for the control panel (staff). */
   @Can(Action.DisciplineReadAll)
   @ApiOkResponse({ type: DisciplineListDto })
   @Get()
-  list(@Query() q: ListDisciplineQuery) {
-    return this.discipline.list(q);
+  list(@Query() q: ListDisciplineQuery, @Req() req: Req) {
+    return this.discipline.list(q, req.user);
   }
 
-  /** Warning, fine (takes points) or reprimand; a moderator not to self. */
-  @ApiCreatedResponse({ type: DisciplineRecordDto })
-  @Can(Action.DisciplineIssue)
-  @Post()
-  issue(@Body() dto: IssueDisciplineDto, @Req() req: Req) {
-    return this.discipline.issue(dto, req.user);
-  }
-
-  /** Revoke with a reason; a revoked fine returns the points. */
+  /**
+   * Revoke a record made before documents, with a reason; a revoked fine
+   * returns the points. Issued through a document («Подання про
+   * стягнення») — only by cancelling it: 409 DISCIPLINE_HAS_PAPER.
+   */
   @ApiOkResponse({ type: DisciplineRecordDto })
   @Can(Action.DisciplineRevoke)
   @Post(':id/revoke')

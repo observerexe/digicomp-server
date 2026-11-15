@@ -5,7 +5,7 @@
  *
  * No package imports (see index.ts).
  */
-import { COLORS, MARKS, NODES, RECORD_ID, type PaperAttrs, type PaperMark, type PaperNode } from './index';
+import { COLORS, CONDITIONAL, FIELD_KEY, MARKS, NODES, RECORD_ID, type PaperAttrs, type PaperMark, type PaperNode } from './index';
 
 /** A value as kept in the document's `values`. */
 export type FieldValue = string | number | boolean | (string | number | boolean)[];
@@ -286,6 +286,42 @@ export function walkNodes(n: PaperNode, visit: (n: PaperNode, insideZone: boolea
   visit(n, insideZone);
   const inside = insideZone || n.type === 'fieldZone';
   for (const c of n.content ?? []) walkNodes(c, visit, inside);
+}
+
+// --- conditional blocks ---
+
+/** What a conditional block waits for: the `enum` field `field` holds the choice `value`. */
+export type Condition = { field: string; value: string };
+
+/** The condition of a conditional block; null — not one (or without a valid condition). */
+export function conditionOf(n: PaperNode): Condition | null {
+  if (n.type !== CONDITIONAL) return null;
+  const field = n.attrs?.field;
+  const value = n.attrs?.value;
+  return typeof field === 'string' && FIELD_KEY.test(field) && typeof value === 'string' && value.length > 0 ? { field, value } : null;
+}
+
+/** The condition holds by these values. */
+export function conditionHolds(c: Condition, values: FieldValues): boolean {
+  return values[c.field] === c.value;
+}
+
+/**
+ * Fields and zones of conditional blocks whose condition does not hold by
+ * `values`: not in the document now — not required, not printed, not sent
+ * to the record (the draft keeps their values until it is published).
+ */
+export function offFields(doc: PaperNode, values: FieldValues): Set<string> {
+  const out = new Set<string>();
+  for (const n of doc.content ?? []) {
+    if (n.type !== CONDITIONAL) continue;
+    const c = conditionOf(n);
+    if (c && conditionHolds(c, values)) continue;
+    walkNodes(n, (x) => {
+      if (x.type === 'field' || x.type === 'fieldZone') out.add(x.attrs?.key as string);
+    });
+  }
+  return out;
 }
 
 /** Every zone of the document. */

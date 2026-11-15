@@ -62,7 +62,7 @@ export function TasksPage() {
           {staff && (
             <ChoiceButton
               label="Нове ТЗ"
-              choices={templateChoices(templates.data, 'task')}
+              choices={templateChoices(templates.data, { creates: 'task' })}
               disabled={templates.isPending || newTask.isPending}
               emptyNote="Немає шаблону, що створює ТЗ: його додають у «Редактор» → «Шаблони»."
               onPick={(templateId) => templateId && newTask.mutate({ templateId })}

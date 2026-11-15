@@ -39,6 +39,7 @@ const info = (over: Partial<PaperInfo> = {}): PaperInfo => ({
 const fill = (over: Partial<PaperInfo> = {}): FieldFill => ({
   text: () => null,
   hidden: () => false,
+  holds: () => false,
   title: () => null,
   number: null,
   info: info(over),

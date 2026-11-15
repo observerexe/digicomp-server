@@ -2,6 +2,8 @@ import { Extension, mergeAttributes, Node, type Editor } from '@tiptap/core';
 import { Fragment, Slice, type Node as PMNode, type ResolvedPos } from '@tiptap/pm/model';
 import { NodeSelection, Plugin, PluginKey, TextSelection, type EditorState, type Transaction } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
+import { conditionHolds, type FieldValues } from '../../../shared/editor-schema/fields';
+import { conditionOfNode } from './conditional';
 
 /**
  * Template fields on the sheet (shared/editor-schema: `field`, `fieldZone`).
@@ -31,9 +33,11 @@ export type FieldsLook = {
   fields: Record<string, FieldLook>;
   zones: Record<string, { label: string; missing: boolean }>;
   active: string | null;
+  /** Values of the fields: a conditional block whose condition does not hold is hidden. */
+  values: FieldValues;
 };
 
-const EMPTY_LOOK: FieldsLook = { fields: {}, zones: {}, active: null };
+const EMPTY_LOOK: FieldsLook = { fields: {}, zones: {}, active: null, values: {} };
 const lookKey = new PluginKey<FieldsLook>('fieldsLook');
 
 /** Classes of a field on the sheet (format.css). */
@@ -201,10 +205,11 @@ function withoutFields(content: Fragment): Fragment {
 /** A field or a zone on the sheet: where it starts and ends. */
 export type FieldTarget = { key: string; from: number; to: number; zone: boolean };
 
-/** Fields and zones the actor fills, in the order of the sheet. */
-export function fieldTargets(doc: PMNode, fillable: ReadonlySet<string>): FieldTarget[] {
+/** Fields and zones the actor fills, in the order of the sheet; not in conditional blocks that are off by `values`. */
+export function fieldTargets(doc: PMNode, fillable: ReadonlySet<string>, values: FieldValues = {}): FieldTarget[] {
   const out: FieldTarget[] = [];
   doc.descendants((n, pos) => {
+    if (n.type.name === 'conditional') return conditionHolds(conditionOfNode(n), values);
     const zone = n.type.name === 'fieldZone';
     if ((zone || n.type.name === 'field') && fillable.has(n.attrs.key as string)) {
       out.push({ key: n.attrs.key as string, from: pos, to: pos + n.nodeSize, zone });
@@ -216,7 +221,7 @@ export function fieldTargets(doc: PMNode, fillable: ReadonlySet<string>): FieldT
 
 /** The field after (1) or before (-1) the cursor, past the one it is in; null — none. */
 export function nextField(state: EditorState, dir: 1 | -1, fillable: ReadonlySet<string>): FieldTarget | null {
-  const targets = fieldTargets(state.doc, fillable);
+  const targets = fieldTargets(state.doc, fillable, (lookKey.getState(state) ?? EMPTY_LOOK).values);
   const { selection } = state;
   const at = selection.from;
   const current = targets.find((t) => (t.zone ? t.from < at && at < t.to : selection instanceof NodeSelection && t.from === at));
@@ -287,6 +292,8 @@ export function templateExtension(opts: TemplateOptions) {
                 const key = n.attrs.key as string;
                 if (n.type.name === 'field') {
                   decos.push(Decoration.node(pos, pos + n.nodeSize, {}, { look: look.fields[key], active: look.active === key }));
+                } else if (n.type.name === 'conditional') {
+                  if (!conditionHolds(conditionOfNode(n), look.values)) decos.push(Decoration.node(pos, pos + n.nodeSize, { class: 'is-off' }));
                 } else if (n.type.name === 'fieldZone') {
                   const z = look.zones[key];
                   const cls = ['is-zone', z?.missing ? 'is-missing' : '', look.active === key ? 'is-active' : '', opts.locked.has(key) ? 'is-staff' : ''];

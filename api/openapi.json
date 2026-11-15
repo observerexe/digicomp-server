@@ -3018,36 +3018,6 @@
         "tags": [
           "Discipline"
         ]
-      },
-      "post": {
-        "operationId": "DisciplineController_issue",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/IssueDisciplineDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DisciplineRecordDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Warning, fine (takes points) or reprimand; a moderator not to self.",
-        "tags": [
-          "Discipline"
-        ]
       }
     },
     "/api/discipline/{id}/revoke": {
@@ -3085,7 +3055,7 @@
             }
           }
         },
-        "summary": "Revoke with a reason; a revoked fine returns the points.",
+        "summary": "Revoke a record made before documents, with a reason; a revoked fine\nreturns the points. Issued through a document («Подання про\nстягнення») — only by cancelling it: 409 DISCIPLINE_HAS_PAPER.",
         "tags": [
           "Discipline"
         ]
@@ -6483,7 +6453,7 @@
           "id"
         ]
       },
-      "TaskPaperDto": {
+      "RecordPaperDto": {
         "type": "object",
         "properties": {
           "number": {
@@ -6554,7 +6524,7 @@
             "type": "object",
             "allOf": [
               {
-                "$ref": "#/components/schemas/TaskPaperDto"
+                "$ref": "#/components/schemas/RecordPaperDto"
               }
             ]
           },
@@ -6750,7 +6720,7 @@
             "type": "object",
             "allOf": [
               {
-                "$ref": "#/components/schemas/TaskPaperDto"
+                "$ref": "#/components/schemas/RecordPaperDto"
               }
             ]
           },
@@ -7427,6 +7397,13 @@
             "nullable": true,
             "description": "Number of the draft version; always null for members."
           },
+          "about": {
+            "type": "array",
+            "description": "Record types a new document may be about (`POST /papers` `about`): those the current version's fields refer to.",
+            "items": {
+              "$ref": "#/components/schemas/RecordType"
+            }
+          },
           "id": {
             "type": "string"
           },
@@ -7460,6 +7437,7 @@
           "visibility",
           "currentVersion",
           "draftVersion",
+          "about",
           "id",
           "title",
           "autoFreeze",
@@ -7628,6 +7606,13 @@
             "nullable": true,
             "description": "Number of the draft version; always null for members."
           },
+          "about": {
+            "type": "array",
+            "description": "Record types a new document may be about (`POST /papers` `about`): those the current version's fields refer to.",
+            "items": {
+              "$ref": "#/components/schemas/RecordType"
+            }
+          },
           "versions": {
             "description": "Newest first. Members get only the current version.",
             "type": "array",
@@ -7668,6 +7653,7 @@
           "visibility",
           "currentVersion",
           "draftVersion",
+          "about",
           "versions",
           "id",
           "title",
@@ -8233,6 +8219,26 @@
           "limit"
         ]
       },
+      "PaperAboutDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "type",
+          "id"
+        ]
+      },
       "CreatePaperDto": {
         "type": "object",
         "properties": {
@@ -8250,6 +8256,14 @@
             "type": "string",
             "description": "Make the document from the template's current version (its body, its fields).",
             "format": "uuid"
+          },
+          "about": {
+            "description": "With `templateId`: the record the document is about — it goes into the\nfirst field of the template the actor fills that refers to its type\n(`ref:<type>`); checked as any save of the draft. A template without\nsuch a field — as without `about`.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperAboutDto"
+              }
+            ]
           }
         }
       },
@@ -8593,6 +8607,35 @@
           "reprimand"
         ]
       },
+      "ReferringPaperDto": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string",
+            "nullable": true,
+            "description": "«ТЗ-2026-014»; null — the template gives no numbers."
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperStatus"
+              }
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "number",
+          "status",
+          "title",
+          "id"
+        ]
+      },
       "DisciplineRecordDto": {
         "type": "object",
         "properties": {
@@ -8644,6 +8687,23 @@
             "type": "string",
             "nullable": true
           },
+          "paper": {
+            "nullable": true,
+            "description": "«Подання про стягнення» it was issued with; null — issued before documents.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordPaperDto"
+              }
+            ]
+          },
+          "papers": {
+            "description": "Documents about it the reader sees («Пояснювальна записка»), oldest first.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReferringPaperDto"
+            }
+          },
           "id": {
             "type": "string"
           },
@@ -8666,6 +8726,8 @@
           "revokedAt",
           "revokedBy",
           "revokeReason",
+          "paper",
+          "papers",
           "id",
           "reason",
           "createdAt",
@@ -8696,38 +8758,6 @@
           "total",
           "page",
           "limit"
-        ]
-      },
-      "IssueDisciplineDto": {
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "warning",
-              "fine",
-              "reprimand"
-            ]
-          },
-          "reason": {
-            "type": "string",
-            "maxLength": 1000
-          },
-          "amount": {
-            "type": "number",
-            "description": "Points taken by a fine; required for `fine`, not allowed otherwise.",
-            "minimum": 1,
-            "maximum": 1000
-          }
-        },
-        "required": [
-          "userId",
-          "type",
-          "reason"
         ]
       },
       "PlaceStatus": {

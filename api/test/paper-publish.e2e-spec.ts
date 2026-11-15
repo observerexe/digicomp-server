@@ -530,7 +530,7 @@ describe('Публікація документів (e2e)', () => {
   describe('шаблони', () => {
     it('«створює запис» — лише для типів з адаптером; їх список — модераторам', async () => {
       const targets = await as(app, mod).get(`${T}/targets`).expect(200);
-      expect(targets.body).toEqual({ creates: ['task'] });
+      expect(targets.body).toEqual({ creates: ['discipline_record', 'task'] });
       await as(app, member).get(`${T}/targets`).expect(403);
       const res = await as(app, mod)
         .post(T)

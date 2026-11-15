@@ -8,7 +8,7 @@ import s from './FieldsPanel.module.css';
  * and how many required fields are filled.
  */
 export function PaperForm({ saved, ...props }: Required<GroupsProps> & { saved: ReactNode }) {
-  const p = fillProgress(props.template, props.values, props.zones);
+  const p = fillProgress(props.template, props.values, props.zones, props.conditions);
   return (
     <section className={s.form} aria-label="Форма документа">
       <div className={s.formBody}>

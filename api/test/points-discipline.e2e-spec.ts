@@ -2,10 +2,19 @@ import { INestApplication } from '@nestjs/common';
 import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
 import { Role } from '../src/users/user.entity';
-import { as, createTestApp, makeUser, resetDb, TestUser } from './helpers';
+import {
+  as,
+  createTestApp,
+  issueRecord,
+  makeUser,
+  resetDb,
+  TestUser,
+} from './helpers';
 
 // Бали (ручне нарахування, зняття), дисципліна (штраф знімає бали,
-// зняття повертає), видимість записів і рейтинг.
+// зняття повертає), видимість записів і рейтинг. Стягнення тут — записи
+// без документа (як видані до документів); видача через «Подання про
+// стягнення» — discipline-papers.e2e-spec.ts.
 
 type Res = { status: number; body: Record<string, any> };
 
@@ -51,7 +60,7 @@ describe('Бали і дисципліна (e2e)', () => {
       .post('/api/points/award')
       .send({ userId: to.id, amount, reason });
   const issue = (who: TestUser, body: Record<string, unknown>) =>
-    as(app, who).post('/api/discipline').send(body);
+    issueRecord(app, who, body);
 
   describe('ручне нарахування', () => {
     it('нараховує і показує в історії, хто нарахував', async () => {
@@ -122,7 +131,7 @@ describe('Бали і дисципліна (e2e)', () => {
         `SELECT id FROM points_ledger WHERE user_id = $1`,
         [a.id],
       );
-      expect(f.status).toBe(201);
+      expect(f.status).toBe(200);
       code(
         await as(app, admin)
           .post(`/api/points/${entry.id}/revoke`)
@@ -149,12 +158,12 @@ describe('Бали і дисципліна (e2e)', () => {
         reason: 'не прибрав за собою',
         amount: 4,
       });
-      expect(fine.status).toBe(201);
+      expect(fine.status).toBe(200);
       expect(fine.body).toMatchObject({
         type: 'fine',
         amount: 4,
-        revoked: false,
-        issuedBy: { id: mod.id },
+        revokedAt: null,
+        issuedById: mod.id,
       });
       expect(await balance(a)).toBe(6);
 
@@ -183,11 +192,11 @@ describe('Бали і дисципліна (e2e)', () => {
       expect(
         (await issue(mod, { userId: a.id, type: 'warning', reason: 'r' }))
           .status,
-      ).toBe(201);
+      ).toBe(200);
       expect(
         (await issue(mod, { userId: a.id, type: 'reprimand', reason: 'r' }))
           .status,
-      ).toBe(201);
+      ).toBe(200);
       expect(await balance(a)).toBe(3);
     });
 
@@ -206,11 +215,6 @@ describe('Бали і дисципліна (e2e)', () => {
         }),
         400,
         'AMOUNT_ONLY_FOR_FINE',
-      );
-      code(
-        await issue(mod, { userId: a.id, type: 'ban', reason: 'r' }),
-        400,
-        'VALIDATION_ERROR',
       );
     });
 

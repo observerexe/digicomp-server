@@ -1,5 +1,6 @@
 import type { FieldSchema, FieldType } from '../records/field-types';
 import {
+  conditionOf,
   isPlainZone,
   refType,
   signerField,
@@ -237,5 +238,91 @@ export function bodyProblem(
   });
   if (problem) return problem;
   const missing = fields.find((f) => !seen.has(f.key));
-  return missing ? { field: missing.key } : null;
+  if (missing) return { field: missing.key };
+  return conditionalProblem(body, byKey);
+}
+
+/** Keys of fields and zones in a node (the node itself included). */
+function keysIn(n: PaperNode): Set<string> {
+  const keys = new Set<string>();
+  walkNodes(n, (x) => {
+    if (x.type === 'field' || x.type === 'fieldZone') {
+      keys.add(x.attrs?.key as string);
+    }
+  });
+  return keys;
+}
+
+/**
+ * Conditional blocks: each waits for a single `enum` field that stands
+ * outside every conditional block; a field of a conditional block is in
+ * that block only (it is off or on with it). The choice itself — see
+ * conditionProblem (it needs the field's choices).
+ */
+function conditionalProblem(
+  body: PaperContent,
+  byKey: Map<string, TemplateField>,
+): FieldProblem | null {
+  const blockOf = new Map<string, number>();
+  const outside = new Set<string>();
+  const conditions: string[] = [];
+  const top = body.content ?? [];
+  for (let i = 0; i < top.length; i++) {
+    const n = top[i]!;
+    const c = conditionOf(n);
+    if (n.type === 'conditional') {
+      if (!c || byKey.get(c.field)?.type !== 'enum') {
+        return { field: c?.field ?? String(n.attrs?.field) };
+      }
+      conditions.push(c.field);
+    }
+    for (const key of keysIn(n)) {
+      if (c) {
+        if (outside.has(key) || (blockOf.get(key) ?? i) !== i) {
+          return { field: key };
+        }
+        blockOf.set(key, i);
+      } else {
+        if (blockOf.has(key)) return { field: key };
+        outside.add(key);
+      }
+    }
+  }
+  const inner = conditions.find((key) => blockOf.has(key));
+  return inner === undefined ? null : { field: inner };
+}
+
+/**
+ * What a conditional block waits for, against the fields as documents fill
+ * them: a choice of its field (archived ones too: it may be set already),
+ * a field people fill (not auto); a field of the block is not bound to
+ * what the record cannot be made without (it is empty while the block is off).
+ */
+export function conditionProblem(
+  body: PaperContent,
+  fields: {
+    key: string;
+    auto: boolean;
+    binding: string | null;
+    options: { key: string }[] | null;
+  }[],
+  schema: PublishedSchema | null,
+): FieldProblem | null {
+  const byKey = new Map(fields.map((f) => [f.key, f]));
+  const required = new Set(
+    (schema?.fields ?? []).filter((s) => s.required).map((s) => s.key),
+  );
+  for (const n of body.content ?? []) {
+    const c = conditionOf(n);
+    if (!c) continue;
+    const f = byKey.get(c.field);
+    if (!f || f.auto || !f.options?.some((o) => o.key === c.value)) {
+      return { field: c.field };
+    }
+    for (const key of keysIn(n)) {
+      const binding = byKey.get(key)?.binding;
+      if (binding && required.has(binding)) return { field: key };
+    }
+  }
+  return null;
 }

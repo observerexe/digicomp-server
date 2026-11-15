@@ -53,6 +53,7 @@ export function TemplateTrial({ template, body }: { template: PaperTemplateRef; 
             template={template}
             values={fill.values}
             zones={fill.zones}
+            conditions={fill.conditions}
             mode="fill"
             published={false}
             active={sheet.shownActive}

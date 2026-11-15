@@ -5,11 +5,14 @@ import { api, unwrap } from '../../api/client';
 import type { Me, PointsHistoryEntry } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
 import { Avatar } from '../../components/Avatar';
+import { ChoiceButton } from '../../components/ChoiceButton';
 import { Icon } from '../../components/Icon';
+import { RecordPapers } from '../../components/RecordPapers';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { currentMonthName, formatDate, formatDateTime, formatPoints, plural } from '../../lib/format';
 import { disciplineTitle, PROJECT_STAGE_LABEL, pointsReason, ROLE_LABEL, TASK_STATUS_LABEL } from '../../lib/labels';
+import { templateChoices, useNewPaper, useTemplates } from '../../lib/paperTemplates';
 import s from './profile.module.css';
 
 const HISTORY_PREVIEW = 5;
@@ -133,13 +136,19 @@ export function mergeReversals(history: PointsHistoryEntry[]): HistoryRow[] {
     .map((e) => (reasonOf.has(e.id) ? { ...e, revokeReason: reasonOf.get(e.id) } : e));
 }
 
+/** Own warnings and fines, their «Подання» and explanatory notes; a note on an active one — «Пояснення». */
 function DisciplineCard() {
   const q = useQuery({ queryKey: ['discipline', 'me'], queryFn: () => unwrap(api.GET('/api/discipline/me')) });
+  const active = q.data?.some((r) => !r.revoked) ?? false;
+  const templates = useTemplates(active);
+  const newPaper = useNewPaper();
+  const notes = templateChoices(templates.data, { about: 'discipline_record' });
   return (
     <Card>
       <h2 className={s.caption}>
         Попередження й штрафи <span className={s.private}>бачите лише ви</span>
       </h2>
+      <ErrorMessage text={newPaper.isError ? errorOf(newPaper.error) : null} />
       {q.isPending ? (
         <Skeleton height={64} />
       ) : q.isError ? (
@@ -161,6 +170,16 @@ function DisciplineCard() {
               <span>{r.reason}</span>
               {r.revoked && r.revokeReason && <span className={s.rowSub}>Знято: {r.revokeReason}</span>}
               {r.issuedBy?.name && <span className={s.rowSub}>Видав {r.issuedBy.name}</span>}
+              <RecordPapers label="Подання" paper={r.paper} papers={r.papers} />
+              {!r.revoked && notes.length > 0 && (
+                <ChoiceButton
+                  label="Пояснення"
+                  className="btn btn-ghost"
+                  choices={notes}
+                  disabled={newPaper.isPending}
+                  onPick={(templateId) => templateId && newPaper.mutate({ templateId, about: { type: 'discipline_record', id: r.id } })}
+                />
+              )}
             </li>
           ))}
         </ul>

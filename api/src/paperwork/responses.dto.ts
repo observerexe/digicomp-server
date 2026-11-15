@@ -6,6 +6,23 @@ import { PaperStatus, PaperVisibility } from './paper.entity';
 import { FIELD_FILLERS, type FieldFiller } from './template-fields';
 import { TemplateKind } from './template.entities';
 
+/** The document a record was created with (or got later): open it to read or change the record. */
+export class RecordPaperDto {
+  id: string;
+
+  /** «ТЗ-2026-014»; null — the template gives no numbers. */
+  @ApiProperty({ type: String, nullable: true })
+  number: string | null;
+}
+
+/** A document that refers to a record (a field `ref:*` or «@»), as the reader sees it. */
+export class ReferringPaperDto extends RecordPaperDto {
+  title: string;
+
+  @ApiProperty({ enum: PaperStatus, enumName: 'PaperStatus' })
+  status: PaperStatus;
+}
+
 /** A document without its content (lists, the answer to a save). */
 export class PaperItemDto {
   id: string;

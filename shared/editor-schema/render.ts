@@ -6,7 +6,7 @@
  * Only what the description allows gets out: known nodes and marks,
  * attributes as format classes or checked numbers, escaped text.
  */
-import { RECORD_MISSING } from './fields';
+import { conditionOf, RECORD_MISSING } from './fields';
 import { formatClass, MARKS, NODES, SIGNER_AUTHOR, SIGNER_ORG, type PaperAttrs, type PaperMark, type PaperNode } from './index';
 
 const TEXT_ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\u00a0': '&nbsp;' };
@@ -69,6 +69,8 @@ export type FieldFill = {
   title(type: string, id: string): string | null;
   /** The document's number; null — none yet (a line to fill in by hand). */
   number: string | null;
+  /** A conditional block's condition holds: the `enum` field `field` holds `value`. */
+  holds(field: string, value: string): boolean;
   info: PaperInfo;
 };
 
@@ -285,8 +287,22 @@ function renderInline(children: PaperNode[], fill: FieldFill | undefined): strin
   return out;
 }
 
+/** A conditional block: in the editor's HTML — its element with the condition; in the print — its blocks, or nothing while the condition does not hold. */
+function renderConditional(n: PaperNode, fill: FieldFill | undefined): string {
+  const children = (n.content ?? []).map((c) => renderNode(c, fill)).join('');
+  if (fill) {
+    const c = conditionOf(n);
+    return c && fill.holds(c.field, c.value) ? children : '';
+  }
+  // The field's key matches FIELD_KEY: nothing to escape.
+  const field = nodeAttr(n, 'field') as string | null;
+  const value = nodeAttr(n, 'value') as string | null;
+  return tag('div', [['class', 'paper-if'], ['data-field', field], ['data-value', value === null ? null : escapeAttr(value)]]) + children + '</div>';
+}
+
 function renderNode(n: PaperNode, fill: FieldFill | undefined): string {
   if (n.type === 'pageBreak') return '<div class="page-break"></div>';
+  if (n.type === 'conditional') return renderConditional(n, fill);
   if (STRUCTURE_CLASS[n.type]) return renderStructure(n, fill);
   if (n.type === 'fieldZone' && fill) {
     const key = fieldKey(n);

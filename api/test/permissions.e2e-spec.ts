@@ -8,6 +8,7 @@ import {
   as,
   category,
   createTestApp,
+  issueRecord,
   makeTask,
   makeUser,
   PNG_1PX,
@@ -429,20 +430,23 @@ describe('Матриця прав (e2e)', () => {
       as(app, who)
         .post('/api/points/award')
         .send({ userId: to.id, amount: 5, reason: 'чергування' });
+    // Through «Подання про стягнення» the same rules hold: discipline-papers.e2e-spec.ts.
     const warn = (who: TestUser, to: TestUser) =>
-      as(app, who)
-        .post('/api/discipline')
-        .send({ userId: to.id, type: 'warning', reason: 'запізнення' });
+      issueRecord(app, who, {
+        userId: to.id,
+        type: 'warning',
+        reason: 'запізнення',
+      });
 
     it('admin так (навіть модератору)', async () => {
       expect((await award(admin, member)).status).toBe(201);
-      expect((await warn(admin, mod)).status).toBe(201);
+      expect((await warn(admin, mod)).status).toBe(200);
     });
     it('moderator так, і іншому модератору', async () => {
       expect((await award(mod, member)).status).toBe(201);
       expect((await award(mod, mod2)).status).toBe(201);
-      expect((await warn(mod, mod2)).status).toBe(201);
-      expect((await warn(mod, admin)).status).toBe(201);
+      expect((await warn(mod, mod2)).status).toBe(200);
+      expect((await warn(mod, admin)).status).toBe(200);
     });
     it('moderator не собі', async () => {
       denied(await award(mod, mod), 'SELF_ACTION_FORBIDDEN');
@@ -464,9 +468,11 @@ describe('Матриця прав (e2e)', () => {
   describe('Зняти такий запис', () => {
     const issue = async (who: TestUser) =>
       (
-        await as(app, who)
-          .post('/api/discipline')
-          .send({ userId: member.id, type: 'reprimand', reason: 'r' })
+        await issueRecord(app, who, {
+          userId: member.id,
+          type: 'reprimand',
+          reason: 'r',
+        })
       ).body as { id: string };
     const revoke = (who: TestUser, id: string, reason = 'помилка') =>
       as(app, who).post(`/api/discipline/${id}/revoke`).send({ reason });

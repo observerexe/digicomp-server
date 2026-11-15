@@ -5,6 +5,7 @@ import {
 } from '../../../shared/editor-schema';
 import {
   matchesBody,
+  offFields,
   mentionsOf,
   normalizeValue,
   valueRefs,
@@ -16,7 +17,11 @@ import {
   type FieldSpec,
 } from '../../../shared/editor-schema/fields';
 import { renderContent } from '../../../shared/editor-schema/render';
-import { bodyProblem, type TemplateField } from './template-fields';
+import {
+  bodyProblem,
+  conditionProblem,
+  type TemplateField,
+} from './template-fields';
 
 /** Requisites and names: none (the fields are what these tests are about). */
 const NO_INFO = {
@@ -204,6 +209,7 @@ describe('Посилання «@» у вмісті', () => {
     const fill = {
       text: () => null,
       hidden: () => false,
+      holds: () => false,
       title: (_t: string, id: string) => (id === U1 ? '<ТЗ>' : null),
       number: null,
       info: NO_INFO,
@@ -376,6 +382,7 @@ describe('Рендер полів', () => {
     const fill = (values: Record<string, string>, hidden: string[] = []) => ({
       text: (k: string) => values[k] ?? null,
       hidden: (k: string) => hidden.includes(k),
+      holds: () => false,
       title: () => null,
       number: null,
       info: NO_INFO,
@@ -405,6 +412,7 @@ describe('«Авто: номер»', () => {
   const fill = (number: string | null) => ({
     text: () => null,
     hidden: () => false,
+    holds: () => false,
     title: () => null,
     number,
     info: NO_INFO,
@@ -449,5 +457,155 @@ describe('withZoneText', () => {
       ],
     });
     expect(withZoneText(doc, 'other', 'x')).toEqual(doc);
+  });
+});
+
+describe('Умовний блок', () => {
+  const when = (field: string, value: string, ...content: PaperNode[]) =>
+    ({
+      type: 'conditional',
+      attrs: { field, value },
+      content,
+    }) as PaperNode;
+  const f = (key: string, type = 'text', binding: string | null = null) =>
+    ({ key, type, binding }) as TemplateField;
+  const fields = [f('kind', 'enum'), f('amount', 'int'), f('why', 'richtext')];
+  const body = doc(
+    p(fieldNode('kind')),
+    when('kind', 'fine', p(text('Розмір: '), fieldNode('amount'))),
+    zone('why', p()),
+  );
+
+  it('вузол спільного опису: лише на верхньому рівні, з умовою цілком, не один в одному', () => {
+    expect(checkContent(body)).toBe(true);
+    expect(checkContent(doc({ type: 'conditional', content: [p()] }))).toBe(
+      false,
+    );
+    expect(
+      checkContent(
+        doc({ type: 'conditional', attrs: { field: 'kind' }, content: [p()] }),
+      ),
+    ).toBe(false);
+    expect(checkContent(doc(when('kind', '', p())))).toBe(false);
+    expect(checkContent(doc(when('kind', 'a', when('kind', 'b', p()))))).toBe(
+      false,
+    );
+    expect(checkContent(doc(zone('z', when('kind', 'a', p()))))).toBe(false);
+    expect(checkContent(doc(when('kind', 'a', { type: 'orgHeader' })))).toBe(
+      false,
+    );
+  });
+
+  it('поля вимкненого блоку — поки умова не виконується', () => {
+    expect([...offFields(body, {})]).toEqual(['amount']);
+    expect([...offFields(body, { kind: 'warning' })]).toEqual(['amount']);
+    expect([...offFields(body, { kind: 'fine' })]).toEqual([]);
+  });
+
+  it('тіло шаблону: умова — поле enum поза блоками; поле блоку — лише в ньому', () => {
+    expect(bodyProblem(body, fields)).toBeNull();
+    expect(
+      bodyProblem(body, [f('kind', 'list<enum>'), ...fields.slice(1)]),
+    ).toEqual({ field: 'kind' });
+    expect(
+      bodyProblem(
+        doc(
+          p(fieldNode('kind')),
+          when('nobody', 'fine', p(fieldNode('amount'))),
+          zone('why', p()),
+        ),
+        fields,
+      ),
+    ).toEqual({ field: 'nobody' });
+    // The field of the block stands outside it too.
+    expect(
+      bodyProblem(
+        doc(
+          p(fieldNode('kind'), fieldNode('amount')),
+          when('kind', 'fine', p(fieldNode('amount'))),
+          zone('why', p()),
+        ),
+        fields,
+      ),
+    ).toEqual({ field: 'amount' });
+    // In two blocks.
+    expect(
+      bodyProblem(
+        doc(
+          p(fieldNode('kind')),
+          when('kind', 'fine', p(fieldNode('amount'))),
+          when('kind', 'other', p(fieldNode('amount'))),
+          zone('why', p()),
+        ),
+        fields,
+      ),
+    ).toEqual({ field: 'amount' });
+    // The condition's field inside a conditional block.
+    expect(
+      bodyProblem(
+        doc(
+          when('kind', 'fine', p(fieldNode('kind'), fieldNode('amount'))),
+          zone('why', p()),
+        ),
+        fields,
+      ),
+    ).toEqual({ field: 'kind' });
+  });
+
+  it('умова чекає на варіант свого поля, яке заповнюють люди; поле блоку не прив’язане до обов’язкового в записі', () => {
+    const resolved = (over: object = {}) => [
+      {
+        key: 'kind',
+        binding: 'type',
+        auto: false,
+        options: [{ key: 'fine' }],
+        ...over,
+      },
+      { key: 'amount', binding: 'amount', auto: false, options: null },
+      { key: 'why', binding: 'reason', auto: false, options: null },
+    ];
+    const schema = {
+      fields: [
+        { key: 'type', required: true },
+        { key: 'amount' },
+        { key: 'reason', required: true },
+      ],
+    } as never;
+    expect(conditionProblem(body, resolved(), schema)).toBeNull();
+    expect(
+      conditionProblem(
+        body,
+        resolved({ options: [{ key: 'warning' }] }),
+        schema,
+      ),
+    ).toEqual({ field: 'kind' });
+    expect(conditionProblem(body, resolved({ auto: true }), schema)).toEqual({
+      field: 'kind',
+    });
+    const required = doc(
+      p(fieldNode('kind')),
+      when('kind', 'fine', p(fieldNode('amount')), zone('why', p())),
+    );
+    expect(conditionProblem(required, resolved(), schema)).toEqual({
+      field: 'why',
+    });
+  });
+
+  it('рендер: у редакторі — блок з умовою; у друці — вміст, лише коли умова виконується', () => {
+    const one = doc(when('kind', 'a&"b', p(text('Так'))));
+    expect(renderContent(one)).toBe(
+      '<div class="paper-if" data-field="kind" data-value="a&amp;&quot;b"><p>Так</p></div>',
+    );
+    const fill = (holds: boolean) => ({
+      text: () => null,
+      hidden: () => false,
+      holds: (field: string, value: string) =>
+        holds && field === 'kind' && value === 'a&"b',
+      title: () => null,
+      number: null,
+      info: NO_INFO,
+    });
+    expect(renderContent(one, fill(true))).toBe('<p>Так</p>');
+    expect(renderContent(one, fill(false))).toBe('');
   });
 });

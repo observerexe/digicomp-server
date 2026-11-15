@@ -93,6 +93,7 @@ function esc(s: string) {
 const NO_VALUES: FieldFill = {
   text: () => null,
   hidden: () => false,
+  holds: () => false,
   title: () => null,
   number: null,
   info: {

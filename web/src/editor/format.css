@@ -123,6 +123,11 @@ img.ProseMirror-separator {
   text-indent: 0;
 }
 
+/* A conditional block (conditional.ts): off — not in the document, as in the print */
+.paper .paper-if.is-off {
+  display: none;
+}
+
 /* «@» — a reference to a record (mention.ts). The print draws only the title (paper.css). */
 .paper .paper-ref {
   color: var(--sheet-blue);

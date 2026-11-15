@@ -27,6 +27,8 @@ export type BuilderField = {
 
 export type BuilderLook = {
   fields: Record<string, BuilderField>;
+  /** A conditional block's condition in words: ««Вид стягнення» = «Штраф»». */
+  condition?: (field: string, value: string) => string;
   /** false — a published version is shown: no hint under the last block, no «/». */
   editable: boolean;
 };
@@ -67,6 +69,11 @@ function autoIn(node: PMNode) {
 
 /** What a block of the top level is: its label on the sheet and the colour of the label. */
 export function blockTag(node: PMNode, look: BuilderLook): { label: string; group: BlockGroup } {
+  if (node.type.name === 'conditional') {
+    const field = node.attrs.field as string;
+    const value = node.attrs.value as string;
+    return { label: `Умовний блок · якщо ${look.condition?.(field, value) ?? `${field} = ${value}`}`, group: 'structure' };
+  }
   const keys = keysIn(node);
   const one = keys.length === 1 && (node.type.name === 'fieldZone' || node.isTextblock) ? look.fields[keys[0]!] : undefined;
   if (one) return { label: one.tag, group: one.group };

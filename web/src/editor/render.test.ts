@@ -100,6 +100,14 @@ const CASES: [string, PaperContent][] = [
       { type: 'pageFooter', attrs: { text: 'Ф-01 «ТЗ» & ко' } },
     ),
   ],
+  [
+    'умовний блок',
+    doc(p([{ type: 'field', attrs: { key: 'type' } }]), {
+      type: 'conditional',
+      attrs: { field: 'type', value: 'fine & "інше"' },
+      content: [p([text('Розмір: '), { type: 'field', attrs: { key: 'amount' } }]), { type: 'fieldZone', attrs: { key: 'why' }, content: [p()] }],
+    }),
+  ],
 ];
 
 describe('Рендер друку = HTML редактора', () => {

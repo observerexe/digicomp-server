@@ -7,6 +7,12 @@ import { App } from 'supertest/types';
 import { DataSource, type EntityManager } from 'typeorm';
 import { AppModule } from '../src/app.module';
 import { codeFor } from '../src/common/http-exception.filter';
+import { DisciplineService } from '../src/discipline/discipline.service';
+import type { IssueDisciplineDto } from '../src/discipline/dto';
+import {
+  DISCIPLINE_TEMPLATES,
+  DisciplineTemplates1813000000000,
+} from '../src/migrations/1813000000000-DisciplineTemplates';
 import {
   TASK_TEMPLATES,
   TaskTemplates1812000000000,
@@ -88,14 +94,43 @@ export async function makeTask(
  * Runs the tasks service in a transaction, as a document's adapter does,
  * and answers as the API would: `{ status, body }`, errors with errorCode.
  */
-export async function withTasks(
+export function withTasks(
   app: INestApplication,
   run: (tasks: TasksService, m: EntityManager) => Promise<unknown>,
+) {
+  return answered(app, (m) => run(app.get(TasksService), m));
+}
+
+/** The discipline service in a transaction, as a document's adapter runs it (see withTasks). */
+export function withDiscipline(
+  app: INestApplication,
+  run: (discipline: DisciplineService, m: EntityManager) => Promise<unknown>,
+) {
+  return answered(app, (m) => run(app.get(DisciplineService), m));
+}
+
+/**
+ * A discipline record issued by `by` as publishing its document would issue
+ * it, but without the document — as records made before documents are:
+ * `{ status, body }` (body — the record). Issuing through documents —
+ * discipline-papers.e2e-spec.ts.
+ */
+export function issueRecord(
+  app: INestApplication,
+  by: User,
+  dto: Record<string, unknown>,
+) {
+  return withDiscipline(app, (d, m) =>
+    d.issue(dto as unknown as IssueDisciplineDto, by, m),
+  );
+}
+
+async function answered(
+  app: INestApplication,
+  run: (m: EntityManager) => Promise<unknown>,
 ): Promise<{ status: number; body: Record<string, any> }> {
   try {
-    const body = await app
-      .get(DataSource)
-      .transaction((m) => run(app.get(TasksService), m));
+    const body = await app.get(DataSource).transaction(run);
     return { status: 200, body: body as Record<string, any> };
   } catch (e) {
     if (!(e instanceof HttpException)) throw e;
@@ -105,6 +140,21 @@ export async function withTasks(
     body.errorCode ??= codeFor(e.getStatus(), body.message);
     return { status: e.getStatus(), body };
   }
+}
+
+/**
+ * «Подання про стягнення» and «Пояснювальна записка» as the migration makes
+ * them (it needs an active admin).
+ */
+export async function disciplineTemplates(app: INestApplication) {
+  const q = app.get(DataSource).createQueryRunner();
+  try {
+    await new DisciplineTemplates1813000000000().up(q);
+  } finally {
+    await q.release();
+  }
+  const [issue, note] = DISCIPLINE_TEMPLATES.map((t) => t.id);
+  return { issue, note };
 }
 
 /**

@@ -136,7 +136,6 @@ describe('OpenAPI і /docs (лише admin)', () => {
       ['/api/points/{entryId}/revoke', 'post', '200'],
       ['/api/points/users/{userId}', 'get', '200'],
       ['/api/discipline', 'get', '200'],
-      ['/api/discipline', 'post', '201'],
       ['/api/discipline/{id}/revoke', 'post', '200'],
       ['/api/tasks/{id}', 'get', '200'],
       ['/api/tasks/{id}/cancel', 'post', '200'],

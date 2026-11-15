@@ -16,6 +16,7 @@ import {
   type FontSize,
   type TextColor,
 } from '../../../shared/editor-schema';
+import { Conditional } from './conditional';
 import { Field, FieldZone, templateExtension, type TemplateOptions } from './fields';
 import { Mention, type MentionOptions } from './mention';
 import { Approval, OrgHeader, PageFooter, PaperAuthor, PaperDate, PaperNumber, SheetLook, Signatures } from './structure';
@@ -150,7 +151,7 @@ const PageBreak = Node.create({
 });
 
 /** Structure blocks (the header, signatures…) only on the sheet's top level. */
-const PaperDocument = Node.create({ name: 'doc', topNode: true, content: '(block | structure)+' });
+const PaperDocument = Node.create({ name: 'doc', topNode: true, content: '(block | structure | conditional)+' });
 
 /** Our spans carry format classes, not styles (TipTap's own parse needs `style`). */
 const ClassTextStyle = TextStyle.extend({
@@ -223,6 +224,7 @@ export function paperExtensions(opts: { template?: TemplateOptions; mention?: Pa
     PaperDate,
     PaperAuthor,
     OrgHeader,
+    Conditional,
     Approval,
     Signatures,
     PageFooter,

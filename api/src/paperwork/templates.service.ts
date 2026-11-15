@@ -12,6 +12,7 @@ import type { OkDto, Plain } from '../common/responses.dto';
 import { Dictionary } from '../dictionaries/dictionary.entities';
 import { LinkRegistry } from '../links/link-registry';
 import { RecordFieldsService } from '../records/record-fields.service';
+import type { RecordType } from '../records/field-types';
 import type { PublishedSchema } from '../records/records.registry';
 import { PaperAdapterRegistry } from './adapters';
 import { EMPTY_CONTENT } from './content';
@@ -22,9 +23,11 @@ import type { PaperFieldDto, PaperTemplateRefDto } from './responses.dto';
 import {
   bindingProblem,
   bodyProblem,
+  conditionProblem,
   duplicateKey,
   fieldDictionaries,
   fieldsProblem,
+  isAutoBinding,
   type FieldProblem,
   type TemplateField,
 } from './template-fields';
@@ -418,7 +421,13 @@ export class TemplatesService {
         fieldsProblem(v.fields, t.kind, schema, {
           dictionaries: new Set(existing.map((d) => d.key)),
           refTypes: new Set(this.links.registered()),
-        }) ?? bodyProblem(v.body, v.fields);
+        }) ??
+        bodyProblem(v.body, v.fields) ??
+        conditionProblem(
+          v.body,
+          await resolveFields(m, t.kind, v.fields, schema),
+          schema,
+        );
       if (problem) throw fieldInvalid(problem);
       v.publishedAt = new Date();
       v.publishedById = actor.id;
@@ -556,6 +565,31 @@ export class TemplatesService {
     return bindingProblem(v.fields, t.kind, schema) !== null;
   }
 
+  /**
+   * Record types a new document of the current version may be about: those
+   * its fields refer to (`ref:<type>`, not lists), auto fields aside (see
+   * CreatePaperDto.about).
+   */
+  private async aboutTypes(
+    t: PaperTemplate,
+    schemas: Schemas,
+  ): Promise<RecordType[]> {
+    const v = t.currentVersion;
+    if (!v) return [];
+    const schema =
+      t.kind === TemplateKind.Creates ? await schemas.of(t.target) : null;
+    const types = new Set<RecordType>();
+    for (const f of v.fields) {
+      if (!f.type.startsWith('ref:')) continue;
+      const s = f.binding
+        ? schema?.fields.find((x) => x.key === f.binding)
+        : undefined;
+      if (s && isAutoBinding(t.kind, s)) continue;
+      types.add(f.type.slice(4) as RecordType);
+    }
+    return [...types].sort();
+  }
+
   private async itemView(
     t: PaperTemplate,
     draftVersion: number | null,
@@ -574,6 +608,7 @@ export class TemplatesService {
       currentVersion: t.currentVersion?.number ?? null,
       draftVersion,
       needsUpdate: await this.needsUpdate(t, schemas),
+      about: await this.aboutTypes(t, schemas),
       createdAt: t.createdAt,
       updatedAt: t.updatedAt,
     };

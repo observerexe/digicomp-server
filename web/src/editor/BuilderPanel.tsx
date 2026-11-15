@@ -139,7 +139,11 @@ function Properties(props: Props) {
     const setAttrs = (attrs: Record<string, unknown>) => props.onBlockAttrs(selected.index, attrs);
     return (
       <>
-        <Heading block={block} label={block?.label ?? selected.node} hint={BLOCK_HINT[selected.node] ?? 'Текст шаблону: у документі він не змінюється.'} />
+        <Heading
+          block={block}
+          label={selected.node === 'conditional' ? 'Умовний блок' : (block?.label ?? selected.node)}
+          hint={selected.node === 'conditional' ? conditionHint(selected.attrs, props) : (BLOCK_HINT[selected.node] ?? 'Текст шаблону: у документі він не змінюється.')}
+        />
         {selected.node === 'signatures' && <SignaturesForm attrs={selected.attrs} fields={props.fields} onChange={setAttrs} />}
         {selected.node === 'pageFooter' && (
           <div className="field">
@@ -171,6 +175,14 @@ function Properties(props: Props) {
   if (!f) return <p className="hint">Поле «{selected.key}» без налаштувань: видаліть його з аркуша.</p>;
   // A new form for each field: what is typed in it belongs to that field.
   return <FieldForm key={f.key} f={f} {...props} />;
+}
+
+/** A conditional block: when it is in the document. Its condition comes with the template; the constructor does not set it. */
+function conditionHint(attrs: Record<string, unknown>, { defs, schema }: Props): string {
+  const f = defs.get(attrs.field as string);
+  const value = attrs.value as string;
+  const choice = schema?.fields.find((x) => x.key === f?.binding)?.options?.find((o) => o.key === value)?.label ?? value;
+  return `Є в документі, лише коли в полі «${f?.label ?? String(attrs.field)}» обрано «${choice}». Умову тут не змінюють.`;
 }
 
 /** What a structure block shows, under its name. */

@@ -232,7 +232,7 @@ function TaskPaper({ task: t }: { task: TaskDetail }) {
               <ChoiceButton
                 label="Редагувати"
                 className="btn"
-                choices={templateChoices(templates.data, 'task')}
+                choices={templateChoices(templates.data, { creates: 'task' })}
                 disabled={templates.isPending || edit.isPending}
                 emptyNote="Немає шаблону, що створює ТЗ: його додають у «Редактор» → «Шаблони»."
                 onPick={(templateId) => templateId && edit.mutate({ templateId, taskId: t.id })}
