@@ -62,11 +62,24 @@ function useFormatState(editor: Editor) {
   });
 }
 
+/** Why formatting does not apply where the cursor is (a document from a template): its text, or a plain zone. */
+export type RibbonLock = 'template' | 'plain';
+
+const LOCK_TEXT: Record<RibbonLock, string> = {
+  template: 'Тут текст шаблону: змінюються лише поля в панелі «Поля» і вільні зони в рамках.',
+  plain: 'Ця зона — лише текст, без форматування.',
+};
+/** The phone: fields are in «Форма», the line is short. */
+const MINI_LOCK_TEXT: Record<RibbonLock, string> = {
+  template: 'Текст шаблону: пишіть у рамках, поля — у «Формі».',
+  plain: 'Ця зона — лише текст, без форматування.',
+};
+
 /**
- * `lock` — why formatting does not apply where the cursor is (a document from a template); null — it does.
+ * `lock` — why formatting does not apply where the cursor is; null — it does.
  * `extra` — the page's own controls at the end (the constructor: «Показати ключі полів»).
  */
-export function Ribbon({ editor, lock = null, extra }: { editor: Editor; lock?: string | null; extra?: ReactNode }) {
+export function Ribbon({ editor, lock = null, extra }: { editor: Editor; lock?: RibbonLock | null; extra?: ReactNode }) {
   const [tab, setTab] = useState<Tab>('home');
   const id = useId();
   const f = useFormatState(editor);
@@ -102,7 +115,7 @@ export function Ribbon({ editor, lock = null, extra }: { editor: Editor; lock?: 
       <div id={`${id}-panel`} role="tabpanel" aria-labelledby={`${id}-${tab}`} className={s.panel}>
         {lock && (
           <p className={s.lock} role="status">
-            {lock}
+            {LOCK_TEXT[lock]}
           </p>
         )}
         <fieldset className={s.controls} disabled={!!lock}>
@@ -212,6 +225,35 @@ export function Ribbon({ editor, lock = null, extra }: { editor: Editor; lock?: 
         </fieldset>
         {extra}
       </div>
+    </div>
+  );
+}
+
+/**
+ * The phone's panel instead of the ribbon (narrower than 900 px): one row —
+ * undo, redo, bold, italic, underline, lists. `lock` as in the ribbon.
+ */
+export function MiniRibbon({ editor, lock = null }: { editor: Editor; lock?: RibbonLock | null }) {
+  const f = useFormatState(editor);
+  const run = () => editor.chain().focus();
+  return (
+    <div className={s.mini} role="toolbar" aria-label="Форматування">
+      <fieldset className={s.miniControls} disabled={!!lock}>
+        <IconButton icon="undo" label="Скасувати" disabled={!f.canUndo} onClick={() => run().undo().run()} />
+        <IconButton icon="redo" label="Повторити" disabled={!f.canRedo} onClick={() => run().redo().run()} />
+        <span className={s.miniGap} aria-hidden="true" />
+        <LetterButton letter="Ж" label="Жирний" active={f.bold} className={s.bold} onClick={() => run().toggleBold().run()} />
+        <LetterButton letter="К" label="Курсив" active={f.italic} className={s.italic} onClick={() => run().toggleItalic().run()} />
+        <LetterButton letter="П" label="Підкреслений" active={f.underline} className={s.underline} onClick={() => run().toggleUnderline().run()} />
+        <span className={s.miniGap} aria-hidden="true" />
+        <IconButton icon="listBullet" label="Маркований список" active={f.bulletList} onClick={() => run().toggleBulletList().run()} />
+        <IconButton icon="listOrdered" label="Нумерований список" active={f.orderedList} onClick={() => run().toggleOrderedList().run()} />
+      </fieldset>
+      {lock && (
+        <p className={s.miniLock} role="status">
+          {MINI_LOCK_TEXT[lock]}
+        </p>
+      )}
     </div>
   );
 }

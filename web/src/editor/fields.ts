@@ -313,13 +313,30 @@ export function fieldPosition(editor: Editor, key: string): number | null {
   return at;
 }
 
-/** Text of every zone: whether it is filled. */
+/** A line break inside a paragraph reads as a new line; other inline atoms (fields, «@») — as nothing. */
+const leafText = (n: PMNode) => (n.type.name === 'hardBreak' ? '\n' : '');
+
+/** Text of every zone, a line a paragraph: whether it is filled, and what the phone's form shows. */
 export function zoneTexts(doc: PMNode): Record<string, string> {
   const out: Record<string, string> = {};
   doc.descendants((n) => {
     if (n.type.name !== 'fieldZone') return true;
-    out[n.attrs.key as string] = n.textContent.trim();
+    out[n.attrs.key as string] = n.content.textBetween(0, n.content.size, '\n', leafText);
     return false;
   });
   return out;
+}
+
+/**
+ * A plain zone written from the phone's form: each line — a paragraph of the
+ * zone. The same lock as typing on the sheet applies (a zone the actor may not fill stays).
+ */
+export function setZoneText(editor: Editor, key: string, text: string) {
+  const pos = fieldPosition(editor, key);
+  const { state } = editor;
+  const zone = pos === null ? null : state.doc.nodeAt(pos);
+  if (pos === null || zone?.type.name !== 'fieldZone') return;
+  const { schema } = state;
+  const paragraphs = text.split('\n').map((l) => schema.nodes.paragraph!.create(null, l ? schema.text(l) : null));
+  editor.view.dispatch(state.tr.replaceWith(pos + 1, pos + zone.nodeSize - 1, paragraphs));
 }

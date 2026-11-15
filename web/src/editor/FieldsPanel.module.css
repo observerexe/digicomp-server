@@ -147,11 +147,37 @@
   width: 100%;
 }
 
-@media (max-width: 899px) {
-  .panel {
-    width: auto;
-    max-height: 45vh;
-    border-left: 0;
-    border-top: 1px solid var(--c-border);
-  }
+/* «Форма» on the phone: the fields on the whole screen, the state of saving below */
+.form {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--c-surface);
+}
+.formBody {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: 20px;
+  padding: 20px 16px;
+}
+.formFoot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0 6px;
+  padding: 8px 16px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--c-border);
+  color: var(--c-text2);
+  font-size: 13px;
+}
+.formFoot > :empty {
+  display: none;
+}
+.formFoot > :not(:empty) ~ :not(:empty)::before {
+  content: '· ';
 }

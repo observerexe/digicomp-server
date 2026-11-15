@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { checkContent } from '../../../shared/editor-schema';
 import { matchesBody } from '../../../shared/editor-schema/fields';
 import { paperExtensions } from './extensions';
-import { fieldPosition, setFieldsLook, zoneAtSelection, zoneTexts } from './fields';
+import { fieldPosition, setFieldsLook, setZoneText, zoneAtSelection, zoneTexts } from './fields';
 
 /** A document made from a template: a line with a field, a free zone, a plain zone, a zone a moderator fills. */
 const body: JSONContent = {
@@ -110,6 +110,32 @@ describe('Документ із шаблону: заблокований тек�
     const free = pasted('<p><em>з полем</em> <span class="paper-field" data-field="name"></span> тут</p>');
     expect(JSON.stringify(free.content.toJSON())).not.toContain('"field"');
     expect(JSON.stringify(free.content.toJSON())).toContain('italic');
+  });
+
+  it('текст зони — рядок на абзац; запис із форми телефона — абзаци зони, документ лишається за тілом', () => {
+    const { editor } = open();
+    setZoneText(editor, 'goal', 'перший\n\nтретій');
+    expect(editor.getJSON().content![2]).toEqual({
+      type: 'fieldZone',
+      attrs: { key: 'goal' },
+      content: [
+        { type: 'paragraph', attrs: { align: null, indent: 0 }, content: [{ type: 'text', text: 'перший' }] },
+        { type: 'paragraph', attrs: { align: null, indent: 0 } },
+        { type: 'paragraph', attrs: { align: null, indent: 0 }, content: [{ type: 'text', text: 'третій' }] },
+      ],
+    });
+    expect(zoneTexts(editor.state.doc).goal).toBe('перший\n\nтретій');
+    expect(matchesBody(editor.getJSON() as never, body as never)).toBe(true);
+    // Порожній текст — один порожній абзац (зона не буває без абзацу).
+    setZoneText(editor, 'goal', '');
+    expect(zoneTexts(editor.state.doc).goal).toBe('');
+    expect(checkContent(editor.getJSON())).toBe(true);
+  });
+
+  it('запис із форми не змінює зону модератора', () => {
+    const { editor } = open();
+    setZoneText(editor, 'verdict', 'так');
+    expect(zoneTexts(editor.state.doc).verdict).toBe('');
   });
 
   it('де курсор: у зоні — її ключ, поза зонами — null', () => {

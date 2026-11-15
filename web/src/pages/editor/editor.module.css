@@ -387,6 +387,57 @@
   }
 }
 
+/* The phone: «Форма / Сторінка» under the header (a document from a template) */
+.views {
+  display: flex;
+  margin: 8px 12px;
+  padding: 3px;
+  border-radius: var(--radius-control);
+  background: var(--c-surface2);
+}
+.views button {
+  flex: 1;
+  min-height: var(--size-touch-min);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--c-text2);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.views button[aria-pressed='true'] {
+  background: var(--c-surface);
+  color: var(--c-text);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+/* The phone: the header's actions behind «Ще» */
+.more {
+  position: relative;
+  flex: none;
+}
+.more > button {
+  border: 0;
+  cursor: pointer;
+}
+.moreMenu {
+  position: absolute;
+  right: 0;
+  z-index: 20;
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 10px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-card);
+  background: var(--c-surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+}
+.moreMenu :global(.btn) {
+  white-space: nowrap;
+}
+
 /* The constructor: its part stays mounted while «Документ» is tried */
 .contents {
   display: contents;

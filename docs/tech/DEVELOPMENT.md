@@ -61,9 +61,10 @@ Home Assistant і агент для локальної роботи не пот�
   `web/src/editor/schema.test.ts` (TipTap збігається з описом), `web/src/editor/render.test.ts` (друк дає той самий HTML, що й TipTap)
   і `api/src/paperwork/print.spec.ts` (сторінка друку, кольори аркуша = `tokens.json`).
 - Поля шаблону на фронті: вузли й блокування тексту — `web/src/editor/fields.ts` (тест `fields.test.ts`), панель «Поля» — `FieldsPanel.tsx`,
+  «Форма» телефона — `PaperForm.tsx` (ті самі `FieldGroups`; тести телефона — `vi.stubGlobal('matchMedia', …)` з `matches: false`),
   віджети — реєстр `web/src/editor/fieldTypes/` (новий тип поля — новий файл і рядок у `index.ts`; текст значення — спільний `valueText`).
   Тести полів на бекенді — `api/src/paperwork/fields.spec.ts`, `api/test/paper-fields.e2e-spec.ts`; посилань на записи (`ref:*`, «@», зв'язки документа) —
-  `api/test/paper-refs.e2e-spec.ts`.
+  `api/test/paper-refs.e2e-spec.ts`. Початкові шаблони з міграції `StarterTemplates` перевіряє `api/src/paperwork/starter-templates.spec.ts`.
 - Новий вузол чи атрибут додається в опис, у розширення `web/src/editor/extensions.ts`, у `render.ts` і, якщо це клас, — правилом у `paper.css`;
   тести підкажуть, якщо щось пропущено. Змінили кольори палітри в `tokens.json` — оновіть `SHEET_COLORS`.
 

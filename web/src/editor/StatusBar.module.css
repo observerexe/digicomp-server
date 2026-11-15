@@ -5,6 +5,7 @@
   gap: 4px 20px;
   min-height: 36px;
   padding: 4px 16px;
+  padding-bottom: max(4px, env(safe-area-inset-bottom));
   border-top: 1px solid var(--c-border);
   background: var(--c-surface);
   color: var(--c-text2);

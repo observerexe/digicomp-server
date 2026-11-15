@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Me, Paper } from '../api/types';
 import { json, member, mockApi, renderApp } from '../test/render';
 import { countWords } from './usePageStats';
@@ -72,6 +72,22 @@ describe('Редактор: вікно документа', () => {
     expect(await screen.findByLabelText('Текст документа')).toHaveAttribute('contenteditable', 'false');
     expect(screen.queryByRole('tablist', { name: 'Стрічка' })).not.toBeInTheDocument();
     expect(screen.getByText('2 слова')).toBeInTheDocument();
+  });
+});
+
+describe('Редактор: панель телефона', () => {
+  it('вужче за 900 px — один рядок замість стрічки: Ж і список діють, «Скасувати» повертає', async () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: false, media: q, addEventListener: () => {}, removeEventListener: () => {} }));
+    const { saved } = open();
+    const bar = await screen.findByRole('toolbar', { name: 'Форматування' });
+    expect(screen.queryByRole('tablist', { name: 'Стрічка' })).not.toBeInTheDocument();
+    await selectAll();
+    await userEvent.click(within(bar).getByRole('button', { name: 'Жирний' }));
+    await userEvent.click(within(bar).getByRole('button', { name: 'Маркований список' }));
+    expect(within(bar).getByRole('button', { name: 'Жирний' })).toHaveAttribute('aria-pressed', 'true');
+    expect((await lastSaved(saved)).content![0]!.type).toBe('bulletList');
+    await userEvent.click(within(bar).getByRole('button', { name: 'Скасувати' }));
+    expect(within(bar).getByRole('button', { name: 'Маркований список' })).toHaveAttribute('aria-pressed', 'false');
   });
 });
 

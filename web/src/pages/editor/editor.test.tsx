@@ -412,6 +412,82 @@ describe('Редактор: документ із шаблону', () => {
     await waitFor(() => expect(sheetField('who').textContent).toBe('Іван Петренко'));
   });
 
+  describe('телефон (вужче за 900 px)', () => {
+    const narrow = () => vi.stubGlobal('matchMedia', (q: string) => ({ matches: false, media: q, addEventListener: () => {}, removeEventListener: () => {} }));
+    const zone = (key: string) => document.querySelector(`.ProseMirror .paper-zone[data-field="${key}"]`)!;
+
+    it('«Форма»: поля на весь екран без панелі; проста зона пишеться у формі — на аркуші й у збереженні', async () => {
+      narrow();
+      const { calls } = mockApi(
+        base(writer, {
+          'GET /api/papers/p1': () => json(200, fromTemplate()),
+          'PATCH /api/papers/p1': () => json(200, { ...fromTemplate({ revision: 2 }), updatedAt: '2026-11-14T12:30:00Z' }),
+        }),
+      );
+      renderApp('/editor/p1');
+      const form = await screen.findByRole('region', { name: 'Форма документа' });
+      expect(screen.getByRole('button', { name: 'Форма' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.queryByRole('complementary', { name: 'Поля документа' })).not.toBeInTheDocument();
+      // Стрічки немає, у шапці — шаблон і стан.
+      expect(screen.queryByRole('tablist', { name: 'Стрічка' })).not.toBeInTheDocument();
+      expect(screen.getByText('Заява · чернетка')).toBeInTheDocument();
+      expect(within(form).getByText("0 з 2 обов'язкових")).toBeInTheDocument();
+      await userEvent.type(within(form).getByLabelText(/^Мета/), 'Зібрати{Enter}стенд');
+      await waitFor(() => expect(zone('goal').querySelectorAll('p')).toHaveLength(2));
+      expect(zone('goal').textContent).toBe('Зібратистенд');
+      expect(within(form).getByLabelText(/^Мета/)).toHaveValue('Зібрати\nстенд');
+      expect(within(form).getByText("1 з 2 обов'язкових")).toBeInTheDocument();
+      await waitFor(() => expect(calls.some((c) => c.method === 'PATCH')).toBe(true), { timeout: 4000 });
+      expect(calls.find((c) => c.method === 'PATCH')!.body).toContain('стенд');
+    });
+
+    it('«Сторінка»: мінімальна панель, поза зоною вимкнена; перехід до поля відкриває його у «Формі»', async () => {
+      narrow();
+      mockApi(base(writer, { 'GET /api/papers/p1': () => json(200, fromTemplate()) }));
+      renderApp('/editor/p1');
+      await screen.findByRole('region', { name: 'Форма документа' });
+      await userEvent.click(screen.getByRole('button', { name: 'Сторінка' }));
+      expect(screen.queryByRole('region', { name: 'Форма документа' })).not.toBeInTheDocument();
+      const bar = screen.getByRole('toolbar', { name: 'Форматування' });
+      expect(within(bar).getByRole('button', { name: 'Жирний' })).toBeDisabled();
+      expect(within(bar).getByText(/пишіть у рамках, поля — у «Формі»/)).toBeInTheDocument();
+      // Дотик до поля й Tab ведуть однаково (jsdom не знає координат дотику — тут Tab).
+      await userEvent.click(document.querySelector('.ProseMirror')!);
+      await userEvent.keyboard('{Tab}');
+      const form = await screen.findByRole('region', { name: 'Форма документа' });
+      await waitFor(() => expect(within(form).getByLabelText(/^Ім’я/)).toHaveFocus());
+    });
+
+    it('зона з форматуванням: початок тексту у «Формі», «Писати на сторінці» — на «Сторінку»', async () => {
+      narrow();
+      const fields = FIELDS.map((x) => (x.key === 'goal' ? { ...x, plain: false } : x));
+      const filled = {
+        ...content,
+        content: [...content.content.slice(0, -1), { type: 'fieldZone', attrs: { key: 'goal' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Стенд для пайки' }] }] }],
+      };
+      mockApi(base(writer, { 'GET /api/papers/p1': () => json(200, fromTemplate({ content: filled, template: { id: 't1', title: 'Заява', version: 2, fields } })) }));
+      renderApp('/editor/p1');
+      const form = await screen.findByRole('region', { name: 'Форма документа' });
+      expect(await within(form).findByText('Стенд для пайки')).toBeInTheDocument();
+      await userEvent.click(within(form).getByRole('button', { name: 'Писати на сторінці' }));
+      expect(screen.getByRole('button', { name: 'Сторінка' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.queryByRole('region', { name: 'Форма документа' })).not.toBeInTheDocument();
+    });
+
+    it('вільний документ: без перемикача, мінімальна панель працює; дії шапки — у «Ще»', async () => {
+      narrow();
+      mockApi(base(writer, { 'GET /api/papers/p1': () => json(200, paper()) }));
+      renderApp('/editor/p1');
+      await screen.findByLabelText('Назва документа');
+      expect(screen.queryByRole('button', { name: 'Форма' })).not.toBeInTheDocument();
+      expect(within(screen.getByRole('toolbar', { name: 'Форматування' })).getByRole('button', { name: 'Жирний' })).toBeEnabled();
+      expect(screen.queryByRole('button', { name: 'Попередній перегляд' })).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Ще' }));
+      expect(screen.getByRole('button', { name: 'Попередній перегляд' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Видалити чернетку' })).toBeInTheDocument();
+    });
+  });
+
   it('вільний документ — без панелі й без блокування стрічки', async () => {
     mockApi(base(writer, { 'GET /api/papers/p1': () => json(200, paper()) }));
     renderApp('/editor/p1');

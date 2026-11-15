@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { JSONContent } from '@tiptap/core';
 import { EditorContent, useEditor } from '@tiptap/react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { api, unwrap } from '../../api/client';
 import type { Paper } from '../../api/types';
@@ -10,13 +10,15 @@ import { Icon } from '../../components/Icon';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { ConfirmButton, ErrorMessage } from '../../components/ui';
 import { FieldsPanel } from '../../editor/FieldsPanel';
+import { setZoneText } from '../../editor/fields';
 import { MentionMenu } from '../../editor/MentionMenu';
+import { PaperForm } from '../../editor/PaperForm';
 import { PaperRecordsContext } from '../../editor/records';
 import { useFill, useFillSheet } from '../../editor/useFill';
 import type { FieldValue, FieldValues } from '../../../../shared/editor-schema/fields';
 import '../../../../shared/editor-schema/paper.css';
 import '../../editor/format.css';
-import { Ribbon } from '../../editor/Ribbon';
+import { MiniRibbon, Ribbon } from '../../editor/Ribbon';
 import { Ruler } from '../../editor/Ruler';
 import { StatusBar, useZoom } from '../../editor/StatusBar';
 import { useAutosave, type SaveState } from '../../editor/useAutosave';
@@ -25,6 +27,8 @@ import { errorOf } from '../../errors/messages';
 import { formatTime } from '../../lib/format';
 import { PAPER_STATUS_LABEL } from '../../lib/labels';
 import type { RecordView } from '../../lib/records';
+import { useDropdown } from '../../lib/useDropdown';
+import { useMediaQuery } from '../../lib/useMediaQuery';
 import s from './editor.module.css';
 import { PaperLoading } from './PaperLoading';
 
@@ -92,7 +96,22 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
   const [title, setTitle] = useState(paper.title);
   const lastTitle = useRef(paper.title);
   const template = paper.template;
-  const fill = useFill({ template, values: paper.values as FieldValues, refs: paper.refs as RecordView[], editable });
+  // Narrower than 900 px a document from a template is «Форма» or «Сторінка»; a free one — the page.
+  const wide = useMediaQuery('(min-width: 900px)');
+  const [view, setView] = useState<'form' | 'page'>('form');
+  const formShown = !wide && !!template && view === 'form';
+  const fill = useFill({
+    template,
+    values: paper.values as FieldValues,
+    refs: paper.refs as RecordView[],
+    editable,
+    // A field touched on the page: its control is in the form.
+    showControls: () => {
+      if (wide || !template) return false;
+      setView('form');
+      return true;
+    },
+  });
   const { values } = fill;
   const editor = useEditor({
     extensions: fill.extensions,
@@ -114,6 +133,11 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
   const sheet = useFillSheet(editor, fill, refused);
 
   const changeValue = (key: string, v: FieldValue | null) => autosave.change({ values: fill.change(key, v) });
+  /** A zone from the form: to it on the page, the cursor in it. */
+  const toPage = (key: string) => {
+    setView('page');
+    requestAnimationFrame(() => sheet.showField(key, true));
+  };
   const [zoom, setZoom, zoomClass] = useZoom();
   const stats = usePageStats(editor, zoom);
 
@@ -155,6 +179,37 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
   };
 
   const saveText = autosave.state === 'saved' ? (autosave.savedAt ? `Збережено о ${formatTime(autosave.savedAt)}` : '') : SAVE_TEXT[autosave.state];
+  const saved = (
+    <span className={s.saved} role="status" aria-live="polite">
+      {saveText}
+    </span>
+  );
+  const actions = (
+    <>
+      <button type="button" className="btn" onClick={preview}>
+        Попередній перегляд
+      </button>
+      {editable && (
+        <ConfirmButton
+          label="Видалити чернетку"
+          question="Видалити чернетку назавжди?"
+          confirmLabel="Видалити"
+          danger
+          disabled={remove.isPending}
+          onConfirm={() => remove.mutate()}
+        />
+      )}
+    </>
+  );
+  const groups = template && {
+    template,
+    values,
+    zones: fill.zones,
+    editable,
+    active: sheet.shownActive,
+    onChange: changeValue,
+    onActive: sheet.onActive,
+  };
 
   return (
     <div className={s.editor}>
@@ -163,9 +218,15 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
           <Icon name="back" size={20} />
         </Link>
         <div className={s.heading}>
-          <nav aria-label="Шлях" className={s.path}>
-            <Link to="/editor">Редактор</Link> / {paper.author.id === user?.id ? 'Мої' : 'Усі'}
-          </nav>
+          {wide ? (
+            <nav aria-label="Шлях" className={s.path}>
+              <Link to="/editor">Редактор</Link> / {paper.author.id === user?.id ? 'Мої' : 'Усі'}
+            </nav>
+          ) : (
+            <span className={s.path}>
+              {template?.title ?? 'Документ'} · {PAPER_STATUS_LABEL[paper.status].toLowerCase()}
+            </span>
+          )}
           <div className={s.titleRow}>
             {editable ? (
               <input
@@ -179,30 +240,24 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
             ) : (
               <h1 className={s.titleText}>{paper.title}</h1>
             )}
-            <span className={s.tag}>{PAPER_STATUS_LABEL[paper.status]}</span>
+            {wide && <span className={s.tag}>{PAPER_STATUS_LABEL[paper.status]}</span>}
           </div>
-          <span className={s.saved} role="status" aria-live="polite">
-            {saveText}
-          </span>
+          {wide && saved}
         </div>
-        <span className={s.topActions}>
-          <button type="button" className="btn" onClick={preview}>
-            Попередній перегляд
-          </button>
-          {editable && (
-            <ConfirmButton
-              label="Видалити чернетку"
-              question="Видалити чернетку назавжди?"
-              confirmLabel="Видалити"
-              danger
-              disabled={remove.isPending}
-              onConfirm={() => remove.mutate()}
-            />
-          )}
-        </span>
+        {wide ? <span className={s.topActions}>{actions}</span> : <MoreMenu>{actions}</MoreMenu>}
       </header>
+      {!wide && template && (
+        <div className={s.views} role="group" aria-label="Вигляд документа">
+          <button type="button" aria-pressed={view === 'form'} onClick={() => setView('form')}>
+            Форма
+          </button>
+          <button type="button" aria-pressed={view === 'page'} onClick={() => setView('page')}>
+            Сторінка
+          </button>
+        </div>
+      )}
       <OfflineBanner />
-      {editable && <Ribbon editor={editor} lock={sheet.ribbonLock} />}
+      {editable && (wide ? <Ribbon editor={editor} lock={sheet.ribbonLock} /> : !formShown && <MiniRibbon editor={editor} lock={sheet.ribbonLock} />)}
       <div className={s.notices}>
         <ErrorMessage text={remove.isError ? errorOf(remove.error) : copy.isError ? errorOf(copy.error) : autosave.state === 'rejected' ? errorOf(autosave.rejection) : null} />
         {autosave.state === 'conflict' && (
@@ -224,9 +279,9 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
         {!editable && <p className="hint">{paper.status === 'draft' ? 'Це чужа чернетка: її можна лише переглядати.' : 'Документ уже не чернетка: текст не змінюється.'}</p>}
       </div>
       <div className={s.work}>
-        <main id="main" className={s.desk} tabIndex={-1}>
+        <main id="main" className={`${s.desk} ${formShown ? s.gone : ''}`} tabIndex={-1}>
           <div className={`${s.paperWrap} ${editable ? '' : s.noRuler} ${zoomClass}`}>
-            {editable && (
+            {editable && wide && (
               <div className={s.ruler}>
                 <Ruler editor={editor} />
               </div>
@@ -234,28 +289,44 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
             <EditorContent editor={editor} className={s.sheet} />
           </div>
         </main>
-        {template && (
+        {groups && (wide || formShown) && (
           <PaperRecordsContext value={fill.records}>
-            <FieldsPanel
-              template={template}
-              values={values}
-              zones={fill.zones}
-              editable={editable}
-              active={sheet.shownActive}
-              onChange={changeValue}
-              onActive={sheet.onActive}
-              onJump={(key) => sheet.showField(key, true)}
-            />
+            {wide ? (
+              <FieldsPanel {...groups} onJump={(key) => sheet.showField(key, true)} />
+            ) : (
+              <PaperForm {...groups} onJump={toPage} onZoneText={(key, text) => setZoneText(editor, key, text)} saved={saved} />
+            )}
           </PaperRecordsContext>
         )}
       </div>
       {fill.menu && <MentionMenu menu={fill.menu} keys={fill.menuKeys} />}
-      <StatusBar
-        stats={stats}
-        zoom={zoom}
-        onZoom={setZoom}
-        hints={editable ? [...(template?.fields.some((f) => f.canFill) ? ['Tab — наступне поле'] : []), '@ — посилання на запис'] : []}
-      />
+      {!formShown && (
+        <StatusBar
+          stats={stats}
+          zoom={zoom}
+          onZoom={setZoom}
+          hints={editable ? [...(template?.fields.some((f) => f.canFill) ? ['Tab — наступне поле'] : []), '@ — посилання на запис'] : []}
+          lead={wide ? undefined : saved}
+        />
+      )}
+    </div>
+  );
+}
+
+/** The phone: the header's actions behind «Ще» (one row is all the header has). */
+function MoreMenu({ children }: { children: ReactNode }) {
+  const d = useDropdown();
+  const id = useId();
+  return (
+    <div className={s.more} ref={d.root} onKeyDown={d.onKeyDown}>
+      <button type="button" className={s.backButton} aria-label="Ще" title="Ще" aria-haspopup="true" aria-expanded={d.open} aria-controls={id} onClick={() => d.setOpen(!d.open)}>
+        <Icon name="more" size={20} />
+      </button>
+      {d.open && (
+        <div id={id} className={s.moreMenu}>
+          {children}
+        </div>
+      )}
     </div>
   );
 }

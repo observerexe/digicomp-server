@@ -240,3 +240,40 @@
   font-size: 13px;
   text-align: center;
 }
+
+/* The phone's panel: one row, buttons at touch size; scrolls if the screen is narrower still */
+.mini {
+  border-bottom: 1px solid var(--c-border);
+  background: var(--c-surface);
+}
+.miniControls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+  padding: 4px 8px;
+  border: 0;
+  overflow-x: auto;
+}
+.miniControls .button {
+  flex: none;
+  width: var(--size-touch-min);
+  min-height: var(--size-touch-min);
+}
+.miniControls:disabled .button {
+  color: var(--c-text3);
+  opacity: 0.5;
+}
+.miniGap {
+  flex: none;
+  width: 1px;
+  height: 24px;
+  margin: 0 6px;
+  background: var(--c-border);
+}
+.miniLock {
+  margin: 0;
+  padding: 0 12px 6px;
+  color: var(--c-text2);
+  font-size: 13px;
+}

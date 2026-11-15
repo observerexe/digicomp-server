@@ -31,6 +31,8 @@ export type WidgetProps = {
   onJump: () => void;
   /** An item of a list: values the other items hold (not offered again). */
   taken?: readonly unknown[];
+  /** A zone in the phone's form: its text (a line a paragraph) and how to write it. */
+  zone?: { text: string; write: (text: string) => void };
 };
 
 export type FieldType = {

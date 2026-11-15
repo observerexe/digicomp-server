@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { plural } from '../lib/format';
 import { PAGE, type PageStats } from './usePageStats';
 import s from './StatusBar.module.css';
@@ -25,11 +25,12 @@ export function useZoom() {
 
 const FORMAT = `A4 · поля ${PAGE.left}/${PAGE.right}/${PAGE.top}/${PAGE.bottom} мм`;
 
-/** `hints` — keys that help here («Tab — наступне поле»). */
-export function StatusBar({ stats, zoom, onZoom, hints = [] }: { stats: PageStats; zoom: Zoom; onZoom: (z: Zoom) => void; hints?: string[] }) {
+/** `hints` — keys that help here («Tab — наступне поле»); `lead` — first in the row (on the phone — whether it is saved). */
+export function StatusBar({ stats, zoom, onZoom, hints = [], lead }: { stats: PageStats; zoom: Zoom; onZoom: (z: Zoom) => void; hints?: string[]; lead?: ReactNode }) {
   const i = ZOOMS.indexOf(zoom);
   return (
     <footer className={s.bar}>
+      {lead}
       <span className={s.wide}>
         Сторінка {stats.page} з {stats.pages}
       </span>

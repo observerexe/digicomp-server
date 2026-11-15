@@ -42,6 +42,7 @@ const PATHS: Record<string, string> = {
   choice: 'M3 7h18v10H3zM14 11l2 2 2-2',
   checkbox: 'M4 4h16v16H4zM8 12l3 3 5-6',
   trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',
+  more: 'M5 11a1 1 0 1 0 0 2 1 1 0 1 0 0-2zM12 11a1 1 0 1 0 0 2 1 1 0 1 0 0-2zM19 11a1 1 0 1 0 0 2 1 1 0 1 0 0-2z',
 };
 
 export type IconName = keyof typeof PATHS;

@@ -6,6 +6,7 @@ import type { PaperTemplateRef } from '../api/types';
 import type { RecordView } from '../lib/records';
 import { valueText, type FieldValue, type FieldValues, type RecordTitle } from '../../../shared/editor-schema/fields';
 import { paperExtensions } from './extensions';
+import type { RibbonLock } from './Ribbon';
 import { fieldPosition, setFieldsLook, zoneAtSelection, zoneTexts, type FieldsLook } from './fields';
 import { fieldControlId, isFilled } from './FieldsPanel';
 import type { MentionMenuState, MentionSuggest } from './mention';
@@ -43,17 +44,28 @@ type FillOptions = {
   /** Records the values and the text refer to, as the server gave them. */
   refs: readonly RecordView[];
   editable: boolean;
+  /**
+   * The fields' controls are not on the screen now (the phone shows the page):
+   * show them; true — they appear after React draws again.
+   */
+  showControls?: () => boolean;
 };
 
 /** Before the editor: its extensions and the state of filling. */
-export function useFill({ template, values: initial, refs, editable }: FillOptions) {
+export function useFill({ template, values: initial, refs, editable, showControls }: FillOptions) {
   const [values, setValues] = useState<FieldValues>(initial);
   const [zones, setZones] = useState<Record<string, string>>({});
   const [active, setActive] = useState<string | null>(null);
-  // A click on a field on the sheet opens its control in the panel.
+  // A click on a field on the sheet opens its control in the panel (on the phone — in the form).
+  const show = useRef(showControls);
+  useEffect(() => {
+    show.current = showControls;
+  });
   const openField = useRef((key: string) => {
     setActive(key);
-    document.getElementById(fieldControlId(key))?.focus();
+    const focus = () => document.getElementById(fieldControlId(key))?.focus();
+    if (show.current?.()) requestAnimationFrame(focus);
+    else focus();
   });
 
   // Records of `ref:*` values and «@»: the server's, plus what is picked here.
@@ -178,15 +190,8 @@ export function useFillSheet(editor: Editor, fill: Fill, refused: string | null 
         .run();
     else (editor.view.nodeDOM(pos) as HTMLElement | null)?.scrollIntoView?.({ block: 'nearest' });
   };
-  /** Why the ribbon is off where the cursor is; null — it works. */
-  const ribbonLock =
-    !template || !editable
-      ? null
-      : zone === null
-        ? 'Тут текст шаблону: змінюються лише поля в панелі «Поля» і вільні зони в рамках.'
-        : template.fields.find((f) => f.key === zone)?.plain
-          ? 'Ця зона — лише текст, без форматування.'
-          : null;
+  /** Why the ribbon is off where the cursor is (text of the template, a plain zone); null — it works. */
+  const ribbonLock: RibbonLock | null = !template || !editable ? null : zone === null ? 'template' : template.fields.find((f) => f.key === zone)?.plain ? 'plain' : null;
   /** A field picked in the panel: active, in view. */
   const onActive = (key: string | null) => {
     fill.setActive(key);

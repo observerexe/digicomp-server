@@ -100,3 +100,23 @@
   font-weight: 400;
   font-style: italic;
 }
+
+/* A zone with formatting in the phone's form: its beginning, the way to the page */
+.zone {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+.zoneText,
+.zoneEmpty {
+  margin: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+  white-space: pre-line;
+}
+.zoneEmpty {
+  color: var(--c-text2);
+}
