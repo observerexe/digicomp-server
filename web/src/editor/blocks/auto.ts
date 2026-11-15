@@ -32,3 +32,14 @@ export const autoAuthor: AutoBlock = {
   words: ['авто', 'автор документа'],
   node: 'paperAuthor',
 };
+
+/** The number of the row of «Повторювані рядки» it stands in (only in the row that repeats). */
+export const autoRowNumber: AutoBlock = {
+  key: 'autoRowNumber',
+  group: 'auto',
+  kind: 'auto',
+  label: '№ рядка',
+  icon: 'listOrdered',
+  words: ['авто', 'номер рядка', 'порядковий'],
+  node: 'rowNumber',
+};

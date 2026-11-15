@@ -148,7 +148,7 @@ describe('Документ із шаблону: заблокований тек�
 
   it('поле показує значення з панелі; клік по полю — до панелі', () => {
     const { editor, onFieldClick } = open();
-    setFieldsLook(editor, { fields: { name: { text: 'Іван', state: 'filled' } }, zones: {}, active: null, values: {} });
+    setFieldsLook(editor, { fields: { name: { text: 'Іван', state: 'filled' } }, zones: {}, rows: {}, active: null, values: {} });
     const dom = editor.view.nodeDOM(fieldPosition(editor, 'name')!) as HTMLElement;
     expect(dom.textContent).toBe('Іван');
     expect(dom.className).toBe('paper-field is-filled');

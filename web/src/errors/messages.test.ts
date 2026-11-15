@@ -1,7 +1,8 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { ERROR_MESSAGES, errorText } from './messages';
+import { ApiError } from '../api/client';
+import { ERROR_MESSAGES, errorOf, errorText } from './messages';
 
 // Collects every errorCode the backend can return (same rules as
 // api/src/common/http-exception.filter.ts) and checks each has a text.
@@ -45,6 +46,11 @@ describe('Тексти помилок', () => {
     expect(errorText('WIDGET_NOT_FOUND')).toBe(ERROR_MESSAGES.NOT_FOUND);
     expect(errorText(undefined)).toBe(ERROR_MESSAGES.ERROR);
     expect(errorText('NETWORK')).toMatch(/з’єднання/);
+  });
+
+  it('помилка в рядку «Повторюваних рядків» — з номером рядка', () => {
+    expect(errorOf(new ApiError(400, 'PAPER_REQUIRED_MISSING', undefined, 'rows1', undefined, 2))).toBe(`${ERROR_MESSAGES.PAPER_REQUIRED_MISSING} Рядок 3.`);
+    expect(errorOf(new ApiError(400, 'PAPER_REQUIRED_MISSING', undefined, 'title'))).toBe(ERROR_MESSAGES.PAPER_REQUIRED_MISSING);
   });
 
   it('жодного «Щось пішло не так»', () => {

@@ -6,7 +6,7 @@
  * Only what the description allows gets out: known nodes and marks,
  * attributes as format classes or checked numbers, escaped text.
  */
-import { conditionOf, RECORD_MISSING } from './fields';
+import { conditionOf, RECORD_MISSING, repeatParts } from './fields';
 import { formatClass, MARKS, NODES, SIGNER_AUTHOR, SIGNER_ORG, type PaperAttrs, type PaperMark, type PaperNode } from './index';
 
 const TEXT_ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\u00a0': '&nbsp;' };
@@ -71,6 +71,14 @@ export type FieldFill = {
   number: string | null;
   /** A conditional block's condition holds: the `enum` field `field` holds `value`. */
   holds(field: string, value: string): boolean;
+  /**
+   * «Повторювані рядки» of the `rows` field `key`: a fill for each row (its
+   * `text` gives the cells; columns are printed as the rows are); none — one
+   * row to fill in by hand.
+   */
+  rows?(key: string): FieldFill[];
+  /** A fill of a row: its number for «№ рядка» (from 1); none — not a row, or one to fill in by hand. */
+  row?: number | null;
   info: PaperInfo;
 };
 
@@ -90,7 +98,10 @@ function signLine(name: string | null): string {
 export function structureInner(n: PaperNode, info: PaperInfo): string | null {
   switch (n.type) {
     case 'orgHeader': {
-      const lines = [info.institution.trim() && p('paper-org-institution', escapeText(info.institution.trim())), info.groupName.trim() && p('paper-org-group', escapeText(info.groupName.trim()))];
+      const lines = [
+        info.institution.trim() && p('paper-org-institution', escapeText(info.institution.trim())),
+        info.groupName.trim() && p('paper-org-group', escapeText(info.groupName.trim())),
+      ];
       return lines.filter(Boolean).join('') || null;
     }
     case 'approval':
@@ -133,7 +144,10 @@ function renderStructure(n: PaperNode, fill: FieldFill | undefined): string {
   if (!fill) {
     const attrs: [string, string | null][] =
       n.type === 'signatures'
-        ? (['leftLabel', 'leftSigner', 'rightLabel', 'rightSigner'] as const).map((k) => [`data-${k.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`, escapeAttr((nodeAttr(n, k) as string | null) ?? '')])
+        ? (['leftLabel', 'leftSigner', 'rightLabel', 'rightSigner'] as const).map((k) => [
+            `data-${k.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`,
+            escapeAttr((nodeAttr(n, k) as string | null) ?? ''),
+          ])
         : n.type === 'pageFooter'
           ? [['data-text', escapeAttr(nodeAttr(n, 'text') as string)]]
           : [];
@@ -186,7 +200,13 @@ function element(n: PaperNode): [string, string] | null {
     case 'tableHeader':
       return [tag('th', [span(n, 'colspan'), span(n, 'rowspan')]), '</th>'];
     case 'fieldZone':
-      return [tag('div', [['class', 'paper-zone'], ['data-field', fieldKey(n)]]), '</div>'];
+      return [
+        tag('div', [
+          ['class', 'paper-zone'],
+          ['data-field', fieldKey(n)],
+        ]),
+        '</div>',
+      ];
     default:
       return null;
   }
@@ -230,7 +250,13 @@ function markTags(m: { type: string; attrs: PaperAttrs }): [string, string] {
  */
 function renderField(n: PaperNode, fill: FieldFill | undefined): string {
   const key = fieldKey(n);
-  if (!fill) return tag('span', [['class', 'paper-field'], ['data-field', key]]) + '</span>';
+  if (!fill)
+    return (
+      tag('span', [
+        ['class', 'paper-field'],
+        ['data-field', key],
+      ]) + '</span>'
+    );
   if (key === null || fill.hidden(key)) return '';
   const text = fill.text(key);
   return text === null ? BLANK : `<span class="paper-field">${escapeText(text)}</span>`;
@@ -241,7 +267,14 @@ function renderMention(n: PaperNode, fill: FieldFill | undefined): string {
   const type = nodeAttr(n, 'type') as string | null;
   const id = nodeAttr(n, 'id') as string | null;
   // Type and id match RECORD_TYPE_KEY and RECORD_ID: nothing to escape.
-  if (!fill) return tag('span', [['class', 'paper-ref'], ['data-ref-type', type], ['data-ref-id', id]]) + '</span>';
+  if (!fill)
+    return (
+      tag('span', [
+        ['class', 'paper-ref'],
+        ['data-ref-type', type],
+        ['data-ref-id', id],
+      ]) + '</span>'
+    );
   const title = type && id ? fill.title(type, id) : null;
   return `<span class="paper-ref">${escapeText(title ?? RECORD_MISSING)}</span>`;
 }
@@ -258,6 +291,12 @@ function renderAuto(n: PaperNode, fill: FieldFill | undefined): string {
   if (!fill) return `<span class="${cls}"></span>`;
   const text = n.type === 'paperDate' ? fill.info.date : fill.info.person(SIGNER_AUTHOR);
   return text === null ? BLANK : `<span class="paper-field">${escapeText(text)}</span>`;
+}
+
+/** «№ рядка»: the row's number in the print; in the editor's HTML — an empty placeholder. */
+function renderRowNumber(fill: FieldFill | undefined): string {
+  if (!fill) return '<span class="paper-row-number"></span>';
+  return fill.row ? String(fill.row) : '';
 }
 
 function renderInline(children: PaperNode[], fill: FieldFill | undefined): string {
@@ -282,6 +321,7 @@ function renderInline(children: PaperNode[], fill: FieldFill | undefined): strin
     else if (n.type === 'mention') out += renderMention(n, fill);
     else if (n.type === 'paperNumber') out += renderNumber(fill);
     else if (n.type === 'paperDate' || n.type === 'paperAuthor') out += renderAuto(n, fill);
+    else if (n.type === 'rowNumber') out += renderRowNumber(fill);
   }
   while (open.length) out += open.pop()!.close;
   return out;
@@ -297,12 +337,45 @@ function renderConditional(n: PaperNode, fill: FieldFill | undefined): string {
   // The field's key matches FIELD_KEY: nothing to escape.
   const field = nodeAttr(n, 'field') as string | null;
   const value = nodeAttr(n, 'value') as string | null;
-  return tag('div', [['class', 'paper-if'], ['data-field', field], ['data-value', value === null ? null : escapeAttr(value)]]) + children + '</div>';
+  return (
+    tag('div', [
+      ['class', 'paper-if'],
+      ['data-field', field],
+      ['data-value', value === null ? null : escapeAttr(value)],
+    ]) +
+    children +
+    '</div>'
+  );
+}
+
+/**
+ * «Повторювані рядки»: in the editor's HTML — its element and the table as it is;
+ * in the print — the header rows, then the last row once a row of the field
+ * (none — once, empty), or nothing when the field is not printed.
+ */
+function renderRepeat(n: PaperNode, fill: FieldFill | undefined): string {
+  const key = fieldKey(n);
+  if (!fill)
+    return (
+      tag('div', [
+        ['class', 'paper-rows'],
+        ['data-field', key],
+      ]) +
+      (n.content ?? []).map((c) => renderNode(c, fill)).join('') +
+      '</div>'
+    );
+  if (key === null || fill.hidden(key)) return '';
+  const { table, header, row } = repeatParts(n);
+  if (!table) return '';
+  const rows = fill.rows?.(key) ?? [];
+  const body = row ? (rows.length ? rows : [{ ...fill, text: () => null, hidden: () => false, row: null }]).map((f) => renderNode(row, f)).join('') : '';
+  return `<div class="paper-rows"><table><tbody>${header.map((r) => renderNode(r, fill)).join('')}${body}</tbody></table></div>`;
 }
 
 function renderNode(n: PaperNode, fill: FieldFill | undefined): string {
   if (n.type === 'pageBreak') return '<div class="page-break"></div>';
   if (n.type === 'conditional') return renderConditional(n, fill);
+  if (n.type === 'repeat') return renderRepeat(n, fill);
   if (STRUCTURE_CLASS[n.type]) return renderStructure(n, fill);
   if (n.type === 'fieldZone' && fill) {
     const key = fieldKey(n);

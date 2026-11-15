@@ -10,6 +10,7 @@ import {
   type FieldValues,
   type PaperContent,
   type RecordRef,
+  type RefField,
 } from './content';
 import { fieldInvalid } from './paper-fields';
 
@@ -39,7 +40,7 @@ export type SeenRecord = RecordRef & LinkedRecord;
 
 /** Every record of the values and the text, each once. */
 function allRefs(
-  fields: readonly { key: string; type: string }[],
+  fields: readonly RefField[],
   values: FieldValues,
   content: PaperContent,
 ): RecordRef[] {
@@ -73,7 +74,7 @@ async function seen(
 /** Records of the document the actor sees: titles for the sheet and the print. */
 export async function seenRefs(
   registry: LinkRegistry,
-  fields: readonly { key: string; type: string }[],
+  fields: readonly RefField[],
   values: FieldValues,
   content: PaperContent,
   actor: Actor,
@@ -94,7 +95,7 @@ export async function seenRefs(
  */
 export async function checkNewRefs(
   registry: LinkRegistry,
-  fields: readonly { key: string; type: string }[],
+  fields: readonly RefField[],
   next: { values: FieldValues; content: PaperContent },
   old: { values: FieldValues; content: PaperContent },
   actor: Actor,
@@ -107,7 +108,11 @@ export async function checkNewRefs(
   const mentions = mentionsOf(next.content).filter((r) => !had.has(refKey(r)));
   const found = await seen(registry, [...values, ...mentions], actor, m);
   const lost = values.find((r) => !found.has(refKey(r)));
-  if (lost) throw fieldInvalid(lost.key);
+  if (lost) {
+    throw lost.rows === undefined
+      ? fieldInvalid(lost.key)
+      : fieldInvalid(lost.rows, lost.row);
+  }
   if (mentions.some((r) => !found.has(refKey(r)))) {
     throw new NotFoundException('Record not found');
   }
@@ -124,7 +129,7 @@ export async function checkNewRefs(
 export async function syncLinks(
   m: EntityManager,
   paperId: string,
-  fields: readonly { key: string; type: string }[],
+  fields: readonly RefField[],
   values: FieldValues,
   content: PaperContent,
   fresh: ReadonlySet<string>,

@@ -5,9 +5,10 @@ import { newField } from '../template';
 import { BLOCK_GROUPS, BLOCKS, fieldBlockOf, findBlocks, textBlockOf } from '.';
 import { paletteOf, schemaBlocks } from './schema';
 
-/** Field types the API takes (api/src/records/field-types.ts): scalars, `ref:<type>`, `list<…>`. */
+/** Field types the API takes (api/src/records/field-types.ts): scalars, `ref:<type>`, `list<…>`; a template's own — `rows`. */
 const SCALARS = ['text', 'richtext', 'int', 'decimal', 'date', 'datetime', 'bool', 'enum', 'color'];
 const validType = (t: string): boolean => {
+  if (t === 'rows') return true;
   const item = /^list<(.+)>$/.exec(t)?.[1];
   if (item) return validType(item);
   return SCALARS.includes(t) || /^ref:[a-z_]+$/.test(t);

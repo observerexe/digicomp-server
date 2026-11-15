@@ -9,7 +9,11 @@ import {
   isFillable,
   isPlainZone,
   matchesBody,
+  normalizeRow,
   normalizeValue,
+  rowsIn,
+  rowsOf,
+  ROWS,
   sameNodes,
   signerField,
   walkNodes,
@@ -36,17 +40,19 @@ export const PaperFieldErrors = {
   NeedsUpdate: 'Template needs update',
 } as const;
 
-export function fieldInvalid(key: string) {
+/** PAPER_FIELD_INVALID with the field's key; `row` — the row of «Повторювані рядки» at fault. */
+export function fieldInvalid(key: string, row?: number) {
   return new BadRequestException({
     message: PaperFieldErrors.FieldInvalid,
     field: key,
+    ...(row === undefined ? {} : { row }),
   });
 }
 
 const locked = () => new BadRequestException(PaperFieldErrors.ContentLocked);
 
 /** A field of a document's template, as the document fills it. */
-export type PaperField = FieldSpec & {
+export type PaperField = Omit<FieldSpec, 'columns'> & {
   label: string;
   required: boolean;
   fill: FieldFiller;
@@ -60,6 +66,11 @@ export type PaperField = FieldSpec & {
   binding: string | null;
   /** Bound to what the record gets later (see isAutoBinding): nobody fills it. */
   auto: boolean;
+  /**
+   * rows: its columns (who fills, changes and prints them — as the rows);
+   * null for other types.
+   */
+  columns: PaperField[] | null;
 };
 
 const tighter = (
@@ -71,13 +82,15 @@ const tighter = (
 /**
  * Fields of a version with what the document needs to fill them: limits of
  * the bound field of the record (never wider), choices of `enum` from the
- * dictionary or the record's schema.
+ * dictionary or the record's schema. Columns of «Повторювані рядки» (by the
+ * body) are in their rows field only.
  */
 export async function resolveFields(
   m: EntityManager,
   kind: TemplateKind,
   fields: TemplateField[],
   schema: PublishedSchema | null,
+  body: PaperContent,
 ): Promise<PaperField[]> {
   const bound = new Map((schema?.fields ?? []).map((s) => [s.key, s]));
   const dictionaryOf = (f: TemplateField) =>
@@ -106,7 +119,7 @@ export async function resolveFields(
       ]);
     }
   }
-  return fields.map((f) => {
+  const flat = fields.map((f): PaperField => {
     const s = f.binding ? bound.get(f.binding) : undefined;
     const isEnum = f.type === 'enum' || f.type === 'list<enum>';
     const dictionary = dictionaryOf(f);
@@ -131,8 +144,79 @@ export async function resolveFields(
       plain: f.type === 'richtext' && f.binding !== null,
       binding: f.binding,
       auto: !!s && isAutoBinding(kind, s),
+      columns: null,
     };
   });
+  return withColumns(flat, rowsOf(body));
+}
+
+/** A field as the response gives it: whether the actor fills it; columns — as their rows. */
+export function fieldView<T extends PaperField>(
+  f: T,
+  canFill: boolean,
+): Omit<T, 'columns'> & { canFill: boolean; columns: FieldView[] | null } {
+  return {
+    ...f,
+    canFill,
+    columns: f.columns?.map((c) => fieldView(c, canFill)) ?? null,
+  };
+}
+export type FieldView = PaperField & {
+  canFill: boolean;
+  columns: FieldView[] | null;
+};
+
+/** Columns into their rows fields: filled, changed and printed as the rows. */
+function withColumns(
+  fields: PaperField[],
+  rows: Map<string, string[]>,
+): PaperField[] {
+  const byKey = new Map(fields.map((f) => [f.key, f]));
+  const inRows = new Set([...rows.values()].flat());
+  return fields
+    .filter((f) => !inRows.has(f.key))
+    .map((f) => {
+      if (f.type !== ROWS) return f;
+      const columns = (rows.get(f.key) ?? []).flatMap((key) => {
+        const c = byKey.get(key);
+        return c
+          ? [
+              {
+                ...c,
+                fill: f.fill,
+                editable: f.editable,
+                print: f.print,
+                binding: null,
+                auto: false,
+              },
+            ]
+          : [];
+      });
+      return { ...f, columns };
+    });
+}
+
+/**
+ * Where a value of rows is invalid: the first row that is not (-1 — the
+ * value itself: not a list, too many rows).
+ */
+export function badRow(f: PaperField, raw: unknown): number {
+  if (!Array.isArray(raw)) return -1;
+  return raw.findIndex((r) => normalizeRow(f.columns ?? [], r) === undefined);
+}
+
+/** PAPER_FIELD_INVALID for the field; for rows — with the row that is wrong. */
+function valueInvalid(f: PaperField, raw: unknown) {
+  const row = f.type === ROWS ? badRow(f, raw) : -1;
+  return fieldInvalid(f.key, row >= 0 ? row : undefined);
+}
+
+/** Choices a value holds: of the field, or of every cell of its rows by the column. */
+function choicesIn(f: PaperField, v: FieldValue | undefined): string[] {
+  if (f.type !== ROWS) return choicesOf(v);
+  return rowsIn(v).flatMap((r) =>
+    (f.columns ?? []).flatMap((c) => (c.options ? choicesOf(r[c.key]) : [])),
+  );
 }
 
 /**
@@ -153,7 +237,7 @@ export function checkValues(
     const f = byKey.get(key);
     if (!f || f.auto || !isFillable(f.type)) throw fieldInvalid(key);
     const v = normalizeValue(f, raw);
-    if (v === undefined) throw fieldInvalid(key);
+    if (v === undefined) throw valueInvalid(f, raw);
     if (v === null) continue;
     if (f.options) {
       const had = new Set(choicesOf(old[key]));
@@ -161,6 +245,23 @@ export function checkValues(
         (c) => had.has(c) || f.options!.some((o) => o.key === c && !o.archived),
       );
       if (!ok) throw fieldInvalid(key);
+    }
+    if (f.columns) {
+      // A choice of a cell: active, or one the rows already hold in that column.
+      const had = new Set(choicesIn(f, old[key]));
+      const rows = rowsIn(v);
+      const row = rows.findIndex((r) =>
+        f.columns!.some(
+          (c) =>
+            c.options &&
+            !choicesOf(r[c.key]).every(
+              (x) =>
+                had.has(x) ||
+                c.options!.some((o) => o.key === x && !o.archived),
+            ),
+        ),
+      );
+      if (row >= 0) throw fieldInvalid(key, row);
     }
     out[key] = v;
   }
@@ -196,11 +297,12 @@ export function checkContent(
   if (body === null) {
     let found = false;
     walkNodes(content, (n) => {
-      // A conditional block waits for a field: a free document has none.
+      // A conditional block waits for a field, rows are a field: a free document has none.
       if (
         n.type === 'field' ||
         n.type === 'fieldZone' ||
-        n.type === 'conditional'
+        n.type === 'conditional' ||
+        n.type === 'repeat'
       ) {
         found = true;
       }
@@ -262,7 +364,7 @@ export function changedFields(
       if (!isFillable(f.type)) continue;
       const raw = input.values[f.key] ?? null;
       const v = normalizeValue(f, raw);
-      if (v === undefined) throw fieldInvalid(f.key);
+      if (v === undefined) throw valueInvalid(f, raw);
       if (JSON.stringify(v) === JSON.stringify(shown.values[f.key] ?? null)) {
         continue;
       }

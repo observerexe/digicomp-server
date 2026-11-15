@@ -6,6 +6,7 @@ import { Decoration, DecorationSet, type EditorView } from '@tiptap/pm/view';
 import Suggestion from '@tiptap/suggestion';
 import { plural } from '../lib/format';
 import { autoBlockOf, textBlockOf, type Block, type BlockGroup } from './blocks';
+import { rowsContent } from './blocks/rows';
 import { zoneAtSelection, type FieldLook } from './fields';
 
 /**
@@ -69,6 +70,11 @@ function autoIn(node: PMNode) {
 
 /** What a block of the top level is: its label on the sheet and the colour of the label. */
 export function blockTag(node: PMNode, look: BuilderLook): { label: string; group: BlockGroup } {
+  if (node.type.name === 'repeat') {
+    const n = keysIn(node).length;
+    const tag = look.fields[node.attrs.key as string]?.tag ?? `Повторювані рядки · ${String(node.attrs.key)}`;
+    return { label: `${tag} · ${n ? `${n} ${plural(n, ['стовпець', 'стовпці', 'стовпців'])}` : 'перетягніть поля в нижній рядок'}`, group: 'structure' };
+  }
   if (node.type.name === 'conditional') {
     const field = node.attrs.field as string;
     const value = node.attrs.value as string;
@@ -91,7 +97,11 @@ function zoneDepth($pos: ResolvedPos): number {
   return -1;
 }
 
-/** A field or a zone inside a zone; a zone twice. */
+/**
+ * A field or a zone inside a zone; a zone twice. «Повторювані рядки»: a field
+ * or «№ рядка» in its header, a zone in it, a column also outside it;
+ * «№ рядка» outside the row that repeats.
+ */
 export function badFields(doc: PMNode): boolean {
   const zones = new Set<string>();
   let bad = false;
@@ -102,7 +112,30 @@ export function badFields(doc: PMNode): boolean {
     zones.add(key);
     return false;
   });
-  return bad;
+  if (bad) return true;
+  const columns = new Set<string>();
+  const outside = new Set<string>();
+  doc.forEach((top) => {
+    if (top.type.name !== 'repeat') {
+      keysIn(top).forEach((k) => outside.add(k));
+      top.descendants((n) => {
+        if (n.type.name === 'rowNumber') bad = true;
+        return !bad;
+      });
+      return;
+    }
+    const table = top.firstChild;
+    table?.forEach((row, _offset, i) => {
+      const repeated = i === table.childCount - 1;
+      row.descendants((n) => {
+        const name = n.type.name;
+        if (name === 'fieldZone' || (!repeated && (name === 'field' || name === 'rowNumber'))) bad = true;
+        if (repeated && name === 'field') columns.add(n.attrs.key as string);
+        return !bad;
+      });
+    });
+  });
+  return bad || [...columns].some((k) => outside.has(k));
 }
 
 /**
@@ -143,6 +176,7 @@ export function blockContent(block: Block, key: string | null): { content: JSONC
   if (block.kind === 'text') return { content: block.content(), inline: false };
   if (block.kind === 'auto') return { content: { type: block.node }, inline: true };
   if (block.type === 'richtext') return { content: { type: 'fieldZone', attrs: { key }, content: [{ type: 'paragraph' }] }, inline: false };
+  if (block.type === 'rows') return { content: rowsContent(key!), inline: false };
   return { content: { type: 'field', attrs: { key } }, inline: true };
 }
 
@@ -179,7 +213,7 @@ export function placeBlock(editor: Editor, block: Block, key: string | null, ran
       tr.insert(at, placed);
     }
   }
-  if (isField && block.type !== 'richtext') {
+  if (isField && inline) {
     const fieldAt = placed === node ? at : at + 1;
     tr.setSelection(NodeSelection.create(tr.doc, fieldAt));
   } else {
@@ -206,7 +240,7 @@ export function renameField(editor: Editor, from: string, to: string) {
   const tr = editor.state.tr;
   editor.state.doc.descendants((n, pos) => {
     // An attribute step: the node stays (and stays selected).
-    if ((n.type.name === 'field' || n.type.name === 'fieldZone') && n.attrs.key === from) tr.setNodeAttribute(pos, 'key', to);
+    if (['field', 'fieldZone', 'repeat'].includes(n.type.name) && n.attrs.key === from) tr.setNodeAttribute(pos, 'key', to);
     return true;
   });
   resign(tr, from, to);
@@ -223,12 +257,15 @@ export function setBlockAttrs(editor: Editor, index: number, attrs: Record<strin
   editor.view.dispatch(editor.state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, ...attrs }));
 }
 
-/** Takes a field off the sheet: a paragraph holding only it — with the paragraph; signatures by it — a line to sign by hand. */
+/**
+ * Takes a field off the sheet: a paragraph holding only it — with the paragraph;
+ * rows — the whole block; signatures by it — a line to sign by hand.
+ */
 export function removeField(editor: Editor, key: string) {
   const { state } = editor;
   const ranges: [number, number][] = [];
   state.doc.descendants((n, pos) => {
-    if ((n.type.name !== 'field' && n.type.name !== 'fieldZone') || n.attrs.key !== key) return true;
+    if (!['field', 'fieldZone', 'repeat'].includes(n.type.name) || n.attrs.key !== key) return true;
     const $pos = state.doc.resolve(pos);
     const alone = n.type.name === 'field' && $pos.parent.childCount === 1 && $pos.depth > 0 && $pos.parent.type.name === 'paragraph';
     ranges.push(alone ? [$pos.before(), $pos.after()] : [pos, pos + n.nodeSize]);
@@ -316,6 +353,12 @@ export function builderExtension(opts: BuilderOptions) {
                   decos.push(Decoration.node(pos, pos + n.nodeSize, {}, { look: look1, active: sel instanceof NodeSelection && sel.from === pos }));
                 } else if (n.type.name === 'fieldZone' && parent !== state.doc) {
                   decos.push(Decoration.node(pos, pos + n.nodeSize, { class: 'is-zone', 'data-label': f?.tag ?? key }));
+                } else if (n.type.name === 'repeat' && n.firstChild?.lastChild) {
+                  // The row that repeats: marked, as the document draws it once a row.
+                  const table = n.firstChild;
+                  const last = table.lastChild!;
+                  const at = pos + 2 + table.content.size - last.nodeSize;
+                  decos.push(Decoration.node(at, at + last.nodeSize, { class: 'is-repeated' }));
                 }
                 return true;
               });
@@ -374,6 +417,8 @@ export function selectionOf(state: EditorState): BuilderSelection {
   const index = sel.$from.index(0);
   if (index >= state.doc.childCount) return null;
   const node = state.doc.child(index);
+  // Anywhere in «Повторювані рядки» but on a field: the block's own field.
+  if (node.type.name === 'repeat') return { kind: 'field', key: node.attrs.key as string, picked: false };
   const keys = keysIn(node);
   if (keys.length === 1 && (node.isTextblock || node.type.name === 'fieldZone')) return { kind: 'field', key: keys[0]!, picked: false };
   return { kind: 'block', index, node: node.type.name, keys, attrs: node.attrs };

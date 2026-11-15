@@ -108,6 +108,34 @@ const CASES: [string, PaperContent][] = [
       content: [p([text('Розмір: '), { type: 'field', attrs: { key: 'amount' } }]), { type: 'fieldZone', attrs: { key: 'why' }, content: [p()] }],
     }),
   ],
+  [
+    'повторювані рядки',
+    doc({
+      type: 'repeat',
+      attrs: { key: 'rows1' },
+      content: [
+        {
+          type: 'table',
+          content: [
+            {
+              type: 'tableRow',
+              content: [
+                { type: 'tableHeader', content: [p([text('№')])] },
+                { type: 'tableHeader', content: [p([text('Бали', [bold])])] },
+              ],
+            },
+            {
+              type: 'tableRow',
+              content: [
+                { type: 'tableCell', content: [p([{ type: 'rowNumber' }])] },
+                { type: 'tableCell', content: [p([{ type: 'field', attrs: { key: 'points' } }, text(' б.')])] },
+              ],
+            },
+          ],
+        },
+      ],
+    }),
+  ],
 ];
 
 describe('Рендер друку = HTML редактора', () => {

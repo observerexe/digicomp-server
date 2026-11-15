@@ -5,11 +5,18 @@
  *
  * No package imports (see index.ts).
  */
-import { COLORS, CONDITIONAL, FIELD_KEY, MARKS, NODES, RECORD_ID, type PaperAttrs, type PaperMark, type PaperNode } from './index';
+import { COLORS, CONDITIONAL, FIELD_KEY, MARKS, NODES, RECORD_ID, REPEAT, type PaperAttrs, type PaperMark, type PaperNode } from './index';
 
-/** A value as kept in the document's `values`. */
-export type FieldValue = string | number | boolean | (string | number | boolean)[];
+/** One value of a field or of an item of a list. */
+export type FieldScalar = string | number | boolean;
+/** A row of «Повторювані рядки»: values of its columns by their keys (an empty cell — no key). */
+export type FieldRow = Record<string, FieldScalar | FieldScalar[]>;
+/** A value as kept in the document's `values`: a scalar, a list, or the rows of a `rows` field. */
+export type FieldValue = FieldScalar | FieldScalar[] | FieldRow[];
 export type FieldValues = Record<string, FieldValue>;
+
+/** The type of «Повторювані рядки»: a template's own, never a field of a record. */
+export const ROWS = 'rows';
 
 /** One choice of an `enum` field. Archived — stays where set, not offered. */
 export type FieldOption = { key: string; label: string; archived?: boolean };
@@ -24,6 +31,8 @@ export type FieldSpec = {
   maxItems: number | null;
   /** decimal: digits after the point. */
   scale: number | null;
+  /** rows: the fields of its columns. */
+  columns?: readonly FieldSpec[] | null;
 };
 
 export const FIELD_LIMITS = {
@@ -35,6 +44,8 @@ export const FIELD_LIMITS = {
   zoneDefault: 20_000,
   /** list without maxItems. */
   itemsDefault: 20,
+  /** rows without maxItems. */
+  rowsDefault: 50,
   scaleDefault: 2,
   /** enum: length of a key. */
   keyMax: 40,
@@ -71,7 +82,7 @@ function inBounds(v: number, f: FieldSpec) {
 }
 
 /** One scalar, normalized (text trimmed, time in UTC); undefined — invalid. */
-function scalar(type: string, f: FieldSpec, v: unknown): string | number | boolean | undefined {
+function scalar(type: string, f: FieldSpec, v: unknown): FieldScalar | undefined {
   switch (type) {
     case 'text': {
       if (typeof v !== 'string') return undefined;
@@ -108,12 +119,13 @@ function scalar(type: string, f: FieldSpec, v: unknown): string | number | boole
 export function normalizeValue(f: FieldSpec, v: unknown): FieldValue | null | undefined {
   if (!isFillable(f.type)) return undefined;
   if (v === null || (typeof v === 'string' && v.trim() === '')) return null;
+  if (f.type === ROWS) return normalizeRows(f, v);
   const item = itemType(f.type);
   if (item === null) return scalar(f.type, f, v);
   if (!Array.isArray(v)) return undefined;
   if (v.length === 0) return null;
   if (v.length > (f.maxItems ?? FIELD_LIMITS.itemsDefault)) return undefined;
-  const out: (string | number | boolean)[] = [];
+  const out: FieldScalar[] = [];
   for (const x of v) {
     const n = scalar(item, f, x);
     if (n === undefined) return undefined;
@@ -122,6 +134,54 @@ export function normalizeValue(f: FieldSpec, v: unknown): FieldValue | null | un
   // A choice (a record) is made once.
   if ((item === 'enum' || item === 'color' || item.startsWith('ref:')) && new Set(out).size !== out.length) return undefined;
   return out;
+}
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  if (typeof v !== 'object' || v === null || Array.isArray(v)) return false;
+  const proto: unknown = Object.getPrototypeOf(v);
+  return proto === Object.prototype || proto === null;
+}
+
+/**
+ * A row of «Повторювані рядки», normalized: only its columns, each valid
+ * (empty cells go; a row of empty cells stays — a draft keeps a row just
+ * added). undefined — invalid.
+ */
+export function normalizeRow(columns: readonly FieldSpec[], v: unknown): FieldRow | undefined {
+  if (!isRecord(v)) return undefined;
+  const out: FieldRow = {};
+  for (const [key, raw] of Object.entries(v)) {
+    const c = columns.find((x) => x.key === key);
+    if (!c || c.type === ROWS) return undefined;
+    const n = normalizeValue(c, raw);
+    if (n === undefined) return undefined;
+    if (n !== null) out[key] = n as FieldScalar | FieldScalar[];
+  }
+  return out;
+}
+
+/** Rows of a `rows` field: a list of rows within its limit; no rows — empty (null). */
+function normalizeRows(f: FieldSpec, v: unknown): FieldRow[] | null | undefined {
+  if (!Array.isArray(v)) return undefined;
+  if (v.length === 0) return null;
+  if (v.length > (f.maxItems ?? FIELD_LIMITS.rowsDefault)) return undefined;
+  const out: FieldRow[] = [];
+  for (const x of v) {
+    const row = normalizeRow(f.columns ?? [], x);
+    if (row === undefined) return undefined;
+    out.push(row);
+  }
+  return out;
+}
+
+/** The rows a value holds (not rows — none). */
+export function rowsIn(v: FieldValue | undefined): FieldRow[] {
+  return Array.isArray(v) ? v.filter((x): x is FieldRow => isRecord(x)) : [];
+}
+
+/** A row with no cell filled. */
+export function isEmptyRow(row: FieldRow): boolean {
+  return Object.keys(row).length === 0;
 }
 
 /** Choices of an `enum` value (one or a list). */
@@ -171,7 +231,7 @@ export type RecordTitle = (type: string, id: string) => string | null;
 /** In place of a record the reader does not see, or one deleted. */
 export const RECORD_MISSING = 'запис недоступний';
 
-function scalarText(type: string, v: string | number | boolean, options: readonly FieldOption[] | null, title: RecordTitle | null): string {
+function scalarText(type: string, v: FieldScalar, options: readonly FieldOption[] | null, title: RecordTitle | null): string {
   if (type.startsWith('ref:')) return title?.(type.slice(4), String(v)) ?? RECORD_MISSING;
   switch (type) {
     case 'int':
@@ -196,18 +256,50 @@ function scalarText(type: string, v: string | number | boolean, options: readonl
 
 /** How a value reads on the sheet and in the print: «12», «15.12.2026», «так», a record's title. */
 export function valueText(type: string, v: FieldValue, options: readonly FieldOption[] | null = null, title: RecordTitle | null = null): string {
+  if (type === ROWS) return rowsText(rowsIn(v).length);
   const item = itemType(type);
-  if (item === null) return scalarText(type, v as string | number | boolean, options, title);
-  return (Array.isArray(v) ? v : [v]).map((x) => scalarText(item, x, options, title)).join(', ');
+  if (item === null) return scalarText(type, v as FieldScalar, options, title);
+  return (Array.isArray(v) ? (v as FieldScalar[]) : [v as FieldScalar]).map((x) => scalarText(item, x, options, title)).join(', ');
+}
+
+/** «1 рядок», «3 рядки», «5 рядків». */
+export function rowsText(n: number): string {
+  const d = n % 10;
+  const dd = n % 100;
+  const word = d === 1 && dd !== 11 ? 'рядок' : d >= 2 && d <= 4 && (dd < 12 || dd > 14) ? 'рядки' : 'рядків';
+  return `${n} ${word}`;
 }
 
 /** A record a document refers to. */
 export type RecordRef = { type: string; id: string };
 
-/** Records of the values of reference fields, each once. */
-export function valueRefs(fields: readonly { key: string; type: string }[], values: FieldValues): (RecordRef & { key: string })[] {
-  const out: (RecordRef & { key: string })[] = [];
+export type RefField = { key: string; type: string; columns?: readonly RefField[] | null };
+
+/**
+ * A record a field's value refers to; `key` — the field's (a column's, for
+ * «Повторювані рядки»: `rows` — the rows field, `row` — the first row with it).
+ */
+export type ValueRef = RecordRef & { key: string; rows?: string; row?: number };
+
+/** Records of the values of reference fields, each once a field (a column — once for all its rows). */
+export function valueRefs(fields: readonly RefField[], values: FieldValues): ValueRef[] {
+  const out: ValueRef[] = [];
   for (const f of fields) {
+    if (f.type === ROWS) {
+      const rows = rowsIn(values[f.key]);
+      for (const c of f.columns ?? []) {
+        const type = refType(c.type);
+        if (type === null) continue;
+        const first = new Map<string, number>();
+        rows.forEach((r, i) => {
+          const v = r[c.key];
+          if (v === undefined) return;
+          for (const id of (Array.isArray(v) ? v : [v]).map(String)) if (!first.has(id)) first.set(id, i);
+        });
+        for (const [id, row] of first) out.push({ key: c.key, type, id, rows: f.key, row });
+      }
+      continue;
+    }
     const type = refType(f.type);
     const v = values[f.key];
     if (type === null || v === undefined) continue;
@@ -324,6 +416,36 @@ export function offFields(doc: PaperNode, values: FieldValues): Set<string> {
   return out;
 }
 
+// --- «Повторювані рядки» ---
+
+/** The table of a «Повторювані рядки» block: its header rows and the row that repeats (null — no rows). */
+export function repeatParts(n: PaperNode): { table: PaperNode | null; header: PaperNode[]; row: PaperNode | null } {
+  const table = n.content?.[0]?.type === 'table' ? n.content[0] : null;
+  const rows = table?.content ?? [];
+  return { table, header: rows.slice(0, -1), row: rows[rows.length - 1] ?? null };
+}
+
+/**
+ * Blocks «Повторювані рядки» of the top level: the key of the `rows` field
+ * of each and the keys of its columns — fields of the row that repeats, each
+ * once, in the order of the sheet.
+ */
+export function rowsOf(doc: PaperNode): Map<string, string[]> {
+  const out = new Map<string, string[]>();
+  for (const n of doc.content ?? []) {
+    if (n.type !== REPEAT || typeof n.attrs?.key !== 'string') continue;
+    const keys = new Set<string>();
+    const { row } = repeatParts(n);
+    if (row) {
+      walkNodes(row, (x) => {
+        if (x.type === 'field') keys.add(x.attrs?.key as string);
+      });
+    }
+    out.set(n.attrs.key, [...keys]);
+  }
+  return out;
+}
+
 /** Every zone of the document. */
 export function zonesOf(doc: PaperNode): PaperNode[] {
   const out: PaperNode[] = [];
@@ -343,10 +465,7 @@ export function hasFieldInsideZone(doc: PaperNode): boolean {
 }
 
 const PLAIN_PARAGRAPH = (p: PaperNode) =>
-  p.type === 'paragraph' &&
-  !p.attrs?.align &&
-  !p.attrs?.indent &&
-  (p.content ?? []).every((c) => (c.type === 'text' || c.type === 'hardBreak') && !(c.marks ?? []).length);
+  p.type === 'paragraph' && !p.attrs?.align && !p.attrs?.indent && (p.content ?? []).every((c) => (c.type === 'text' || c.type === 'hardBreak') && !(c.marks ?? []).length);
 
 /**
  * A zone bound to a text field of a record holds plain text: paragraphs
@@ -375,7 +494,6 @@ export function zoneText(zone: PaperNode): string {
 /** The document with the zone `key` holding `text`: a paragraph a line, no formatting. */
 export function withZoneText<T extends PaperNode>(doc: T, key: string, text: string): T {
   const paragraphs: PaperNode[] = text.split('\n').map((l) => (l ? { type: 'paragraph', content: [{ type: 'text', text: l }] } : { type: 'paragraph' }));
-  const put = (n: PaperNode): PaperNode =>
-    n.type === 'fieldZone' && n.attrs?.key === key ? { ...n, content: paragraphs } : n.content ? { ...n, content: n.content.map(put) } : n;
+  const put = (n: PaperNode): PaperNode => (n.type === 'fieldZone' && n.attrs?.key === key ? { ...n, content: paragraphs } : n.content ? { ...n, content: n.content.map(put) } : n);
   return put(doc) as T;
 }

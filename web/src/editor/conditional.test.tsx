@@ -55,6 +55,7 @@ const field = (over: Partial<PaperField>): PaperField => ({
   plain: false,
   binding: null,
   auto: false,
+  columns: null,
   canFill: true,
   ...over,
 });
@@ -92,7 +93,7 @@ describe('Умовний блок', () => {
   it('на аркуші: поки умова не виконується, блок прихований, Tab його оминає', () => {
     const editor = open();
     const block = () => editor.view.dom.querySelector('.paper-if')!;
-    const look = (values: Record<string, string>) => setFieldsLook(editor, { fields: {}, zones: {}, active: null, values });
+    const look = (values: Record<string, string>) => setFieldsLook(editor, { fields: {}, zones: {}, rows: {}, active: null, values });
     look({});
     expect(block().classList.contains('is-off')).toBe(true);
     expect(fieldTargets(editor.state.doc, new Set(['type', 'amount', 'reason']), {}).map((t) => t.key)).toEqual(['type', 'reason']);

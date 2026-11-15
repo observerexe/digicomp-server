@@ -18,6 +18,8 @@ export class ApiError extends Error {
     public field?: string,
     /** TEMPLATE_FIELD_INVALID: key of the record's field no field of the template is bound to. */
     public binding?: string,
+    /** «Повторювані рядки»: the row (from 0) of the field the error is about. */
+    public row?: number,
   ) {
     super(message ?? code);
     this.name = 'ApiError';
@@ -75,9 +77,7 @@ export const api = createClient<paths>({
 });
 
 /** Unwraps an openapi-fetch result or throws ApiError with the errorCode. */
-export async function unwrap<T>(
-  call: Promise<{ data?: T; error?: unknown; response: Response }>,
-): Promise<T> {
+export async function unwrap<T>(call: Promise<{ data?: T; error?: unknown; response: Response }>): Promise<T> {
   let result: Awaited<typeof call>;
   try {
     result = await call;
@@ -85,10 +85,11 @@ export async function unwrap<T>(
     throw new ApiError(0, 'NETWORK');
   }
   if (result.error !== undefined || !result.response.ok) {
-    const body = (result.error ?? {}) as { errorCode?: string; message?: unknown; field?: unknown; binding?: unknown };
+    const body = (result.error ?? {}) as { errorCode?: string; message?: unknown; field?: unknown; binding?: unknown; row?: unknown };
     const msg = typeof body.message === 'string' ? body.message : undefined;
     const str = (v: unknown) => (typeof v === 'string' ? v : undefined);
-    throw new ApiError(result.response.status, body.errorCode ?? 'ERROR', msg, str(body.field), str(body.binding));
+    const row = Number.isInteger(body.row) ? (body.row as number) : undefined;
+    throw new ApiError(result.response.status, body.errorCode ?? 'ERROR', msg, str(body.field), str(body.binding), row);
   }
   return result.data as T;
 }

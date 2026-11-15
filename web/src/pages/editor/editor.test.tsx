@@ -300,6 +300,7 @@ describe('Редактор: документ із шаблону', () => {
     binding: null,
     canFill: true,
     auto: false,
+    columns: null,
     ...over,
   });
   const FIELDS: PaperField[] = [

@@ -104,7 +104,9 @@ const BLOCKS = ['paragraph', 'heading', 'bulletList', 'orderedList', 'table', 'p
 export const STRUCTURE = ['orgHeader', 'approval', 'signatures', 'pageFooter'] as const;
 /** «Умовний блок»: also only on the top level, never one in another. */
 export const CONDITIONAL = 'conditional';
-const INLINE = ['text', 'hardBreak', 'field', 'mention', 'paperNumber', 'paperDate', 'paperAuthor'] as const;
+/** «Повторювані рядки»: a table on the top level whose last row repeats, a row a value of a `rows` field. */
+export const REPEAT = 'repeat';
+const INLINE = ['text', 'hardBreak', 'field', 'mention', 'paperNumber', 'paperDate', 'paperAuthor', 'rowNumber'] as const;
 
 /** Key of a template field: Latin, starts with a small letter (`title`, `goal_2`). */
 export const FIELD_KEY = /^[a-z][a-zA-Z0-9_]{0,39}$/;
@@ -139,7 +141,7 @@ const recordType: AttrRule = { default: null, valid: (v) => typeof v === 'string
 const recordId: AttrRule = { default: null, valid: (v) => typeof v === 'string' && RECORD_ID.test(v) };
 
 export const NODES: Record<string, NodeRule> = {
-  doc: { attrs: {}, children: [...BLOCKS, ...STRUCTURE, CONDITIONAL] },
+  doc: { attrs: {}, children: [...BLOCKS, ...STRUCTURE, CONDITIONAL, REPEAT] },
   paragraph: { attrs: BLOCK_FORMAT, children: INLINE },
   heading: {
     attrs: { level: { default: 1, valid: oneOf(HEADING_LEVELS, false) }, ...BLOCK_FORMAT },
@@ -187,6 +189,13 @@ export const NODES: Record<string, NodeRule> = {
    * `field` of the template holds `value` (see offFields in fields.ts).
    */
   conditional: { attrs: { field: fieldKey, value: conditionValue }, children: BLOCKS },
+  /**
+   * «Повторювані рядки»: one table; rows above the last are its header, the last
+   * one repeats — once a row of the `rows` field `key` (see rowsOf in fields.ts).
+   */
+  repeat: { attrs: { key: fieldKey }, children: ['table'] },
+  /** «№ рядка»: the number of the row of «Повторювані рядки» it stands in. */
+  rowNumber: { attrs: {} },
 };
 
 /** In the editor's order: marks nest in it (textStyle outermost, underline innermost). */
@@ -257,16 +266,18 @@ function validMark(v: unknown): boolean {
  */
 export function checkContent(v: unknown): v is PaperContent {
   let nodes = 0;
-  const walk = (n: unknown, depth: number, allowed: readonly string[]): boolean => {
+  const walk = (n: unknown, depth: number, allowed: readonly string[], inRepeat = false): boolean => {
     if (++nodes > CONTENT_LIMITS.nodes || depth > CONTENT_LIMITS.depth) return false;
     if (!isPlainObject(n) || !Object.keys(n).every((k) => NODE_KEYS.has(k))) return false;
     if (typeof n.type !== 'string' || !allowed.includes(n.type)) return false;
     const rule = NODES[n.type]!;
     if (!validAttrs(n.attrs, rule.attrs)) return false;
     // A field carries its key: it may not be left out.
-    if ((n.type === 'field' || n.type === 'fieldZone') && !(isPlainObject(n.attrs) && own(n.attrs, 'key'))) return false;
+    if ((n.type === 'field' || n.type === 'fieldZone' || n.type === REPEAT) && !(isPlainObject(n.attrs) && own(n.attrs, 'key'))) return false;
     // A conditional block carries its condition whole.
     if (n.type === CONDITIONAL && !(isPlainObject(n.attrs) && own(n.attrs, 'field') && own(n.attrs, 'value'))) return false;
+    // «№ рядка» stands only in «Повторювані рядки».
+    if (n.type === 'rowNumber' && !inRepeat) return false;
     // A reference carries both.
     if (n.type === 'mention' && !(isPlainObject(n.attrs) && own(n.attrs, 'type') && own(n.attrs, 'id'))) return false;
     if (n.marks !== undefined) {
@@ -280,7 +291,8 @@ export function checkContent(v: unknown): v is PaperContent {
     if (n.text !== undefined) return false;
     if (n.content === undefined) return true;
     const children = rule.children;
-    return !!children && Array.isArray(n.content) && n.content.every((c) => walk(c, depth + 1, children));
+    const repeat = inRepeat || n.type === REPEAT;
+    return !!children && Array.isArray(n.content) && n.content.every((c) => walk(c, depth + 1, children, repeat));
   };
   return walk(v, 0, ['doc']);
 }

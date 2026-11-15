@@ -3,6 +3,8 @@ import {
   conditionOf,
   isPlainZone,
   refType,
+  repeatParts,
+  ROWS,
   signerField,
   walkNodes,
   type PaperContent,
@@ -15,12 +17,18 @@ import { TemplateKind } from './template.entities';
 export const FIELD_FILLERS = ['author', 'staff'] as const;
 export type FieldFiller = (typeof FIELD_FILLERS)[number];
 
+/**
+ * Types of template fields: those of records, and «Повторювані рядки»
+ * (`rows`: its value — rows of its columns).
+ */
+export type TemplateFieldType = FieldType | typeof ROWS;
+
 /** A field of a template version, as stored in its `fields` jsonb. */
 export type TemplateField = {
   /** Latin; values of documents are kept under it. Unique in the version. */
   key: string;
   label: string;
-  type: FieldType;
+  type: TemplateFieldType;
   required: boolean;
   fill: FieldFiller;
   /** May be changed after the document is published. */
@@ -34,7 +42,7 @@ export type TemplateField = {
   max: number | null;
   /** text, richtext, list<text>: the longest value (of each item). */
   maxLength: number | null;
-  /** list<…>: at most this many items. */
+  /** list<…>: at most this many items; rows — rows. */
   maxItems: number | null;
   /** enum, list<enum> not bound: the dictionary of its values. */
   dictionary: string | null;
@@ -54,10 +62,10 @@ export const TEMPLATE_LIMITS = {
  */
 export type FieldProblem = { field: string } | { binding: string };
 
-const NUMERIC = new Set<FieldType>(['int', 'decimal']);
-const TEXT = new Set<FieldType>(['text', 'richtext', 'list<text>']);
-const ENUM = new Set<FieldType>(['enum', 'list<enum>']);
-const isList = (t: FieldType) => t.startsWith('list<');
+const NUMERIC = new Set<TemplateFieldType>(['int', 'decimal']);
+const TEXT = new Set<TemplateFieldType>(['text', 'richtext', 'list<text>']);
+const ENUM = new Set<TemplateFieldType>(['enum', 'list<enum>']);
+const isList = (t: TemplateFieldType) => t.startsWith('list<') || t === ROWS;
 
 /** The first repeated key, if any. */
 export function duplicateKey(fields: TemplateField[]): string | null {
@@ -81,6 +89,8 @@ export type Known = {
  * reference — to a type that may be referred to.
  */
 function ownOk(f: TemplateField, { dictionaries, refTypes }: Known) {
+  // Rows are the template's own: never bound to a record.
+  if (f.type === ROWS && f.binding !== null) return false;
   const ref = refType(f.type);
   if (ref !== null && !refTypes.has(ref)) return false;
   const numeric = NUMERIC.has(f.type);
@@ -196,10 +206,10 @@ export function fieldDictionaries(fields: TemplateField[]): string[] {
 
 /**
  * The body and the fields agree: every field is in the body; a free zone
- * (`richtext`) — once, as a zone, the rest — as inline fields (any number
- * of times; a `ref:user` field may stand only as who signs a column of
- * signatures); no unknown keys; nothing of a field inside a zone; a zone
- * bound to a text field starts as plain paragraphs.
+ * (`richtext`) — once, as a zone; rows — once, as «Повторювані рядки»; the
+ * rest — as inline fields (any number of times; a `ref:user` field may stand
+ * only as who signs a column of signatures); no unknown keys; nothing of a
+ * field inside a zone; a zone bound to a text field starts as plain paragraphs.
  */
 export function bodyProblem(
   body: PaperContent,
@@ -220,12 +230,20 @@ export function bodyProblem(
       }
       return;
     }
+    if (n.type === 'repeat') {
+      const key = n.attrs?.key as string;
+      if (byKey.get(key)?.type !== ROWS || seen.has(key)) {
+        problem = { field: key };
+      } else seen.add(key);
+      return;
+    }
     if (n.type !== 'field' && n.type !== 'fieldZone') return;
     const key = n.attrs?.key as string;
     const f = byKey.get(key);
     const zone = n.type === 'fieldZone';
     if (
       !f ||
+      f.type === ROWS ||
       insideZone ||
       zone !== (f.type === 'richtext') ||
       (zone && seen.has(key)) ||
@@ -239,7 +257,65 @@ export function bodyProblem(
   if (problem) return problem;
   const missing = fields.find((f) => !seen.has(f.key));
   if (missing) return { field: missing.key };
-  return conditionalProblem(body, byKey);
+  return conditionalProblem(body, byKey) ?? repeatProblem(body, byKey);
+}
+
+/**
+ * «Повторювані рядки»: a single table with the row that repeats; its header
+ * holds no fields and no «№ рядка», no zones anywhere in it. Its columns —
+ * fields of that row — are its own: of a type a cell holds (not a zone, not
+ * rows), not bound to a record, nowhere else on the sheet (not who signs,
+ * not what a conditional block waits for).
+ */
+function repeatProblem(
+  body: PaperContent,
+  byKey: Map<string, TemplateField>,
+): FieldProblem | null {
+  const columns = new Map<string, string>();
+  const elsewhere = new Set<string>();
+  for (const n of body.content ?? []) {
+    if (n.type !== 'repeat') {
+      for (const key of keysIn(n)) elsewhere.add(key);
+      const c = conditionOf(n);
+      if (c) elsewhere.add(c.field);
+      walkNodes(n, (x) => {
+        if (x.type !== 'signatures') return;
+        for (const side of ['leftSigner', 'rightSigner']) {
+          const key = signerField(x.attrs?.[side]);
+          if (key !== null) elsewhere.add(key);
+        }
+      });
+      continue;
+    }
+    const own = n.attrs?.key as string;
+    const { table, header, row } = repeatParts(n);
+    if (!table || (n.content ?? []).length !== 1 || !row) return { field: own };
+    let bad = false;
+    for (const h of header) {
+      walkNodes(h, (x) => {
+        if (['field', 'fieldZone', 'rowNumber'].includes(x.type)) bad = true;
+      });
+    }
+    walkNodes(row, (x) => {
+      if (x.type === 'fieldZone') bad = true;
+    });
+    if (bad) return { field: own };
+    for (const key of keysIn(row)) {
+      const f = byKey.get(key);
+      if (
+        !f ||
+        f.type === ROWS ||
+        f.type === 'richtext' ||
+        f.binding !== null ||
+        (columns.get(key) ?? own) !== own
+      ) {
+        return { field: key };
+      }
+      columns.set(key, own);
+    }
+  }
+  const shared = [...columns.keys()].find((key) => elsewhere.has(key));
+  return shared === undefined ? null : { field: shared };
 }
 
 /** Keys of fields and zones in a node (the node itself included). */

@@ -1,5 +1,5 @@
 import type { PaperField, PaperTemplateRef } from '../api/types';
-import { valueText, type Condition, type FieldValue, type FieldValues } from '../../../shared/editor-schema/fields';
+import { isEmptyRow, ROWS, rowsIn, valueText, type Condition, type FieldValue, type FieldValues } from '../../../shared/editor-schema/fields';
 import { isOff } from './conditional';
 import { fieldType } from './fieldTypes';
 import { usePaperRecords } from './records';
@@ -7,10 +7,20 @@ import s from './FieldsPanel.module.css';
 
 /** id of a field's control in the panel (a click on the sheet focuses it). */
 export const fieldControlId = (key: string) => `pf-${key}`;
+/** id of the control of a cell of «Повторювані рядки» (`row` from 0). */
+export const cellControlId = (key: string, row: number, column: string) => `pf-${key}-${row}-${column}`;
 
-/** A field is filled: a value, or text in its zone. */
+/**
+ * A field is filled: a value, or text in its zone; rows — a row not empty,
+ * each such row with its required cells.
+ */
 export function isFilled(f: PaperField, values: FieldValues, zones: Record<string, string>) {
-  return f.type === 'richtext' ? !!zones[f.key]?.trim() : values[f.key] !== undefined;
+  if (f.type === 'richtext') return !!zones[f.key]?.trim();
+  if (f.type === ROWS) {
+    const rows = rowsIn(values[f.key]).filter((r) => !isEmptyRow(r));
+    return rows.length > 0 && rows.every((r) => (f.columns ?? []).every((c) => !c.required || r[c.key] !== undefined));
+  }
+  return values[f.key] !== undefined;
 }
 
 /** Fields of conditional blocks: the condition each waits for, by key (conditional.ts conditionsIn). */

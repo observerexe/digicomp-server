@@ -186,14 +186,12 @@ const NETWORK = 'Немає з’єднання з сервером. Перев�
 export function errorText(code: string | undefined | null): string {
   if (!code) return ERROR_MESSAGES.ERROR!;
   if (code === 'NETWORK') return NETWORK;
-  return (
-    ERROR_MESSAGES[code] ??
-    (code.endsWith('_NOT_FOUND') ? ERROR_MESSAGES.NOT_FOUND! : ERROR_MESSAGES.ERROR!)
-  );
+  return ERROR_MESSAGES[code] ?? (code.endsWith('_NOT_FOUND') ? ERROR_MESSAGES.NOT_FOUND! : ERROR_MESSAGES.ERROR!);
 }
 
-/** Text for anything thrown by an API call (ApiError or a network failure). */
+/** Text for anything thrown by an API call (ApiError or a network failure); a row of «Повторювані рядки» — named. */
 export function errorOf(e: unknown): string {
   const code = e && typeof e === 'object' && 'code' in e && typeof e.code === 'string' ? e.code : 'NETWORK';
-  return errorText(code);
+  const row = e && typeof e === 'object' && 'row' in e && typeof e.row === 'number' ? e.row : null;
+  return row === null ? errorText(code) : `${errorText(code)} Рядок ${row + 1}.`;
 }

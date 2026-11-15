@@ -64,7 +64,11 @@ export class PaperFieldDto {
   key: string;
   label: string;
 
-  /** `text`, `int`, …, `ref:<record type>`, `list<…>`; `richtext` — a zone on the sheet. */
+  /**
+   * `text`, `int`, …, `ref:<record type>`, `list<…>`; `richtext` — a zone on
+   * the sheet; `rows` — «Повторювані рядки» (value: a list of rows, a row —
+   * values of `columns` by their keys).
+   */
   type: string;
 
   required: boolean;
@@ -111,6 +115,10 @@ export class PaperFieldDto {
 
   /** The actor may fill it now (a draft), or change it (a published document, see `canChange`). */
   canFill: boolean;
+
+  /** rows: fields of its columns (filled, changed and printed as the rows); null for other types. */
+  @ApiProperty({ type: () => [PaperFieldDto], nullable: true })
+  columns: PaperFieldDto[] | null;
 }
 
 /** The template a document is made from (the version it keeps to). */

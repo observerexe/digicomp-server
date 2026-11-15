@@ -16,7 +16,7 @@ import type { RecordType } from '../records/field-types';
 import type { PublishedSchema } from '../records/records.registry';
 import { PaperAdapterRegistry } from './adapters';
 import { EMPTY_CONTENT } from './content';
-import { PaperFieldErrors, resolveFields } from './paper-fields';
+import { fieldView, PaperFieldErrors, resolveFields } from './paper-fields';
 import { fillableType } from './paper-refs';
 import { Paper } from './paper.entity';
 import type { PaperFieldDto, PaperTemplateRefDto } from './responses.dto';
@@ -320,17 +320,16 @@ export class TemplatesService {
     const t = await this.load(m, id);
     const v = await this.findVersion(m, t, n);
     const schema = await new Schemas(this.recordFields).of(t.target);
-    const fields = await resolveFields(m, t.kind, v.fields, schema);
+    const fields = await resolveFields(m, t.kind, v.fields, schema, v.body);
     return {
       id: t.id,
       title: t.title,
       version: v.number,
       kind: t.kind,
       target: t.target,
-      fields: fields.map((f): Plain<PaperFieldDto> => ({
-        ...f,
-        canFill: !f.auto && fillableType(this.links, f.type),
-      })),
+      fields: fields.map((f): Plain<PaperFieldDto> =>
+        fieldView(f, !f.auto && fillableType(this.links, f.type)),
+      ),
     };
   }
 
@@ -425,7 +424,7 @@ export class TemplatesService {
         bodyProblem(v.body, v.fields) ??
         conditionProblem(
           v.body,
-          await resolveFields(m, t.kind, v.fields, schema),
+          await resolveFields(m, t.kind, v.fields, schema, v.body),
           schema,
         );
       if (problem) throw fieldInvalid(problem);

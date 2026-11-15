@@ -11,6 +11,7 @@ import { int } from './int';
 import { list } from './list';
 import { ref } from './ref';
 import { richtext } from './richtext';
+import { rows } from './rows';
 import { text } from './text';
 
 /**
@@ -41,7 +42,7 @@ export type FieldType = {
   group?: boolean;
 };
 
-const TYPES: Record<string, FieldType> = { text, int, decimal, date, datetime, bool, enum: enumType, color, richtext };
+const TYPES: Record<string, FieldType> = { text, int, decimal, date, datetime, bool, enum: enumType, color, richtext, rows };
 
 export function fieldType(type: string): FieldType {
   return type.startsWith('list<') ? list : itemFieldType(type);

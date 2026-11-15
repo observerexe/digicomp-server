@@ -1,7 +1,7 @@
 import type { Node as PMNode } from '@tiptap/pm/model';
 import type { RecordField, RecordSchema, TemplateField, TemplateKind } from '../api/types';
 import { FIELD_KEY, signerField } from '../../../shared/editor-schema';
-import { itemType, walkNodes } from '../../../shared/editor-schema/fields';
+import { itemType, rowsOf, walkNodes } from '../../../shared/editor-schema/fields';
 import type { PaperNode } from '../../../shared/editor-schema';
 import { plural } from '../lib/format';
 import { fieldBlockOf, type FieldBlock } from './blocks';
@@ -68,19 +68,22 @@ export function newField(block: FieldBlock, taken: ReadonlySet<string>): FieldDe
 export function defsOf(fields: readonly TemplateField[], body: PaperNode): Map<string, FieldDef> {
   const defs = new Map(fields.map((f) => [f.key, fromServer(f)]));
   walkNodes(body, (n) => {
-    if (n.type !== 'field' && n.type !== 'fieldZone') return;
+    if (n.type !== 'field' && n.type !== 'fieldZone' && n.type !== 'repeat') return;
     const key = n.attrs?.key as string;
-    const block = fieldBlockOf(n.type === 'fieldZone' ? 'richtext' : 'text');
+    const block = fieldBlockOf(n.type === 'fieldZone' ? 'richtext' : n.type === 'repeat' ? 'rows' : 'text');
     if (!defs.has(key) && block) defs.set(key, { ...newField(block, new Set()), key, label: key });
   });
   return defs;
 }
 
-/** Keys of fields and zones in the order of the sheet, each once; a member who signs a column of signatures is a field too. */
+/**
+ * Keys of fields and zones in the order of the sheet, each once; rows — before
+ * their columns; a member who signs a column of signatures is a field too.
+ */
 export function keysOf(doc: PMNode): string[] {
   const keys = new Set<string>();
   doc.descendants((n) => {
-    if (n.type.name === 'field' || n.type.name === 'fieldZone') keys.add(n.attrs.key as string);
+    if (n.type.name === 'field' || n.type.name === 'fieldZone' || n.type.name === 'repeat') keys.add(n.attrs.key as string);
     if (n.type.name === 'signatures') {
       for (const side of ['leftSigner', 'rightSigner']) {
         const key = signerField(n.attrs[side]);
@@ -90,6 +93,13 @@ export function keysOf(doc: PMNode): string[] {
     return true;
   });
   return [...keys];
+}
+
+/** Columns of «Повторювані рядки» on the sheet: the key of their rows field by the column's key. */
+export function columnsOf(doc: PMNode): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const [rows, columns] of rowsOf(doc.toJSON() as PaperNode)) for (const c of columns) out.set(c, rows);
+  return out;
 }
 
 /** The fields of the version: those on the sheet, in its order. */

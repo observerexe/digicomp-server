@@ -36,6 +36,41 @@
   justify-self: start;
 }
 
+/* rows — «Повторювані рядки»: a card a row */
+.rows {
+  display: grid;
+  gap: 8px;
+}
+.rows:focus {
+  outline: none;
+}
+.rowsEmpty {
+  margin: 0;
+  color: var(--c-text2);
+}
+.rowCard {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 10px 10px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-control);
+}
+.rowCard legend {
+  padding: 0 4px;
+  color: var(--c-text2);
+  font-size: 13px;
+}
+.rowRemove {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+}
+.cell {
+  margin: 0;
+}
+
 /* ref:* — search with a list under the input, or the chosen record */
 .combo {
   position: relative;

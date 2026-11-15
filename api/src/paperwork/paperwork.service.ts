@@ -27,8 +27,11 @@ import {
   SIGNER_AUTHOR,
   SIGNER_ORG,
   yearText,
+  isEmptyRow,
   normalizeValue,
   offFields,
+  ROWS,
+  rowsIn,
   valueText,
   withZoneText,
   zonesOf,
@@ -58,6 +61,7 @@ import {
   changedFields,
   checkContent,
   checkValues,
+  fieldView,
   fieldInvalid,
   PaperFieldErrors,
   resolveFields,
@@ -65,6 +69,7 @@ import {
 } from './paper-fields';
 import { papersOf } from './paper-targets';
 import { paperPrintHtml } from './print';
+import type { FieldFill } from '../../../shared/editor-schema/render';
 import type {
   PaperDto,
   PaperFieldDto,
@@ -139,27 +144,56 @@ function zoneOf(content: PaperContent, key: string) {
 }
 
 /**
- * Every required field has a value (a zone — some text); a field of a
- * conditional block that is off is not required.
+ * Every required field has a value (a zone — some text; rows — a row not
+ * empty); a field of a conditional block that is off is not required. A
+ * row not empty has each required column filled (`row` — its index among
+ * all the rows: empty ones go when published).
  */
 function requireFilled(
   fields: PaperField[],
   p: { values: FieldValues; content: PaperContent },
 ) {
   const off = offFields(p.content, p.values);
-  const missing = fields.find((f) =>
-    !f.required || off.has(f.key)
-      ? false
-      : isFillable(f.type)
-        ? p.values[f.key] === undefined
-        : zoneOf(p.content, f.key) === '',
-  );
-  if (missing) {
-    throw new BadRequestException({
+  const missing = (field: string, row?: number) =>
+    new BadRequestException({
       message: PaperErrors.RequiredMissing,
-      field: missing.key,
+      field,
+      ...(row === undefined ? {} : { row }),
     });
+  for (const f of fields) {
+    if (off.has(f.key)) continue;
+    if (f.type === ROWS) {
+      const rows = rowsIn(p.values[f.key]);
+      if (f.required && rows.every(isEmptyRow)) throw missing(f.key);
+      const row = rows.findIndex(
+        (r) =>
+          !isEmptyRow(r) &&
+          (f.columns ?? []).some((c) => c.required && r[c.key] === undefined),
+      );
+      if (row >= 0) throw missing(f.key, row);
+      continue;
+    }
+    if (!f.required) continue;
+    const empty = isFillable(f.type)
+      ? p.values[f.key] === undefined
+      : zoneOf(p.content, f.key) === '';
+    if (empty) throw missing(f.key);
   }
+}
+
+/** Values without rows of nothing (a row added and left empty); rows of none — no value. */
+function withoutEmptyRows(
+  fields: PaperField[],
+  values: FieldValues,
+): FieldValues {
+  const out = { ...values };
+  for (const f of fields) {
+    if (f.type !== ROWS || out[f.key] === undefined) continue;
+    const rows = rowsIn(out[f.key]).filter((r) => !isEmptyRow(r));
+    if (rows.length) out[f.key] = rows;
+    else delete out[f.key];
+  }
+  return out;
 }
 
 /**
@@ -342,7 +376,13 @@ export class PaperworkService {
     const schema = template.target
       ? await this.recordFields.schema(template.target)
       : null;
-    return resolveFields(m, template.kind, version.fields, schema);
+    return resolveFields(
+      m,
+      template.kind,
+      version.fields,
+      schema,
+      version.body,
+    );
   }
 
   /** The document's template; null — a free document. */
@@ -477,14 +517,16 @@ export class PaperworkService {
         kind: form.template.kind,
         target: form.template.target,
         version: form.version.number,
-        fields: form.fields.map((f): Plain<PaperFieldDto> => ({
-          ...f,
-          canFill: editable
-            ? !f.auto &&
-              fillableType(this.links, f.type) &&
-              (f.fill === 'author' || staff)
-            : !!may?.(f),
-        })),
+        fields: form.fields.map((f): Plain<PaperFieldDto> =>
+          fieldView(
+            f,
+            editable
+              ? !f.auto &&
+                  fillableType(this.links, f.type) &&
+                  (f.fill === 'author' || staff)
+              : !!may?.(f),
+          ),
+        ),
       },
       refs: (await this.refsOf(m, shown, form, actor)).map(
         (r): Plain<PaperRefDto> => ({ ...r, type: r.type as RecordType }),
@@ -566,40 +608,55 @@ export class PaperworkService {
     const org = await this.org.get();
     const named = (name: string | null | undefined) =>
       name ? signName(name) : null;
-    return paperPrintHtml({
-      title: p.title,
-      content,
-      fill: {
-        number: p.number,
-        text: (key) => {
-          const f = fields.get(key);
-          const v = values[key];
-          return f && v !== undefined
-            ? valueText(f.type, v, f.options, title)
-            : null;
-        },
-        hidden: (key) => !fields.get(key)?.print,
-        holds: (field, value) => values[field] === value,
-        title,
-        info: {
-          institution: org.institution,
-          groupName: org.groupName,
-          signerPosition: org.signerPosition,
-          person: (signer) => {
-            if (signer === SIGNER_AUTHOR) return named(p.author?.name);
-            if (signer === SIGNER_ORG) return named(org.signer?.name);
-            // A `ref:user` field: the member it holds, if the reader sees them.
-            const v = values[signer];
-            return fields.get(signer)?.type === 'ref:user' &&
-              typeof v === 'string'
-              ? named(title('user', v))
+    const fill: FieldFill = {
+      number: p.number,
+      text: (key) => {
+        const f = fields.get(key);
+        const v = values[key];
+        return f && v !== undefined
+          ? valueText(f.type, v, f.options, title)
+          : null;
+      },
+      hidden: (key) => !fields.get(key)?.print,
+      holds: (field, value) => values[field] === value,
+      // «Повторювані рядки»: a row's cells as fields, its number for «№ рядка».
+      rows: (key) => {
+        const columns = new Map(
+          (fields.get(key)?.columns ?? []).map((c) => [c.key, c]),
+        );
+        return rowsIn(values[key]).map((r, i) => ({
+          ...fill,
+          row: i + 1,
+          hidden: () => false,
+          text: (k: string) => {
+            const c = columns.get(k);
+            const v = r[k];
+            return c && v !== undefined
+              ? valueText(c.type, v, c.options, title)
               : null;
           },
-          date: p.publishedAt ? dayText(p.publishedAt) : null,
-          year: yearText(p.publishedAt ?? new Date()),
-        },
+        }));
       },
-    });
+      title,
+      info: {
+        institution: org.institution,
+        groupName: org.groupName,
+        signerPosition: org.signerPosition,
+        person: (signer) => {
+          if (signer === SIGNER_AUTHOR) return named(p.author?.name);
+          if (signer === SIGNER_ORG) return named(org.signer?.name);
+          // A `ref:user` field: the member it holds, if the reader sees them.
+          const v = values[signer];
+          return fields.get(signer)?.type === 'ref:user' &&
+            typeof v === 'string'
+            ? named(title('user', v))
+            : null;
+        },
+        date: p.publishedAt ? dayText(p.publishedAt) : null,
+        year: yearText(p.publishedAt ?? new Date()),
+      },
+    };
+    return paperPrintHtml({ title: p.title, content, fill });
   }
 
   /** A free document, or one made from a template's current version. */
@@ -1051,7 +1108,7 @@ export class PaperworkService {
     }
     // Off by what the document shows (a bound condition is the record's).
     const stored = withoutOff(
-      { values: own, content: next.content },
+      { values: withoutEmptyRows(form.fields, own), content: next.content },
       offFields(next.content, next.values),
     );
     const fresh = await checkNewRefs(
@@ -1113,6 +1170,7 @@ export class PaperworkService {
       if (form) {
         requireFilled(form.fields, p);
         Object.assign(p, withoutOff(p));
+        p.values = withoutEmptyRows(form.fields, p.values);
         if (form.template.kind === TemplateKind.Creates) {
           await this.templates.assertCurrent(form.template, form.version);
           const type = form.template.target!;

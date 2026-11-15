@@ -7711,7 +7711,7 @@
         "type": "object",
         "properties": {
           "type": {
-            "description": "`text`, `richtext`, `int`, …, `ref:<record type>` or `list<…>` of one of them.",
+            "description": "`text`, `richtext`, `int`, …, `ref:<record type>`, `list<…>` of one of them,\nor `rows` («Повторювані рядки»: its columns — fields of its repeated row).",
             "enum": [
               "text",
               "richtext",
@@ -7754,7 +7754,8 @@
               "list<ref:fault>",
               "list<ref:place_authorization>",
               "list<ref:document>",
-              "list<ref:paper>"
+              "list<ref:paper>",
+              "rows"
             ],
             "type": "string"
           },
@@ -7795,7 +7796,7 @@
           "maxItems": {
             "type": "number",
             "nullable": true,
-            "description": "list<…>.",
+            "description": "list<…>: items; rows: rows.",
             "minimum": 1,
             "maximum": 100
           },
@@ -8023,6 +8024,14 @@
             "nullable": true,
             "description": "Key of the record's field it is bound to; once published it shows the record as it is now."
           },
+          "columns": {
+            "nullable": true,
+            "description": "rows: fields of its columns (filled, changed and printed as the rows); null for other types.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaperFieldDto"
+            }
+          },
           "key": {
             "type": "string"
           },
@@ -8031,7 +8040,7 @@
           },
           "type": {
             "type": "string",
-            "description": "`text`, `int`, …, `ref:<record type>`, `list<…>`; `richtext` — a zone on the sheet."
+            "description": "`text`, `int`, …, `ref:<record type>`, `list<…>`; `richtext` — a zone on\nthe sheet; `rows` — «Повторювані рядки» (value: a list of rows, a row —\nvalues of `columns` by their keys)."
           },
           "required": {
             "type": "boolean"
@@ -8066,6 +8075,7 @@
           "scale",
           "options",
           "binding",
+          "columns",
           "key",
           "label",
           "type",

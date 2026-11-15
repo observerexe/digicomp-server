@@ -2649,10 +2649,11 @@ export interface components {
         TemplateFieldFiller: "author" | "staff";
         TemplateFieldDto: {
             /**
-             * @description `text`, `richtext`, `int`, …, `ref:<record type>` or `list<…>` of one of them.
+             * @description `text`, `richtext`, `int`, …, `ref:<record type>`, `list<…>` of one of them,
+             *     or `rows` («Повторювані рядки»: its columns — fields of its repeated row).
              * @enum {string}
              */
-            type: "text" | "richtext" | "int" | "decimal" | "date" | "datetime" | "bool" | "enum" | "color" | "ref:user" | "ref:task" | "ref:project" | "ref:place" | "ref:inventory_item" | "ref:discipline_record" | "ref:points_entry" | "ref:session" | "ref:fault" | "ref:place_authorization" | "ref:document" | "ref:paper" | "list<text>" | "list<richtext>" | "list<int>" | "list<decimal>" | "list<date>" | "list<datetime>" | "list<bool>" | "list<enum>" | "list<color>" | "list<ref:user>" | "list<ref:task>" | "list<ref:project>" | "list<ref:place>" | "list<ref:inventory_item>" | "list<ref:discipline_record>" | "list<ref:points_entry>" | "list<ref:session>" | "list<ref:fault>" | "list<ref:place_authorization>" | "list<ref:document>" | "list<ref:paper>";
+            type: "text" | "richtext" | "int" | "decimal" | "date" | "datetime" | "bool" | "enum" | "color" | "ref:user" | "ref:task" | "ref:project" | "ref:place" | "ref:inventory_item" | "ref:discipline_record" | "ref:points_entry" | "ref:session" | "ref:fault" | "ref:place_authorization" | "ref:document" | "ref:paper" | "list<text>" | "list<richtext>" | "list<int>" | "list<decimal>" | "list<date>" | "list<datetime>" | "list<bool>" | "list<enum>" | "list<color>" | "list<ref:user>" | "list<ref:task>" | "list<ref:project>" | "list<ref:place>" | "list<ref:inventory_item>" | "list<ref:discipline_record>" | "list<ref:points_entry>" | "list<ref:session>" | "list<ref:fault>" | "list<ref:place_authorization>" | "list<ref:document>" | "list<ref:paper>" | "rows";
             /** @description `author` — the author of the document; `staff` — a moderator or the admin. */
             fill: components["schemas"]["TemplateFieldFiller"];
             /** @description Key of a field of the target's schema (`/records/:type/schema`); null — not bound. */
@@ -2662,7 +2663,7 @@ export interface components {
             max?: number | null;
             /** @description text, richtext, list<text>. */
             maxLength?: number | null;
-            /** @description list<…>. */
+            /** @description list<…>: items; rows: rows. */
             maxItems?: number | null;
             /** @description enum, list<enum> not bound: key of the dictionary of its values. */
             dictionary?: string | null;
@@ -2737,9 +2738,15 @@ export interface components {
             options: components["schemas"]["PaperFieldOptionDto"][] | null;
             /** @description Key of the record's field it is bound to; once published it shows the record as it is now. */
             binding: string | null;
+            /** @description rows: fields of its columns (filled, changed and printed as the rows); null for other types. */
+            columns: components["schemas"]["PaperFieldDto"][] | null;
             key: string;
             label: string;
-            /** @description `text`, `int`, …, `ref:<record type>`, `list<…>`; `richtext` — a zone on the sheet. */
+            /**
+             * @description `text`, `int`, …, `ref:<record type>`, `list<…>`; `richtext` — a zone on
+             *     the sheet; `rows` — «Повторювані рядки» (value: a list of rows, a row —
+             *     values of `columns` by their keys).
+             */
             type: string;
             required: boolean;
             /** @description May be changed after the document is published. */

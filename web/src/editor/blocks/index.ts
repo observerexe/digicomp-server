@@ -1,6 +1,6 @@
 import type { JSONContent } from '@tiptap/core';
 import type { IconName } from '../../components/Icon';
-import { autoAuthor, autoDate, autoNumber } from './auto';
+import { autoAuthor, autoDate, autoNumber, autoRowNumber } from './auto';
 import { checkbox } from './checkbox';
 import { choice } from './choice';
 import { date } from './date';
@@ -11,6 +11,7 @@ import { number } from './number';
 import { pageBreak } from './pageBreak';
 import { paragraph } from './paragraph';
 import { RECORD_BLOCKS } from './record';
+import { rows } from './rows';
 import { approval, orgHeader, pageFooter, signatures } from './structure';
 import { table } from './table';
 import { zone } from './zone';
@@ -26,7 +27,7 @@ import { zone } from './zone';
  * Groups of the palette; the colour of a group is the colour of its labels on
  * the sheet. `schema` — fields of the template's record (blocks/schema.ts);
  * `auto` — what the document gets by itself (number, day, author);
- * `structure` — the header, «Затверджую», signatures, the footer.
+ * `structure` — the header, «Затверджую», signatures, rows, the footer.
  */
 export type BlockGroup = 'text' | 'field' | 'data' | 'auto' | 'structure' | 'schema';
 
@@ -92,9 +93,11 @@ export const BLOCKS: Block[] = [
   autoNumber,
   autoDate,
   autoAuthor,
+  autoRowNumber,
   orgHeader,
   approval,
   signatures,
+  rows,
   pageFooter,
 ];
 

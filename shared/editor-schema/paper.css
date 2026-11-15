@@ -118,6 +118,11 @@
   min-width: 35mm;
   border-bottom: 1px solid var(--sheet-ink);
 }
+/* «Повторювані рядки»: the cell itself is the place to write by hand — no line in it. */
+.paper .paper-rows .paper-field-blank {
+  min-width: 0;
+  border-bottom: 0;
+}
 
 /*
  * Structure of the sheet (render.ts structureInner: the editor draws the same).

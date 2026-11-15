@@ -4,6 +4,7 @@ import { NodeSelection, Plugin, PluginKey, TextSelection, type EditorState, type
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { conditionHolds, type FieldValues } from '../../../shared/editor-schema/fields';
 import { conditionOfNode } from './conditional';
+import { repeatView, type RowCell, type RowsLook } from './repeat';
 
 /**
  * Template fields on the sheet (shared/editor-schema: `field`, `fieldZone`).
@@ -32,12 +33,14 @@ export type FieldLook = {
 export type FieldsLook = {
   fields: Record<string, FieldLook>;
   zones: Record<string, { label: string; missing: boolean }>;
+  /** «Повторювані рядки» by the key of their `rows` field. */
+  rows: Record<string, RowsLook>;
   active: string | null;
   /** Values of the fields: a conditional block whose condition does not hold is hidden. */
   values: FieldValues;
 };
 
-const EMPTY_LOOK: FieldsLook = { fields: {}, zones: {}, active: null, values: {} };
+const EMPTY_LOOK: FieldsLook = { fields: {}, zones: {}, rows: {}, active: null, values: {} };
 const lookKey = new PluginKey<FieldsLook>('fieldsLook');
 
 /** Classes of a field on the sheet (format.css). */
@@ -205,16 +208,20 @@ function withoutFields(content: Fragment): Fragment {
 /** A field or a zone on the sheet: where it starts and ends. */
 export type FieldTarget = { key: string; from: number; to: number; zone: boolean };
 
-/** Fields and zones the actor fills, in the order of the sheet; not in conditional blocks that are off by `values`. */
+/**
+ * Fields, zones and blocks of rows the actor fills, in the order of the sheet;
+ * not in conditional blocks that are off by `values`.
+ */
 export function fieldTargets(doc: PMNode, fillable: ReadonlySet<string>, values: FieldValues = {}): FieldTarget[] {
   const out: FieldTarget[] = [];
   doc.descendants((n, pos) => {
     if (n.type.name === 'conditional') return conditionHolds(conditionOfNode(n), values);
     const zone = n.type.name === 'fieldZone';
-    if ((zone || n.type.name === 'field') && fillable.has(n.attrs.key as string)) {
+    const rows = n.type.name === 'repeat';
+    if ((zone || rows || n.type.name === 'field') && fillable.has(n.attrs.key as string)) {
       out.push({ key: n.attrs.key as string, from: pos, to: pos + n.nodeSize, zone });
     }
-    return !zone;
+    return !zone && !rows;
   });
   return out;
 }
@@ -243,9 +250,10 @@ function inListOrTable(state: EditorState) {
 }
 
 export type TemplateOptions = LockOptions & {
-  /** Fields and zones the actor fills: Tab goes through them. */
+  /** Fields, zones and rows the actor fills: Tab goes through them. */
   fillable: ReadonlySet<string>;
-  onFieldClick: (key: string) => void;
+  /** A field clicked on the sheet; `cell` — a cell of «Повторювані рядки». */
+  onFieldClick: (key: string, cell?: RowCell) => void;
 };
 
 /**
@@ -292,6 +300,10 @@ export function templateExtension(opts: TemplateOptions) {
                 const key = n.attrs.key as string;
                 if (n.type.name === 'field') {
                   decos.push(Decoration.node(pos, pos + n.nodeSize, {}, { look: look.fields[key], active: look.active === key }));
+                } else if (n.type.name === 'repeat') {
+                  const rows = look.rows[key];
+                  decos.push(Decoration.node(pos, pos + n.nodeSize, {}, { rows: rows && { ...rows, active: look.active === key } }));
+                  return false;
                 } else if (n.type.name === 'conditional') {
                   if (!conditionHolds(conditionOfNode(n), look.values)) decos.push(Decoration.node(pos, pos + n.nodeSize, { class: 'is-off' }));
                 } else if (n.type.name === 'fieldZone') {
@@ -308,6 +320,8 @@ export function templateExtension(opts: TemplateOptions) {
               if (node.type.name === 'field') opts.onFieldClick(node.attrs.key as string);
               return false;
             },
+            // A block of rows is drawn from the values; its clicks open the rows in the panel.
+            nodeViews: { repeat: repeatView((key, cell) => opts.onFieldClick(key, cell)) },
             transformPasted(slice, view) {
               const zone = zoneAtSelection(view.state);
               if (zone === null) return slice;
@@ -329,7 +343,7 @@ export function fieldPosition(editor: Editor, key: string): number | null {
   let at: number | null = null;
   editor.state.doc.descendants((n, pos) => {
     if (at !== null) return false;
-    if ((n.type.name === 'field' || n.type.name === 'fieldZone') && n.attrs.key === key) at = pos;
+    if (['field', 'fieldZone', 'repeat'].includes(n.type.name) && n.attrs.key === key) at = pos;
     return true;
   });
   return at;

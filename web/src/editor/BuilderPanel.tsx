@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon';
 import { useDictionaries } from '../lib/dictionaries';
 import { fieldBlockOf, textBlockOf, type Block, type Palette } from './blocks';
 import { FOOTER_MAX, SIGN_LABEL_MAX, SIGNER_AUTHOR, SIGNER_ORG } from '../../../shared/editor-schema';
+import { FIELD_LIMITS } from '../../../shared/editor-schema/fields';
 import { BLOCK_MIME, type BuilderSelection } from './builder';
 import s from './BuilderPanel.module.css';
 import { isAutoBinding } from './blocks/schema';
@@ -26,6 +27,8 @@ type Props = {
   defs: ReadonlyMap<string, FieldDef>;
   /** Fields on the sheet. */
   fields: readonly FieldDef[];
+  /** Columns of «Повторювані рядки»: the key of their rows field by the column's key. */
+  columns: ReadonlyMap<string, string>;
   kind: TemplateKind;
   schema: RecordSchema | null | undefined;
   onPick: (block: string) => void;
@@ -251,9 +254,13 @@ function Heading({ block, label, hint }: { block: Block | null; label: string; h
   );
 }
 
-function FieldForm({ f, fields, kind, schema, onChange, onRename, onRemoveField }: Props & { f: FieldDef }) {
+function FieldForm({ f, fields, columns, defs, kind, schema, onChange, onRename, onRemoveField }: Props & { f: FieldDef }) {
   const id = useId();
   const block = fieldBlockOf(f.type);
+  // «Повторювані рядки» and their columns: never bound; a column is filled, changed and printed as its rows.
+  const rows = f.type === 'rows';
+  const columnOf = columns.get(f.key);
+  const ownRows = columnOf === undefined ? undefined : defs.get(columnOf);
   const [keyText, setKeyText] = useState(f.key);
   const [label, setLabel] = useState(f.label);
   const taken = new Set(fields.map((x) => x.key));
@@ -329,7 +336,8 @@ function FieldForm({ f, fields, kind, schema, onChange, onRename, onRemoveField 
           </div>
         </div>
       )}
-      {kind !== 'free' && schema && (
+      {ownRows && <p className="hint">Стовпець блоку «{ownRows.label}»: хто заповнює, зміна після публікації й друк — як у блоку.</p>}
+      {kind !== 'free' && schema && !rows && !ownRows && (
         <div className="field">
           <label htmlFor={`${id}-binding`}>Зв’язок із записом</label>
           <select id={`${id}-binding`} value={f.binding ?? ''} onChange={(e) => bind(e.target.value)}>
@@ -362,21 +370,23 @@ function FieldForm({ f, fields, kind, schema, onChange, onRename, onRemoveField 
           {/* Another kind of the field — its limits anew (an integer's bounds are rounded). */}
           <Limits key={f.type} id={id} f={f} onChange={onChange} />
           {isChoice(f.type) && !f.binding && <DictionaryChoice id={`${id}-dict`} value={f.dictionary} onChange={(dictionary) => set({ dictionary })} />}
-          <div className="field">
-            <label htmlFor={`${id}-fill`}>Хто заповнює</label>
-            <select id={`${id}-fill`} value={f.fill} onChange={(e) => set({ fill: e.target.value as FieldDef['fill'] })}>
-              <option value="author">Автор документа</option>
-              <option value="staff">Модератор</option>
-            </select>
-          </div>
-          <Switch label="Обов’язкове" on={f.required} onChange={(required) => set({ required })} />
-          <Switch label="Можна змінити після публікації" on={f.editable} onChange={(editable) => set({ editable })} />
+          {!ownRows && (
+            <div className="field">
+              <label htmlFor={`${id}-fill`}>Хто заповнює</label>
+              <select id={`${id}-fill`} value={f.fill} onChange={(e) => set({ fill: e.target.value as FieldDef['fill'] })}>
+                <option value="author">Автор документа</option>
+                <option value="staff">Модератор</option>
+              </select>
+            </div>
+          )}
+          <Switch label={rows ? 'Хоча б один рядок' : ownRows ? 'Обов’язкове в кожному рядку' : 'Обов’язкове'} on={f.required} onChange={(required) => set({ required })} />
+          {!ownRows && <Switch label="Можна змінити після публікації" on={f.editable} onChange={(editable) => set({ editable })} />}
         </>
       )}
-      <Switch label="Показувати в друці" on={f.print} onChange={(print) => set({ print })} />
+      {!ownRows && <Switch label="Показувати в друці" on={f.print} onChange={(print) => set({ print })} />}
       <button type="button" className={`btn btn-danger ${s.remove}`} onClick={() => onRemoveField(f.key)}>
         <Icon name="trash" size={18} />
-        Видалити поле
+        {rows ? 'Видалити блок' : 'Видалити поле'}
       </button>
     </>
   );
@@ -398,12 +408,23 @@ function Limits({ id, f, onChange }: { id: string; f: FieldDef; onChange: (f: Fi
         <NumberBox id={`${id}-len`} label="Найбільша довжина, знаків" value={f.maxLength} integer positive onChange={(maxLength) => onChange({ ...f, maxLength })} />
       )}
       {isList(f.type) && <NumberBox id={`${id}-items`} label="Найбільше, шт." value={f.maxItems} integer positive onChange={(maxItems) => onChange({ ...f, maxItems })} />}
+      {f.type === 'rows' && (
+        <NumberBox
+          id={`${id}-rows`}
+          label="Найбільше рядків"
+          value={f.maxItems}
+          integer
+          positive
+          placeholder={`до ${FIELD_LIMITS.rowsDefault}`}
+          onChange={(maxItems) => onChange({ ...f, maxItems })}
+        />
+      )}
     </>
   );
 }
 
 /** A number or nothing (no limit); an invalid one is shown, not applied. */
-function NumberBox(props: { id: string; label: string; value: number | null; integer: boolean; positive?: boolean; onChange: (v: number | null) => void }) {
+function NumberBox(props: { id: string; label: string; value: number | null; integer: boolean; positive?: boolean; placeholder?: string; onChange: (v: number | null) => void }) {
   const [raw, setRaw] = useState(props.value === null ? '' : String(props.value).replace('.', ','));
   const parse = (v: string): number | null | undefined => {
     const t = v.trim().replace(',', '.');
@@ -423,7 +444,7 @@ function NumberBox(props: { id: string; label: string; value: number | null; int
         type="text"
         inputMode={props.integer ? 'numeric' : 'decimal'}
         value={raw}
-        placeholder="без меж"
+        placeholder={props.placeholder ?? 'без меж'}
         aria-invalid={bad}
         onChange={(e) => {
           setRaw(e.target.value);

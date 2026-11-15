@@ -32,7 +32,7 @@ import { fieldPosition } from '../../editor/fields';
 import { Ribbon } from '../../editor/Ribbon';
 import { Ruler } from '../../editor/Ruler';
 import { StatusBar, useZoom } from '../../editor/StatusBar';
-import { defsOf, fieldsOf, fieldTag, keysOf, newField, type FieldDef } from '../../editor/template';
+import { columnsOf, defsOf, fieldsOf, fieldTag, keysOf, newField, type FieldDef } from '../../editor/template';
 import { useAutosave, type SaveState } from '../../editor/useAutosave';
 import { usePageStats } from '../../editor/usePageStats';
 import { errorOf } from '../../errors/messages';
@@ -215,7 +215,13 @@ function TemplateBuilder({ template, version, schema, onReload, onTemplate, onPu
     ],
     [],
   );
-  const syncKeys = (k: string[]) => setKeys((prev) => (prev.join() === k.join() ? prev : k));
+  // Columns of «Повторювані рядки»: their «Властивості» follow the block.
+  const [columns, setColumns] = useState<ReadonlyMap<string, string>>(new Map());
+  const syncKeys = (k: string[], doc: Parameters<typeof keysOf>[0]) => {
+    setKeys((prev) => (prev.join() === k.join() ? prev : k));
+    const c = columnsOf(doc);
+    setColumns((prev) => (JSON.stringify([...prev]) === JSON.stringify([...c]) ? prev : c));
+  };
   const editor = useEditor({
     extensions,
     content: version.body,
@@ -223,11 +229,11 @@ function TemplateBuilder({ template, version, schema, onReload, onTemplate, onPu
     // TipTap's own <style> is blocked by CSP; its rules are in format.css and paper.css.
     injectCSS: false,
     editorProps: { attributes: { class: `paper ${s.page}`, 'aria-label': 'Аркуш шаблону' } },
-    onCreate: ({ editor: e }) => syncKeys(keysOf(e.state.doc)),
+    onCreate: ({ editor: e }) => syncKeys(keysOf(e.state.doc), e.state.doc),
     onBlur: () => setMenu(null),
     onUpdate: ({ editor: e }) => {
       const k = keysOf(e.state.doc);
-      syncKeys(k);
+      syncKeys(k, e.state.doc);
       autosave.change({ body: e.getJSON(), fields: fieldsOf(defsRef.current, k) });
     },
   });
@@ -434,6 +440,7 @@ function TemplateBuilder({ template, version, schema, onReload, onTemplate, onPu
             selected={selected}
             defs={defs}
             fields={fields}
+            columns={columns}
             kind={template.kind}
             schema={schema}
             onPick={(block) => actions.current.place(block, selectionRange(editor.state))}

@@ -123,6 +123,22 @@ img.ProseMirror-separator {
   text-indent: 0;
 }
 
+/*
+ * «Повторювані рядки» (repeat.ts). A document: rows drawn from the values, a click opens them in the panel;
+ * no rows yet — one row of the columns' labels. The constructor: the row that repeats — tinted yellow.
+ */
+.paper .paper-rows.is-filling {
+  cursor: pointer;
+}
+.paper .paper-rows.is-active table {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 1px;
+}
+.paper .paper-rows tr.is-repeated > td,
+.paper .paper-rows tr.is-repeated > th {
+  background: color-mix(in srgb, var(--sheet-yellow) 8%, var(--sheet-paper));
+}
+
 /* A conditional block (conditional.ts): off — not in the document, as in the print */
 .paper .paper-if.is-off {
   display: none;

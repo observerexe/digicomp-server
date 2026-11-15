@@ -4,14 +4,15 @@ import { useEditorState } from '@tiptap/react';
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { PaperTemplateRef } from '../api/types';
 import type { RecordView } from '../lib/records';
-import { valueText, type Condition, type FieldValue, type FieldValues, type RecordTitle } from '../../../shared/editor-schema/fields';
+import { ROWS, rowsIn, valueText, type Condition, type FieldValue, type FieldValues, type RecordTitle } from '../../../shared/editor-schema/fields';
 import { conditionsIn } from './conditional';
 import { paperExtensions } from './extensions';
 import type { RibbonLock } from './Ribbon';
-import { fieldPosition, setFieldsLook, zoneAtSelection, zoneTexts, type FieldsLook } from './fields';
-import { fieldControlId, isFilled } from './FieldsPanel';
+import { fieldPosition, setFieldsLook, zoneAtSelection, zoneTexts, type FieldLook, type FieldsLook } from './fields';
+import { cellControlId, fieldControlId, isFilled } from './FieldsPanel';
 import type { MentionMenuState, MentionSuggest } from './mention';
 import { recordKey, type PaperRecords } from './records';
+import type { RowCell } from './repeat';
 
 /**
  * Filling a document: values of fields, texts of zones, the field in focus,
@@ -25,9 +26,25 @@ import { recordKey, type PaperRecords } from './records';
  * record holds (plain text), or grey — when it comes.
  */
 export function lookOf(template: PaperTemplateRef, values: FieldValues, zones: Record<string, string>, active: string | null, title: RecordTitle, published: boolean): FieldsLook {
-  const look: FieldsLook = { fields: {}, zones: {}, active, values };
+  const look: FieldsLook = { fields: {}, zones: {}, rows: {}, active, values };
   for (const f of template.fields) {
     const filled = isFilled(f, values, zones);
+    if (f.type === ROWS) {
+      // A cell reads as a field: its value, or the column's label.
+      const columns = f.columns ?? [];
+      const blank = (required: boolean, label: string): FieldLook => ({
+        text: label,
+        state: f.fill === 'staff' && !f.canFill ? 'staff' : required ? 'missing' : 'empty',
+      });
+      const cell = (c: (typeof columns)[number], v: FieldValue | undefined): FieldLook =>
+        v !== undefined ? { text: valueText(c.type, v, c.options, title), state: 'filled' } : blank(c.required, c.label);
+      look.rows[f.key] = {
+        rows: rowsIn(values[f.key]).map((r) => Object.fromEntries(columns.map((c) => [c.key, cell(c, r[c.key])]))),
+        empty: Object.fromEntries(columns.map((c) => [c.key, blank(f.required, c.label)])),
+        active: false,
+      };
+      continue;
+    }
     if (f.auto && f.type !== 'richtext') {
       const v = values[f.key];
       look.fields[f.key] =
@@ -75,9 +92,10 @@ export function useFill({ template, values: initial, refs, editable, published =
   useEffect(() => {
     show.current = showControls;
   });
-  const openField = useRef((key: string) => {
+  const openField = useRef((key: string, cell?: RowCell) => {
     setActive(key);
-    const focus = () => document.getElementById(fieldControlId(key))?.focus();
+    const id = cell ? cellControlId(key, cell.row, cell.column) : fieldControlId(key);
+    const focus = () => document.getElementById(id)?.focus();
     if (show.current?.()) requestAnimationFrame(focus);
     else focus();
   });
@@ -131,7 +149,7 @@ export function useFill({ template, values: initial, refs, editable, published =
             plain,
             locked,
             fillable: new Set(template.fields.filter((f) => f.canFill).map((f) => f.key)),
-            onFieldClick: (key) => openField.current(key),
+            onFieldClick: (key, cell) => openField.current(key, cell),
           }
         : undefined,
       mention: {

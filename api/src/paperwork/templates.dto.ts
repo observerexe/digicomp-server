@@ -21,16 +21,16 @@ import { NOT_BLANK } from '../points/dto';
 import {
   FIELD_TYPES,
   RECORD_TYPES,
-  type FieldType,
   type RecordType,
 } from '../records/field-types';
-import { FIELD_KEY, IsPaperContent, type PaperContent } from './content';
+import { FIELD_KEY, IsPaperContent, ROWS, type PaperContent } from './content';
 import { PaperVisibility } from './paper.entity';
 import { TemplateCreators, TemplateKind } from './template.entities';
 import {
   FIELD_FILLERS,
   TEMPLATE_LIMITS,
   type FieldFiller,
+  type TemplateFieldType,
 } from './template-fields';
 
 /** Capital letters (Latin or Cyrillic) and digits: «ТЗ», «ВБ». */
@@ -48,10 +48,13 @@ export class TemplateFieldDto {
   @MaxLength(100)
   label: string;
 
-  /** `text`, `richtext`, `int`, …, `ref:<record type>` or `list<…>` of one of them. */
+  /**
+   * `text`, `richtext`, `int`, …, `ref:<record type>`, `list<…>` of one of them,
+   * or `rows` («Повторювані рядки»: its columns — fields of its repeated row).
+   */
   @ApiProperty({ type: String })
-  @IsIn(FIELD_TYPES)
-  type: FieldType;
+  @IsIn([...FIELD_TYPES, ROWS])
+  type: TemplateFieldType;
 
   @IsBoolean()
   required: boolean;
@@ -99,7 +102,7 @@ export class TemplateFieldDto {
   @Max(TEMPLATE_LIMITS.textMax)
   maxLength?: number | null;
 
-  /** list<…>. */
+  /** list<…>: items; rows: rows. */
   @ApiPropertyOptional({ type: Number, nullable: true })
   @IsOptional()
   @IsInt()
