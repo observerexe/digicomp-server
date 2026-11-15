@@ -9,7 +9,9 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from '../users/user.entity';
-import type { PaperContent } from './content';
+import type { FieldValues, PaperContent } from './content';
+// Type only: template.entities imports this file (by name below, no cycle at load).
+import type { PaperTemplateVersion } from './template.entities';
 
 /** Lifecycle of a document; the same for every document. */
 export enum PaperStatus {
@@ -53,6 +55,21 @@ export class Paper {
     default: PaperVisibility.Author,
   })
   visibility: PaperVisibility;
+
+  /** The template version the document is made from; null — a free document. */
+  @Column({ name: 'template_version_id', type: 'uuid', nullable: true })
+  templateVersionId: string | null;
+
+  @ManyToOne('PaperTemplateVersion', {
+    onDelete: 'RESTRICT',
+    nullable: true,
+  })
+  @JoinColumn({ name: 'template_version_id' })
+  templateVersion?: PaperTemplateVersion | null;
+
+  /** Values of the template's fields by key (zones live in `content`). */
+  @Column({ type: 'jsonb', default: {} })
+  values: FieldValues;
 
   /** Grows with every change; a save with an older one is a conflict. */
   @Column({ type: 'int', default: 1 })

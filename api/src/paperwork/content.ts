@@ -4,8 +4,11 @@ import { checkContent } from '../../../shared/editor-schema';
 export {
   CONTENT_LIMITS,
   EMPTY_CONTENT,
+  FIELD_KEY,
   type PaperContent,
+  type PaperNode,
 } from '../../../shared/editor-schema';
+export * from '../../../shared/editor-schema/fields';
 
 /**
  * DTO check: a document of the shared editor schema

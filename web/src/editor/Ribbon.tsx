@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode 
 import { COLORS, DEFAULT_FONT_SIZE, FONT_SIZES, HEADING_LEVELS, type Align, type FontName, type FontSize, type TextColor } from '../../../shared/editor-schema';
 import { Icon, type IconName } from '../components/Icon';
 import { PALETTE } from '../lib/palette';
+import { useDropdown } from '../lib/useDropdown';
 import s from './Ribbon.module.css';
 
 /**
@@ -61,7 +62,8 @@ function useFormatState(editor: Editor) {
   });
 }
 
-export function Ribbon({ editor }: { editor: Editor }) {
+/** `lock` — why formatting does not apply where the cursor is (a document from a template); null — it does. */
+export function Ribbon({ editor, lock = null }: { editor: Editor; lock?: string | null }) {
   const [tab, setTab] = useState<Tab>('home');
   const id = useId();
   const f = useFormatState(editor);
@@ -95,109 +97,116 @@ export function Ribbon({ editor }: { editor: Editor }) {
         ))}
       </div>
       <div id={`${id}-panel`} role="tabpanel" aria-labelledby={`${id}-${tab}`} className={s.panel}>
-        {tab === 'home' ? (
-          <>
-            <Group label="Історія">
-              <IconButton icon="undo" label="Скасувати (Ctrl+Z)" disabled={!f.canUndo} onClick={() => run().undo().run()} />
-              <IconButton icon="redo" label="Повторити (Ctrl+Y)" disabled={!f.canRedo} onClick={() => run().redo().run()} />
-            </Group>
-            <Group label="Стиль і шрифт">
-              <select
-                className={`${s.select} ${s.style}`}
-                aria-label="Стиль абзацу"
-                value={f.level ?? 0}
-                onChange={(e) => {
-                  const level = Number(e.target.value) as 0 | (typeof HEADING_LEVELS)[number];
-                  if (level) run().setHeading({ level }).run();
-                  else run().setParagraph().run();
-                }}
-              >
-                <option value={0}>Звичайний</option>
-                {HEADING_LEVELS.map((l) => (
-                  <option key={l} value={l}>
-                    Заголовок {l}
-                  </option>
-                ))}
-              </select>
-              <select
-                className={`${s.select} ${s.font}`}
-                aria-label="Шрифт"
-                value={f.font}
-                onChange={(e) =>
-                  run()
-                    .setFont(e.target.value === 'serif' ? null : (e.target.value as FontName))
-                    .run()
-                }
-              >
-                {(Object.keys(FONT_LABEL) as FontName[]).map((k) => (
-                  <option key={k} value={k}>
-                    {FONT_LABEL[k]}
-                  </option>
-                ))}
-              </select>
-              <select
-                className={`${s.select} ${s.size}`}
-                aria-label="Розмір шрифту, пт"
-                value={f.size}
-                onChange={(e) => {
-                  const size = Number(e.target.value) as FontSize;
-                  const own = f.level ? HEADING_SIZE[f.level] : DEFAULT_FONT_SIZE;
-                  // The block's own size is kept as no size: the document stays free of needless classes.
-                  run()
-                    .setFontSize(size === own ? null : size)
-                    .run();
-                }}
-              >
-                {FONT_SIZES.map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </Group>
-            <Group label="Накреслення">
-              <LetterButton letter="Ж" label="Жирний (Ctrl+B)" active={f.bold} className={s.bold} onClick={() => run().toggleBold().run()} />
-              <LetterButton letter="К" label="Курсив (Ctrl+I)" active={f.italic} className={s.italic} onClick={() => run().toggleItalic().run()} />
-              <LetterButton letter="П" label="Підкреслений (Ctrl+U)" active={f.underline} className={s.underline} onClick={() => run().toggleUnderline().run()} />
-              <LetterButton letter="З" label="Закреслений" active={f.strike} className={s.strike} onClick={() => run().toggleStrike().run()} />
-              <ColorButton color={f.color} onPick={(c) => run().setTextColor(c).run()} />
-            </Group>
-            <Group label="Абзац">
-              {ALIGN_BUTTONS.map((a) => (
-                <IconButton key={a.label} icon={a.icon} label={a.label} active={f.align === a.value} onClick={() => run().setAlign(a.value).run()} />
-              ))}
-            </Group>
-            <Group label="Списки й відступи">
-              <IconButton icon="listBullet" label="Маркований список" active={f.bulletList} onClick={() => run().toggleBulletList().run()} />
-              <IconButton icon="listOrdered" label="Нумерований список" active={f.orderedList} onClick={() => run().toggleOrderedList().run()} />
-              <IconButton icon="outdent" label="Зменшити відступ" onClick={() => run().outdent().run()} />
-              <IconButton icon="indent" label="Збільшити відступ" onClick={() => run().indent().run()} />
-            </Group>
-          </>
-        ) : (
-          <>
-            <Group label="Вставити">
-              <TablePicker onPick={(rows, cols) => run().insertTable({ rows, cols, withHeaderRow: false }).run()} />
-              <button type="button" className={s.wide} onMouseDown={keepFocus} onClick={() => run().setPageBreak().run()}>
-                <Icon name="pageBreak" size={20} />
-                Розрив сторінки
-              </button>
-            </Group>
-            {f.inTable && (
-              <Group label="Таблиця">
-                <TextButton onClick={() => run().addRowBefore().run()}>Рядок вище</TextButton>
-                <TextButton onClick={() => run().addRowAfter().run()}>Рядок нижче</TextButton>
-                <TextButton onClick={() => run().addColumnBefore().run()}>Стовпець ліворуч</TextButton>
-                <TextButton onClick={() => run().addColumnAfter().run()}>Стовпець праворуч</TextButton>
-                {f.canMerge && <TextButton onClick={() => run().mergeCells().run()}>Об&apos;єднати клітинки</TextButton>}
-                {!f.canMerge && f.canSplit && <TextButton onClick={() => run().splitCell().run()}>Розділити клітинку</TextButton>}
-                <TextButton onClick={() => run().deleteRow().run()}>Видалити рядок</TextButton>
-                <TextButton onClick={() => run().deleteColumn().run()}>Видалити стовпець</TextButton>
-                <TextButton onClick={() => run().deleteTable().run()}>Видалити таблицю</TextButton>
-              </Group>
-            )}
-          </>
+        {lock && (
+          <p className={s.lock} role="status">
+            {lock}
+          </p>
         )}
+        <fieldset className={s.controls} disabled={!!lock}>
+          {tab === 'home' ? (
+            <>
+              <Group label="Історія">
+                <IconButton icon="undo" label="Скасувати (Ctrl+Z)" disabled={!f.canUndo} onClick={() => run().undo().run()} />
+                <IconButton icon="redo" label="Повторити (Ctrl+Y)" disabled={!f.canRedo} onClick={() => run().redo().run()} />
+              </Group>
+              <Group label="Стиль і шрифт">
+                <select
+                  className={`${s.select} ${s.style}`}
+                  aria-label="Стиль абзацу"
+                  value={f.level ?? 0}
+                  onChange={(e) => {
+                    const level = Number(e.target.value) as 0 | (typeof HEADING_LEVELS)[number];
+                    if (level) run().setHeading({ level }).run();
+                    else run().setParagraph().run();
+                  }}
+                >
+                  <option value={0}>Звичайний</option>
+                  {HEADING_LEVELS.map((l) => (
+                    <option key={l} value={l}>
+                      Заголовок {l}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className={`${s.select} ${s.font}`}
+                  aria-label="Шрифт"
+                  value={f.font}
+                  onChange={(e) =>
+                    run()
+                      .setFont(e.target.value === 'serif' ? null : (e.target.value as FontName))
+                      .run()
+                  }
+                >
+                  {(Object.keys(FONT_LABEL) as FontName[]).map((k) => (
+                    <option key={k} value={k}>
+                      {FONT_LABEL[k]}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className={`${s.select} ${s.size}`}
+                  aria-label="Розмір шрифту, пт"
+                  value={f.size}
+                  onChange={(e) => {
+                    const size = Number(e.target.value) as FontSize;
+                    const own = f.level ? HEADING_SIZE[f.level] : DEFAULT_FONT_SIZE;
+                    // The block's own size is kept as no size: the document stays free of needless classes.
+                    run()
+                      .setFontSize(size === own ? null : size)
+                      .run();
+                  }}
+                >
+                  {FONT_SIZES.map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </Group>
+              <Group label="Накреслення">
+                <LetterButton letter="Ж" label="Жирний (Ctrl+B)" active={f.bold} className={s.bold} onClick={() => run().toggleBold().run()} />
+                <LetterButton letter="К" label="Курсив (Ctrl+I)" active={f.italic} className={s.italic} onClick={() => run().toggleItalic().run()} />
+                <LetterButton letter="П" label="Підкреслений (Ctrl+U)" active={f.underline} className={s.underline} onClick={() => run().toggleUnderline().run()} />
+                <LetterButton letter="З" label="Закреслений" active={f.strike} className={s.strike} onClick={() => run().toggleStrike().run()} />
+                <ColorButton color={f.color} onPick={(c) => run().setTextColor(c).run()} />
+              </Group>
+              <Group label="Абзац">
+                {ALIGN_BUTTONS.map((a) => (
+                  <IconButton key={a.label} icon={a.icon} label={a.label} active={f.align === a.value} onClick={() => run().setAlign(a.value).run()} />
+                ))}
+              </Group>
+              <Group label="Списки й відступи">
+                <IconButton icon="listBullet" label="Маркований список" active={f.bulletList} onClick={() => run().toggleBulletList().run()} />
+                <IconButton icon="listOrdered" label="Нумерований список" active={f.orderedList} onClick={() => run().toggleOrderedList().run()} />
+                <IconButton icon="outdent" label="Зменшити відступ" onClick={() => run().outdent().run()} />
+                <IconButton icon="indent" label="Збільшити відступ" onClick={() => run().indent().run()} />
+              </Group>
+            </>
+          ) : (
+            <>
+              <Group label="Вставити">
+                <TablePicker onPick={(rows, cols) => run().insertTable({ rows, cols, withHeaderRow: false }).run()} />
+                <button type="button" className={s.wide} onMouseDown={keepFocus} onClick={() => run().setPageBreak().run()}>
+                  <Icon name="pageBreak" size={20} />
+                  Розрив сторінки
+                </button>
+              </Group>
+              {f.inTable && (
+                <Group label="Таблиця">
+                  <TextButton onClick={() => run().addRowBefore().run()}>Рядок вище</TextButton>
+                  <TextButton onClick={() => run().addRowAfter().run()}>Рядок нижче</TextButton>
+                  <TextButton onClick={() => run().addColumnBefore().run()}>Стовпець ліворуч</TextButton>
+                  <TextButton onClick={() => run().addColumnAfter().run()}>Стовпець праворуч</TextButton>
+                  {f.canMerge && <TextButton onClick={() => run().mergeCells().run()}>Об&apos;єднати клітинки</TextButton>}
+                  {!f.canMerge && f.canSplit && <TextButton onClick={() => run().splitCell().run()}>Розділити клітинку</TextButton>}
+                  <TextButton onClick={() => run().deleteRow().run()}>Видалити рядок</TextButton>
+                  <TextButton onClick={() => run().deleteColumn().run()}>Видалити стовпець</TextButton>
+                  <TextButton onClick={() => run().deleteTable().run()}>Видалити таблицю</TextButton>
+                </Group>
+              )}
+            </>
+          )}
+        </fieldset>
       </div>
     </div>
   );
@@ -253,25 +262,6 @@ function TextButton({ children, onClick }: { children: ReactNode; onClick: () =>
       {children}
     </button>
   );
-}
-
-/** A button with a drop-down: closes on Escape, on a click outside and after a choice. */
-function useDropdown() {
-  const [open, setOpen] = useState(false);
-  const root = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const outside = (e: MouseEvent) => !root.current?.contains(e.target as Node) && setOpen(false);
-    document.addEventListener('mousedown', outside);
-    return () => document.removeEventListener('mousedown', outside);
-  }, [open]);
-  const onKeyDown = (e: KeyboardEvent) => {
-    if (e.key !== 'Escape' || !open) return;
-    e.stopPropagation();
-    setOpen(false);
-    root.current?.querySelector<HTMLButtonElement>('[aria-haspopup]')?.focus();
-  };
-  return { open, setOpen, root, onKeyDown };
 }
 
 function ColorButton({ color, onPick }: { color: TextColor | null; onPick: (c: TextColor | null) => void }) {

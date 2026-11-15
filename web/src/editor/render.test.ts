@@ -66,6 +66,14 @@ const CASES: [string, PaperContent][] = [
     }),
   ],
   ['розрив сторінки', doc(p([text('до')]), { type: 'pageBreak' }, p([text('після')]))],
+  [
+    'поля й зона шаблону',
+    doc(p([text('Ім’я: '), { type: 'field', attrs: { key: 'name' } }, text(', бали: '), { type: 'field', attrs: { key: 'points_2' }, marks: [bold] }]), {
+      type: 'fieldZone',
+      attrs: { key: 'goal' },
+      content: [p([text('Мета', [italic])]), { type: 'bulletList', content: [li(p([text('пункт')]))] }],
+    }),
+  ],
 ];
 
 describe('Рендер друку = HTML редактора', () => {

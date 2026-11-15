@@ -4995,6 +4995,47 @@
         ]
       }
     },
+    "/api/papers/{id}/copy": {
+      "post": {
+        "operationId": "PaperworkController_copy",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CopyPaperDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "A copy of a document the actor sees: its own draft, same template version.",
+        "tags": [
+          "Paperwork"
+        ]
+      }
+    },
     "/api/papers/{id}": {
       "get": {
         "operationId": "PaperworkController_get",
@@ -10216,15 +10257,153 @@
         "properties": {
           "content": {
             "type": "object",
-            "description": "ProseMirror document; without it — one empty paragraph.",
+            "description": "ProseMirror document; without it — one empty paragraph. Not with `templateId`.",
             "additionalProperties": true
           },
           "title": {
             "type": "string",
-            "description": "Without a title — «Без назви».",
+            "description": "Without a title — «Без назви» (from a template — its title).",
             "maxLength": 200
+          },
+          "templateId": {
+            "type": "string",
+            "description": "Make the document from the template's current version (its body, its fields).",
+            "format": "uuid"
           }
         }
+      },
+      "PaperFieldOptionDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "Stays where already chosen; not offered."
+          }
+        },
+        "required": [
+          "key",
+          "label"
+        ]
+      },
+      "PaperFieldDto": {
+        "type": "object",
+        "properties": {
+          "fill": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TemplateFieldFiller"
+              }
+            ]
+          },
+          "min": {
+            "type": "number",
+            "nullable": true,
+            "description": "Limits: the template's and the bound field's of the record, the tighter."
+          },
+          "max": {
+            "type": "number",
+            "nullable": true
+          },
+          "maxLength": {
+            "type": "number",
+            "nullable": true
+          },
+          "maxItems": {
+            "type": "number",
+            "nullable": true
+          },
+          "scale": {
+            "type": "number",
+            "nullable": true,
+            "description": "decimal: digits after the point (null — 2)."
+          },
+          "options": {
+            "nullable": true,
+            "description": "enum, list<enum>: the choices in order; null for other types.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaperFieldOptionDto"
+            }
+          },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "description": "`text`, `int`, …, `ref:<record type>`, `list<…>`; `richtext` — a zone on the sheet."
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "editable": {
+            "type": "boolean",
+            "description": "May be changed after the document is published."
+          },
+          "print": {
+            "type": "boolean",
+            "description": "Shown in the print."
+          },
+          "plain": {
+            "type": "boolean",
+            "description": "A zone of plain paragraphs (bound to a text field of the record)."
+          },
+          "canFill": {
+            "type": "boolean",
+            "description": "The actor may fill it now."
+          }
+        },
+        "required": [
+          "fill",
+          "min",
+          "max",
+          "maxLength",
+          "maxItems",
+          "scale",
+          "options",
+          "key",
+          "label",
+          "type",
+          "required",
+          "editable",
+          "print",
+          "plain",
+          "canFill"
+        ]
+      },
+      "PaperTemplateRefDto": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaperFieldDto"
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "version": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "fields",
+          "id",
+          "title",
+          "version"
+        ]
       },
       "PaperDto": {
         "type": "object",
@@ -10247,6 +10426,21 @@
             "type": "object",
             "description": "ProseMirror document.",
             "additionalProperties": true
+          },
+          "values": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Values of the template's fields by key."
+          },
+          "template": {
+            "nullable": true,
+            "description": "null — a free document.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperTemplateRefDto"
+              }
+            ]
           },
           "canEdit": {
             "type": "boolean",
@@ -10278,6 +10472,8 @@
           "status",
           "visibility",
           "content",
+          "values",
+          "template",
           "canEdit",
           "id",
           "title",
@@ -10287,12 +10483,38 @@
           "updatedAt"
         ]
       },
+      "CopyPaperDto": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "values": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Field key → value; keys left out are emptied"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "content"
+        ]
+      },
       "UpdatePaperDto": {
         "type": "object",
         "properties": {
           "content": {
             "type": "object",
             "additionalProperties": true
+          },
+          "values": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Field key → value; keys left out are emptied"
           },
           "revision": {
             "type": "number",

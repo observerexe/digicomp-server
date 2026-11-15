@@ -1,4 +1,10 @@
 import type { FieldSchema, FieldType } from '../records/field-types';
+import {
+  isPlainZone,
+  walkNodes,
+  type PaperContent,
+  type PaperNode,
+} from './content';
 import type { PublishedSchema } from '../records/records.registry';
 import { TemplateKind } from './template.entities';
 
@@ -161,4 +167,39 @@ export function fieldDictionaries(fields: TemplateField[]): string[] {
   return [
     ...new Set(fields.flatMap((f) => (f.dictionary ? [f.dictionary] : []))),
   ];
+}
+
+/**
+ * The body and the fields agree: every field is in the body; a free zone
+ * (`richtext`) — once, as a zone, the rest — as inline fields (any number
+ * of times); no unknown keys; nothing of a field inside a zone; a zone
+ * bound to a text field starts as plain paragraphs.
+ */
+export function bodyProblem(
+  body: PaperContent,
+  fields: TemplateField[],
+): FieldProblem | null {
+  const byKey = new Map(fields.map((f) => [f.key, f]));
+  const seen = new Set<string>();
+  let problem = null as FieldProblem | null;
+  walkNodes(body, (n: PaperNode, insideZone) => {
+    if (problem || (n.type !== 'field' && n.type !== 'fieldZone')) return;
+    const key = n.attrs?.key as string;
+    const f = byKey.get(key);
+    const zone = n.type === 'fieldZone';
+    if (
+      !f ||
+      insideZone ||
+      zone !== (f.type === 'richtext') ||
+      (zone && seen.has(key)) ||
+      (zone && f.binding !== null && !isPlainZone(n))
+    ) {
+      problem = { field: key };
+      return;
+    }
+    seen.add(key);
+  });
+  if (problem) return problem;
+  const missing = fields.find((f) => !seen.has(f.key));
+  return missing ? { field: missing.key } : null;
 }

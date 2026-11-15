@@ -30,14 +30,15 @@ export class PaperworkModule implements OnModuleInit {
   constructor(
     private dictionaries: DictionaryUsageRegistry,
     private templates: TemplatesService,
+    private papers: PaperworkService,
   ) {}
 
   onModuleInit() {
-    // A dictionary a published template takes values from stays. Item
-    // values come with documents made from templates.
+    // A dictionary a published template takes values from stays; an item
+    // a document holds in a field stays too.
     this.dictionaries.register({
       dictionaries: (m) => this.templates.usedDictionaries(m),
-      countItem: () => Promise.resolve(0),
+      countItem: (d, item, m) => this.papers.countItem(m, d, item),
     });
   }
 }

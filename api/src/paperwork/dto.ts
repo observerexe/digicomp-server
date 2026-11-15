@@ -1,11 +1,13 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEnum,
   IsIn,
   IsInt,
   IsNumberString,
+  IsObject,
   IsOptional,
   IsString,
+  IsUUID,
   Matches,
   MaxLength,
   Min,
@@ -14,19 +16,49 @@ import { NOT_BLANK } from '../points/dto';
 import { IsPaperContent, type PaperContent } from './content';
 import { PaperVisibility } from './paper.entity';
 
+/** Field key → value (null or left out — empty). */
+const VALUES = {
+  type: 'object',
+  additionalProperties: true,
+  description: 'Field key → value; keys left out are emptied',
+} as const;
+
 export class CreatePaperDto {
-  /** Without a title — «Без назви». */
+  /** Without a title — «Без назви» (from a template — its title). */
   @IsOptional()
   @IsString()
   @Matches(NOT_BLANK)
   @MaxLength(200)
   title?: string;
 
-  /** ProseMirror document; without it — one empty paragraph. */
+  /** ProseMirror document; without it — one empty paragraph. Not with `templateId`. */
   @ApiPropertyOptional({ type: 'object', additionalProperties: true })
   @IsOptional()
   @IsPaperContent()
   content?: PaperContent;
+
+  /** Make the document from the template's current version (its body, its fields). */
+  @IsOptional()
+  @IsUUID()
+  templateId?: string;
+}
+
+/** A copy of a document: same template version, the given text and values. */
+export class CopyPaperDto {
+  @IsOptional()
+  @IsString()
+  @Matches(NOT_BLANK)
+  @MaxLength(200)
+  title?: string;
+
+  @ApiProperty({ type: 'object', additionalProperties: true })
+  @IsPaperContent()
+  content: PaperContent;
+
+  @ApiPropertyOptional(VALUES)
+  @IsOptional()
+  @IsObject()
+  values?: Record<string, unknown>;
 }
 
 /** Only the given fields change. */
@@ -46,6 +78,12 @@ export class UpdatePaperDto {
   @IsOptional()
   @IsPaperContent()
   content?: PaperContent;
+
+  /** All values of the template's fields (keys left out are emptied). */
+  @ApiPropertyOptional(VALUES)
+  @IsOptional()
+  @IsObject()
+  values?: Record<string, unknown>;
 
   /** Staff only. Takes effect once the document is published. */
   @IsOptional()

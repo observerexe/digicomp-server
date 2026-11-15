@@ -56,6 +56,28 @@ const body = (text: string) => ({
   type: 'doc',
   content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
 });
+/** A body with every field: a line «label: [field]» each, a zone for `richtext`. */
+const form = (title: string, fields: Field[]) => ({
+  type: 'doc',
+  content: [
+    { type: 'paragraph', content: [{ type: 'text', text: title }] },
+    ...fields.map((f) =>
+      f.type === 'richtext'
+        ? {
+            type: 'fieldZone',
+            attrs: { key: f.key },
+            content: [{ type: 'paragraph' }],
+          }
+        : {
+            type: 'paragraph',
+            content: [
+              { type: 'text', text: `${f.label as string}: ` },
+              { type: 'field', attrs: { key: f.key } },
+            ],
+          },
+    ),
+  ],
+});
 
 describe('Шаблони документів (e2e)', () => {
   let app: INestApplication<App>;
@@ -97,7 +119,7 @@ describe('Шаблони документів (e2e)', () => {
     await save(mod, t.id, 1, {
       revision: 1,
       fields: TASK_FIELDS,
-      body: body('ТЗ'),
+      body: form('ТЗ', TASK_FIELDS),
     }).expect(200);
     await publish(mod, t.id, 1).expect(201);
     return t;
@@ -309,7 +331,7 @@ describe('Шаблони документів (e2e)', () => {
       expect(v2).toMatchObject({
         number: 2,
         publishedAt: null,
-        body: body('ТЗ'),
+        body: form('ТЗ', TASK_FIELDS),
       });
       expect(v2.fields!.map((f) => f.key)).toEqual(['title', 'points']);
       expect(
@@ -318,14 +340,97 @@ describe('Шаблони документів (e2e)', () => {
             .body as Version
         ).number,
       ).toBe(2);
-      await save(mod, t.id, 2, { revision: 1, body: body('ТЗ v2') }).expect(
-        200,
-      );
+      await save(mod, t.id, 2, {
+        revision: 1,
+        body: form('ТЗ v2', TASK_FIELDS),
+      }).expect(200);
       await publish(mod, t.id, 2).expect(201);
       const got = (await as(app, mod).get(`${T}/${t.id}`).expect(200))
         .body as Template;
       expect(got.currentVersion).toBe(2);
       expect(got.versions!.map((v) => v.number)).toEqual([2, 1]);
+    });
+
+    it('тіло звіряється з полями: кожне поле в тілі, зона — для richtext і одна, без невідомих ключів', async () => {
+      const t = await create(mod, { title: 'x', kind: 'free' });
+      const fields = [field('name'), field('goal', { type: 'richtext' })];
+      const cases: [unknown, string][] = [
+        // Поля «goal» у тілі немає.
+        [form('x', [fields[0]]), 'goal'],
+        // Невідомий ключ.
+        [form('x', [...fields, field('ghost')]), 'ghost'],
+        // richtext — не вбудоване поле.
+        [form('x', [fields[0], { ...fields[1], type: 'text' }]), 'goal'],
+        // Звичайне поле — не зона.
+        [form('x', [{ ...fields[0], type: 'richtext' }, fields[1]]), 'name'],
+        // Зона двічі.
+        [form('x', [...fields, fields[1]]), 'goal'],
+        // Поле всередині зони.
+        [
+          {
+            type: 'doc',
+            content: [
+              {
+                type: 'fieldZone',
+                attrs: { key: 'goal' },
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [{ type: 'field', attrs: { key: 'name' } }],
+                  },
+                ],
+              },
+            ],
+          },
+          'name',
+        ],
+      ];
+      let revision = 1;
+      for (const [b, key] of cases) {
+        revision = (
+          await save(mod, t.id, 1, { revision, fields, body: b }).expect(200)
+        ).body.revision;
+        expect((await publish(mod, t.id, 1).expect(400)).body).toMatchObject({
+          errorCode: 'TEMPLATE_FIELD_INVALID',
+          field: key,
+        });
+      }
+      // Поле може стояти в тілі кілька разів.
+      await save(mod, t.id, 1, {
+        revision,
+        fields,
+        body: form('x', [fields[0], ...fields]),
+      }).expect(200);
+      await publish(mod, t.id, 1).expect(201);
+    });
+
+    it('зона, прив’язана до текстового поля запису, починається простими абзацами', async () => {
+      const t = await create(mod, {
+        title: 'x',
+        kind: 'creates',
+        target: 'task',
+      });
+      const fields = [
+        ...TASK_FIELDS,
+        field('goal', { type: 'richtext', binding: 'description' }),
+      ];
+      const b = form('ТЗ', fields);
+      const zone = b.content[b.content.length - 1] as { content: unknown[] };
+      zone.content = [
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'а', marks: [{ type: 'bold' }] }],
+        },
+      ];
+      await save(mod, t.id, 1, { revision: 1, fields, body: b }).expect(200);
+      expect((await publish(mod, t.id, 1).expect(400)).body).toMatchObject({
+        field: 'goal',
+      });
+      zone.content = [
+        { type: 'paragraph', content: [{ type: 'text', text: 'а' }] },
+      ];
+      await save(mod, t.id, 1, { revision: 2, body: b }).expect(200);
+      await publish(mod, t.id, 1).expect(201);
     });
 
     it('без потрібного поля запису — TEMPLATE_FIELD_INVALID з ключем поля запису', async () => {
@@ -381,9 +486,11 @@ describe('Шаблони документів (e2e)', () => {
       expect((await publish(mod, t.id, 1).expect(400)).body).toMatchObject({
         field: 'level',
       });
+      const level = [field('level', { type: 'enum', dictionary: dict.key })];
       await save(mod, t.id, 1, {
         revision: 2,
-        fields: [field('level', { type: 'enum', dictionary: dict.key })],
+        fields: level,
+        body: form('x', level),
       }).expect(200);
       await publish(mod, t.id, 1).expect(201);
       const res = await as(app, mod)
@@ -412,12 +519,14 @@ describe('Шаблони документів (e2e)', () => {
         kind: 'creates',
         target: 'task',
       });
+      const v1 = [
+        ...TASK_FIELDS,
+        field('kind', { type: 'enum', binding: def.key }),
+      ];
       await save(mod, t.id, 1, {
         revision: 1,
-        fields: [
-          ...TASK_FIELDS,
-          field('kind', { type: 'enum', binding: def.key }),
-        ],
+        fields: v1,
+        body: form('ТЗ', v1),
       }).expect(200);
       await publish(mod, t.id, 1).expect(201);
 
@@ -445,6 +554,7 @@ describe('Шаблони документів (e2e)', () => {
       await save(mod, t.id, 2, {
         revision: v2.revision,
         fields: TASK_FIELDS,
+        body: form('ТЗ', TASK_FIELDS),
       }).expect(200);
       await publish(mod, t.id, 2).expect(201);
       expect(

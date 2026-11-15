@@ -54,3 +54,6 @@ export type AccessScope = S['AccessScope'];
 export type Paper = S['PaperDto'];
 export type PaperItem = S['PaperItemDto'];
 export type PaperStatus = S['PaperStatus'];
+export type PaperField = S['PaperFieldDto'];
+export type PaperTemplateRef = S['PaperTemplateRefDto'];
+export type TemplateItem = S['TemplateItemDto'];

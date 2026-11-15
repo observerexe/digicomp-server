@@ -86,6 +86,50 @@
   line-height: 18px;
 }
 
+/* «Новий документ»: empty or from a template */
+.newPaper {
+  position: relative;
+}
+.newPaper > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.menu {
+  position: absolute;
+  right: 0;
+  z-index: 10;
+  min-width: 260px;
+  max-height: 60vh;
+  overflow: auto;
+  margin: 6px 0 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-card);
+  background: var(--c-surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+}
+.menu button {
+  display: grid;
+  width: 100%;
+  min-height: var(--size-touch-min);
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--c-text);
+  text-align: left;
+  cursor: pointer;
+}
+.menu button:hover:not(:disabled) {
+  background: var(--c-surface2);
+}
+.menu button:disabled {
+  color: var(--c-text2);
+  cursor: default;
+}
+
 /* Document: the whole window, like a word processor (no sidebar) */
 .editor {
   display: flex;
@@ -226,6 +270,13 @@
   gap: 8px;
 }
 
+/* The desk and, for a document from a template, the «Поля» panel to its right */
+.work {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
 /* The desk and the A4 sheet: 210 mm wide, margins 20/10/20/30 mm (ДСТУ 4163:2020) */
 .desk {
   flex: 1;
@@ -259,6 +310,9 @@
   padding-top: 24px;
 }
 @media (max-width: 899px) {
+  .work {
+    flex-direction: column;
+  }
   .paperWrap {
     width: auto;
     padding: 12px;

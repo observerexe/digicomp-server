@@ -99,8 +99,12 @@ export type NodeRule = {
   children?: readonly string[];
 };
 
-const BLOCKS = ['paragraph', 'heading', 'bulletList', 'orderedList', 'table', 'pageBreak'] as const;
-const INLINE = ['text', 'hardBreak'] as const;
+const BLOCKS = ['paragraph', 'heading', 'bulletList', 'orderedList', 'table', 'pageBreak', 'fieldZone'] as const;
+const INLINE = ['text', 'hardBreak', 'field'] as const;
+
+/** Key of a template field: Latin, starts with a small letter (`title`, `goal_2`). */
+export const FIELD_KEY = /^[a-z][a-zA-Z0-9_]{0,39}$/;
+const fieldKey: AttrRule = { default: null, valid: (v) => typeof v === 'string' && FIELD_KEY.test(v) };
 
 export const NODES: Record<string, NodeRule> = {
   doc: { attrs: {}, children: BLOCKS },
@@ -119,6 +123,10 @@ export const NODES: Record<string, NodeRule> = {
   tableCell: { attrs: CELL, children: BLOCKS },
   tableHeader: { attrs: CELL, children: BLOCKS },
   pageBreak: { attrs: {} },
+  /** A template field: its value lives in the document's `values`, not here. */
+  field: { attrs: { key: fieldKey } },
+  /** A free zone (`richtext` field): text the author writes on the sheet itself. */
+  fieldZone: { attrs: { key: fieldKey }, children: BLOCKS },
 };
 
 /** In the editor's order: marks nest in it (textStyle outermost, underline innermost). */
@@ -195,6 +203,8 @@ export function checkContent(v: unknown): v is PaperContent {
     if (typeof n.type !== 'string' || !allowed.includes(n.type)) return false;
     const rule = NODES[n.type]!;
     if (!validAttrs(n.attrs, rule.attrs)) return false;
+    // A field carries its key: it may not be left out.
+    if ((n.type === 'field' || n.type === 'fieldZone') && !(isPlainObject(n.attrs) && own(n.attrs, 'key'))) return false;
     if (n.marks !== undefined) {
       const inline = (INLINE as readonly string[]).includes(n.type);
       if (!inline || !Array.isArray(n.marks) || !n.marks.every(validMark)) return false;

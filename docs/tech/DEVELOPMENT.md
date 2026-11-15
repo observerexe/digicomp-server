@@ -50,6 +50,7 @@ Home Assistant і агент для локальної роботи не пот�
 ### Спільний опис редактора
 
 `shared/editor-schema/` — опис документа редактора, спільний для фронту й бекенду: `index.ts` (вузли, позначки, класи, перевірка вмісту),
+`fields.ts` (значення полів шаблону: перевірка, текст для аркуша й друку, звірка документа з тілом шаблону),
 `render.ts` (вміст → HTML для друку), `paper.css` (вигляд аркуша). Він не має залежностей і не є пакетом:
 обидва пакети компілюють його як свій код, через відносний імпорт.
 - **api:** `rootDir` у `tsconfig` — корінь репо, тож збірка лягає в `dist/api/src/` (точка входу `dist/api/src/main`) і `dist/shared/`.
@@ -59,6 +60,9 @@ Home Assistant і агент для локальної роботи не пот�
 - Лінтер `shared/` запускає `npm run lint` у `web`. Тести опису — `api/src/paperwork/content.spec.ts` (перевірка вмісту),
   `web/src/editor/schema.test.ts` (TipTap збігається з описом), `web/src/editor/render.test.ts` (друк дає той самий HTML, що й TipTap)
   і `api/src/paperwork/print.spec.ts` (сторінка друку, кольори аркуша = `tokens.json`).
+- Поля шаблону на фронті: вузли й блокування тексту — `web/src/editor/fields.ts` (тест `fields.test.ts`), панель «Поля» — `FieldsPanel.tsx`,
+  віджети — реєстр `web/src/editor/fieldTypes/` (новий тип поля — новий файл і рядок у `index.ts`; текст значення — спільний `valueText`).
+  Тести полів на бекенді — `api/src/paperwork/fields.spec.ts`, `api/test/paper-fields.e2e-spec.ts`.
 - Новий вузол чи атрибут додається в опис, у розширення `web/src/editor/extensions.ts`, у `render.ts` і, якщо це клас, — правилом у `paper.css`;
   тести підкажуть, якщо щось пропущено. Змінили кольори палітри в `tokens.json` — оновіть `SHEET_COLORS`.
 

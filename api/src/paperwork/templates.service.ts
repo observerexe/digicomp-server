@@ -13,8 +13,10 @@ import { Dictionary } from '../dictionaries/dictionary.entities';
 import { RecordFieldsService } from '../records/record-fields.service';
 import { schemaDef, type PublishedSchema } from '../records/records.registry';
 import { EMPTY_CONTENT } from './content';
+import { PaperFieldErrors } from './paper-fields';
 import {
   bindingProblem,
+  bodyProblem,
   duplicateKey,
   fieldDictionaries,
   fieldsProblem,
@@ -365,12 +367,13 @@ export class TemplatesService {
       const existing = names.length
         ? await m.findBy(Dictionary, { key: In(names) })
         : [];
-      const problem = fieldsProblem(
-        v.fields,
-        t.kind,
-        schema,
-        new Set(existing.map((d) => d.key)),
-      );
+      const problem =
+        fieldsProblem(
+          v.fields,
+          t.kind,
+          schema,
+          new Set(existing.map((d) => d.key)),
+        ) ?? bodyProblem(v.body, v.fields);
       if (problem) throw fieldInvalid(problem);
       v.publishedAt = new Date();
       v.publishedById = actor.id;
@@ -384,6 +387,35 @@ export class TemplatesService {
       });
       return this.view(m, t, actor);
     });
+  }
+
+  /**
+   * The template and version a new document is made from: a template the
+   * actor may make documents from, not archived, published. A new document
+   * takes the current version (not one whose bindings broke); a copy —
+   * the version of the document it copies.
+   */
+  async forPaper(
+    m: EntityManager,
+    id: string,
+    actor: Actor,
+    versionId: string | null = null,
+  ): Promise<{ template: PaperTemplate; version: PaperTemplateVersion }> {
+    const t = await this.accessible(m, id, actor);
+    if (t.archivedAt || !t.currentVersion) {
+      throw new NotFoundException('Template not found');
+    }
+    if (versionId === null) {
+      if (await this.needsUpdate(t, new Schemas(this.recordFields))) {
+        throw new ConflictException(PaperFieldErrors.NeedsUpdate);
+      }
+      return { template: t, version: t.currentVersion };
+    }
+    const version = await m.findOneBy(PaperTemplateVersion, {
+      id: versionId,
+    });
+    if (!version) throw new NotFoundException('Template version not found');
+    return { template: t, version };
   }
 
   /** Dictionaries fields of published versions take values from. */

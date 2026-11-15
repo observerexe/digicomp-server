@@ -114,6 +114,7 @@ export enum Action {
   PapersCreate = 'papers.create',
   PapersEdit = 'papers.edit',
   PapersVisibility = 'papers.visibility',
+  PapersFillStaff = 'papers.fill_staff',
   PaperTemplatesRead = 'paper_templates.read',
   PaperTemplatesManage = 'paper_templates.manage',
 
@@ -223,6 +224,8 @@ export const ROLES: Record<Action, readonly Role[]> = {
   [Action.PapersCreate]: ALL,
   [Action.PapersEdit]: ALL,
   [Action.PapersVisibility]: STAFF,
+  // Fields of a template marked «заповнює модератор» (`fill: staff`).
+  [Action.PapersFillStaff]: STAFF,
   // Members see only published templates open to all (service).
   [Action.PaperTemplatesRead]: ALL,
   [Action.PaperTemplatesManage]: STAFF,

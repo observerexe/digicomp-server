@@ -21,6 +21,8 @@ const paper = (over: Partial<Paper> = {}): Paper => ({
   createdAt: '2026-11-14T10:00:00Z',
   updatedAt: '2026-11-14T10:00:00Z',
   content: doc(para('Порядок денний')),
+  values: {},
+  template: null,
   canEdit: true,
   ...over,
 });

@@ -24,7 +24,7 @@ import {
   type FieldType,
   type RecordType,
 } from '../records/field-types';
-import { IsPaperContent, type PaperContent } from './content';
+import { FIELD_KEY, IsPaperContent, type PaperContent } from './content';
 import { PaperVisibility } from './paper.entity';
 import { TemplateCreators, TemplateKind } from './template.entities';
 import {
@@ -35,8 +35,6 @@ import {
 
 /** Capital letters (Latin or Cyrillic) and digits: «ТЗ», «ВБ». */
 export const NUMBER_PREFIX = /^[\p{Lu}\d]{1,10}$/u;
-/** Latin, starts with a small letter: `title`, `points`, `goal_2`. */
-export const FIELD_KEY = /^[a-z][a-zA-Z0-9_]{0,39}$/;
 
 const BOUND = TEMPLATE_LIMITS.bound;
 

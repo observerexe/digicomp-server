@@ -31,6 +31,19 @@ function classes(...list: (string | null)[]): string | null {
 }
 
 const nodeAttr = (n: PaperNode, name: string) => attr(NODES[n.type]!.attrs, n.attrs, name);
+/** Keys match FIELD_KEY: nothing to escape. */
+const fieldKey = (n: PaperNode) => nodeAttr(n, 'key') as string | null;
+
+/**
+ * Values of fields for the print. Without it the HTML is the editor's own
+ * (a field — an empty placeholder).
+ */
+export type FieldFill = {
+  /** The value as text; null — empty (a line to fill in by hand). */
+  text(key: string): string | null;
+  /** Not in the print at all (the field's `print` is off). */
+  hidden(key: string): boolean;
+};
 
 /** Classes of a paragraph or heading: alignment, then indent. */
 function blockClass(n: PaperNode): string | null {
@@ -70,6 +83,8 @@ function element(n: PaperNode): [string, string] | null {
       return [tag('td', [span(n, 'colspan'), span(n, 'rowspan')]), '</td>'];
     case 'tableHeader':
       return [tag('th', [span(n, 'colspan'), span(n, 'rowspan')]), '</th>'];
+    case 'fieldZone':
+      return [tag('div', [['class', 'paper-zone'], ['data-field', fieldKey(n)]]), '</div>'];
     default:
       return null;
   }
@@ -111,7 +126,15 @@ function markTags(m: { type: string; attrs: PaperAttrs }): [string, string] {
  * Inline children of a block. Marks stay open across neighbours that share
  * them (as ProseMirror's DOMSerializer does): `<strong>a<em>b</em></strong>`.
  */
-function renderInline(children: PaperNode[]): string {
+function renderField(n: PaperNode, fill: FieldFill | undefined): string {
+  const key = fieldKey(n);
+  if (!fill) return tag('span', [['class', 'paper-field'], ['data-field', key]]) + '</span>';
+  if (key === null || fill.hidden(key)) return '';
+  const text = fill.text(key);
+  return text === null ? '<span class="paper-field-blank"></span>' : `<span class="paper-field">${escapeText(text)}</span>`;
+}
+
+function renderInline(children: PaperNode[], fill: FieldFill | undefined): string {
   let out = '';
   const open: { mark: { type: string; attrs: PaperAttrs }; close: string }[] = [];
   for (const n of children) {
@@ -129,21 +152,26 @@ function renderInline(children: PaperNode[]): string {
     }
     if (n.type === 'text') out += escapeText(n.text ?? '');
     else if (n.type === 'hardBreak') out += '<br>';
+    else if (n.type === 'field') out += renderField(n, fill);
   }
   while (open.length) out += open.pop()!.close;
   return out;
 }
 
-function renderNode(n: PaperNode): string {
+function renderNode(n: PaperNode, fill: FieldFill | undefined): string {
   if (n.type === 'pageBreak') return '<div class="page-break"></div>';
+  if (n.type === 'fieldZone' && fill) {
+    const key = fieldKey(n);
+    if (key === null || fill.hidden(key)) return '';
+  }
   const el = element(n);
   if (!el) return '';
   const children = n.content ?? [];
   const inline = n.type === 'paragraph' || n.type === 'heading';
-  return el[0] + (inline ? renderInline(children) : children.map(renderNode).join('')) + el[1];
+  return el[0] + (inline ? renderInline(children, fill) : children.map((c) => renderNode(c, fill)).join('')) + el[1];
 }
 
 /** HTML of the document's blocks (without a wrapper: the sheet is the caller's). */
-export function renderContent(doc: PaperNode): string {
-  return (doc.content ?? []).map(renderNode).join('');
+export function renderContent(doc: PaperNode, fill?: FieldFill): string {
+  return (doc.content ?? []).map((n) => renderNode(n, fill)).join('');
 }

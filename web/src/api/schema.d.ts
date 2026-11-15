@@ -1726,6 +1726,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/papers/{id}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A copy of a document the actor sees: its own draft, same template version. */
+        post: operations["PaperworkController_copy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/papers/{id}": {
         parameters: {
             query?: never;
@@ -3226,12 +3243,54 @@ export interface components {
             limit: number;
         };
         CreatePaperDto: {
-            /** @description ProseMirror document; without it — one empty paragraph. */
+            /** @description ProseMirror document; without it — one empty paragraph. Not with `templateId`. */
             content?: {
                 [key: string]: unknown;
             };
-            /** @description Without a title — «Без назви». */
+            /** @description Without a title — «Без назви» (from a template — its title). */
             title?: string;
+            /**
+             * Format: uuid
+             * @description Make the document from the template's current version (its body, its fields).
+             */
+            templateId?: string;
+        };
+        PaperFieldOptionDto: {
+            key: string;
+            label: string;
+            /** @description Stays where already chosen; not offered. */
+            archived?: boolean;
+        };
+        PaperFieldDto: {
+            fill: components["schemas"]["TemplateFieldFiller"];
+            /** @description Limits: the template's and the bound field's of the record, the tighter. */
+            min: number | null;
+            max: number | null;
+            maxLength: number | null;
+            maxItems: number | null;
+            /** @description decimal: digits after the point (null — 2). */
+            scale: number | null;
+            /** @description enum, list<enum>: the choices in order; null for other types. */
+            options: components["schemas"]["PaperFieldOptionDto"][] | null;
+            key: string;
+            label: string;
+            /** @description `text`, `int`, …, `ref:<record type>`, `list<…>`; `richtext` — a zone on the sheet. */
+            type: string;
+            required: boolean;
+            /** @description May be changed after the document is published. */
+            editable: boolean;
+            /** @description Shown in the print. */
+            print: boolean;
+            /** @description A zone of plain paragraphs (bound to a text field of the record). */
+            plain: boolean;
+            /** @description The actor may fill it now. */
+            canFill: boolean;
+        };
+        PaperTemplateRefDto: {
+            fields: components["schemas"]["PaperFieldDto"][];
+            id: string;
+            title: string;
+            version: number;
         };
         PaperDto: {
             status: components["schemas"]["PaperStatus"];
@@ -3240,6 +3299,12 @@ export interface components {
             content: {
                 [key: string]: unknown;
             };
+            /** @description Values of the template's fields by key. */
+            values: {
+                [key: string]: unknown;
+            };
+            /** @description null — a free document. */
+            template: components["schemas"]["PaperTemplateRefDto"] | null;
             /** @description The actor may change and delete it: their own draft (admin — any). */
             canEdit: boolean;
             id: string;
@@ -3252,8 +3317,22 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        CopyPaperDto: {
+            content: {
+                [key: string]: unknown;
+            };
+            /** @description Field key → value; keys left out are emptied */
+            values?: {
+                [key: string]: unknown;
+            };
+            title?: string;
+        };
         UpdatePaperDto: {
             content?: {
+                [key: string]: unknown;
+            };
+            /** @description Field key → value; keys left out are emptied */
+            values?: {
                 [key: string]: unknown;
             };
             /** @description The revision the change is based on; another one — 409 PAPER_CONFLICT. */
@@ -6468,6 +6547,31 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["CreatePaperDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperDto"];
+                };
+            };
+        };
+    };
+    PaperworkController_copy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CopyPaperDto"];
             };
         };
         responses: {

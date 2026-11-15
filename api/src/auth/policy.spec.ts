@@ -530,6 +530,12 @@ const ROWS: Record<string, Case[]> = {
     ['moderator', mod, Action.PapersVisibility, undefined, true],
     ['member', member, Action.PapersVisibility, undefined, Deny.Forbidden],
   ],
+  // Решту полів заповнює автор своєї чернетки (papers.edit) — test/papers.e2e-spec.ts.
+  'Документ редактора: заповнити поле «заповнює модератор»': [
+    ['admin', admin, Action.PapersFillStaff, undefined, true],
+    ['moderator', mod, Action.PapersFillStaff, undefined, true],
+    ['member', member, Action.PapersFillStaff, undefined, Deny.Forbidden],
+  ],
   // Учасник бачить лише опубліковані шаблони, відкриті для всіх, —
   // test/paper-templates.e2e-spec.ts.
   'Шаблон документа: створити, змінити, опублікувати версію (перегляд — усі)': [

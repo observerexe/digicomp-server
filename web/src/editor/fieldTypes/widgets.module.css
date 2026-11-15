@@ -1,0 +1,37 @@
+/* Controls of the «Поля» panel; the label and the input itself — global .field */
+.datetime {
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  gap: 8px;
+}
+.choices {
+  display: grid;
+  gap: 6px;
+}
+.choices label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+}
+.choices input {
+  min-height: auto;
+  width: 18px;
+  height: 18px;
+}
+.items {
+  display: grid;
+  gap: 8px;
+}
+.item {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+.item > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+.add {
+  justify-self: start;
+}

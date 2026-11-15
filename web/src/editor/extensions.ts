@@ -16,6 +16,7 @@ import {
   type FontSize,
   type TextColor,
 } from '../../../shared/editor-schema';
+import { Field, FieldZone, templateExtension, type LockOptions } from './fields';
 
 /**
  * The editor's extensions, built to match shared/editor-schema exactly
@@ -184,7 +185,8 @@ const PlainTable = Table.extend({
   },
 }).configure({ resizable: false, renderWrapper: false });
 
-export function paperExtensions(): Extensions {
+/** `template` — a document made from a template: fields drawn, text outside zones locked. */
+export function paperExtensions(template?: LockOptions & { onFieldClick: (key: string) => void }): Extensions {
   return [
     StarterKit.configure({
       blockquote: false,
@@ -203,5 +205,8 @@ export function paperExtensions(): Extensions {
     TableRow,
     withoutAlign(TableCell),
     withoutAlign(TableHeader),
+    Field,
+    FieldZone,
+    ...(template ? [templateExtension(template)] : []),
   ];
 }

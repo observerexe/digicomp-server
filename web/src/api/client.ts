@@ -14,6 +14,8 @@ export class ApiError extends Error {
     public status: number,
     public code: string,
     message?: string,
+    /** Key of the field the error is about (PAPER_FIELD_INVALID, TEMPLATE_FIELD_INVALID). */
+    public field?: string,
   ) {
     super(message ?? code);
     this.name = 'ApiError';
@@ -81,9 +83,9 @@ export async function unwrap<T>(
     throw new ApiError(0, 'NETWORK');
   }
   if (result.error !== undefined || !result.response.ok) {
-    const body = (result.error ?? {}) as { errorCode?: string; message?: unknown };
+    const body = (result.error ?? {}) as { errorCode?: string; message?: unknown; field?: unknown };
     const msg = typeof body.message === 'string' ? body.message : undefined;
-    throw new ApiError(result.response.status, body.errorCode ?? 'ERROR', msg);
+    throw new ApiError(result.response.status, body.errorCode ?? 'ERROR', msg, typeof body.field === 'string' ? body.field : undefined);
   }
   return result.data as T;
 }

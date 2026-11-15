@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import type { Me, Paper } from '../../api/types';
+import type { Me, Paper, PaperField, TemplateItem } from '../../api/types';
 import { json, member, mockApi, moderator, renderApp } from '../../test/render';
 
 const writer: Me = { ...member, permissions: [...member.permissions, 'papers.read', 'papers.create', 'papers.edit'] };
@@ -18,11 +18,13 @@ const paper = (over: Partial<Paper> = {}): Paper => ({
   createdAt: '2026-11-14T10:00:00Z',
   updatedAt: '2026-11-14T10:00:00Z',
   content: text('Порядок денний'),
+  values: {},
+  template: null,
   canEdit: true,
   ...over,
 });
 const item = (p: Paper) => {
-  const { content: _c, canEdit: _e, ...rest } = p;
+  const { content: _c, canEdit: _e, values: _v, template: _t, ...rest } = p;
   return rest;
 };
 const base = (me: Me, extra: Record<string, (r: Request) => Response | Promise<Response>> = {}) => ({
@@ -119,7 +121,7 @@ describe('Редактор: документ', () => {
       base(writer, {
         'GET /api/papers/p1': () => json(200, paper()),
         'PATCH /api/papers/p1': () => json(409, { errorCode: 'PAPER_CONFLICT' }),
-        'POST /api/papers': () => json(201, paper({ id: 'c1' })),
+        'POST /api/papers/p1/copy': () => json(201, paper({ id: 'c1' })),
         'GET /api/papers/c1': () => json(200, paper({ id: 'c1', title: 'Мій протокол (копія)' })),
       }),
     );
@@ -131,7 +133,11 @@ describe('Редактор: документ', () => {
     await userEvent.click(within(banner).getByRole('button', { name: 'Зберегти мою як копію' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/editor/c1'));
     const post = JSON.parse(calls.find((c) => c.method === 'POST')!.body);
-    expect(post).toEqual({ title: 'Протокол зборів! (копія)', content: { type: 'doc', content: [{ type: 'paragraph', attrs: { align: null, indent: 0 }, content: [{ type: 'text', text: 'Порядок денний' }] }] } });
+    expect(post).toEqual({
+      title: 'Протокол зборів! (копія)',
+      content: { type: 'doc', content: [{ type: 'paragraph', attrs: { align: null, indent: 0 }, content: [{ type: 'text', text: 'Порядок денний' }] }] },
+      values: {},
+    });
   });
 
   it('конфлікт: «Відкрити останню версію» завантажує документ знову', async () => {
@@ -212,5 +218,172 @@ describe('Редактор: документ', () => {
     renderApp('/editor/p1');
     expect(await screen.findByText(/Документ не знайдено/)).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'Редактор' }).some((l) => l.getAttribute('href') === '/editor')).toBe(true);
+  });
+});
+
+describe('Редактор: новий документ із шаблону', () => {
+  const tpl = (over: Partial<TemplateItem> = {}): TemplateItem => ({
+    id: 't1',
+    title: 'Заява',
+    kind: 'free',
+    target: null,
+    numberPrefix: null,
+    autoFreeze: false,
+    creators: 'all',
+    visibility: 'author',
+    archived: false,
+    currentVersion: 1,
+    draftVersion: null,
+    needsUpdate: false,
+    createdAt: '2026-11-14T10:00:00Z',
+    updatedAt: '2026-11-14T10:00:00Z',
+    ...over,
+  });
+
+  it('є шаблони — меню: порожній або з шаблону; зламаний шаблон не вибирається', async () => {
+    const { calls } = mockApi(
+      base(writer, {
+        'GET /api/papers': () => json(200, { items: [], total: 0, page: 1, limit: 100 }),
+        'GET /api/papers/templates': () =>
+          json(200, [tpl(), tpl({ id: 't2', title: 'Акт', needsUpdate: true }), tpl({ id: 't3', title: 'Чернетка шаблону', currentVersion: null })]),
+        'POST /api/papers': () => json(201, paper({ id: 'n1' })),
+        'GET /api/papers/n1': () => json(200, paper({ id: 'n1' })),
+      }),
+    );
+    const { router } = renderApp('/editor');
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Новий документ' })).toHaveAttribute('aria-haspopup', 'true'));
+    await userEvent.click(screen.getByRole('button', { name: 'Новий документ' }));
+    const menu = screen.getByRole('list', { name: 'Новий документ' });
+    expect(
+      within(menu)
+        .getAllByRole('button')
+        .map((b) => b.textContent),
+    ).toEqual(['Порожній документ', 'Заява', 'АктШаблон потребує оновлення']);
+    expect(within(menu).getByRole('button', { name: /Акт/ })).toBeDisabled();
+    await userEvent.click(within(menu).getByRole('button', { name: 'Заява' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/editor/n1'));
+    expect(JSON.parse(calls.find((c) => c.method === 'POST')!.body)).toEqual({ templateId: 't1' });
+  });
+});
+
+describe('Редактор: документ із шаблону', () => {
+  const f = (over: Partial<PaperField> & Pick<PaperField, 'key' | 'label'>): PaperField => ({
+    type: 'text',
+    required: false,
+    fill: 'author',
+    editable: false,
+    print: true,
+    min: null,
+    max: null,
+    maxLength: null,
+    maxItems: null,
+    scale: null,
+    options: null,
+    plain: false,
+    canFill: true,
+    ...over,
+  });
+  const FIELDS: PaperField[] = [
+    f({ key: 'name', label: 'Ім’я', required: true }),
+    f({ key: 'count', label: 'Кількість', type: 'int', min: 1, max: 10 }),
+    f({
+      key: 'level',
+      label: 'Рівень',
+      type: 'enum',
+      options: [
+        { key: 'high', label: 'Високий' },
+        { key: 'old', label: 'Старий', archived: true },
+      ],
+    }),
+    f({ key: 'who', label: 'Відповідальний', type: 'ref:user', canFill: false }),
+    f({ key: 'goal', label: 'Мета', type: 'richtext', required: true, plain: true }),
+    f({ key: 'verdict', label: 'Висновок', fill: 'staff', canFill: false }),
+  ];
+  const content = {
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'Заява від ' },
+          { type: 'field', attrs: { key: 'name' } },
+        ],
+      },
+      ...['count', 'level', 'who', 'verdict'].map((key) => ({ type: 'paragraph', content: [{ type: 'field', attrs: { key } }] })),
+      { type: 'fieldZone', attrs: { key: 'goal' }, content: [{ type: 'paragraph' }] },
+    ],
+  };
+  const fromTemplate = (over: Partial<Paper> = {}) => paper({ title: 'Заява', content, values: {}, template: { id: 't1', title: 'Заява', version: 2, fields: FIELDS }, ...over });
+  const sheetField = (key: string) => document.querySelector(`.ProseMirror .paper-field[data-field="${key}"]`)!;
+
+  it('панель «Поля»: шаблон, прогрес, що не заповнено, групи; стрічка поза зоною вимкнена', async () => {
+    mockApi(base(writer, { 'GET /api/papers/p1': () => json(200, fromTemplate()) }));
+    renderApp('/editor/p1');
+    const panel = await screen.findByRole('complementary', { name: 'Поля документа' });
+    expect(within(panel).getByText('Шаблон «Заява» · v2')).toBeInTheDocument();
+    expect(within(panel).getByText('0 з 4')).toBeInTheDocument();
+    expect(within(panel).getByText('Не заповнено: Ім’я, Мета')).toBeInTheDocument();
+    expect(within(panel).getByText('Заповнюєте ви')).toBeInTheDocument();
+    expect(within(panel).getByText('Заповнить модератор')).toBeInTheDocument();
+    expect(within(panel).getByLabelText('Відповідальний')).toBeDisabled();
+    expect(within(panel).getByLabelText('Відповідальний')).toHaveAttribute('placeholder', 'Вибір з’явиться згодом');
+    expect(within(panel).getByLabelText('Висновок')).toBeDisabled();
+    // Архівний пункт не пропонується.
+    expect(
+      within(within(panel).getByLabelText('Рівень'))
+        .getAllByRole('option')
+        .map((o) => o.textContent),
+    ).toEqual(['—', 'Високий']);
+    // На аркуші: порожнє обов’язкове — підпис і жовтий пунктир.
+    await waitFor(() => expect(sheetField('name').textContent).toBe('Ім’я'));
+    expect(sheetField('name')).toHaveClass('is-missing');
+    expect(sheetField('verdict')).toHaveClass('is-staff');
+    expect(screen.getByText(/Тут текст шаблону/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Жирний (Ctrl+B)' })).toBeDisabled();
+  });
+
+  it('значення з панелі — на аркуші й у збереженні; невірне число не надсилається', async () => {
+    const { calls } = mockApi(
+      base(writer, {
+        'GET /api/papers/p1': () => json(200, fromTemplate()),
+        'PATCH /api/papers/p1': () => json(200, { ...fromTemplate({ revision: 2 }), updatedAt: '2026-11-14T12:30:00Z' }),
+      }),
+    );
+    renderApp('/editor/p1');
+    const panel = await screen.findByRole('complementary', { name: 'Поля документа' });
+    await userEvent.type(within(panel).getByLabelText(/^Ім’я/), 'Іван');
+    await userEvent.type(within(panel).getByLabelText('Кількість'), '11');
+    expect(within(panel).getByText('Ціле число від 1 до 10')).toBeInTheDocument();
+    await userEvent.selectOptions(within(panel).getByLabelText('Рівень'), 'high');
+    await waitFor(() => expect(sheetField('name').textContent).toBe('Іван'));
+    expect(sheetField('name')).toHaveClass('is-filled');
+    expect(sheetField('level').textContent).toBe('Високий');
+    expect(within(panel).getByText('3 з 4')).toBeInTheDocument();
+    await waitFor(() => expect(calls.some((c) => c.method === 'PATCH')).toBe(true), { timeout: 4000 });
+    const patch = JSON.parse(calls.find((c) => c.method === 'PATCH')!.body);
+    // «1» з «11» пройшло, «11» — ні (поза межами): лишилось останнє правильне.
+    expect(patch).toEqual({ revision: 1, values: { name: 'Іван', count: 1, level: 'high' } });
+  });
+
+  it('сервер відхилив значення — текст помилки, поле підсвічене', async () => {
+    mockApi(
+      base(writer, {
+        'GET /api/papers/p1': () => json(200, fromTemplate()),
+        'PATCH /api/papers/p1': () => json(400, { errorCode: 'PAPER_FIELD_INVALID', field: 'name' }),
+      }),
+    );
+    renderApp('/editor/p1');
+    const panel = await screen.findByRole('complementary', { name: 'Поля документа' });
+    await userEvent.type(within(panel).getByLabelText(/^Ім’я/), 'І');
+    expect(await screen.findByText(/Значення поля не підходить/, undefined, { timeout: 4000 })).toBeInTheDocument();
+    await waitFor(() => expect(sheetField('name')).toHaveClass('is-active'));
+  });
+
+  it('вільний документ — без панелі й без блокування стрічки', async () => {
+    mockApi(base(writer, { 'GET /api/papers/p1': () => json(200, paper()) }));
+    renderApp('/editor/p1');
+    await screen.findByLabelText('Назва документа');
+    expect(screen.queryByRole('complementary', { name: 'Поля документа' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Тут текст шаблону/)).not.toBeInTheDocument();
   });
 });

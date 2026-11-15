@@ -108,4 +108,29 @@ describe('Автозбереження чернетки', () => {
     await settle();
     expect(calls).toHaveLength(1);
   });
+
+  it('відмова сервера (400): не повторює сам, причину видно; наступна зміна йде разом із відхиленою', async () => {
+    let refuse = true;
+    const { calls } = mockApi({
+      'PATCH /api/papers/p1': () => (refuse ? json(400, { errorCode: 'PAPER_FIELD_INVALID', field: 'count' }) : saved(2)),
+    });
+    const { result } = renderHook(() => useAutosave('p1', 1));
+    act(() => result.current.change({ values: { count: 99 } }));
+    await wait(SAVE_DELAY);
+    await settle();
+    expect(result.current.state).toBe('rejected');
+    expect(result.current.rejection).toMatchObject({ code: 'PAPER_FIELD_INVALID', field: 'count' });
+    await wait(RETRY_DELAY * 2);
+    await settle();
+    expect(calls).toHaveLength(1);
+
+    refuse = false;
+    act(() => result.current.change({ title: 'Звіт' }));
+    expect(result.current.state).toBe('dirty');
+    await wait(SAVE_DELAY);
+    await settle();
+    expect(JSON.parse(calls[1]!.body)).toEqual({ revision: 1, values: { count: 99 }, title: 'Звіт' });
+    expect(result.current.state).toBe('saved');
+    expect(result.current.rejection).toBeNull();
+  });
 });

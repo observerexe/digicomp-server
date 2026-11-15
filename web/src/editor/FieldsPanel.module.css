@@ -1,0 +1,157 @@
+/* «Поля»: the panel to the right of the sheet, 340 px */
+.panel {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  width: 340px;
+  min-height: 0;
+  border-left: 1px solid var(--c-border);
+  background: var(--c-surface);
+}
+.tab {
+  margin: 0;
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid var(--c-border);
+  color: var(--c-primary-text);
+  font-size: 15px;
+  font-weight: 600;
+}
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 16px;
+}
+.summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--c-text2);
+  font-size: 14px;
+}
+.summary strong {
+  color: var(--c-text);
+  white-space: nowrap;
+}
+.bar {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--c-surface2);
+  overflow: hidden;
+}
+.bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--c-primary);
+}
+.missing {
+  margin: 0;
+  color: var(--c-warning);
+  font-size: 14px;
+}
+.group {
+  display: grid;
+  gap: 14px;
+}
+.group h3 {
+  margin: 4px 0 0;
+  color: var(--c-text2);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.row {
+  padding: 6px;
+  margin: -6px;
+  border-radius: var(--radius-control);
+}
+.label {
+  font-size: 14px;
+  font-weight: 500;
+}
+.active {
+  background: var(--c-primary-soft);
+}
+.missingRow label,
+.missingRow .label {
+  color: var(--c-warning);
+}
+
+/* Progress by steps of 5 %: no style attribute (CSP) */
+.w0 {
+  width: 0%;
+}
+.w1 {
+  width: 5%;
+}
+.w2 {
+  width: 10%;
+}
+.w3 {
+  width: 15%;
+}
+.w4 {
+  width: 20%;
+}
+.w5 {
+  width: 25%;
+}
+.w6 {
+  width: 30%;
+}
+.w7 {
+  width: 35%;
+}
+.w8 {
+  width: 40%;
+}
+.w9 {
+  width: 45%;
+}
+.w10 {
+  width: 50%;
+}
+.w11 {
+  width: 55%;
+}
+.w12 {
+  width: 60%;
+}
+.w13 {
+  width: 65%;
+}
+.w14 {
+  width: 70%;
+}
+.w15 {
+  width: 75%;
+}
+.w16 {
+  width: 80%;
+}
+.w17 {
+  width: 85%;
+}
+.w18 {
+  width: 90%;
+}
+.w19 {
+  width: 95%;
+}
+.w20 {
+  width: 100%;
+}
+
+@media (max-width: 899px) {
+  .panel {
+    width: auto;
+    max-height: 45vh;
+    border-left: 0;
+    border-top: 1px solid var(--c-border);
+  }
+}

@@ -112,6 +112,13 @@
   background: var(--sheet-paper);
 }
 
+/* Template fields. In the print: the value as text; an empty field — a line to fill in by hand. */
+.paper .paper-field-blank {
+  display: inline-block;
+  min-width: 35mm;
+  border-bottom: 1px solid var(--sheet-ink);
+}
+
 /* Sizes */
 .paper .fs-10 { font-size: 10pt; }
 .paper .fs-11 { font-size: 11pt; }

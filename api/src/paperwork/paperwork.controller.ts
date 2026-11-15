@@ -22,7 +22,12 @@ import type { Response } from 'express';
 import { Action } from '../auth/policy';
 import { Can, JwtAuthGuard, PolicyGuard } from '../auth/roles';
 import { OkDto } from '../common/responses.dto';
-import { CreatePaperDto, ListPapersQuery, UpdatePaperDto } from './dto';
+import {
+  CopyPaperDto,
+  CreatePaperDto,
+  ListPapersQuery,
+  UpdatePaperDto,
+} from './dto';
 import { PaperworkService } from './paperwork.service';
 import { PRINT_CSP } from './print';
 import { PaperDto, PaperItemDto, PaperListDto } from './responses.dto';
@@ -46,6 +51,18 @@ export class PaperworkController {
   @Post()
   create(@Body() dto: CreatePaperDto, @Req() req: Req) {
     return this.papers.create(dto, req.user);
+  }
+
+  /** A copy of a document the actor sees: its own draft, same template version. */
+  @Can(Action.PapersCreate)
+  @ApiCreatedResponse({ type: PaperDto })
+  @Post(':id/copy')
+  copy(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CopyPaperDto,
+    @Req() req: Req,
+  ) {
+    return this.papers.copy(id, dto, req.user);
   }
 
   @Can(Action.PapersRead)

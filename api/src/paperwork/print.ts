@@ -2,7 +2,10 @@ import { createHash } from 'crypto';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { SHEET_COLORS, type PaperContent } from '../../../shared/editor-schema';
-import { renderContent } from '../../../shared/editor-schema/render';
+import {
+  renderContent,
+  type FieldFill,
+} from '../../../shared/editor-schema/render';
 
 /**
  * Print page of an editor document: an A4 sheet by ДСТУ 4163:2020
@@ -84,10 +87,15 @@ function orgHeader({ institution, groupName }: PrintRequisites) {
   return lines.length ? `<header class="org">${lines.join('')}</header>` : '';
 }
 
+/** A document without values: every field an empty line. */
+const NO_VALUES: FieldFill = { text: () => null, hidden: () => false };
+
 export function paperPrintHtml(paper: {
   title: string;
   content: PaperContent;
   requisites: PrintRequisites;
+  /** Values of the template's fields; without it — fields as empty lines. */
+  fill?: FieldFill;
 }) {
   return `<!DOCTYPE html>
 <html lang="uk">
@@ -98,7 +106,7 @@ export function paperPrintHtml(paper: {
 </head>
 <body>
 <p class="hint">Щоб роздрукувати або зберегти PDF: Ctrl+P (на телефоні — «Поділитися» → «Друк»). У вікні друку вимкніть колонтитули, щоб браузер не додав свою адресу й дату. Ця підказка не друкується.</p>
-<main class="paper">${orgHeader(paper.requisites)}${renderContent(paper.content)}</main>
+<main class="paper">${orgHeader(paper.requisites)}${renderContent(paper.content, paper.fill ?? NO_VALUES)}</main>
 </body>
 </html>
 `;
