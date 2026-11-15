@@ -5,6 +5,7 @@ import type { LinkedRecord, LinkRegistry } from '../links/link-registry';
 import { RecordLink } from '../links/record-link.entity';
 import {
   mentionsOf,
+  refType,
   valueRefs,
   type FieldValues,
   type PaperContent,
@@ -20,6 +21,12 @@ import { fieldInvalid } from './paper-fields';
  */
 
 const refKey = (r: RecordRef) => `${r.type}:${r.id}`;
+
+/** A field of this type may be filled: not a reference, or one to a type that may be referred to. */
+export function fillableType(links: LinkRegistry, type: string): boolean {
+  const ref = refType(type);
+  return ref === null || links.get(ref) !== undefined;
+}
 
 /** A record the document refers to, as the actor sees it. */
 export type SeenRecord = RecordRef & LinkedRecord;

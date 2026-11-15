@@ -217,18 +217,188 @@ describe('Конструктор шаблону', () => {
     expect(screen.getByLabelText('Зв’язок із записом')).toHaveValue('');
   });
 
-  it('«Документ» показує аркуш без рамок і панелі; назад — «Конструктор шаблону»', async () => {
-    mockApi(builder(version()));
+  it('«Документ» — спроба: поля заповнюються як у документі, нічого не зберігається; назад — конструктор', async () => {
+    const v = version({
+      body: {
+        type: 'doc',
+        content: [
+          heading,
+          {
+            type: 'paragraph',
+            content: [
+              { type: 'text', text: 'Бали: ' },
+              { type: 'field', attrs: { key: 'points' } },
+            ],
+          },
+        ],
+      },
+      fields: [{ key: 'points', label: 'Бали', type: 'int', required: true, fill: 'author', editable: false, print: true, min: 0, max: 100 }],
+    });
+    const trial = {
+      id: 't1',
+      title: 'Технічне завдання',
+      version: 1,
+      fields: [
+        {
+          key: 'points',
+          label: 'Бали',
+          type: 'int',
+          required: true,
+          fill: 'author',
+          editable: false,
+          print: true,
+          min: 0,
+          max: 100,
+          maxLength: null,
+          maxItems: null,
+          scale: null,
+          options: null,
+          plain: false,
+          canFill: true,
+        },
+      ],
+    };
+    const { calls } = mockApi(builder(v, template(), { 'GET /api/papers/templates/t1/versions/1/fields': () => json(200, trial) }));
     renderApp('/editor/templates/t1');
     const sheet = await screen.findByLabelText('Аркуш шаблону');
     await waitFor(() => expect(sheet.querySelector('.paper-block')).not.toBeNull());
     await userEvent.click(screen.getByRole('button', { name: 'Документ' }));
-    await waitFor(() => expect(sheet.querySelector('.paper-block')).toBeNull());
-    expect(sheet).toHaveAttribute('contenteditable', 'false');
-    expect(screen.queryByRole('complementary', { name: 'Конструктор' })).not.toBeInTheDocument();
+    const tried = await screen.findByLabelText('Спроба документа');
+    expect(screen.getByText(/Нічого не зберігається/)).toBeInTheDocument();
+    expect(tried.querySelector('.paper-block')).toBeNull();
+    await waitFor(() => expect(tried.querySelector('.paper-field')).toHaveClass('is-missing'));
+    const panel = screen.getByRole('complementary', { name: 'Поля документа' });
+    await userEvent.type(within(panel).getByLabelText(/Бали/), '40');
+    await waitFor(() => expect(tried.querySelector('.paper-field')).toHaveTextContent('40'));
+    expect(calls.some((c) => c.path.startsWith('/api/papers') && c.method !== 'GET' && !c.path.endsWith('/versions'))).toBe(false);
+
     await userEvent.click(screen.getByRole('button', { name: 'Конструктор шаблону' }));
-    await waitFor(() => expect(sheet.querySelector('.paper-block')).not.toBeNull());
-    expect(sheet).toHaveAttribute('contenteditable', 'true');
+    expect(screen.queryByLabelText('Спроба документа')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Аркуш шаблону')).toBeVisible();
+  });
+
+  it('«Поля запису «ТЗ»»: поле вставляється прив’язаним, з ключем і обов’язковістю запису; удруге не пропонується', async () => {
+    let rev = 1;
+    const { calls } = mockApi(builder(version(), template(), { 'PATCH /api/papers/templates/t1/versions/1': () => saved(++rev) }));
+    renderApp('/editor/templates/t1');
+    const sheet = await screen.findByLabelText('Аркуш шаблону');
+    const group = await screen.findByRole('region', { name: 'Поля запису «ТЗ»' });
+    await userEvent.click(within(group).getByRole('button', { name: 'Назва' }));
+    await waitFor(() => expect(sheet.querySelector('.paper-field')).toHaveTextContent('{Назва}'));
+    expect(screen.getByLabelText('Ключ')).toHaveValue('title');
+    expect(screen.getByLabelText('Зв’язок із записом')).toHaveValue('title');
+    expect(screen.getByRole('switch', { name: 'Обов’язкове' })).toHaveAttribute('aria-checked', 'true');
+    await userEvent.click(screen.getByRole('tab', { name: 'Блоки' }));
+    expect(within(screen.getByRole('region', { name: 'Поля запису «ТЗ»' })).getByRole('button', { name: 'Назва' })).toBeDisabled();
+    await waitFor(() => expect(calls.some((c) => c.method === 'PATCH' && JSON.parse(c.body).fields)).toBe(true), { timeout: 4000 });
+    const fields = JSON.parse(calls.filter((c) => c.method === 'PATCH' && JSON.parse(c.body).fields).at(-1)!.body).fields;
+    expect(fields).toEqual([expect.objectContaining({ key: 'title', label: 'Назва', type: 'text', binding: 'title', required: true })]);
+  });
+
+  it('«Опублікувати v1»: з підтвердженням; після — опублікована версія лише для читання, «Змінити» робить чернетку', async () => {
+    let published = false;
+    const { calls } = mockApi(
+      builder(version(), template(), {
+        'GET /api/papers/templates/t1': () => json(200, published ? template({ currentVersion: 1, draftVersion: null }) : template()),
+        'POST /api/papers/templates/t1/versions/1/publish': () => {
+          published = true;
+          return json(201, template({ currentVersion: 1, draftVersion: null }));
+        },
+        'GET /api/papers/templates/t1/versions/1': () => json(200, version({ publishedAt: '2026-11-15T13:00:00Z' })),
+        'POST /api/papers/templates/t1/versions': () => json(201, published ? version({ number: 2 }) : version()),
+      }),
+    );
+    renderApp('/editor/templates/t1');
+    await screen.findByLabelText('Аркуш шаблону');
+    await userEvent.click(screen.getByRole('button', { name: 'Опублікувати v1' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Опублікувати' }));
+    expect(await screen.findByRole('button', { name: 'Змінити' })).toBeInTheDocument();
+    expect(calls.filter((c) => c.path.endsWith('/publish'))).toHaveLength(1);
+    const sheet = screen.getByLabelText('Аркуш шаблону');
+    expect(sheet).toHaveAttribute('contenteditable', 'false');
+    expect(screen.getByText(/Це опублікована версія v1/)).toBeInTheDocument();
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Шаблон']);
+    expect(sheet.querySelector('.paper-end')).toBeNull();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Змінити' }));
+    expect(await screen.findByText('v2 чернетка')).toBeInTheDocument();
+    expect(screen.getByLabelText('Аркуш шаблону')).toHaveAttribute('contenteditable', 'true');
+  });
+
+  it('публікацію відхилено: поле — виділене з «Властивостями»; бракує поля запису — підказка з його назвою', async () => {
+    const v = version({
+      body: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'field', attrs: { key: 'number1' } }] }] },
+      fields: [{ key: 'number1', label: 'Число', type: 'int', required: false, fill: 'author', editable: false, print: true, dictionary: null }],
+    });
+    let answer: object = { errorCode: 'TEMPLATE_FIELD_INVALID', field: 'number1' };
+    mockApi(builder(v, template(), { 'POST /api/papers/templates/t1/versions/1/publish': () => json(400, answer) }));
+    renderApp('/editor/templates/t1');
+    await screen.findByLabelText('Аркуш шаблону');
+    await userEvent.click(screen.getByRole('button', { name: 'Опублікувати v1' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Опублікувати' }));
+    expect(await screen.findByText(/Перевірте підсвічене поле/)).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Властивості' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByLabelText('Ключ')).toHaveValue('number1');
+
+    answer = { errorCode: 'TEMPLATE_FIELD_INVALID', binding: 'title' };
+    await userEvent.click(screen.getByRole('button', { name: 'Опублікувати v1' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Опублікувати' }));
+    expect(await screen.findByText(/Запис не створиться без поля «Назва»/)).toBeInTheDocument();
+  });
+
+  it('«Шаблон»: налаштування зберігаються одразу; версії з кількістю документів; відкинути чернетку', async () => {
+    const t = template({ currentVersion: 1, draftVersion: 2 });
+    t.versions = [
+      { number: 2, revision: 1, publishedAt: null, publishedBy: null, updatedAt: '2026-11-15T10:00:00Z', documents: 0 },
+      {
+        number: 1,
+        revision: 3,
+        publishedAt: '2026-11-14T10:00:00Z',
+        publishedBy: { id: 'm', name: 'Артур Машталер', avatarUrl: null },
+        updatedAt: '2026-11-14T10:00:00Z',
+        documents: 12,
+      },
+    ];
+    const { calls } = mockApi(
+      builder(version({ number: 2 }), t, {
+        'PATCH /api/papers/templates/t1': async (r) => json(200, { ...t, ...((await r.json()) as object) }),
+        'DELETE /api/papers/templates/t1/versions/2': () => json(200, { ok: true }),
+        'GET /api/papers/templates/t1/versions/1': () => json(200, version({ publishedAt: '2026-11-14T10:00:00Z' })),
+      }),
+    );
+    renderApp('/editor/templates/t1');
+    await screen.findByLabelText('Аркуш шаблону');
+    expect(screen.getByText('12 документів на v1 не зміняться')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: 'Шаблон' }));
+    const panel = within(screen.getByRole('complementary', { name: 'Конструктор' })).getByRole('tabpanel');
+    expect(within(panel).getByText('Створює запис · ТЗ')).toBeInTheDocument();
+    const prefix = within(panel).getByLabelText('Префікс номера');
+    await userEvent.type(prefix, 'тз{Enter}');
+    expect(prefix).toHaveValue('ТЗ');
+    await waitFor(() => expect(calls.some((c) => c.method === 'PATCH' && c.path === '/api/papers/templates/t1')).toBe(true));
+    expect(JSON.parse(calls.find((c) => c.method === 'PATCH' && c.path === '/api/papers/templates/t1')!.body)).toEqual({ numberPrefix: 'ТЗ' });
+    await userEvent.selectOptions(within(panel).getByLabelText('Хто створює документи'), 'all');
+    await waitFor(() => expect(calls.filter((c) => c.method === 'PATCH' && c.path === '/api/papers/templates/t1').at(-1)!.body).toBe('{"creators":"all"}'));
+    expect(within(panel).getByRole('switch', { name: 'Фіксувати, коли запис готовий' })).toBeInTheDocument();
+    expect(within(panel).getByText(/опубліковано .* · Артур Машталер · 12 документів/)).toBeInTheDocument();
+
+    await userEvent.click(within(panel).getByRole('button', { name: 'Відкинути чернетку' }));
+    await userEvent.click(within(panel).getByRole('button', { name: 'Відкинути' }));
+    await waitFor(() => expect(calls.some((c) => c.method === 'DELETE')).toBe(true));
+  });
+
+  it('без чернетки — поточна версія лише для читання, чернетка не створюється', async () => {
+    const { calls } = mockApi(
+      builder(version(), template({ currentVersion: 2, draftVersion: null }), {
+        'GET /api/papers/templates/t1/versions/2': () => json(200, version({ number: 2, publishedAt: '2026-11-15T13:00:00Z' })),
+      }),
+    );
+    renderApp('/editor/templates/t1');
+    const sheet = await screen.findByLabelText('Аркуш шаблону');
+    expect(sheet).toHaveAttribute('contenteditable', 'false');
+    expect(screen.getByRole('button', { name: 'Змінити' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Опублікувати/ })).not.toBeInTheDocument();
+    expect(calls.some((c) => c.method === 'POST')).toBe(false);
   });
 
   it('конфлікт: банер «Відкрити останню версію» бере чернетку з сервера знову', async () => {

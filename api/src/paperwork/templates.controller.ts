@@ -15,6 +15,7 @@ import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
 import { Action } from '../auth/policy';
 import { Can, JwtAuthGuard, PolicyGuard } from '../auth/roles';
 import { OkDto } from '../common/responses.dto';
+import { PaperTemplateRefDto } from './responses.dto';
 import {
   CreateTemplateDto,
   UpdateTemplateDto,
@@ -108,6 +109,17 @@ export class TemplatesController {
     @Body() dto: UpdateTemplateVersionDto,
   ) {
     return this.templates.saveDraft(id, v, dto);
+  }
+
+  /** Fields as a document fills them: to try the template in the constructor. Nothing is saved. */
+  @Can(Action.PaperTemplatesManage)
+  @ApiOkResponse({ type: PaperTemplateRefDto })
+  @Get(':id/versions/:v/fields')
+  fields(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('v', ParseIntPipe) v: number,
+  ) {
+    return this.templates.trialFields(id, v);
   }
 
   /** Throws away a draft version. */

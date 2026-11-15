@@ -63,6 +63,10 @@
 .h-data {
   color: var(--pal-purple-text);
 }
+/* Fields of the record are fields too: the same blue */
+.h-schema {
+  color: var(--pal-blue-text);
+}
 .blocks {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -82,8 +86,13 @@
   text-align: left;
   cursor: grab;
 }
-.block:hover {
+.block:hover:not(:disabled) {
   border-color: var(--c-primary);
+}
+.block:disabled {
+  color: var(--c-text2);
+  border-style: dashed;
+  cursor: default;
 }
 .blockIcon,
 .headingIcon {
@@ -108,6 +117,10 @@
 .i-data {
   background: var(--pal-purple-soft);
   color: var(--pal-purple-text);
+}
+.i-schema {
+  background: var(--pal-blue-soft);
+  color: var(--pal-blue-text);
 }
 
 /* «Властивості» */

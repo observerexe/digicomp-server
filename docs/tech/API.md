@@ -361,7 +361,8 @@
 ### Шаблони документів
 
 - Шаблон — `{ id, title, kind, target, numberPrefix, autoFreeze, creators, visibility, archived, currentVersion, draftVersion, needsUpdate, createdAt, updatedAt }`;
-  окремий шаблон ще має `versions` — `{ number, revision, publishedAt, publishedBy, updatedAt }`, від нових.
+  окремий шаблон ще має `versions` — `{ number, revision, publishedAt, publishedBy, updatedAt, documents }`, від нових;
+  `documents` — скільки документів зроблено з версії (учасникові — `null`).
   - `kind`: `creates` (створює запис типу `target`), `report` (звіт про запис типу `target`), `free` (без запису, `target: null`).
     `creates` — лише для типів, у схемі яких є поля зі `create: true`. Вид і тип запису задаються при створенні й більше не змінюються.
   - `numberPrefix` — великі літери й цифри, до 10 знаків («ТЗ»); без нього документи без номера. `autoFreeze` — лише для `creates`.
@@ -384,6 +385,9 @@
   - `PATCH /api/papers/templates/:id/versions/:v { revision, body?, fields? }` — лише чернетка (інакше 409 `TEMPLATE_VERSION_PUBLISHED`);
     `revision` — як у документів (інша — 409 `PAPER_CONFLICT`), `fields` — усі поля версії, по порядку. Відповідь — без `body` і `fields`.
     Тут перевіряється лише форма полів і повтор ключів: конструктор зберігає й недоналаштовані поля.
+  - `GET /api/papers/templates/:id/versions/:v/fields` — поля версії (і чернетки) так, як їх заповнює документ: `{ id, title, version, fields }`,
+    поле — як у документа (межі тісніші з поля запису, варіанти `enum`, `plain`); `canFill` — для всіх полів, крім `ref:*` до типів, яких не
+    пов'язують. Конструктор так дає спробувати шаблон: нічого не зберігається. Лише admin і moderator.
   - `DELETE /api/papers/templates/:id/versions/:v` — відкинути чернетку.
   - `POST /api/papers/templates/:id/versions/:v/publish` — повна перевірка полів за схемою запису на цю мить і звірка тіла з полями;
     версія стає поточною й більше не змінюється.

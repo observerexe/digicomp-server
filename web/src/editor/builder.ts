@@ -17,7 +17,7 @@ import { zoneAtSelection, type FieldLook } from './fields';
 
 /** What a field shows on the sheet; set from the page (setBuilderLook). */
 export type BuilderField = {
-  /** On the sheet: `{Підпис}`, `{key}`; in «Документ» — the label. */
+  /** On the sheet: `{Підпис}` or `{key}`. */
   text: string;
   state: FieldLook['state'];
   /** The label of its block: «Число · points → Бали». */
@@ -27,11 +27,11 @@ export type BuilderField = {
 
 export type BuilderLook = {
   fields: Record<string, BuilderField>;
-  /** «Документ»: the sheet as a document shows it — no frames, no labels. */
-  preview: boolean;
+  /** false — a published version is shown: no hint under the last block, no «/». */
+  editable: boolean;
 };
 
-const EMPTY: BuilderLook = { fields: {}, preview: false };
+const EMPTY: BuilderLook = { fields: {}, editable: true };
 const lookKey = new PluginKey<BuilderLook>('builderLook');
 
 /** The type of a block dragged from the palette (its key is the data). */
@@ -258,22 +258,20 @@ export function builderExtension(opts: BuilderOptions) {
               const decos: Decoration[] = [];
               const sel = state.selection;
               const active = sel.$from.index(0);
-              if (!look.preview) {
-                state.doc.forEach((node, offset, i) => {
-                  const tag = blockTag(node, look);
-                  const cls = ['paper-block', `is-${tag.group}`, i === active ? 'is-active' : ''].filter(Boolean).join(' ');
-                  decos.push(Decoration.node(offset, offset + node.nodeSize, { class: cls, 'data-label': tag.label }));
-                });
-                decos.push(Decoration.widget(state.doc.content.size, () => endHint(opts.onEnd), { side: 1, key: 'end', ignoreSelection: true }));
-              }
+              state.doc.forEach((node, offset, i) => {
+                const tag = blockTag(node, look);
+                const cls = ['paper-block', `is-${tag.group}`, i === active && look.editable ? 'is-active' : ''].filter(Boolean).join(' ');
+                decos.push(Decoration.node(offset, offset + node.nodeSize, { class: cls, 'data-label': tag.label }));
+              });
+              if (look.editable) decos.push(Decoration.widget(state.doc.content.size, () => endHint(opts.onEnd), { side: 1, key: 'end', ignoreSelection: true }));
               state.doc.descendants((n, pos, parent) => {
                 const key = n.attrs.key as string;
                 const f = look.fields[key];
                 if (n.type.name === 'field') {
                   const look1: FieldLook = { text: f?.text ?? `{${key}}`, state: f?.state ?? 'empty' };
                   decos.push(Decoration.node(pos, pos + n.nodeSize, {}, { look: look1, active: sel instanceof NodeSelection && sel.from === pos }));
-                } else if (n.type.name === 'fieldZone' && (look.preview || parent !== state.doc)) {
-                  decos.push(Decoration.node(pos, pos + n.nodeSize, { class: 'is-zone', 'data-label': look.preview ? (f?.text ?? key) : (f?.tag ?? key) }));
+                } else if (n.type.name === 'fieldZone' && parent !== state.doc) {
+                  decos.push(Decoration.node(pos, pos + n.nodeSize, { class: 'is-zone', 'data-label': f?.tag ?? key }));
                 }
                 return true;
               });
@@ -299,7 +297,7 @@ export function builderExtension(opts: BuilderOptions) {
           editor,
           pluginKey: new PluginKey('blockSuggest'),
           char: '/',
-          allow: ({ state }) => (lookKey.getState(state) ?? EMPTY).preview === false,
+          allow: ({ state }) => (lookKey.getState(state) ?? EMPTY).editable,
           command: ({ range, props }) => opts.onPlace(props.key, range),
           render: () => {
             const open = (p: { query: string; clientRect?: (() => DOMRect | null) | null; command: (b: Block) => void }) =>

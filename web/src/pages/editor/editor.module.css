@@ -386,3 +386,30 @@
     padding-right: 8px;
   }
 }
+
+/* The constructor: its part stays mounted while «Документ» is tried */
+.contents {
+  display: contents;
+}
+.gone {
+  display: none;
+}
+
+/* «Шаблон»: versions of the template */
+.versions {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.versions li {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+}
+.versionHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

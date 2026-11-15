@@ -4865,6 +4865,45 @@
         ]
       }
     },
+    "/api/papers/templates/{id}/versions/{v}/fields": {
+      "get": {
+        "operationId": "TemplatesController_fields",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "v",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperTemplateRefDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Fields as a document fills them: to try the template in the constructor. Nothing is saved.",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
     "/api/papers/templates/{id}/versions/{v}/publish": {
       "post": {
         "operationId": "TemplatesController_publish",
@@ -9774,7 +9813,7 @@
           "title"
         ]
       },
-      "TemplateVersionItemDto": {
+      "TemplateVersionRowDto": {
         "type": "object",
         "properties": {
           "publishedAt": {
@@ -9792,6 +9831,11 @@
               }
             ]
           },
+          "documents": {
+            "type": "number",
+            "nullable": true,
+            "description": "Documents made from the version; null for members."
+          },
           "number": {
             "type": "number"
           },
@@ -9807,6 +9851,7 @@
         "required": [
           "publishedAt",
           "publishedBy",
+          "documents",
           "number",
           "revision",
           "updatedAt"
@@ -9863,7 +9908,7 @@
             "description": "Newest first. Members get only the current version.",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TemplateVersionItemDto"
+              "$ref": "#/components/schemas/TemplateVersionRowDto"
             }
           },
           "id": {
@@ -10166,49 +10211,30 @@
           "revision"
         ]
       },
-      "PaperStatus": {
-        "type": "string",
-        "enum": [
-          "draft",
-          "published",
-          "frozen",
-          "signed",
-          "cancelled"
-        ]
-      },
-      "PaperItemDto": {
+      "TemplateVersionItemDto": {
         "type": "object",
         "properties": {
-          "status": {
+          "publishedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "null — a draft."
+          },
+          "publishedBy": {
+            "nullable": true,
+            "type": "object",
             "allOf": [
               {
-                "$ref": "#/components/schemas/PaperStatus"
+                "$ref": "#/components/schemas/UserRefDto"
               }
             ]
           },
-          "visibility": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PaperVisibility"
-              }
-            ]
-          },
-          "id": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "author": {
-            "$ref": "#/components/schemas/UserRefDto"
+          "number": {
+            "type": "number"
           },
           "revision": {
             "type": "number",
-            "description": "Send it with the next change (PATCH)."
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
+            "description": "Send it with the next save of the draft (PATCH)."
           },
           "updatedAt": {
             "format": "date-time",
@@ -10216,61 +10242,12 @@
           }
         },
         "required": [
-          "status",
-          "visibility",
-          "id",
-          "title",
-          "author",
+          "publishedAt",
+          "publishedBy",
+          "number",
           "revision",
-          "createdAt",
           "updatedAt"
         ]
-      },
-      "PaperListDto": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PaperItemDto"
-            }
-          },
-          "total": {
-            "type": "number"
-          },
-          "page": {
-            "type": "number"
-          },
-          "limit": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "items",
-          "total",
-          "page",
-          "limit"
-        ]
-      },
-      "CreatePaperDto": {
-        "type": "object",
-        "properties": {
-          "content": {
-            "type": "object",
-            "description": "ProseMirror document; without it — one empty paragraph. Not with `templateId`.",
-            "additionalProperties": true
-          },
-          "title": {
-            "type": "string",
-            "description": "Without a title — «Без назви» (from a template — its title).",
-            "maxLength": 200
-          },
-          "templateId": {
-            "type": "string",
-            "description": "Make the document from the template's current version (its body, its fields).",
-            "format": "uuid"
-          }
-        }
       },
       "PaperFieldOptionDto": {
         "type": "object",
@@ -10404,6 +10381,112 @@
           "title",
           "version"
         ]
+      },
+      "PaperStatus": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "published",
+          "frozen",
+          "signed",
+          "cancelled"
+        ]
+      },
+      "PaperItemDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperStatus"
+              }
+            ]
+          },
+          "visibility": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperVisibility"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "author": {
+            "$ref": "#/components/schemas/UserRefDto"
+          },
+          "revision": {
+            "type": "number",
+            "description": "Send it with the next change (PATCH)."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "visibility",
+          "id",
+          "title",
+          "author",
+          "revision",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PaperListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaperItemDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit"
+        ]
+      },
+      "CreatePaperDto": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "object",
+            "description": "ProseMirror document; without it — one empty paragraph. Not with `templateId`.",
+            "additionalProperties": true
+          },
+          "title": {
+            "type": "string",
+            "description": "Without a title — «Без назви» (from a template — its title).",
+            "maxLength": 200
+          },
+          "templateId": {
+            "type": "string",
+            "description": "Make the document from the template's current version (its body, its fields).",
+            "format": "uuid"
+          }
+        }
       },
       "PaperRefDto": {
         "type": "object",

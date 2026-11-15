@@ -100,8 +100,11 @@ export function useAutosave<C extends object>(send: (change: Partial<C>, revisio
     [save],
   );
 
-  /** Save now (leaving the page). */
-  const flush = useCallback(() => save(), [save]);
+  /** Save now (leaving the page, publishing); true — everything is on the server. */
+  const flush = useCallback(async () => {
+    await save();
+    return !stopped.current && !held.current && !inFlight.current && Object.keys(pending.current).length === 0;
+  }, [save]);
 
   /** Drop what is not saved and stop (the draft is being deleted). */
   const cancel = useCallback(() => {

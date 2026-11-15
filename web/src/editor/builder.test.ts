@@ -29,7 +29,7 @@ const zone = (key: string, ...content: JSONContent[]): JSONContent => ({ type: '
 const doc = (...content: JSONContent[]): JSONContent => ({ type: 'doc', content });
 
 const LOOK: BuilderLook = {
-  preview: false,
+  editable: true,
   fields: {
     points: { text: '{Бали}', state: 'field', tag: 'Число · points', group: 'field' },
     member: { text: '{Учасник}', state: 'data', tag: 'Учасник · member', group: 'data' },
@@ -158,7 +158,7 @@ describe('Конструктор: блоки на аркуші', () => {
     expect(blockTag(node({ type: 'pageBreak' }), LOOK)).toEqual({ label: 'Розрив сторінки', group: 'text' });
   });
 
-  it('на аркуші — рамки з мітками, активний блок, поля як {Підпис}; «Документ» — без рамок, поля й зони як у документі', () => {
+  it('на аркуші — рамки з мітками, активний блок, поля як {Підпис}; опублікована версія — рамки без підказки внизу й без «/»', () => {
     const { editor } = open(doc({ type: 'heading', attrs: { level: 2 }, content: [t('Мета')] }, zone('goal'), p(t('Бали '), f('points'))));
     setBuilderLook(editor, LOOK);
     const dom = editor.view.dom;
@@ -171,15 +171,17 @@ describe('Конструктор: блоки на аркуші', () => {
     editor.view.dispatch(editor.state.tr.setSelection(TextSelection.create(editor.state.doc, fieldPosition(editor, 'goal')! + 2)));
     expect(dom.querySelector('.paper-block.is-active')).toHaveAttribute('data-label', 'Вільна зона · goal');
 
-    setBuilderLook(editor, {
-      ...LOOK,
-      preview: true,
-      fields: { ...LOOK.fields, points: { ...LOOK.fields.points!, text: 'Бали', state: 'missing' }, goal: { ...LOOK.fields.goal!, text: 'Мета' } },
-    });
-    expect(dom.querySelector('.paper-block')).toBeNull();
+    setBuilderLook(editor, { ...LOOK, editable: false });
+    expect(dom.querySelectorAll('.paper-block')).toHaveLength(3);
+    expect(dom.querySelector('.paper-block.is-active')).toBeNull();
     expect(dom.querySelector('.paper-end')).toBeNull();
-    expect(dom.querySelector('.paper-field')).toHaveClass('is-missing');
-    expect(dom.querySelector('.paper-zone')).toHaveAttribute('data-label', 'Мета');
+  });
+
+  it('«/» не відкривається на опублікованій версії', () => {
+    const { editor, show } = open(doc(p(t('Текст'))));
+    setBuilderLook(editor, { ...LOOK, editable: false });
+    editor.chain().focus('end').insertContent(' /чис').run();
+    expect(show).not.toHaveBeenCalledWith(expect.objectContaining({ query: 'чис' }));
   });
 
   it('«/» відкриває список блоків; вибір ставить блок замість «/…»; клік під останнім блоком — курсор у кінці', () => {

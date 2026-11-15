@@ -63,10 +63,17 @@ export class TemplateVersionItemDto {
   updatedAt: Date;
 }
 
+/** A version in the template's list. */
+export class TemplateVersionRowDto extends TemplateVersionItemDto {
+  /** Documents made from the version; null for members. */
+  @ApiProperty({ type: Number, nullable: true })
+  documents: number | null;
+}
+
 export class TemplateDto extends TemplateItemDto {
   /** Newest first. Members get only the current version. */
-  @ApiProperty({ type: [TemplateVersionItemDto] })
-  versions: TemplateVersionItemDto[];
+  @ApiProperty({ type: [TemplateVersionRowDto] })
+  versions: TemplateVersionRowDto[];
 }
 
 export class TemplateVersionDto extends TemplateVersionItemDto {

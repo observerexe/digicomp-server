@@ -5,6 +5,7 @@ import { itemType, walkNodes } from '../../../shared/editor-schema/fields';
 import type { PaperNode } from '../../../shared/editor-schema';
 import { plural } from '../lib/format';
 import { fieldBlockOf, type FieldBlock } from './blocks';
+import { bindableFields } from './blocks/schema';
 
 /**
  * Fields of a template version in the constructor. The sheet (the body) is
@@ -35,19 +36,23 @@ export function newKey(prefix: string, taken: ReadonlySet<string>): string {
   for (let n = 1; ; n++) if (!taken.has(`${prefix}${n}`)) return `${prefix}${n}`;
 }
 
-/** A new field of a block: filled by the author, shown in the print. */
+/**
+ * A new field of a block: filled by the author, shown in the print. A field of
+ * the record is bound to it and takes its key while that is free.
+ */
 export function newField(block: FieldBlock, taken: ReadonlySet<string>): FieldDef {
-  const key = newKey(block.prefix, taken);
+  const own = block.binding !== undefined && !taken.has(block.prefix);
+  const key = own ? block.prefix : newKey(block.prefix, taken);
   const n = Number(key.slice(block.prefix.length));
   return {
     key,
-    label: n > 1 ? `${block.label} ${n}` : block.label,
+    label: n > 1 && !block.binding ? `${block.label} ${n}` : block.label,
     type: block.type as FieldType,
-    required: false,
+    required: block.required ?? false,
     fill: 'author',
     editable: false,
     print: true,
-    binding: null,
+    binding: block.binding ?? null,
     min: null,
     max: null,
     maxLength: null,
@@ -122,9 +127,8 @@ export function keyProblem(key: string, own: string, taken: ReadonlySet<string>)
  * type (a free zone — also a text field), not bound by another field.
  */
 export function bindingOptions(f: FieldDef, kind: TemplateKind, schema: RecordSchema | null | undefined, fields: readonly FieldDef[]): RecordField[] {
-  if (kind === 'free' || !schema) return [];
   const taken = new Set(fields.filter((o) => o.key !== f.key && o.binding).map((o) => o.binding));
-  return schema.fields.filter((s) => !s.archived && (kind === 'report' || s.create) && (s.type === f.type || (f.type === 'richtext' && s.type === 'text')) && !taken.has(s.key));
+  return bindableFields(kind, schema).filter((s) => (s.type === f.type || (f.type === 'richtext' && s.type === 'text')) && !taken.has(s.key));
 }
 
 const NUM = new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 2, useGrouping: false });

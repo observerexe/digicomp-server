@@ -139,4 +139,28 @@ describe('Автозбереження чернетки', () => {
     expect(result.current.state).toBe('saved');
     expect(result.current.rejection).toBeNull();
   });
+
+  it('flush зберігає одразу й каже, чи все на сервері', async () => {
+    let refuse = false;
+    mockApi({ 'PATCH /api/papers/p1': () => (refuse ? json(400, { errorCode: 'PAPER_FIELD_INVALID', field: 'count' }) : saved(2)) });
+    const { result } = renderHook(() => useAutosave('p1', 1));
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = await result.current.flush();
+    });
+    expect(ok).toBe(true);
+    act(() => result.current.change({ title: 'Звіт' }));
+    await act(async () => {
+      ok = await result.current.flush();
+    });
+    expect(ok).toBe(true);
+    expect(result.current.state).toBe('saved');
+
+    refuse = true;
+    act(() => result.current.change({ values: { count: 99 } }));
+    await act(async () => {
+      ok = await result.current.flush();
+    });
+    expect(ok).toBe(false);
+  });
 });

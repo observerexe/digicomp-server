@@ -18,7 +18,6 @@ import { User } from '../users/user.entity';
 import type { OkDto, Plain } from '../common/responses.dto';
 import {
   EMPTY_CONTENT,
-  refType,
   valueText,
   type FieldValues,
   type PaperContent,
@@ -31,7 +30,7 @@ import type {
 } from './dto';
 import { Paper, PaperStatus, PaperVisibility } from './paper.entity';
 import { whereSeen } from './paper.links';
-import { checkNewRefs, seenRefs, syncLinks } from './paper-refs';
+import { checkNewRefs, fillableType, seenRefs, syncLinks } from './paper-refs';
 import {
   checkContent,
   checkValues,
@@ -100,12 +99,6 @@ export class PaperworkService {
     private recordFields: RecordFieldsService,
     private links: LinkRegistry,
   ) {}
-
-  /** A field of this type may be filled: not a reference, or one to a type that may be referred to. */
-  private fillableType(type: string) {
-    const ref = refType(type);
-    return ref === null || this.links.get(ref) !== undefined;
-  }
 
   /** Records the document refers to that the actor sees. */
   private refsOf(m: EntityManager, p: Paper, form: Form | null, actor: Actor) {
@@ -223,7 +216,7 @@ export class PaperworkService {
           ...f,
           canFill:
             editable &&
-            this.fillableType(f.type) &&
+            fillableType(this.links, f.type) &&
             (f.fill === 'author' || staff),
         })),
       },

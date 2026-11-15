@@ -16,6 +16,8 @@ export class ApiError extends Error {
     message?: string,
     /** Key of the field the error is about (PAPER_FIELD_INVALID, TEMPLATE_FIELD_INVALID). */
     public field?: string,
+    /** TEMPLATE_FIELD_INVALID: key of the record's field no field of the template is bound to. */
+    public binding?: string,
   ) {
     super(message ?? code);
     this.name = 'ApiError';
@@ -83,9 +85,10 @@ export async function unwrap<T>(
     throw new ApiError(0, 'NETWORK');
   }
   if (result.error !== undefined || !result.response.ok) {
-    const body = (result.error ?? {}) as { errorCode?: string; message?: unknown; field?: unknown };
+    const body = (result.error ?? {}) as { errorCode?: string; message?: unknown; field?: unknown; binding?: unknown };
     const msg = typeof body.message === 'string' ? body.message : undefined;
-    throw new ApiError(result.response.status, body.errorCode ?? 'ERROR', msg, typeof body.field === 'string' ? body.field : undefined);
+    const str = (v: unknown) => (typeof v === 'string' ? v : undefined);
+    throw new ApiError(result.response.status, body.errorCode ?? 'ERROR', msg, str(body.field), str(body.binding));
   }
   return result.data as T;
 }

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { FIELD_KEY } from '../../../../shared/editor-schema';
+import type { RecordSchema } from '../../api/types';
+import { newField } from '../template';
 import { BLOCK_GROUPS, BLOCKS, fieldBlockOf, findBlocks, textBlockOf } from '.';
+import { paletteOf, schemaBlocks } from './schema';
 
 /** Field types the API takes (api/src/records/field-types.ts): scalars, `ref:<type>`, `list<…>`. */
 const SCALARS = ['text', 'richtext', 'int', 'decimal', 'date', 'datetime', 'bool', 'enum', 'color'];
@@ -47,5 +50,44 @@ describe('Реєстр блоків конструктора', () => {
     expect(findBlocks('термін').map((b) => b.key)).toEqual(['date']);
     expect(findBlocks('зона').map((b) => b.key)).toEqual(['zone']);
     expect(findBlocks('щось')).toEqual([]);
+  });
+});
+
+describe('Поля запису в палітрі', () => {
+  const schema: RecordSchema = {
+    type: 'task',
+    label: 'ТЗ',
+    extensible: true,
+    version: 'v1',
+    fields: [
+      { key: 'title', label: 'Назва', type: 'text', required: true, create: true, maxLength: 200 },
+      { key: 'description', label: 'Опис', type: 'text', create: true, maxLength: 5000 },
+      { key: 'assigneeIds', label: 'Виконавці', type: 'list<ref:user>', create: true },
+      { key: 'status', label: 'Статус', type: 'enum' },
+      { key: 'old', label: 'Старе', type: 'text', create: true, archived: true },
+    ],
+  };
+
+  it('«Створює запис» — поля, які задаються при створенні; «Звіт» — усі; вільний — немає групи', () => {
+    expect(schemaBlocks('creates', schema).map((b) => b.binding)).toEqual(['title', 'description', 'assigneeIds']);
+    expect(schemaBlocks('report', schema).map((b) => b.binding)).toEqual(['title', 'description', 'assigneeIds', 'status']);
+    expect(paletteOf('free', schema).groups).toEqual(BLOCK_GROUPS);
+    const palette = paletteOf('creates', schema);
+    expect(palette.groups[0]).toEqual({ key: 'schema', label: 'Поля запису «ТЗ»' });
+    expect(palette.blocks.length).toBe(BLOCKS.length + 3);
+  });
+
+  it('тип і вигляд — з поля запису: довгий текст — вільна зона; обов’язковість — лише для «Створює запис»', () => {
+    const [title, description, assignees] = schemaBlocks('creates', schema);
+    expect(title).toMatchObject({ type: 'text', icon: 'textField', required: true, prefix: 'title' });
+    expect(description).toMatchObject({ type: 'richtext', icon: 'zone', required: false });
+    expect(assignees).toMatchObject({ type: 'list<ref:user>', icon: 'users' });
+    expect(schemaBlocks('report', schema)[0]!.required).toBe(false);
+  });
+
+  it('нове поле — з ключем поля запису, поки він вільний, прив’язане', () => {
+    const [title] = schemaBlocks('creates', schema);
+    expect(newField(title!, new Set())).toMatchObject({ key: 'title', label: 'Назва', binding: 'title', required: true });
+    expect(newField(title!, new Set(['title']))).toMatchObject({ key: 'title1', label: 'Назва', binding: 'title' });
   });
 });

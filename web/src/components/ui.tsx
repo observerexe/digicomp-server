@@ -38,6 +38,8 @@ export function ConfirmButton(props: {
   question: string;
   confirmLabel?: string;
   danger?: boolean;
+  /** The page's main action: a blue button. */
+  primary?: boolean;
   disabled?: boolean;
   onConfirm: () => void;
 }) {
@@ -45,7 +47,7 @@ export function ConfirmButton(props: {
   const tone = props.danger ? 'btn-danger' : 'btn-primary';
   if (!asking) {
     return (
-      <button type="button" className={`btn ${props.danger ? 'btn-danger' : ''}`} disabled={props.disabled} onClick={() => setAsking(true)}>
+      <button type="button" className={`btn ${props.danger ? 'btn-danger' : props.primary ? 'btn-primary' : ''}`} disabled={props.disabled} onClick={() => setAsking(true)}>
         {props.label}
       </button>
     );

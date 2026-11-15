@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Icon } from '../components/Icon';
-import { BLOCK_GROUPS, findBlocks, type Block } from './blocks';
+import { findBlocks, type Block, type Palette } from './blocks';
 import type { BlockMenuState } from './builder';
 import s from './SuggestMenu.module.css';
 
@@ -9,9 +9,9 @@ import s from './SuggestMenu.module.css';
  * is typed, by groups. Arrows and Enter choose (the editor passes its keys
  * through `keys`), Esc closes, a click picks.
  */
-export function BlockMenu({ menu, keys }: { menu: BlockMenuState; keys: RefObject<(e: KeyboardEvent) => boolean> }) {
-  const found = findBlocks(menu.query);
-  const items = BLOCK_GROUPS.flatMap((g) => found.filter((b) => b.group === g.key));
+export function BlockMenu({ menu, keys, palette }: { menu: BlockMenuState; keys: RefObject<(e: KeyboardEvent) => boolean>; palette: Palette }) {
+  const found = findBlocks(menu.query, palette.blocks);
+  const items = palette.groups.flatMap((g) => found.filter((b) => b.group === g.key));
   const [sel, setSel] = useState({ q: menu.query, at: 0 });
   const at = sel.q === menu.query ? sel.at : 0;
   const setAt = (i: number) => setSel({ q: menu.query, at: i });
@@ -71,7 +71,7 @@ export function BlockMenu({ menu, keys }: { menu: BlockMenuState; keys: RefObjec
       {items.length === 0 ? (
         <p className={s.note}>Такого блоку немає</p>
       ) : (
-        BLOCK_GROUPS.map((g) => {
+        palette.groups.map((g) => {
           const group = items.filter((b) => b.group === g.key);
           if (!group.length) return null;
           return (

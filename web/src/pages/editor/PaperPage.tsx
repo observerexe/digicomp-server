@@ -1,21 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { JSONContent } from '@tiptap/core';
-import { EditorContent, useEditor, useEditorState } from '@tiptap/react';
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { EditorContent, useEditor } from '@tiptap/react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { api, unwrap } from '../../api/client';
-import type { Paper, PaperTemplateRef } from '../../api/types';
+import type { Paper } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
 import { Icon } from '../../components/Icon';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { ConfirmButton, ErrorMessage } from '../../components/ui';
-import { paperExtensions } from '../../editor/extensions';
-import { fieldPosition, setFieldsLook, zoneAtSelection, zoneTexts, type FieldsLook } from '../../editor/fields';
-import { fieldControlId, FieldsPanel, isFilled } from '../../editor/FieldsPanel';
-import type { MentionMenuState, MentionSuggest } from '../../editor/mention';
+import { FieldsPanel } from '../../editor/FieldsPanel';
 import { MentionMenu } from '../../editor/MentionMenu';
-import { PaperRecordsContext, recordKey, type PaperRecords } from '../../editor/records';
-import { valueText, type FieldValue, type FieldValues, type RecordTitle } from '../../../../shared/editor-schema/fields';
+import { PaperRecordsContext } from '../../editor/records';
+import { useFill, useFillSheet } from '../../editor/useFill';
+import type { FieldValue, FieldValues } from '../../../../shared/editor-schema/fields';
 import '../../../../shared/editor-schema/paper.css';
 import '../../editor/format.css';
 import { Ribbon } from '../../editor/Ribbon';
@@ -82,24 +80,6 @@ const TITLE_MAX = 200;
 
 type PaperChange = { title: string; content: JSONContent; values: FieldValues };
 
-/** What the sheet shows for each field and zone now. */
-function lookOf(template: PaperTemplateRef, values: FieldValues, zones: Record<string, string>, active: string | null, title: RecordTitle): FieldsLook {
-  const look: FieldsLook = { fields: {}, zones: {}, active };
-  for (const f of template.fields) {
-    const filled = isFilled(f, values, zones);
-    if (f.type === 'richtext') {
-      look.zones[f.key] = { label: f.label, missing: f.required && !filled };
-      continue;
-    }
-    const v = values[f.key];
-    look.fields[f.key] = {
-      text: v !== undefined ? valueText(f.type, v, f.options, title) : f.label,
-      state: filled ? 'filled' : f.fill === 'staff' && !f.canFill ? 'staff' : f.required ? 'missing' : 'empty',
-    };
-  }
-  return look;
-}
-
 function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -112,128 +92,28 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
   const [title, setTitle] = useState(paper.title);
   const lastTitle = useRef(paper.title);
   const template = paper.template;
-  const [values, setValues] = useState<FieldValues>(paper.values as FieldValues);
-  const [zones, setZones] = useState<Record<string, string>>({});
-  const [active, setActive] = useState<string | null>(null);
-  // A click on a field on the sheet opens its control in the panel.
-  const openField = useRef((key: string) => {
-    setActive(key);
-    document.getElementById(fieldControlId(key))?.focus();
-  });
-
-  // Records of `ref:*` values and «@»: the server's, plus what is picked here.
-  // A map in a ref: the sheet reads it at once, before React draws again.
-  const recordMap = useRef(new Map(paper.refs.map((r) => [recordKey(r.type, r.id), r as RecordView])));
-  const [recordsVersion, recordAdded] = useReducer((n: number) => n + 1, 0);
-  const records = useMemo<PaperRecords>(
-    () => ({
-      get: (type, id) => recordMap.current.get(recordKey(type, id)),
-      add: (r) => {
-        if (recordMap.current.has(recordKey(r.type, r.id))) return;
-        recordMap.current.set(recordKey(r.type, r.id), r);
-        recordAdded();
-      },
-    }),
-    // A new object when a record is added: the panel shows it.
-    [recordsVersion],
-  );
-  const recordTitle: RecordTitle = (type, id) => records.get(type, id)?.title ?? null;
-
-  // The list after «@»: shown here, keys from the editor while it is open.
-  const [menu, setMenu] = useState<MentionMenuState | null>(null);
-  const menuKeys = useRef<(e: KeyboardEvent) => boolean>(() => false);
-  const extensions = useMemo(() => {
-    const plain = new Set(template?.fields.filter((f) => f.plain).map((f) => f.key));
-    const locked = new Set(template?.fields.filter((f) => f.type === 'richtext' && !f.canFill).map((f) => f.key));
-    const suggest: MentionSuggest = {
-      // A free document — anywhere; from a template — in a zone the actor fills, not plain text.
-      allow: (state) => {
-        if (!template) return true;
-        const z = zoneAtSelection(state);
-        return z !== null && !plain.has(z) && !locked.has(z);
-      },
-      show: (m) =>
-        setMenu(
-          m && {
-            ...m,
-            pick: (r) => {
-              records.add(r);
-              m.pick(r);
-            },
-          },
-        ),
-      key: (e) => menuKeys.current(e),
-    };
-    return paperExtensions({
-      template: template
-        ? {
-            plain,
-            locked,
-            fillable: new Set(template.fields.filter((f) => f.canFill).map((f) => f.key)),
-            onFieldClick: (key) => openField.current(key),
-          }
-        : undefined,
-      mention: {
-        record: (type, id) => recordMap.current.get(recordKey(type, id)) ?? null,
-        suggest: editable ? suggest : null,
-      },
-    });
-    // Built once: the editor keeps its extensions; `records` reads the same map.
-  }, [template, editable]);
-  const syncZones = (texts: Record<string, string>) => setZones((prev) => (JSON.stringify(prev) === JSON.stringify(texts) ? prev : texts));
+  const fill = useFill({ template, values: paper.values as FieldValues, refs: paper.refs as RecordView[], editable });
+  const { values } = fill;
   const editor = useEditor({
-    extensions,
+    extensions: fill.extensions,
     content: paper.content,
     editable,
     // TipTap's own <style> is blocked by CSP; its rules are in format.css and paper.css.
     injectCSS: false,
     editorProps: { attributes: { class: `paper ${s.page}`, 'aria-label': 'Текст документа' } },
-    onCreate: ({ editor: e }) => syncZones(zoneTexts(e.state.doc)),
+    onCreate: ({ editor: e }) => fill.syncZones(e.state.doc),
     // The «@» list belongs to the cursor: gone when the sheet loses focus (it comes back as typing goes on).
-    onBlur: () => setMenu(null),
+    onBlur: () => fill.closeMenu(),
     onUpdate: ({ editor: e }) => {
-      syncZones(zoneTexts(e.state.doc));
+      fill.syncZones(e.state.doc);
       autosave.change({ content: e.getJSON() });
     },
   });
-  const zone = useEditorState({ editor, selector: ({ editor: e }) => (template ? zoneAtSelection(e.state) : null) });
   // A value the server refused: its field is shown (the error says what to fix).
   const refused = autosave.state === 'rejected' ? (autosave.rejection?.field ?? null) : null;
-  const shownActive = zone ?? refused ?? active;
-  useEffect(() => {
-    if (template) setFieldsLook(editor, lookOf(template, values, zones, shownActive, recordTitle));
-    // recordsVersion: a picked record's title is shown on the sheet.
-  }, [editor, template, values, zones, shownActive, recordsVersion]);
+  const sheet = useFillSheet(editor, fill, refused);
 
-  const changeValue = (key: string, v: FieldValue | null) => {
-    const next = { ...values };
-    if (v === null) delete next[key];
-    else next[key] = v;
-    setValues(next);
-    autosave.change({ values: next });
-  };
-  /** Bring a field into view on the sheet; a zone — put the cursor in it. */
-  const showField = (key: string, focusZone: boolean) => {
-    const pos = fieldPosition(editor, key);
-    if (pos === null) return;
-    const zoneNode = editor.state.doc.nodeAt(pos)?.type.name === 'fieldZone';
-    if (zoneNode && focusZone)
-      editor
-        .chain()
-        .focus()
-        .setTextSelection(pos + 2)
-        .scrollIntoView()
-        .run();
-    else (editor.view.nodeDOM(pos) as HTMLElement | null)?.scrollIntoView?.({ block: 'nearest' });
-  };
-  const ribbonLock =
-    !template || !editable
-      ? null
-      : zone === null
-        ? 'Тут текст шаблону: змінюються лише поля в панелі «Поля» і вільні зони в рамках.'
-        : template.fields.find((f) => f.key === zone)?.plain
-          ? 'Ця зона — лише текст, без форматування.'
-          : null;
+  const changeValue = (key: string, v: FieldValue | null) => autosave.change({ values: fill.change(key, v) });
   const [zoom, setZoom, zoomClass] = useZoom();
   const stats = usePageStats(editor, zoom);
 
@@ -322,7 +202,7 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
         </span>
       </header>
       <OfflineBanner />
-      {editable && <Ribbon editor={editor} lock={ribbonLock} />}
+      {editable && <Ribbon editor={editor} lock={sheet.ribbonLock} />}
       <div className={s.notices}>
         <ErrorMessage text={remove.isError ? errorOf(remove.error) : copy.isError ? errorOf(copy.error) : autosave.state === 'rejected' ? errorOf(autosave.rejection) : null} />
         {autosave.state === 'conflict' && (
@@ -355,24 +235,21 @@ function PaperEditor({ paper, onReload }: { paper: Paper; onReload: () => void }
           </div>
         </main>
         {template && (
-          <PaperRecordsContext value={records}>
+          <PaperRecordsContext value={fill.records}>
             <FieldsPanel
               template={template}
               values={values}
-              zones={zones}
+              zones={fill.zones}
               editable={editable}
-              active={shownActive}
+              active={sheet.shownActive}
               onChange={changeValue}
-              onActive={(key) => {
-                setActive(key);
-                if (key) showField(key, false);
-              }}
-              onJump={(key) => showField(key, true)}
+              onActive={sheet.onActive}
+              onJump={(key) => sheet.showField(key, true)}
             />
           </PaperRecordsContext>
         )}
       </div>
-      {menu && <MentionMenu menu={menu} keys={menuKeys} />}
+      {fill.menu && <MentionMenu menu={fill.menu} keys={fill.menuKeys} />}
       <StatusBar
         stats={stats}
         zoom={zoom}

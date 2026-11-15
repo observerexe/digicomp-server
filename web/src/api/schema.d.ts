@@ -1693,6 +1693,23 @@ export interface paths {
         patch: operations["TemplatesController_save"];
         trace?: never;
     };
+    "/api/papers/templates/{id}/versions/{v}/fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fields as a document fills them: to try the template in the constructor. Nothing is saved. */
+        get: operations["TemplatesController_fields"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/papers/templates/{id}/versions/{v}/publish": {
         parameters: {
             query?: never;
@@ -3111,13 +3128,15 @@ export interface components {
             /** @description `creates` only. Default false. */
             autoFreeze?: boolean;
         };
-        TemplateVersionItemDto: {
+        TemplateVersionRowDto: {
             /**
              * Format: date-time
              * @description null — a draft.
              */
             publishedAt: string | null;
             publishedBy: components["schemas"]["UserRefDto"] | null;
+            /** @description Documents made from the version; null for members. */
+            documents: number | null;
             number: number;
             /** @description Send it with the next save of the draft (PATCH). */
             revision: number;
@@ -3136,7 +3155,7 @@ export interface components {
             /** @description Number of the draft version; always null for members. */
             draftVersion: number | null;
             /** @description Newest first. Members get only the current version. */
-            versions: components["schemas"]["TemplateVersionItemDto"][];
+            versions: components["schemas"]["TemplateVersionRowDto"][];
             id: string;
             title: string;
             autoFreeze: boolean;
@@ -3221,39 +3240,18 @@ export interface components {
             /** @description The revision the change is based on; another one — 409 PAPER_CONFLICT. */
             revision: number;
         };
-        /** @enum {string} */
-        PaperStatus: "draft" | "published" | "frozen" | "signed" | "cancelled";
-        PaperItemDto: {
-            status: components["schemas"]["PaperStatus"];
-            visibility: components["schemas"]["PaperVisibility"];
-            id: string;
-            title: string;
-            author: components["schemas"]["UserRefDto"];
-            /** @description Send it with the next change (PATCH). */
+        TemplateVersionItemDto: {
+            /**
+             * Format: date-time
+             * @description null — a draft.
+             */
+            publishedAt: string | null;
+            publishedBy: components["schemas"]["UserRefDto"] | null;
+            number: number;
+            /** @description Send it with the next save of the draft (PATCH). */
             revision: number;
             /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
             updatedAt: string;
-        };
-        PaperListDto: {
-            items: components["schemas"]["PaperItemDto"][];
-            total: number;
-            page: number;
-            limit: number;
-        };
-        CreatePaperDto: {
-            /** @description ProseMirror document; without it — one empty paragraph. Not with `templateId`. */
-            content?: {
-                [key: string]: unknown;
-            };
-            /** @description Without a title — «Без назви» (from a template — its title). */
-            title?: string;
-            /**
-             * Format: uuid
-             * @description Make the document from the template's current version (its body, its fields).
-             */
-            templateId?: string;
         };
         PaperFieldOptionDto: {
             key: string;
@@ -3291,6 +3289,40 @@ export interface components {
             id: string;
             title: string;
             version: number;
+        };
+        /** @enum {string} */
+        PaperStatus: "draft" | "published" | "frozen" | "signed" | "cancelled";
+        PaperItemDto: {
+            status: components["schemas"]["PaperStatus"];
+            visibility: components["schemas"]["PaperVisibility"];
+            id: string;
+            title: string;
+            author: components["schemas"]["UserRefDto"];
+            /** @description Send it with the next change (PATCH). */
+            revision: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PaperListDto: {
+            items: components["schemas"]["PaperItemDto"][];
+            total: number;
+            page: number;
+            limit: number;
+        };
+        CreatePaperDto: {
+            /** @description ProseMirror document; without it — one empty paragraph. Not with `templateId`. */
+            content?: {
+                [key: string]: unknown;
+            };
+            /** @description Without a title — «Без назви» (from a template — its title). */
+            title?: string;
+            /**
+             * Format: uuid
+             * @description Make the document from the template's current version (its body, its fields).
+             */
+            templateId?: string;
         };
         PaperRefDto: {
             type: components["schemas"]["RecordType"];
@@ -6499,6 +6531,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TemplateVersionItemDto"];
+                };
+            };
+        };
+    };
+    TemplatesController_fields: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                v: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperTemplateRefDto"];
                 };
             };
         };

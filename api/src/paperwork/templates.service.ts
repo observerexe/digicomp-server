@@ -14,7 +14,10 @@ import { LinkRegistry } from '../links/link-registry';
 import { RecordFieldsService } from '../records/record-fields.service';
 import { schemaDef, type PublishedSchema } from '../records/records.registry';
 import { EMPTY_CONTENT } from './content';
-import { PaperFieldErrors } from './paper-fields';
+import { PaperFieldErrors, resolveFields } from './paper-fields';
+import { fillableType } from './paper-refs';
+import { Paper } from './paper.entity';
+import type { PaperFieldDto, PaperTemplateRefDto } from './responses.dto';
 import {
   bindingProblem,
   bodyProblem,
@@ -41,6 +44,7 @@ import type {
   TemplateItemDto,
   TemplateVersionDto,
   TemplateVersionItemDto,
+  TemplateVersionRowDto,
 } from './templates.responses.dto';
 
 /** Messages mapped to stable errorCode in common/http-exception.filter.ts. */
@@ -286,6 +290,27 @@ export class TemplatesService {
     return versionView(v);
   }
 
+  /**
+   * Fields of a version as a document fills them (limits, choices), all
+   * fillable: staff try the template in the constructor without a document.
+   */
+  async trialFields(id: string, n: number): Promise<PaperTemplateRefDto> {
+    const m = this.ds.manager;
+    const t = await this.load(m, id);
+    const v = await this.findVersion(m, t, n);
+    const schema = await new Schemas(this.recordFields).of(t.target);
+    const fields = await resolveFields(m, v.fields, schema);
+    return {
+      id: t.id,
+      title: t.title,
+      version: v.number,
+      fields: fields.map((f): Plain<PaperFieldDto> => ({
+        ...f,
+        canFill: fillableType(this.links, f.type),
+      })),
+    };
+  }
+
   /** The draft version; made from the current one if there is none. */
   async draft(id: string): Promise<TemplateVersionDto> {
     return this.ds.transaction(async (m) => {
@@ -476,6 +501,20 @@ export class TemplatesService {
     return new Map(drafts.map((v) => [v.templateId, v.number]));
   }
 
+  /** How many documents each version has, by version id. */
+  private async documentCounts(m: EntityManager, ids: string[]) {
+    if (!ids.length) return new Map<string, number>();
+    const rows = await m
+      .getRepository(Paper)
+      .createQueryBuilder('p')
+      .select('p.templateVersionId', 'id')
+      .addSelect('COUNT(*)::int', 'n')
+      .where('p.templateVersionId IN (:...ids)', { ids })
+      .groupBy('p.templateVersionId')
+      .getRawMany<{ id: string; n: number }>();
+    return new Map(rows.map((r) => [r.id, r.n]));
+  }
+
   /**
    * A published version whose target's schema changed is checked again:
    * a broken binding — the template needs a new version.
@@ -526,9 +565,18 @@ export class TemplatesService {
     const draft = staff
       ? (versions.find((v) => !v.publishedAt)?.number ?? null)
       : null;
+    const documents = staff
+      ? await this.documentCounts(
+          m,
+          versions.map((v) => v.id),
+        )
+      : null;
     return {
       ...(await this.itemView(t, draft, new Schemas(this.recordFields))),
-      versions: versions.map(versionItem),
+      versions: versions.map((v): Plain<TemplateVersionRowDto> => ({
+        ...versionItem(v),
+        documents: documents ? (documents.get(v.id) ?? 0) : null,
+      })),
     };
   }
 

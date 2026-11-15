@@ -20,10 +20,15 @@ import { zone } from './zone';
  * only a record type (`ref:<type>`).
  */
 
-/** Groups of the palette; the colour of a group is the colour of its labels on the sheet. */
-export type BlockGroup = 'text' | 'field' | 'data';
+/**
+ * Groups of the palette; the colour of a group is the colour of its labels on
+ * the sheet. `schema` — fields of the template's record (blocks/schema.ts).
+ */
+export type BlockGroup = 'text' | 'field' | 'data' | 'schema';
 
-export const BLOCK_GROUPS: { key: BlockGroup; label: string }[] = [
+export type GroupDef = { key: BlockGroup; label: string };
+
+export const BLOCK_GROUPS: GroupDef[] = [
   { key: 'text', label: 'Текст' },
   { key: 'field', label: 'Поля' },
   { key: 'data', label: 'Дані застосунку' },
@@ -55,11 +60,17 @@ export type FieldBlock = BlockBase & {
   /** Under the name in «Властивості». */
   hint: string;
   variants?: Variant[];
+  /** A field of the record: the new field is bound to it (its key, if free) and required as the record needs. */
+  binding?: string;
+  required?: boolean;
 };
 
 export type Block = TextBlock | FieldBlock;
 
 export const BLOCKS: Block[] = [heading, paragraph, list, table, pageBreak, line, zone, number, date, choice, checkbox, ...RECORD_BLOCKS];
+
+/** What the palette and «/» offer in a template: groups in order and their blocks. */
+export type Palette = { groups: GroupDef[]; blocks: Block[] };
 
 /** The block a node on the sheet is (a text node); null — not a text block. */
 export function textBlockOf(node: string): TextBlock | null {

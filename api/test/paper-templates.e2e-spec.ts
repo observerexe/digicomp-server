@@ -13,6 +13,7 @@ type Version = {
   body?: unknown;
   fields?: Field[];
   schemaVersion?: string | null;
+  documents?: number | null;
 };
 type Template = {
   id: string;
@@ -497,6 +498,66 @@ describe('Шаблони документів (e2e)', () => {
         .delete(`/api/dictionaries/${dict.key}`)
         .expect(409);
       expect(res.body.errorCode).toBe('DICTIONARY_IN_USE');
+    });
+  });
+
+  describe('спроба в конструкторі', () => {
+    it('поля чернетки — як їх заповнює документ: межі запису, варіанти довідника; учаснику — ні', async () => {
+      const dict = (
+        await as(app, mod)
+          .post('/api/dictionaries')
+          .send({ title: 'Важливість' })
+          .expect(201)
+      ).body as { key: string };
+      await as(app, mod)
+        .post(`/api/dictionaries/${dict.key}/items`)
+        .send({ title: 'Висока' })
+        .expect(201);
+      const t = await create(mod, {
+        title: 'ТЗ',
+        kind: 'creates',
+        target: 'task',
+      });
+      await save(mod, t.id, 1, {
+        revision: 1,
+        fields: [
+          field('points', { type: 'int', binding: 'points', min: 5 }),
+          field('level', { type: 'enum', dictionary: dict.key }),
+          field('who', { type: 'ref:user', fill: 'staff' }),
+        ],
+      }).expect(200);
+
+      const got = (
+        await as(app, mod).get(`${T}/${t.id}/versions/1/fields`).expect(200)
+      ).body as {
+        version: number;
+        fields: (Field & { canFill: boolean })[];
+      };
+      expect(got.version).toBe(1);
+      const [points, level, who] = got.fields;
+      expect(points).toMatchObject({ min: 5, max: 1000, canFill: true });
+      expect(level.options).toEqual([
+        expect.objectContaining({ label: 'Висока' }),
+      ]);
+      expect(who).toMatchObject({ fill: 'staff', canFill: true });
+
+      await as(app, member).get(`${T}/${t.id}/versions/1/fields`).expect(403);
+      await as(app, mod).get(`${T}/${t.id}/versions/9/fields`).expect(404);
+    });
+
+    it('у списку версій — скільки документів на кожній; учаснику — null', async () => {
+      const t = await taskTemplate();
+      await as(app, member)
+        .post('/api/papers')
+        .send({ templateId: t.id })
+        .expect(201);
+      await as(app, mod).post(`${T}/${t.id}/versions`).expect(201);
+      const got = (await as(app, mod).get(`${T}/${t.id}`).expect(200))
+        .body as Template;
+      expect(got.versions!.map((v) => v.documents)).toEqual([0, 1]);
+      const seen = (await as(app, member).get(`${T}/${t.id}`).expect(200))
+        .body as Template;
+      expect(seen.versions!.map((v) => v.documents)).toEqual([null]);
     });
   });
 

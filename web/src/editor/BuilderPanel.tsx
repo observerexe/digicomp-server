@@ -1,17 +1,24 @@
-import { useId, useState, type DragEvent, type KeyboardEvent } from 'react';
+import { useId, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import type { RecordSchema, TemplateKind } from '../api/types';
 import { Icon } from '../components/Icon';
 import { useDictionaries } from '../lib/dictionaries';
-import { BLOCK_GROUPS, BLOCKS, fieldBlockOf, textBlockOf, type Block } from './blocks';
+import { fieldBlockOf, textBlockOf, type Block, type Palette } from './blocks';
 import { BLOCK_MIME, type BuilderSelection } from './builder';
 import s from './BuilderPanel.module.css';
 import { bindingOptions, hasLength, isChoice, isList, isNumeric, keyProblem, LABEL_MAX, limitsText, withType, type FieldDef, type FieldType } from './template';
 
-export type BuilderTab = 'blocks' | 'props';
+export type BuilderTab = 'blocks' | 'props' | 'template';
 
 type Props = {
   tab: BuilderTab;
+  /** The tabs shown: a published version — «Шаблон» only. */
+  tabs: readonly BuilderTab[];
   onTab: (tab: BuilderTab) => void;
+  palette: Palette;
+  /** Fields of the record already bound on the sheet: their blocks are not offered again. */
+  used: ReadonlySet<string>;
+  /** «Шаблон»: settings of the template and its versions. */
+  settings: ReactNode;
   selected: BuilderSelection;
   /** Every field with settings, those not on the sheet too (the key of a field picked in a block). */
   defs: ReadonlyMap<string, FieldDef>;
@@ -27,41 +34,45 @@ type Props = {
   onSelectField: (key: string) => void;
 };
 
-const TABS: { key: BuilderTab; label: string }[] = [
-  { key: 'blocks', label: 'Блоки' },
-  { key: 'props', label: 'Властивості' },
-];
+const TAB_LABEL: Record<BuilderTab, string> = { blocks: 'Блоки', props: 'Властивості', template: 'Шаблон' };
 
-/** The constructor's panel: «Блоки» (the palette) and «Властивості» (of what is selected). */
+/** The constructor's panel: «Блоки» (the palette), «Властивості» (of what is selected), «Шаблон». */
 export function BuilderPanel(props: Props) {
   const id = useId();
   const tabKeys = (e: KeyboardEvent) => {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-    const next = props.tab === 'blocks' ? 'props' : 'blocks';
+    const i = props.tabs.indexOf(props.tab);
+    const next = props.tabs[(i + (e.key === 'ArrowRight' ? 1 : props.tabs.length - 1)) % props.tabs.length]!;
     props.onTab(next);
     document.getElementById(`${id}-${next}`)?.focus();
   };
   return (
     <aside className={s.panel} aria-label="Конструктор">
       <div role="tablist" aria-label="Панель конструктора" className={s.tabs} onKeyDown={tabKeys}>
-        {TABS.map((t) => (
+        {props.tabs.map((t) => (
           <button
-            key={t.key}
-            id={`${id}-${t.key}`}
+            key={t}
+            id={`${id}-${t}`}
             type="button"
             role="tab"
-            aria-selected={props.tab === t.key}
+            aria-selected={props.tab === t}
             aria-controls={`${id}-panel`}
-            tabIndex={props.tab === t.key ? 0 : -1}
+            tabIndex={props.tab === t ? 0 : -1}
             className={s.tab}
-            onClick={() => props.onTab(t.key)}
+            onClick={() => props.onTab(t)}
           >
-            {t.label}
+            {TAB_LABEL[t]}
           </button>
         ))}
       </div>
       <div id={`${id}-panel`} role="tabpanel" aria-labelledby={`${id}-${props.tab}`} className={s.body}>
-        {props.tab === 'blocks' ? <Palette onPick={props.onPick} /> : <Properties {...props} />}
+        {props.tab === 'blocks' ? (
+          <PaletteTab palette={props.palette} used={props.used} onPick={props.onPick} />
+        ) : props.tab === 'props' ? (
+          <Properties {...props} />
+        ) : (
+          props.settings
+        )}
       </div>
     </aside>
   );
@@ -70,7 +81,10 @@ export function BuilderPanel(props: Props) {
 /** A click on the palette must not take the cursor away from the sheet. */
 const keepFocus = (e: { preventDefault: () => void }) => e.preventDefault();
 
-function Palette({ onPick }: { onPick: (block: string) => void }) {
+/** A block of the record's field already bound on the sheet. */
+export const isUsed = (b: Block, used: ReadonlySet<string>) => b.kind === 'field' && b.binding !== undefined && used.has(b.binding);
+
+function PaletteTab({ palette, used, onPick }: { palette: Palette; used: ReadonlySet<string>; onPick: (block: string) => void }) {
   const drag = (b: Block) => (e: DragEvent) => {
     e.dataTransfer.setData(BLOCK_MIME, b.key);
     e.dataTransfer.effectAllowed = 'copy';
@@ -78,18 +92,34 @@ function Palette({ onPick }: { onPick: (block: string) => void }) {
   return (
     <>
       <p className="hint">Натисніть блок, щоб вставити його біля курсора, або перетягніть на аркуш. На аркуші — «/».</p>
-      {BLOCK_GROUPS.map((g) => (
+      {palette.groups.map((g) => (
         <section key={g.key} className={s.group} aria-label={g.label}>
           <h3 className={s[`h-${g.key}`]}>{g.label}</h3>
+          {g.key === 'schema' && <p className="hint">Поле вставляється вже прив’язаним до запису.</p>}
           <div className={s.blocks}>
-            {BLOCKS.filter((b) => b.group === g.key).map((b) => (
-              <button key={b.key} type="button" className={s.block} draggable onDragStart={drag(b)} onMouseDown={keepFocus} onClick={() => onPick(b.key)}>
-                <span className={`${s.blockIcon} ${s[`i-${g.key}`]}`}>
-                  <Icon name={b.icon} size={18} />
-                </span>
-                {b.label}
-              </button>
-            ))}
+            {palette.blocks
+              .filter((b) => b.group === g.key)
+              .map((b) => {
+                const taken = isUsed(b, used);
+                return (
+                  <button
+                    key={b.key}
+                    type="button"
+                    className={s.block}
+                    draggable={!taken}
+                    disabled={taken}
+                    title={taken ? 'Уже на аркуші' : undefined}
+                    onDragStart={drag(b)}
+                    onMouseDown={keepFocus}
+                    onClick={() => onPick(b.key)}
+                  >
+                    <span className={`${s.blockIcon} ${s[`i-${g.key}`]}`}>
+                      <Icon name={b.icon} size={18} />
+                    </span>
+                    {b.label}
+                  </button>
+                );
+              })}
           </div>
         </section>
       ))}
@@ -339,7 +369,7 @@ function DictionaryChoice({ id, value, onChange }: { id: string; value: string |
   );
 }
 
-function Switch({ label, on, onChange }: { label: string; on: boolean; onChange: (on: boolean) => void }) {
+export function Switch({ label, on, onChange }: { label: string; on: boolean; onChange: (on: boolean) => void }) {
   return (
     <div className={s.switchRow}>
       <span>{label}</span>
