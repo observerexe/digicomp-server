@@ -132,7 +132,6 @@ describe('OpenAPI і /docs (лише admin)', () => {
       ['/api/projects/{id}/history', 'get', '200'],
       ['/api/projects/{id}/files', 'post', '201'],
       ['/api/projects/{id}/files/{fileId}', 'delete', '200'],
-      ['/api/points/award', 'post', '201'],
       ['/api/points/{entryId}/revoke', 'post', '200'],
       ['/api/points/users/{userId}', 'get', '200'],
       ['/api/discipline', 'get', '200'],

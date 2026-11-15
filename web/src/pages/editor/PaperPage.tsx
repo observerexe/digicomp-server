@@ -458,15 +458,28 @@ function readHint(paper: Paper, changing: boolean) {
   return paper.canChange ? 'Документ опубліковано. Деякі поля можна змінити: «Змінити».' : 'Документ опубліковано: текст не змінюється.';
 }
 
-/** What publishing does: a document of a `creates` template makes a record. */
+/** «Рядок = запис»: the template's rows have columns bound to the record — each row makes one. */
+function rowsMakeRecords(paper: Paper) {
+  return !!paper.template?.fields.some((f) => f.type === 'rows' && f.columns?.some((c) => c.binding));
+}
+
+/** What publishing does: a document of a `creates` template makes a record (or one of each row). */
 function publishQuestion(paper: Paper) {
   const t = paper.template;
-  const record = t?.kind === 'creates' && t.target ? ` Буде створено запис «${recordLabel(t.target)}».` : '';
+  const record =
+    t?.kind === 'creates' && t.target
+      ? rowsMakeRecords(paper)
+        ? ` Кожен рядок стане записом «${recordLabel(t.target)}».`
+        : ` Буде створено запис «${recordLabel(t.target)}».`
+      : '';
   return `Опублікувати документ?${record} Після публікації текст не змінюється.`;
 }
 
 function cancelHint(paper: Paper) {
-  return paper.targetType ? `Разом із документом буде знято запис «${recordLabel(paper.targetType)}».` : 'Документ лишиться з позначкою «Скасовано» і причиною.';
+  if (!paper.targetType) return 'Документ лишиться з позначкою «Скасовано» і причиною.';
+  return paper.targetId
+    ? `Разом із документом буде знято запис «${recordLabel(paper.targetType)}».`
+    : `Разом із документом буде знято всі його записи «${recordLabel(paper.targetType)}».`;
 }
 
 /** A link to the record the document created. */

@@ -17,6 +17,11 @@ import {
   TASK_TEMPLATES,
   TaskTemplates1812000000000,
 } from '../src/migrations/1812000000000-TaskTemplates';
+import {
+  POINTS_TEMPLATES,
+  PointsTemplates1815000000000,
+} from '../src/migrations/1815000000000-PointsTemplates';
+import { PointsEntry, PointsKind } from '../src/points/points-entry.entity';
 import { slugify } from '../src/dictionaries/keys';
 import { setupApp } from '../src/setup-app';
 import type { CreateTaskDto } from '../src/tasks/dto';
@@ -189,6 +194,63 @@ export async function publishTaskPaper(
     .send({ revision: p.body.revision, values });
   if (saved.status !== 200) return saved;
   return as(app, by).post(`/api/papers/${p.body.id}/publish`);
+}
+
+/** «Відомість балів» as the migration makes it (it needs an active admin). */
+export async function pointsTemplates(app: INestApplication) {
+  const q = app.get(DataSource).createQueryRunner();
+  try {
+    await new PointsTemplates1815000000000().up(q);
+  } finally {
+    await q.release();
+  }
+  return POINTS_TEMPLATES[0]!.id;
+}
+
+/** A row of «Відомість балів»: who, how many points, what for. */
+export type AwardRow = { member?: string; amount?: number; reason?: string };
+
+/**
+ * Points awarded through «Відомість балів» (see pointsTemplates): the
+ * document is made, filled with the rows and published by `by`; the
+ * response of the first request that failed, or of publish.
+ */
+export async function publishSheet(
+  app: INestApplication<App>,
+  by: { token: string },
+  templateId: string,
+  rows: AwardRow[],
+) {
+  const p = await as(app, by).post('/api/papers').send({ templateId });
+  if (p.status !== 201) return p;
+  const saved = await as(app, by)
+    .patch(`/api/papers/${p.body.id}`)
+    .send({ revision: p.body.revision, values: { awards: rows } });
+  if (saved.status !== 200) return saved;
+  return as(app, by).post(`/api/papers/${p.body.id}/publish`);
+}
+
+/**
+ * A manual award made before documents (no «Відомість балів» refers to it):
+ * written straight to the ledger, as the old `POST /points/award` wrote it.
+ */
+export function oldAward(
+  app: INestApplication,
+  by: { id: string },
+  to: { id: string },
+  amount: number,
+  reason = 'чергування',
+) {
+  const repo = app.get(DataSource).getRepository(PointsEntry);
+  return repo.save(
+    repo.create({
+      userId: to.id,
+      amount,
+      reason,
+      kind: PointsKind.Manual,
+      createdById: by.id,
+    }),
+  );
 }
 
 /** Requests with a Bearer token (no cookies, so no CSRF header needed). */

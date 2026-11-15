@@ -5,7 +5,7 @@ import { itemType, rowsOf, walkNodes } from '../../../shared/editor-schema/field
 import type { PaperNode } from '../../../shared/editor-schema';
 import { plural } from '../lib/format';
 import { fieldBlockOf, type FieldBlock } from './blocks';
-import { bindableFields } from './blocks/schema';
+import { bindableFields, isAutoBinding } from './blocks/schema';
 
 /**
  * Fields of a template version in the constructor. The sheet (the body) is
@@ -141,10 +141,31 @@ export function keyProblem(key: string, own: string, taken: ReadonlySet<string>)
  * Fields of the record a field may bind to: a field the template may set
  * (`creates` — set when the record is created; `report` — any), of the same
  * type (a free zone — also a text field), not bound by another field.
+ * «Рядок = запис» (`creates`): a column of «Повторювані рядки» binds to what
+ * the record is created with while nothing outside its block is bound; once
+ * a column is bound, nothing outside its block binds (`columns` — the key of
+ * the rows field by the column's key).
  */
-export function bindingOptions(f: FieldDef, kind: TemplateKind, schema: RecordSchema | null | undefined, fields: readonly FieldDef[]): RecordField[] {
-  const taken = new Set(fields.filter((o) => o.key !== f.key && o.binding).map((o) => o.binding));
-  return bindableFields(kind, schema).filter((s) => (s.type === f.type || (f.type === 'richtext' && s.type === 'text')) && !taken.has(s.key));
+export function bindingOptions(
+  f: FieldDef,
+  kind: TemplateKind,
+  schema: RecordSchema | null | undefined,
+  fields: readonly FieldDef[],
+  columns: ReadonlyMap<string, string>,
+): RecordField[] {
+  const others = fields.filter((o) => o.key !== f.key && o.binding);
+  const rows = columns.get(f.key);
+  if (rows !== undefined ? kind !== 'creates' || others.some((o) => columns.get(o.key) !== rows) : !!recordRowsOf(others, columns)) return [];
+  const taken = new Set(others.map((o) => o.binding));
+  return bindableFields(kind, schema).filter(
+    (s) => (s.type === f.type || (f.type === 'richtext' && s.type === 'text')) && !taken.has(s.key) && (rows === undefined || !isAutoBinding(kind, s)),
+  );
+}
+
+/** «Рядок = запис»: the key of the rows field whose columns are bound; null — none. */
+export function recordRowsOf(fields: readonly FieldDef[], columns: ReadonlyMap<string, string>): string | null {
+  const f = fields.find((x) => x.binding && columns.has(x.key));
+  return f ? columns.get(f.key)! : null;
 }
 
 const NUM = new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 2, useGrouping: false });

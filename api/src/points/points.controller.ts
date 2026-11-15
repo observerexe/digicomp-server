@@ -1,4 +1,4 @@
-import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
+import { ApiOkResponse } from '@nestjs/swagger';
 import {
   LeaderboardRowDto,
   PointsEntryDto,
@@ -18,7 +18,7 @@ import {
 } from '@nestjs/common';
 import { Action } from '../auth/policy';
 import { Can, JwtAuthGuard, PolicyGuard } from '../auth/roles';
-import { AwardPointsDto, LeaderboardQuery, RevokeDto } from './dto';
+import { LeaderboardQuery, RevokeDto } from './dto';
 import { PointsService } from './points.service';
 
 type Req = { user: { id: string; role: string } };
@@ -52,15 +52,10 @@ export class PointsController {
     return this.points.historyOf(userId);
   }
 
-  /** Manual award; a moderator cannot award to self. */
-  @ApiCreatedResponse({ type: PointsEntryDto })
-  @Can(Action.PointsAward)
-  @Post('award')
-  award(@Body() dto: AwardPointsDto, @Req() req: Req) {
-    return this.points.award(dto, req.user);
-  }
-
-  /** Revoke a manual award with a reason. */
+  /**
+   * Revoke a manual award made before documents, with a reason; one from
+   * «Відомість балів» — only by cancelling it (409 POINTS_HAS_PAPER).
+   */
   @ApiOkResponse({ type: PointsEntryDto })
   @Can(Action.PointsRevoke)
   @Post(':entryId/revoke')

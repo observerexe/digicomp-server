@@ -3,8 +3,9 @@ import { describe, expect, it } from 'vitest';
 import type { RecordSchema } from '../api/types';
 import { fieldBlockOf, type FieldBlock } from './blocks';
 import { paperExtensions } from './extensions';
-import { bindingOptions, defsOf, fieldsOf, fieldTag, keyProblem, keysOf, limitsText, newField, newKey, withType, type FieldDef } from './template';
+import { bindingOptions, defsOf, recordRowsOf, fieldsOf, fieldTag, keyProblem, keysOf, limitsText, newField, newKey, withType, type FieldDef } from './template';
 
+const NO_ROWS = new Map<string, string>();
 const block = (type: string) => fieldBlockOf(type) as FieldBlock;
 const field = (over: Partial<FieldDef>): FieldDef => ({ ...newField(block('text'), new Set()), ...over });
 
@@ -75,14 +76,39 @@ describe('Поля шаблону в конструкторі', () => {
     const title = field({ key: 'name', type: 'text', binding: 'title' });
     const zone = field({ key: 'goal', type: 'richtext' });
     const choice = field({ key: 'state', type: 'enum' });
-    expect(bindingOptions(points, 'creates', schema, [points, title]).map((s) => s.key)).toEqual(['points']);
-    expect(bindingOptions(zone, 'creates', schema, [zone, title]).map((s) => s.key)).toEqual(['description']);
-    expect(bindingOptions(zone, 'creates', schema, [zone]).map((s) => s.key)).toEqual(['title', 'description']);
+    expect(bindingOptions(points, 'creates', schema, [points, title], NO_ROWS).map((s) => s.key)).toEqual(['points']);
+    expect(bindingOptions(zone, 'creates', schema, [zone, title], NO_ROWS).map((s) => s.key)).toEqual(['description']);
+    expect(bindingOptions(zone, 'creates', schema, [zone], NO_ROWS).map((s) => s.key)).toEqual(['title', 'description']);
     // Статус не задається при створенні: авто-поле.
-    expect(bindingOptions(choice, 'creates', schema, [choice]).map((s) => s.key)).toEqual(['status']);
-    expect(bindingOptions(choice, 'report', schema, [choice]).map((s) => s.key)).toEqual(['status']);
-    expect(bindingOptions(points, 'free', schema, [points])).toEqual([]);
-    expect(bindingOptions(points, 'creates', null, [points])).toEqual([]);
+    expect(bindingOptions(choice, 'creates', schema, [choice], NO_ROWS).map((s) => s.key)).toEqual(['status']);
+    expect(bindingOptions(choice, 'report', schema, [choice], NO_ROWS).map((s) => s.key)).toEqual(['status']);
+    expect(bindingOptions(points, 'free', schema, [points], NO_ROWS)).toEqual([]);
+    expect(bindingOptions(points, 'creates', null, [points], NO_ROWS)).toEqual([]);
+  });
+
+  it('рядок = запис: стовпець — лише в «створює», лише до того, що задається при створенні; поза блоком тоді нічого не прив’язується', () => {
+    const rows = field({ key: 'rows1', type: 'rows' });
+    const points = field({ key: 'points', type: 'int' });
+    const choice = field({ key: 'state', type: 'enum' });
+    const name = field({ key: 'name', type: 'text' });
+    const columns = new Map([
+      ['points', 'rows1'],
+      ['state', 'rows1'],
+      ['other', 'rows2'],
+    ]);
+    expect(bindingOptions(points, 'creates', schema, [rows, points], columns).map((s) => s.key)).toEqual(['points']);
+    // Статус запис отримує пізніше: стовпець до нього не прив’язується.
+    expect(bindingOptions(choice, 'creates', schema, [rows, choice], columns)).toEqual([]);
+    expect(bindingOptions(points, 'report', schema, [rows, points], columns)).toEqual([]);
+    // Поза блоком уже прив’язано — стовпець ні.
+    const bound = field({ key: 'name', type: 'text', binding: 'title' });
+    expect(bindingOptions(points, 'creates', schema, [rows, points, bound], columns)).toEqual([]);
+    // Стовпець прив’язано — поле поза блоком і стовпець іншого блоку ні.
+    const column = { ...points, binding: 'points' };
+    expect(bindingOptions(name, 'creates', schema, [rows, column, name], columns)).toEqual([]);
+    expect(bindingOptions(field({ key: 'other', type: 'text' }), 'creates', schema, [rows, column], columns)).toEqual([]);
+    expect(recordRowsOf([rows, column, name], columns)).toBe('rows1');
+    expect(recordRowsOf([rows, points, bound], columns)).toBeNull();
   });
 
   it('мітка блоку на аркуші: блок · ключ → поле запису · межі · обов’язкове', () => {

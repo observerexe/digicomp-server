@@ -9,6 +9,7 @@ import {
   disciplineTemplates,
   issueRecord,
   makeUser,
+  oldAward,
   resetDb,
   TestUser,
 } from './helpers';
@@ -113,9 +114,7 @@ describe('Дисципліна через документ (e2e)', () => {
 
   describe('«Подання про стягнення»', () => {
     it('штраф: розмір обов’язковий, лише коли обрано «Штраф»; публікація видає стягнення й знімає бали', async () => {
-      await as(app, admin)
-        .post('/api/points/award')
-        .send({ userId: a.id, amount: 10, reason: 'r' });
+      await oldAward(app, admin, a, 10, 'r');
       const d = await draft(mod, { userId: a.id, type: 'fine' });
       const missing = await publish(mod, d.id);
       code(missing, 400, 'PAPER_REQUIRED_MISSING');
@@ -226,9 +225,7 @@ describe('Дисципліна через документ (e2e)', () => {
 
   describe('зняття', () => {
     it('скасування документа знімає стягнення й повертає бали; аудит', async () => {
-      await as(app, admin)
-        .post('/api/points/award')
-        .send({ userId: a.id, amount: 10, reason: 'r' });
+      await oldAward(app, admin, a, 10, 'r');
       const p = await issued(mod, { userId: a.id, type: 'fine', amount: 4 });
       expect(await balance(a)).toBe(6);
       // A moderator revokes only what they issued.

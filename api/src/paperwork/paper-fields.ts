@@ -150,6 +150,19 @@ export async function resolveFields(
   return withColumns(flat, rowsOf(body));
 }
 
+/**
+ * «Рядок = запис»: the rows field whose columns are bound to the record —
+ * each row not empty makes a record of its own; null — the document makes
+ * one record of its fields.
+ */
+export function recordRows(fields: PaperField[]): PaperField | null {
+  return (
+    fields.find(
+      (f) => f.type === ROWS && !!f.columns?.some((c) => c.binding !== null),
+    ) ?? null
+  );
+}
+
 /** A field as the response gives it: whether the actor fills it; columns — as their rows. */
 export function fieldView<T extends PaperField>(
   f: T,
@@ -166,7 +179,10 @@ export type FieldView = PaperField & {
   columns: FieldView[] | null;
 };
 
-/** Columns into their rows fields: filled, changed and printed as the rows. */
+/**
+ * Columns into their rows fields: filled, changed and printed as the rows;
+ * bound to the record only in «рядок = запис» (see recordRows).
+ */
 function withColumns(
   fields: PaperField[],
   rows: Map<string, string[]>,
@@ -186,8 +202,6 @@ function withColumns(
                 fill: f.fill,
                 editable: f.editable,
                 print: f.print,
-                binding: null,
-                auto: false,
               },
             ]
           : [];

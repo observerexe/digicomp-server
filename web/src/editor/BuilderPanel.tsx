@@ -8,7 +8,7 @@ import { FIELD_LIMITS } from '../../../shared/editor-schema/fields';
 import { BLOCK_MIME, type BuilderSelection } from './builder';
 import s from './BuilderPanel.module.css';
 import { isAutoBinding } from './blocks/schema';
-import { bindingOptions, hasLength, isChoice, isList, isNumeric, keyProblem, LABEL_MAX, limitsText, withType, type FieldDef, type FieldType } from './template';
+import { bindingOptions, hasLength, isChoice, isList, isNumeric, keyProblem, LABEL_MAX, limitsText, recordRowsOf, withType, type FieldDef, type FieldType } from './template';
 
 export type BuilderTab = 'blocks' | 'props' | 'template';
 
@@ -257,10 +257,12 @@ function Heading({ block, label, hint }: { block: Block | null; label: string; h
 function FieldForm({ f, fields, columns, defs, kind, schema, onChange, onRename, onRemoveField }: Props & { f: FieldDef }) {
   const id = useId();
   const block = fieldBlockOf(f.type);
-  // «Повторювані рядки» and their columns: never bound; a column is filled, changed and printed as its rows.
+  // «Повторювані рядки» are never bound; a column is filled, changed and printed as its rows.
   const rows = f.type === 'rows';
   const columnOf = columns.get(f.key);
   const ownRows = columnOf === undefined ? undefined : defs.get(columnOf);
+  // «Рядок = запис»: the block whose columns are bound — each row makes a record.
+  const recordRows = recordRowsOf(fields, columns);
   const [keyText, setKeyText] = useState(f.key);
   const [label, setLabel] = useState(f.label);
   const taken = new Set(fields.map((x) => x.key));
@@ -268,7 +270,7 @@ function FieldForm({ f, fields, columns, defs, kind, schema, onChange, onRename,
   const applyKey = () => {
     if (!keyError && keyText !== f.key) onRename(f.key, keyText);
   };
-  const bindings = bindingOptions(f, kind, schema, fields);
+  const bindings = bindingOptions(f, kind, schema, fields, columns);
   const bound = f.binding ? schema?.fields.find((x) => x.key === f.binding) : undefined;
   // Shows what the record gets later: nobody fills or changes it.
   const auto = isAutoBinding(kind, bound);
@@ -286,7 +288,10 @@ function FieldForm({ f, fields, columns, defs, kind, schema, onChange, onRename,
       label: f.label === block?.label ? target.label : f.label,
     });
     if (f.label === block?.label) setLabel(target.label);
+    // A row makes a record: at least one row, never changed after publication.
+    if (ownRows && (!ownRows.required || ownRows.editable)) onChange({ ...ownRows, required: true, editable: false });
   };
+  const rowsOwnRecords = rows && recordRows === f.key;
 
   return (
     <>
@@ -337,7 +342,10 @@ function FieldForm({ f, fields, columns, defs, kind, schema, onChange, onRename,
         </div>
       )}
       {ownRows && <p className="hint">Стовпець блоку «{ownRows.label}»: хто заповнює, зміна після публікації й друк — як у блоку.</p>}
-      {kind !== 'free' && schema && !rows && !ownRows && (
+      {rowsOwnRecords && schema && (
+        <p className="hint">Рядок = запис «{schema.label}»: кожен заповнений рядок створить запис. Хоча б один рядок обов’язковий; після публікації рядки не змінюються.</p>
+      )}
+      {kind !== 'free' && schema && !rows && (!ownRows || kind === 'creates') && (
         <div className="field">
           <label htmlFor={`${id}-binding`}>Зв’язок із записом</label>
           <select id={`${id}-binding`} value={f.binding ?? ''} onChange={(e) => bind(e.target.value)}>
@@ -360,8 +368,14 @@ function FieldForm({ f, fields, columns, defs, kind, schema, onChange, onRename,
                     .filter(Boolean)
                     .join(' Межі запису: ')
                 : bindings.length
-                  ? 'Прив’язане поле пише значення в сам запис.'
-                  : 'У записі немає полів, до яких можна прив’язати це поле.'}
+                  ? ownRows
+                    ? 'Прив’язаний стовпець робить кожен рядок окремим записом.'
+                    : 'Прив’язане поле пише значення в сам запис.'
+                  : ownRows && fields.some((o) => o.binding && columns.get(o.key) !== columnOf)
+                    ? 'Стовпець прив’язується, коли поза цим блоком нічого не прив’язано.'
+                    : !ownRows && recordRows
+                      ? `Записи створюють рядки блоку «${defs.get(recordRows)?.label ?? recordRows}»: поза ним поля не прив’язуються.`
+                      : 'У записі немає полів, до яких можна прив’язати це поле.'}
           </span>
         </div>
       )}
@@ -379,8 +393,10 @@ function FieldForm({ f, fields, columns, defs, kind, schema, onChange, onRename,
               </select>
             </div>
           )}
-          <Switch label={rows ? 'Хоча б один рядок' : ownRows ? 'Обов’язкове в кожному рядку' : 'Обов’язкове'} on={f.required} onChange={(required) => set({ required })} />
-          {!ownRows && <Switch label="Можна змінити після публікації" on={f.editable} onChange={(editable) => set({ editable })} />}
+          {!rowsOwnRecords && (
+            <Switch label={rows ? 'Хоча б один рядок' : ownRows ? 'Обов’язкове в кожному рядку' : 'Обов’язкове'} on={f.required} onChange={(required) => set({ required })} />
+          )}
+          {!ownRows && !rowsOwnRecords && <Switch label="Можна змінити після публікації" on={f.editable} onChange={(editable) => set({ editable })} />}
         </>
       )}
       {!ownRows && <Switch label="Показувати в друці" on={f.print} onChange={(print) => set({ print })} />}

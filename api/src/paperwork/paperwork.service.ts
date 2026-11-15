@@ -36,6 +36,7 @@ import {
   withZoneText,
   zonesOf,
   zoneText,
+  type FieldRow,
   type FieldValues,
   type PaperContent,
 } from './content';
@@ -64,10 +65,11 @@ import {
   fieldView,
   fieldInvalid,
   PaperFieldErrors,
+  recordRows,
   resolveFields,
   type PaperField,
 } from './paper-fields';
-import { papersOf } from './paper-targets';
+import { papersOf, recordsOfPaper } from './paper-targets';
 import { paperPrintHtml } from './print';
 import type { FieldFill } from '../../../shared/editor-schema/render';
 import type {
@@ -288,6 +290,45 @@ async function withFieldKeys<T>(
     if (!f) throw e;
     throw new HttpException({ ...body, field: f.key }, e.getStatus());
   }
+}
+
+/**
+ * Runs the record's module for row `row` of a rows field: an error of the
+ * request (4xx) comes out about that row — `field` the rows field's key.
+ */
+async function inRow<T>(
+  key: string,
+  row: number,
+  run: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await run();
+  } catch (e) {
+    if (!(e instanceof HttpException) || e.getStatus() >= 500) throw e;
+    const body = e.getResponse();
+    throw new HttpException(
+      {
+        ...(typeof body === 'object' ? body : { message: body }),
+        field: key,
+        row,
+      },
+      e.getStatus(),
+    );
+  }
+}
+
+/** Values of a row's bound columns by the keys of the record's fields (empty — null). */
+function rowValues(rows: PaperField, row: FieldRow): RecordValues {
+  const out: RecordValues = {};
+  for (const c of rows.columns ?? []) {
+    if (c.binding !== null) out[c.binding] = row[c.key] ?? null;
+  }
+  return out;
+}
+
+/** The records of a document in the audit: one — its id, of rows — their ids. */
+function targetMeta(p: Paper, ids: string[]) {
+  return p.targetId ? { targetId: p.targetId } : { targetIds: ids };
 }
 
 /** The next number of the prefix this year (Kyiv time): `ТЗ-2026-014`. */
@@ -678,15 +719,25 @@ export class PaperworkService {
       if (dto.about && !form) {
         throw new BadRequestException('A free document is about nothing');
       }
-      // The record it is about: in the first field the actor fills that refers to its type.
-      const about =
-        dto.about &&
-        form!.fields.find(
-          (f) =>
-            f.type === `ref:${dto.about!.type}` &&
-            !f.auto &&
-            (f.fill === 'author' || can(actor, Action.PapersFillStaff)),
-        );
+      // The record it is about: in the first field the actor fills that
+      // refers to its type; else in such a column — the first row.
+      const fills = (f: PaperField) =>
+        !f.auto && (f.fill === 'author' || can(actor, Action.PapersFillStaff));
+      const ref = `ref:${dto.about?.type}`;
+      const field = dto.about
+        ? form!.fields.find((f) => f.type === ref && fills(f))
+        : undefined;
+      const rows = dto.about
+        ? form!.fields.find(
+            (f) => fills(f) && f.columns?.some((c) => c.type === ref),
+          )
+        : undefined;
+      const column = rows?.columns?.find((c) => c.type === ref);
+      const about = field
+        ? { [field.key]: dto.about!.id }
+        : rows && column
+          ? { [rows.key]: [{ [column.key]: dto.about!.id }] }
+          : {};
       // A free document's own content and the value of `about`: checked as
       // any save of it.
       const values =
@@ -695,7 +746,7 @@ export class PaperworkService {
           actor,
           {
             ...(from ? {} : { content }),
-            values: about ? { [about.key]: dto.about!.id } : {},
+            values: about,
           },
           { content: from ? content : EMPTY_CONTENT, values: {} },
         ) ?? {};
@@ -806,6 +857,11 @@ export class PaperworkService {
       await m.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [
         `paper-target:${type}:${dto.targetId}`,
       ]);
+      const fields = await this.fieldsOf(m, template, version);
+      // A document of rows makes records of its rows, not of one.
+      if (recordRows(fields)) {
+        throw new BadRequestException(TemplateErrors.KindInvalid);
+      }
       const record = await adapter.resolve(dto.targetId, m);
       if (!record) throw new NotFoundException('Record not found');
       if (!(await adapter.canUpdate(dto.targetId, actor, m))) {
@@ -814,7 +870,6 @@ export class PaperworkService {
       if (await papersOf(m, type, dto.targetId)) {
         throw new ConflictException(PaperErrors.TargetTaken);
       }
-      const fields = await this.fieldsOf(m, template, version);
       const filled = withRecord(
         fields,
         record.values,
@@ -1167,9 +1222,12 @@ export class PaperworkService {
         throw new ConflictException(PaperErrors.NotDraft);
       }
       const form = await this.formOf(m, p);
+      let targetIds: string[] = [];
       if (form) {
         requireFilled(form.fields, p);
         Object.assign(p, withoutOff(p));
+        // Rows as the author sees them: an error names a row by its place there.
+        const drafted = p.values;
         p.values = withoutEmptyRows(form.fields, p.values);
         if (form.template.kind === TemplateKind.Creates) {
           await this.templates.assertCurrent(form.template, form.version);
@@ -1177,19 +1235,38 @@ export class PaperworkService {
           const adapter = this.adapters.get(type);
           if (!adapter)
             throw new ConflictException(PaperFieldErrors.NeedsUpdate);
-          const targetId = await withFieldKeys(form.fields, () =>
-            adapter.publish(recordValues(form.fields, p), actor, m),
-          );
+          const rows = recordRows(form.fields);
+          if (rows) {
+            // «Рядок = запис»: a record of each row, in this one transaction.
+            const all = rowsIn(drafted[rows.key]);
+            for (let i = 0; i < all.length; i++) {
+              if (isEmptyRow(all[i]!)) continue;
+              targetIds.push(
+                await inRow(rows.key, i, () =>
+                  adapter.publish(rowValues(rows, all[i]!), actor, m, p.id),
+                ),
+              );
+            }
+          } else {
+            targetIds = [
+              await withFieldKeys(form.fields, () =>
+                adapter.publish(recordValues(form.fields, p), actor, m, p.id),
+              ),
+            ];
+          }
           p.targetType = type;
-          p.targetId = targetId;
-          await m.getRepository(RecordLink).insert({
-            fromType: 'paper',
-            fromId: p.id,
-            toType: type,
-            toId: targetId,
-            role: TARGET_ROLE,
-            createdById: actor.id,
-          });
+          // Records of rows are known by their links only.
+          p.targetId = rows ? null : targetIds[0]!;
+          await m.getRepository(RecordLink).insert(
+            targetIds.map((toId) => ({
+              fromType: 'paper',
+              fromId: p.id,
+              toType: type,
+              toId,
+              role: TARGET_ROLE,
+              createdById: actor.id,
+            })),
+          );
         }
         if (form.template.numberPrefix) {
           p.number = await nextNumber(m, form.template.numberPrefix);
@@ -1210,7 +1287,7 @@ export class PaperworkService {
             authorId: p.authorId,
             number: p.number,
             ...(p.targetType
-              ? { targetType: p.targetType, targetId: p.targetId }
+              ? { targetType: p.targetType, ...targetMeta(p, targetIds) }
               : {}),
           },
         },
@@ -1237,11 +1314,12 @@ export class PaperworkService {
         throw new ConflictException(PaperErrors.NotPublished);
       }
       const reason = dto.reason.trim();
-      let after: (() => Promise<void>) | void = undefined;
-      if (p.targetType && p.targetId) {
-        after = await this.adapters
-          .get(p.targetType)
-          ?.cancel(p.targetId, reason, actor, m);
+      const after: (() => Promise<void>)[] = [];
+      const targetIds = await recordsOfPaper(m, p);
+      const adapter = p.targetType ? this.adapters.get(p.targetType) : null;
+      for (const id of adapter ? targetIds : []) {
+        const then = await adapter!.cancel(id, reason, actor, m);
+        if (then) after.push(then);
       }
       p.status = PaperStatus.Cancelled;
       p.cancelReason = reason;
@@ -1259,7 +1337,7 @@ export class PaperworkService {
             number: p.number,
             reason,
             ...(p.targetType
-              ? { targetType: p.targetType, targetId: p.targetId }
+              ? { targetType: p.targetType, ...targetMeta(p, targetIds) }
               : {}),
           },
         },
@@ -1267,7 +1345,7 @@ export class PaperworkService {
       );
       return [await this.view(m, p, actor), after] as const;
     });
-    if (after) await after();
+    for (const then of after) await then();
     return view;
   }
 

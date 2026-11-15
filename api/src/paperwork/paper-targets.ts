@@ -15,6 +15,29 @@ export function papersOf(m: EntityManager, type: RecordType, id: string) {
   return m.count(Paper, { where: { targetType: type, targetId: id } });
 }
 
+/**
+ * The records a published document created: its record, or those of its
+ * rows («рядок = запис»: known by the links `@target`).
+ */
+export async function recordsOfPaper(
+  m: EntityManager,
+  p: Pick<Paper, 'id' | 'targetType' | 'targetId'>,
+): Promise<string[]> {
+  if (!p.targetType) return [];
+  if (p.targetId) return [p.targetId];
+  const links = await m.find(RecordLink, {
+    select: { toId: true },
+    where: {
+      fromType: 'paper',
+      fromId: p.id,
+      toType: p.targetType,
+      role: TARGET_ROLE,
+    },
+    order: { createdAt: 'ASC', toId: 'ASC' },
+  });
+  return links.map((l) => l.toId);
+}
+
 /** The document of a record, as its page and card show it. */
 export type RecordPaper = { id: string; number: string | null };
 

@@ -28,6 +28,7 @@ import {
   fieldDictionaries,
   fieldsProblem,
   isAutoBinding,
+  rowColumns,
   type FieldProblem,
   type TemplateField,
 } from './template-fields';
@@ -417,10 +418,16 @@ export class TemplatesService {
         ? await m.findBy(Dictionary, { key: In(names) })
         : [];
       const problem =
-        fieldsProblem(v.fields, t.kind, schema, {
-          dictionaries: new Set(existing.map((d) => d.key)),
-          refTypes: new Set(this.links.registered()),
-        }) ??
+        fieldsProblem(
+          v.fields,
+          t.kind,
+          schema,
+          {
+            dictionaries: new Set(existing.map((d) => d.key)),
+            refTypes: new Set(this.links.registered()),
+          },
+          rowColumns(v.body),
+        ) ??
         bodyProblem(v.body, v.fields) ??
         conditionProblem(
           v.body,
@@ -561,7 +568,9 @@ export class TemplatesService {
     if (t.kind === TemplateKind.Free) return false;
     const schema = await schemas.of(t.target);
     if (!schema || schema.version === v.schemaVersion) return false;
-    return bindingProblem(v.fields, t.kind, schema) !== null;
+    return (
+      bindingProblem(v.fields, t.kind, schema, rowColumns(v.body)) !== null
+    );
   }
 
   /**

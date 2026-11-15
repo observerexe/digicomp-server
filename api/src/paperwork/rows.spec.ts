@@ -23,8 +23,13 @@ import { TemplateKind } from './template.entities';
 import {
   bodyProblem,
   fieldsProblem,
+  recordRowsKey,
+  rowColumns,
   type TemplateField,
 } from './template-fields';
+import { POINTS_ENTRY_SCHEMA } from '../points/points-entry.schema';
+import { publishSchema } from '../records/records.registry';
+import { TASK_SCHEMA } from '../tasks/task.schema';
 
 /** «Повторювані рядки»: a table whose last row repeats, a row a value of a `rows` field. */
 
@@ -371,14 +376,7 @@ describe('Повторювані рядки: тіло шаблону', () => {
     ).toEqual({ field: 'rows1' });
   });
 
-  it('стовпець: не зона, не рядки, без прив’язки, ніде більше на аркуші', () => {
-    expect(
-      bodyProblem(body, [
-        fields[0]!,
-        fields[1]!,
-        tf({ key: 'points', type: 'int', binding: 'points' }),
-      ]),
-    ).toEqual({ field: 'points' });
+  it('стовпець: не зона, не рядки, ніде більше на аркуші', () => {
     expect(
       bodyProblem(doc(...(body.content ?? []), p(fieldNode('points'))), fields),
     ).toEqual({ field: 'points' });
@@ -429,6 +427,113 @@ describe('Повторювані рядки: тіло шаблону', () => {
     ).toEqual({
       field: 'rows1',
     });
+  });
+});
+
+describe('Повторювані рядки: рядок = запис', () => {
+  const entry = publishSchema(POINTS_ENTRY_SCHEMA);
+  const task = publishSchema(TASK_SCHEMA);
+  const known = {
+    dictionaries: new Set<string>(),
+    refTypes: new Set(['user']),
+  };
+  /** «№ | Учасник | Бали | За що»; a title outside. */
+  const sheet = doc(
+    p(fieldNode('title')),
+    repeat(
+      'rows1',
+      tr(
+        th(text('№')),
+        th(text('Учасник')),
+        th(text('Бали')),
+        th(text('За що')),
+      ),
+      tr(
+        td(rowNumber),
+        td(fieldNode('member')),
+        td(fieldNode('points')),
+        td(fieldNode('why')),
+      ),
+    ),
+  );
+  const columns = rowColumns(sheet);
+  const bound = (over: Record<string, Partial<TemplateField>> = {}) => [
+    tf({ key: 'title', ...over.title }),
+    tf({ key: 'rows1', type: 'rows', required: true, ...over.rows1 }),
+    tf({
+      key: 'member',
+      type: 'ref:user',
+      required: true,
+      binding: 'userId',
+      ...over.member,
+    }),
+    tf({
+      key: 'points',
+      type: 'int',
+      required: true,
+      binding: 'amount',
+      ...over.points,
+    }),
+    tf({
+      key: 'why',
+      type: 'text',
+      required: true,
+      binding: 'reason',
+      ...over.why,
+    }),
+  ];
+  const check = (
+    fs: TemplateField[],
+    kind = TemplateKind.Creates,
+    schema = entry,
+  ) => fieldsProblem(fs, kind, schema, known, columns);
+
+  it('стовпці прив’язані до полів запису — добре; поле рядків — запис рядка', () => {
+    expect(check(bound())).toBeNull();
+    expect(bodyProblem(sheet, bound())).toBeNull();
+    expect(recordRowsKey(bound(), columns)).toBe('rows1');
+    expect(recordRowsKey(bound(), new Map())).toBeNull();
+  });
+
+  it('потрібне поле запису — обов’язковим стовпцем', () => {
+    expect(check(bound({ why: { binding: null } }))).toEqual({
+      binding: 'reason',
+    });
+    expect(check(bound({ why: { required: false } }))).toEqual({
+      field: 'why',
+    });
+  });
+
+  it('поле поза таблицею не прив’язується', () => {
+    expect(
+      check(bound({ title: { binding: 'reason' }, why: { binding: null } })),
+    ).toEqual({ field: 'title' });
+  });
+
+  it('рядки обов’язкові й не змінюються після публікації', () => {
+    expect(check(bound({ rows1: { required: false } }))).toEqual({
+      field: 'rows1',
+    });
+    expect(check(bound({ rows1: { editable: true } }))).toEqual({
+      field: 'rows1',
+    });
+  });
+
+  it('звіт і вільний шаблон стовпці не прив’язують', () => {
+    expect(check(bound(), TemplateKind.Report)).toEqual({ field: 'member' });
+    expect(check(bound(), TemplateKind.Free, null as never)).toEqual({
+      field: 'member',
+    });
+  });
+
+  it('стовпець не прив’язується до того, що запис отримає пізніше', () => {
+    const fs = [
+      tf({ key: 'rows1', type: 'rows', required: true }),
+      tf({ key: 'member', type: 'ref:user', binding: 'createdById' }),
+      tf({ key: 'points', type: 'int', required: true, binding: 'points' }),
+      tf({ key: 'why', type: 'text', required: true, binding: 'title' }),
+    ];
+    expect(check(fs, TemplateKind.Creates, task)).toEqual({ field: 'member' });
   });
 });
 

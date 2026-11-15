@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { RecordPaperDto } from '../paperwork/responses.dto';
 import { PointsKind } from './points-entry.entity';
 
 export class PointsCreatorDto {
@@ -32,6 +33,10 @@ export class PointsHistoryEntryDto {
   /** null for task points (awarded by the system on acceptance). */
   @ApiProperty({ type: PointsCreatorDto, nullable: true })
   createdBy: PointsCreatorDto | null;
+
+  /** The document that made the award («Відомість балів»); null — none. */
+  @ApiProperty({ type: RecordPaperDto, nullable: true })
+  paper: RecordPaperDto | null;
 
   /** A reversal entry exists for this one. */
   revoked: boolean;
@@ -80,6 +85,10 @@ export class PointsEntryDto {
 
   @ApiProperty({ type: String, nullable: true })
   reversesId: string | null;
+
+  /** The document that made the award; null — none. */
+  @ApiProperty({ type: String, nullable: true })
+  paperId: string | null;
 
   createdAt: Date;
 }

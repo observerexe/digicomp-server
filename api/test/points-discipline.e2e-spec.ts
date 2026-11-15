@@ -7,14 +7,15 @@ import {
   createTestApp,
   issueRecord,
   makeUser,
+  oldAward,
   resetDb,
   TestUser,
 } from './helpers';
 
-// Бали (ручне нарахування, зняття), дисципліна (штраф знімає бали,
-// зняття повертає), видимість записів і рейтинг. Стягнення тут — записи
-// без документа (як видані до документів); видача через «Подання про
-// стягнення» — discipline-papers.e2e-spec.ts.
+// Бали (зняття ручного нарахування), дисципліна (штраф знімає бали,
+// зняття повертає), видимість записів і рейтинг. Нарахування й стягнення
+// тут — записи без документа (як зроблені до документів); через документи —
+// points-papers.e2e-spec.ts і discipline-papers.e2e-spec.ts.
 
 type Res = { status: number; body: Record<string, any> };
 
@@ -55,17 +56,13 @@ describe('Бали і дисципліна (e2e)', () => {
     to: TestUser,
     amount: number,
     reason = 'чергування',
-  ) =>
-    as(app, who)
-      .post('/api/points/award')
-      .send({ userId: to.id, amount, reason });
+  ) => oldAward(app, who, to, amount, reason);
   const issue = (who: TestUser, body: Record<string, unknown>) =>
     issueRecord(app, who, body);
 
   describe('ручне нарахування', () => {
-    it('нараховує і показує в історії, хто нарахував', async () => {
-      const res = await award(mod, a, 5, 'прибрав склад');
-      expect(res.status).toBe(201);
+    it('історія показує, хто нарахував; без відомості', async () => {
+      await award(mod, a, 5, 'прибрав склад');
       expect(await balance(a)).toBe(5);
       const me = await as(app, a).get('/api/points/me');
       expect(me.body.history[0]).toMatchObject({
@@ -73,23 +70,20 @@ describe('Бали і дисципліна (e2e)', () => {
         amount: 5,
         reason: 'прибрав склад',
         createdBy: { id: mod.id, name: mod.name },
+        paper: null,
         revoked: false,
       });
     });
 
-    it('валідація: сума > 0, причина обов’язкова', async () => {
-      code(await award(mod, a, 0), 400, 'VALIDATION_ERROR');
-      code(await award(mod, a, -5), 400, 'VALIDATION_ERROR');
-      code(await award(mod, a, 5, ' '), 400, 'VALIDATION_ERROR');
-    });
-
-    it('заблокованому чи невідомому — ні', async () => {
-      const blocked = await makeUser(app, Role.Member, { active: false });
-      code(await award(mod, blocked, 5), 404, 'UNKNOWN_MEMBER');
+    it('нараховувати без документа не можна', async () => {
+      const res = await as(app, mod)
+        .post('/api/points/award')
+        .send({ userId: a.id, amount: 5, reason: 'r' });
+      expect(res.status).toBe(404);
     });
 
     it('зняття: компенсаційний запис, повторно не можна', async () => {
-      const e = await award(mod, a, 5);
+      const e = { body: await award(mod, a, 5) };
       const r = await as(app, mod)
         .post(`/api/points/${e.body.id}/revoke`)
         .send({ reason: 'помилково' });

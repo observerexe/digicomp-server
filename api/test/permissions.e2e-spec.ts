@@ -11,7 +11,10 @@ import {
   issueRecord,
   makeTask,
   makeUser,
+  oldAward,
   PNG_1PX,
+  pointsTemplates,
+  publishSheet,
   publishTaskPaper,
   resetDb,
   taskTemplates,
@@ -426,10 +429,11 @@ describe('Матриця прав (e2e)', () => {
   });
 
   describe('Бали, штрафи, догани, попередження', () => {
-    const award = (who: TestUser, to: TestUser) =>
-      as(app, who)
-        .post('/api/points/award')
-        .send({ userId: to.id, amount: 5, reason: 'чергування' });
+    // Points — through «Відомість балів» (a row — an award): points-papers.e2e-spec.ts.
+    const award = async (who: TestUser, to: TestUser) =>
+      publishSheet(app, who, await pointsTemplates(app), [
+        { member: to.id, amount: 5, reason: 'чергування' },
+      ]);
     // Through «Подання про стягнення» the same rules hold: discipline-papers.e2e-spec.ts.
     const warn = (who: TestUser, to: TestUser) =>
       issueRecord(app, who, {
@@ -439,12 +443,12 @@ describe('Матриця прав (e2e)', () => {
       });
 
     it('admin так (навіть модератору)', async () => {
-      expect((await award(admin, member)).status).toBe(201);
+      expect((await award(admin, member)).status).toBe(200);
       expect((await warn(admin, mod)).status).toBe(200);
     });
     it('moderator так, і іншому модератору', async () => {
-      expect((await award(mod, member)).status).toBe(201);
-      expect((await award(mod, mod2)).status).toBe(201);
+      expect((await award(mod, member)).status).toBe(200);
+      expect((await award(mod, mod2)).status).toBe(200);
       expect((await warn(mod, mod2)).status).toBe(200);
       expect((await warn(mod, admin)).status).toBe(200);
     });
@@ -453,7 +457,10 @@ describe('Матриця прав (e2e)', () => {
       denied(await warn(mod, mod), 'SELF_ACTION_FORBIDDEN');
     });
     it('member ні', async () => {
-      denied(await award(member, member2));
+      // «Відомість балів» — шаблон модераторів: учасник її не бачить.
+      const sheet = await award(member, member2);
+      expect(sheet.status).toBe(404);
+      expect(sheet.body.errorCode).toBe('TEMPLATE_NOT_FOUND');
       denied(await warn(member, member2));
     });
     it('пишеться в аудит', async () => {
@@ -497,13 +504,9 @@ describe('Матриця прав (e2e)', () => {
       const r = await issue(mod);
       denied(await revoke(member, r.id));
     });
-    it('нарахування балів: moderator лише своє', async () => {
-      const own = await as(app, mod)
-        .post('/api/points/award')
-        .send({ userId: member.id, amount: 3, reason: 'x' });
-      const other = await as(app, mod2)
-        .post('/api/points/award')
-        .send({ userId: member.id, amount: 3, reason: 'x' });
+    it('нарахування балів без відомості: moderator лише своє', async () => {
+      const own = { body: await oldAward(app, mod, member, 3, 'x') };
+      const other = { body: await oldAward(app, mod2, member, 3, 'x') };
       denied(
         await as(app, mod)
           .post(`/api/points/${other.body.id}/revoke`)

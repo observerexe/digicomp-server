@@ -464,23 +464,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/points/award": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Manual award; a moderator cannot award to self. */
-        post: operations["PointsController_award"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/points/{entryId}/revoke": {
         parameters: {
             query?: never;
@@ -490,377 +473,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Revoke a manual award with a reason. */
+        /**
+         * Revoke a manual award made before documents, with a reason; one from
+         *     «Відомість балів» — only by cancelling it (409 POINTS_HAS_PAPER).
+         */
         post: operations["PointsController_revoke"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
-        trace?: never;
-    };
-    "/api/tasks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Board: all tasks, filter by status or `mine=true`. */
-        get: operations["TasksController_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/tasks/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Task with assignees, comments and files. */
-        get: operations["TasksController_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/tasks/{id}/cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Only a free task without assignees and without a document (one with a
-         *     document is cancelled with it). Tasks are created and changed through
-         *     documents of the editor.
-         */
-        post: operations["TasksController_cancel"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/tasks/{id}/take": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["TasksController_take"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/tasks/{id}/leave": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["TasksController_leave"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/tasks/{id}/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["TasksController_start"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/tasks/{id}/submit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["TasksController_submit"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/tasks/{id}/return": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Back to work from review; `body` is the moderator's comment. */
-        post: operations["TasksController_returnForRework"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/tasks/{id}/accept": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Accept the task: points are split equally between assignees. */
-        post: operations["TasksController_accept"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/tasks/{id}/comments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["TasksController_addComment"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/tasks/{id}/files": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["TasksController_addFile"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/tasks/{id}/files/{fileId}/download": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["TasksController_download"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/tasks/{id}/files/{fileId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** The uploader or staff. */
-        delete: operations["TasksController_removeFile"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/records/{type}/schema": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Fields of a record type (extra fields included): what templates may bind to. No record data. */
-        get: operations["RecordsController_schema"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/records/{type}/field-defs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Extra fields of an extensible type, archived too, in order. */
-        get: operations["RecordsController_list"];
-        put?: never;
-        post: operations["RecordsController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/records/{type}/field-defs/order": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations["RecordsController_reorder"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/records/{type}/field-defs/{key}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Only a field without values in records; otherwise archive it. */
-        delete: operations["RecordsController_remove"];
-        options?: never;
-        head?: never;
-        patch: operations["RecordsController_update"];
-        trace?: never;
-    };
-    "/api/dictionaries": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["DictionariesController_list"];
-        put?: never;
-        post: operations["DictionariesController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/dictionaries/{key}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["DictionariesController_get"];
-        put?: never;
-        post?: never;
-        delete: operations["DictionariesController_remove"];
-        options?: never;
-        head?: never;
-        patch: operations["DictionariesController_update"];
-        trace?: never;
-    };
-    "/api/dictionaries/{key}/items": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["DictionariesController_addItem"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/dictionaries/{key}/items/order": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations["DictionariesController_reorder"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/dictionaries/{key}/items/{itemKey}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["DictionariesController_removeItem"];
-        options?: never;
-        head?: never;
-        patch: operations["DictionariesController_updateItem"];
         trace?: never;
     };
     "/api/papers/templates": {
@@ -1106,6 +727,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/dictionaries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DictionariesController_list"];
+        put?: never;
+        post: operations["DictionariesController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dictionaries/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DictionariesController_get"];
+        put?: never;
+        post?: never;
+        delete: operations["DictionariesController_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["DictionariesController_update"];
+        trace?: never;
+    };
+    "/api/dictionaries/{key}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["DictionariesController_addItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dictionaries/{key}/items/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["DictionariesController_reorder"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dictionaries/{key}/items/{itemKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["DictionariesController_removeItem"];
+        options?: never;
+        head?: never;
+        patch: operations["DictionariesController_updateItem"];
+        trace?: never;
+    };
     "/api/org-settings": {
         parameters: {
             query?: never;
@@ -1120,6 +821,291 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["OrgController_update"];
+        trace?: never;
+    };
+    "/api/records/{type}/schema": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fields of a record type (extra fields included): what templates may bind to. No record data. */
+        get: operations["RecordsController_schema"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/records/{type}/field-defs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Extra fields of an extensible type, archived too, in order. */
+        get: operations["RecordsController_list"];
+        put?: never;
+        post: operations["RecordsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/records/{type}/field-defs/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["RecordsController_reorder"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/records/{type}/field-defs/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Only a field without values in records; otherwise archive it. */
+        delete: operations["RecordsController_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["RecordsController_update"];
+        trace?: never;
+    };
+    "/api/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Board: all tasks, filter by status or `mine=true`. */
+        get: operations["TasksController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Task with assignees, comments and files. */
+        get: operations["TasksController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Only a free task without assignees and without a document (one with a
+         *     document is cancelled with it). Tasks are created and changed through
+         *     documents of the editor.
+         */
+        post: operations["TasksController_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{id}/take": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["TasksController_take"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{id}/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["TasksController_leave"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["TasksController_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["TasksController_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{id}/return": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Back to work from review; `body` is the moderator's comment. */
+        post: operations["TasksController_returnForRework"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept the task: points are split equally between assignees. */
+        post: operations["TasksController_accept"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["TasksController_addComment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{id}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["TasksController_addFile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{id}/files/{fileId}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TasksController_download"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{id}/files/{fileId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** The uploader or staff. */
+        delete: operations["TasksController_removeFile"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/discipline/me": {
@@ -2204,6 +2190,11 @@ export interface components {
             name: string | null;
             id: string;
         };
+        RecordPaperDto: {
+            /** @description «ТЗ-2026-014»; null — the template gives no numbers. */
+            number: string | null;
+            id: string;
+        };
         PointsHistoryEntryDto: {
             kind: components["schemas"]["PointsKind"];
             taskId: string | null;
@@ -2212,6 +2203,8 @@ export interface components {
             reversesId: string | null;
             /** @description null for task points (awarded by the system on acceptance). */
             createdBy: components["schemas"]["PointsCreatorDto"] | null;
+            /** @description The document that made the award («Відомість балів»); null — none. */
+            paper: components["schemas"]["RecordPaperDto"] | null;
             id: string;
             /** @description Negative for fines and reversals. */
             amount: number;
@@ -2235,10 +2228,7 @@ export interface components {
             /** @description Equal totals share a rank. */
             rank: number;
         };
-        AwardPointsDto: {
-            /** Format: uuid */
-            userId: string;
-            amount: number;
+        RevokeDto: {
             reason: string;
         };
         PointsEntryDto: {
@@ -2246,298 +2236,14 @@ export interface components {
             taskId: string | null;
             createdById: string | null;
             reversesId: string | null;
+            /** @description The document that made the award; null — none. */
+            paperId: string | null;
             id: string;
             userId: string;
             amount: number;
             reason: string;
             /** Format: date-time */
             createdAt: string;
-        };
-        RevokeDto: {
-            reason: string;
-        };
-        /** @enum {string} */
-        TaskStatus: "todo" | "queued" | "in_progress" | "review" | "done";
-        TaskAssigneeDto: {
-            /** @description null when the user no longer exists. */
-            name: string | null;
-            avatarUrl: string | null;
-            /**
-             * Format: date-time
-             * @description Order of taking decides who gets the remainder of a points split.
-             */
-            takenAt: string;
-            id: string;
-        };
-        RecordPaperDto: {
-            /** @description «ТЗ-2026-014»; null — the template gives no numbers. */
-            number: string | null;
-            id: string;
-        };
-        TaskDto: {
-            description: string | null;
-            status: components["schemas"]["TaskStatus"];
-            /** Format: date-time */
-            dueDate: string | null;
-            /** @description Extra fields: key → value (string, number, boolean or list of item keys). */
-            extra: {
-                [key: string]: unknown;
-            };
-            /**
-             * Format: date-time
-             * @description When it was last sent for review.
-             */
-            submittedAt: string | null;
-            /**
-             * Format: date-time
-             * @description When it was accepted.
-             */
-            completedAt: string | null;
-            /** @description Who accepted it. */
-            acceptedById: string | null;
-            /** @description In the order of taking. */
-            assignees: components["schemas"]["TaskAssigneeDto"][];
-            /** @description null — an old task made before documents (no document yet). */
-            paper: components["schemas"]["RecordPaperDto"] | null;
-            id: string;
-            title: string;
-            points: number;
-            maxAssignees: number;
-            createdById: string;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /**
-         * @description `return` — written by a moderator when sending the task back.
-         * @enum {string}
-         */
-        TaskCommentKind: "comment" | "return";
-        UserRefDto: {
-            /** @description null when the user no longer exists. */
-            name: string | null;
-            avatarUrl: string | null;
-            id: string;
-        };
-        TaskCommentDto: {
-            /** @description `return` — written by a moderator when sending the task back. */
-            kind: components["schemas"]["TaskCommentKind"];
-            id: string;
-            body: string;
-            author: components["schemas"]["UserRefDto"];
-            /** Format: date-time */
-            createdAt: string;
-        };
-        TaskFileDto: {
-            id: string;
-            fileName: string;
-            mimeType: string;
-            size: number;
-            uploadedById: string;
-            /** Format: date-time */
-            createdAt: string;
-        };
-        TaskDetailDto: {
-            description: string | null;
-            status: components["schemas"]["TaskStatus"];
-            /** Format: date-time */
-            dueDate: string | null;
-            /** @description Extra fields: key → value (string, number, boolean or list of item keys). */
-            extra: {
-                [key: string]: unknown;
-            };
-            /**
-             * Format: date-time
-             * @description When it was last sent for review.
-             */
-            submittedAt: string | null;
-            /**
-             * Format: date-time
-             * @description When it was accepted.
-             */
-            completedAt: string | null;
-            /** @description Who accepted it. */
-            acceptedById: string | null;
-            /** @description In the order of taking. */
-            assignees: components["schemas"]["TaskAssigneeDto"][];
-            /** @description null — an old task made before documents (no document yet). */
-            paper: components["schemas"]["RecordPaperDto"] | null;
-            /** @description Oldest first. */
-            comments: components["schemas"]["TaskCommentDto"][];
-            /** @description GET /tasks/:id/files/:fileId/download */
-            files: components["schemas"]["TaskFileDto"][];
-            id: string;
-            title: string;
-            points: number;
-            maxAssignees: number;
-            createdById: string;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        CancelTaskDto: {
-            /** @description Why: kept in the audit. */
-            reason: string;
-        };
-        CommentDto: {
-            body: string;
-        };
-        EnumOptionDto: {
-            key: string;
-            label: string;
-        };
-        /**
-         * @description Where the value lives; default `column`. `extra` — an extra field (field-defs).
-         * @enum {string}
-         */
-        FieldSource: "column" | "relation" | "computed" | "extra";
-        RecordFieldDto: {
-            /** @description enum: fixed values. */
-            options?: components["schemas"]["EnumOptionDto"][];
-            /** @description Where the value lives; default `column`. `extra` — an extra field (field-defs). */
-            source?: components["schemas"]["FieldSource"];
-            /** @description Same key as in the API of the record. */
-            key: string;
-            label: string;
-            /**
-             * @description `text`, `richtext`, `int`, `decimal`, `date`, `datetime`, `bool`, `enum`, `color`,
-             *     `ref:<record type>` or `list<…>` of one of them.
-             */
-            type: string;
-            /** @description Must be given when the record is created. */
-            required?: boolean;
-            /** @description May be empty (null). */
-            nullable?: boolean;
-            /** @description May be set when the record is created. */
-            create?: boolean;
-            /** @description May be changed later. */
-            update?: boolean;
-            min?: number;
-            max?: number;
-            /** @description decimal: digits after the point. */
-            scale?: number;
-            /** @description text: length bounds (for a list — of each item). */
-            minLength?: number;
-            maxLength?: number;
-            /** @description text: the whole value must match this regex. */
-            pattern?: string;
-            maxItems?: number;
-            /** @description enum: key of the dictionary whose item keys are the values. */
-            dictionary?: string;
-            /** @description Extra field in the archive: old values stay, new ones are not taken. */
-            archived?: boolean;
-        };
-        RecordSchemaDto: {
-            type: components["schemas"]["RecordType"];
-            fields: components["schemas"]["RecordFieldDto"][];
-            label: string;
-            /** @description Staff may add extra fields (`/records/:type/field-defs`). */
-            extensible: boolean;
-            /** @description Changes with any change of the schema, extra fields included. */
-            version: string;
-        };
-        /** @enum {string} */
-        ExtraFieldType: "text" | "int" | "decimal" | "date" | "bool" | "enum" | "list<enum>";
-        FieldDefDto: {
-            type: components["schemas"]["ExtraFieldType"];
-            dictionary: string | null;
-            min: number | null;
-            max: number | null;
-            maxLength: number | null;
-            maxItems: number | null;
-            id: string;
-            /** @description Made from the label at creation; never changes. */
-            key: string;
-            label: string;
-            required: boolean;
-            position: number;
-            archived: boolean;
-        };
-        CreateFieldDefDto: {
-            /** @description Cannot be changed later. */
-            type: components["schemas"]["ExtraFieldType"];
-            label: string;
-            /** @description Must be filled when a record is created. Default false. */
-            required?: boolean;
-            /** @description enum, list<enum>: key of the dictionary (required for them). Cannot be changed later. */
-            dictionary?: string;
-            /** @description int, decimal: the least value. */
-            min?: number;
-            /** @description int, decimal: the greatest value. */
-            max?: number;
-            /** @description text: the longest value. Default 200. */
-            maxLength?: number;
-            /** @description list<enum>: at most this many items. Default 10. */
-            maxItems?: number;
-        };
-        ReorderFieldDefsDto: {
-            /** @description Every field key of the type (archived too), in the new order. */
-            keys: string[];
-        };
-        UpdateFieldDefDto: {
-            label?: string;
-            required?: boolean;
-            /** @description null — no lower bound. */
-            min?: number | null;
-            /** @description null — no upper bound. */
-            max?: number | null;
-            maxLength?: number;
-            maxItems?: number;
-            /** @description true — to the archive (values stay, new ones are not taken), false — back. */
-            archived?: boolean;
-        };
-        /** @enum {string} */
-        PaletteColor: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
-        DictionaryItemDto: {
-            color: components["schemas"]["PaletteColor"];
-            id: string;
-            /** @description Stored in records; never changes. */
-            key: string;
-            title: string;
-            position: number;
-            /** @description Not offered for new values; old records keep it. */
-            archived: boolean;
-        };
-        DictionaryDto: {
-            /** @description In display order, archived included. */
-            items: components["schemas"]["DictionaryItemDto"][];
-            id: string;
-            /** @description Modules and templates refer to the dictionary by key; never changes. */
-            key: string;
-            title: string;
-            /** @description A module relies on it: it cannot be deleted. */
-            required: boolean;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        CreateDictionaryDto: {
-            title: string;
-        };
-        UpdateDictionaryDto: {
-            title: string;
-        };
-        CreateDictionaryItemDto: {
-            title: string;
-            /**
-             * @description Default gray.
-             * @enum {string}
-             */
-            color?: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
-        };
-        ReorderDictionaryItemsDto: {
-            /** @description Every item key of the dictionary (archived too), in the new order. */
-            keys: string[];
-        };
-        UpdateDictionaryItemDto: {
-            title?: string;
-            /** @enum {string} */
-            color?: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
-            /** @description true — to the archive, false — back. */
-            archived?: boolean;
         };
         /** @enum {string} */
         TemplateKind: "creates" | "report" | "free";
@@ -2590,6 +2296,12 @@ export interface components {
             numberPrefix?: string;
             /** @description `creates` only. Default false. */
             autoFreeze?: boolean;
+        };
+        UserRefDto: {
+            /** @description null when the user no longer exists. */
+            name: string | null;
+            avatarUrl: string | null;
+            id: string;
         };
         TemplateVersionRowDto: {
             /**
@@ -2814,8 +2526,9 @@ export interface components {
             /**
              * @description With `templateId`: the record the document is about — it goes into the
              *     first field of the template the actor fills that refers to its type
-             *     (`ref:<type>`); checked as any save of the draft. A template without
-             *     such a field — as without `about`.
+             *     (`ref:<type>`); without one — into the first such column of
+             *     «Повторювані рядки» (the first row). Checked as any save of the draft.
+             *     A template without such a field — as without `about`.
              */
             about?: components["schemas"]["PaperAboutDto"];
         };
@@ -2919,6 +2632,57 @@ export interface components {
              */
             visibility?: "author" | "members";
         };
+        /** @enum {string} */
+        PaletteColor: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
+        DictionaryItemDto: {
+            color: components["schemas"]["PaletteColor"];
+            id: string;
+            /** @description Stored in records; never changes. */
+            key: string;
+            title: string;
+            position: number;
+            /** @description Not offered for new values; old records keep it. */
+            archived: boolean;
+        };
+        DictionaryDto: {
+            /** @description In display order, archived included. */
+            items: components["schemas"]["DictionaryItemDto"][];
+            id: string;
+            /** @description Modules and templates refer to the dictionary by key; never changes. */
+            key: string;
+            title: string;
+            /** @description A module relies on it: it cannot be deleted. */
+            required: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        CreateDictionaryDto: {
+            title: string;
+        };
+        UpdateDictionaryDto: {
+            title: string;
+        };
+        CreateDictionaryItemDto: {
+            title: string;
+            /**
+             * @description Default gray.
+             * @enum {string}
+             */
+            color?: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
+        };
+        ReorderDictionaryItemsDto: {
+            /** @description Every item key of the dictionary (archived too), in the new order. */
+            keys: string[];
+        };
+        UpdateDictionaryItemDto: {
+            title?: string;
+            /** @enum {string} */
+            color?: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
+            /** @description true — to the archive, false — back. */
+            archived?: boolean;
+        };
         OrgSignerDto: {
             id: string;
             name: string;
@@ -2945,6 +2709,227 @@ export interface components {
              */
             signerId?: string | null;
             signerPosition?: string;
+        };
+        EnumOptionDto: {
+            key: string;
+            label: string;
+        };
+        /**
+         * @description Where the value lives; default `column`. `extra` — an extra field (field-defs).
+         * @enum {string}
+         */
+        FieldSource: "column" | "relation" | "computed" | "extra";
+        RecordFieldDto: {
+            /** @description enum: fixed values. */
+            options?: components["schemas"]["EnumOptionDto"][];
+            /** @description Where the value lives; default `column`. `extra` — an extra field (field-defs). */
+            source?: components["schemas"]["FieldSource"];
+            /** @description Same key as in the API of the record. */
+            key: string;
+            label: string;
+            /**
+             * @description `text`, `richtext`, `int`, `decimal`, `date`, `datetime`, `bool`, `enum`, `color`,
+             *     `ref:<record type>` or `list<…>` of one of them.
+             */
+            type: string;
+            /** @description Must be given when the record is created. */
+            required?: boolean;
+            /** @description May be empty (null). */
+            nullable?: boolean;
+            /** @description May be set when the record is created. */
+            create?: boolean;
+            /** @description May be changed later. */
+            update?: boolean;
+            min?: number;
+            max?: number;
+            /** @description decimal: digits after the point. */
+            scale?: number;
+            /** @description text: length bounds (for a list — of each item). */
+            minLength?: number;
+            maxLength?: number;
+            /** @description text: the whole value must match this regex. */
+            pattern?: string;
+            maxItems?: number;
+            /** @description enum: key of the dictionary whose item keys are the values. */
+            dictionary?: string;
+            /** @description Extra field in the archive: old values stay, new ones are not taken. */
+            archived?: boolean;
+        };
+        RecordSchemaDto: {
+            type: components["schemas"]["RecordType"];
+            fields: components["schemas"]["RecordFieldDto"][];
+            label: string;
+            /** @description Staff may add extra fields (`/records/:type/field-defs`). */
+            extensible: boolean;
+            /** @description Changes with any change of the schema, extra fields included. */
+            version: string;
+        };
+        /** @enum {string} */
+        ExtraFieldType: "text" | "int" | "decimal" | "date" | "bool" | "enum" | "list<enum>";
+        FieldDefDto: {
+            type: components["schemas"]["ExtraFieldType"];
+            dictionary: string | null;
+            min: number | null;
+            max: number | null;
+            maxLength: number | null;
+            maxItems: number | null;
+            id: string;
+            /** @description Made from the label at creation; never changes. */
+            key: string;
+            label: string;
+            required: boolean;
+            position: number;
+            archived: boolean;
+        };
+        CreateFieldDefDto: {
+            /** @description Cannot be changed later. */
+            type: components["schemas"]["ExtraFieldType"];
+            label: string;
+            /** @description Must be filled when a record is created. Default false. */
+            required?: boolean;
+            /** @description enum, list<enum>: key of the dictionary (required for them). Cannot be changed later. */
+            dictionary?: string;
+            /** @description int, decimal: the least value. */
+            min?: number;
+            /** @description int, decimal: the greatest value. */
+            max?: number;
+            /** @description text: the longest value. Default 200. */
+            maxLength?: number;
+            /** @description list<enum>: at most this many items. Default 10. */
+            maxItems?: number;
+        };
+        ReorderFieldDefsDto: {
+            /** @description Every field key of the type (archived too), in the new order. */
+            keys: string[];
+        };
+        UpdateFieldDefDto: {
+            label?: string;
+            required?: boolean;
+            /** @description null — no lower bound. */
+            min?: number | null;
+            /** @description null — no upper bound. */
+            max?: number | null;
+            maxLength?: number;
+            maxItems?: number;
+            /** @description true — to the archive (values stay, new ones are not taken), false — back. */
+            archived?: boolean;
+        };
+        /** @enum {string} */
+        TaskStatus: "todo" | "queued" | "in_progress" | "review" | "done";
+        TaskAssigneeDto: {
+            /** @description null when the user no longer exists. */
+            name: string | null;
+            avatarUrl: string | null;
+            id: string;
+            /**
+             * Format: date-time
+             * @description Order of taking decides who gets the remainder of a points split.
+             */
+            takenAt: string;
+        };
+        TaskDto: {
+            description: string | null;
+            status: components["schemas"]["TaskStatus"];
+            /** Format: date-time */
+            dueDate: string | null;
+            /** @description Extra fields: key → value (string, number, boolean or list of item keys). */
+            extra: {
+                [key: string]: unknown;
+            };
+            /**
+             * Format: date-time
+             * @description When it was last sent for review.
+             */
+            submittedAt: string | null;
+            /**
+             * Format: date-time
+             * @description When it was accepted.
+             */
+            completedAt: string | null;
+            /** @description Who accepted it. */
+            acceptedById: string | null;
+            /** @description In the order of taking. */
+            assignees: components["schemas"]["TaskAssigneeDto"][];
+            /** @description null — an old task made before documents (no document yet). */
+            paper: components["schemas"]["RecordPaperDto"] | null;
+            id: string;
+            title: string;
+            points: number;
+            maxAssignees: number;
+            createdById: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        /**
+         * @description `return` — written by a moderator when sending the task back.
+         * @enum {string}
+         */
+        TaskCommentKind: "comment" | "return";
+        TaskCommentDto: {
+            /** @description `return` — written by a moderator when sending the task back. */
+            kind: components["schemas"]["TaskCommentKind"];
+            id: string;
+            body: string;
+            author: components["schemas"]["UserRefDto"];
+            /** Format: date-time */
+            createdAt: string;
+        };
+        TaskFileDto: {
+            id: string;
+            fileName: string;
+            mimeType: string;
+            size: number;
+            uploadedById: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        TaskDetailDto: {
+            description: string | null;
+            status: components["schemas"]["TaskStatus"];
+            /** Format: date-time */
+            dueDate: string | null;
+            /** @description Extra fields: key → value (string, number, boolean or list of item keys). */
+            extra: {
+                [key: string]: unknown;
+            };
+            /**
+             * Format: date-time
+             * @description When it was last sent for review.
+             */
+            submittedAt: string | null;
+            /**
+             * Format: date-time
+             * @description When it was accepted.
+             */
+            completedAt: string | null;
+            /** @description Who accepted it. */
+            acceptedById: string | null;
+            /** @description In the order of taking. */
+            assignees: components["schemas"]["TaskAssigneeDto"][];
+            /** @description null — an old task made before documents (no document yet). */
+            paper: components["schemas"]["RecordPaperDto"] | null;
+            /** @description Oldest first. */
+            comments: components["schemas"]["TaskCommentDto"][];
+            /** @description GET /tasks/:id/files/:fileId/download */
+            files: components["schemas"]["TaskFileDto"][];
+            id: string;
+            title: string;
+            points: number;
+            maxAssignees: number;
+            createdById: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        CancelTaskDto: {
+            /** @description Why: kept in the audit. */
+            reason: string;
+        };
+        CommentDto: {
+            body: string;
         };
         /** @enum {string} */
         DisciplineType: "warning" | "fine" | "reprimand";
@@ -4342,29 +4327,6 @@ export interface operations {
             };
         };
     };
-    PointsController_award: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AwardPointsDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PointsEntryDto"];
-                };
-            };
-        };
-    };
     PointsController_revoke: {
         parameters: {
             query?: never;
@@ -4386,642 +4348,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PointsEntryDto"];
-                };
-            };
-        };
-    };
-    TasksController_list: {
-        parameters: {
-            query?: {
-                status?: "todo" | "queued" | "in_progress" | "review" | "done";
-                /** @description Only tasks where the current user is an assignee. */
-                mine?: "true" | "false";
-                /** @description At most this many tasks (1–500). Done tasks come newest-completed first. */
-                limit?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskDto"][];
-                };
-            };
-        };
-    };
-    TasksController_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskDetailDto"];
-                };
-            };
-        };
-    };
-    TasksController_cancel: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CancelTaskDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OkDto"];
-                };
-            };
-        };
-    };
-    TasksController_take: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskDto"];
-                };
-            };
-        };
-    };
-    TasksController_leave: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskDto"];
-                };
-            };
-        };
-    };
-    TasksController_start: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskDto"];
-                };
-            };
-        };
-    };
-    TasksController_submit: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskDto"];
-                };
-            };
-        };
-    };
-    TasksController_returnForRework: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CommentDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskDto"];
-                };
-            };
-        };
-    };
-    TasksController_accept: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskDto"];
-                };
-            };
-        };
-    };
-    TasksController_addComment: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CommentDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskCommentDto"];
-                };
-            };
-        };
-    };
-    TasksController_addFile: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskFileDto"];
-                };
-            };
-        };
-    };
-    TasksController_download: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                fileId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    TasksController_removeFile: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                fileId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OkDto"];
-                };
-            };
-        };
-    };
-    RecordsController_schema: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                type: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecordSchemaDto"];
-                };
-            };
-        };
-    };
-    RecordsController_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                type: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FieldDefDto"][];
-                };
-            };
-        };
-    };
-    RecordsController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                type: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateFieldDefDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FieldDefDto"];
-                };
-            };
-        };
-    };
-    RecordsController_reorder: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                type: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReorderFieldDefsDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FieldDefDto"][];
-                };
-            };
-        };
-    };
-    RecordsController_remove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                type: string;
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OkDto"];
-                };
-            };
-        };
-    };
-    RecordsController_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                type: string;
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateFieldDefDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FieldDefDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DictionaryDto"][];
-                };
-            };
-        };
-    };
-    DictionariesController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateDictionaryDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DictionaryDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DictionaryDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_remove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OkDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateDictionaryDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DictionaryDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_addItem: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateDictionaryItemDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DictionaryItemDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_reorder: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReorderDictionaryItemsDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DictionaryDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_removeItem: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-                itemKey: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OkDto"];
-                };
-            };
-        };
-    };
-    DictionariesController_updateItem: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-                itemKey: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateDictionaryItemDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DictionaryItemDto"];
                 };
             };
         };
@@ -5521,6 +4847,213 @@ export interface operations {
             };
         };
     };
+    DictionariesController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryDto"][];
+                };
+            };
+        };
+    };
+    DictionariesController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDictionaryDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryDto"];
+                };
+            };
+        };
+    };
+    DictionariesController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryDto"];
+                };
+            };
+        };
+    };
+    DictionariesController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    DictionariesController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDictionaryDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryDto"];
+                };
+            };
+        };
+    };
+    DictionariesController_addItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDictionaryItemDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryItemDto"];
+                };
+            };
+        };
+    };
+    DictionariesController_reorder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderDictionaryItemsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryDto"];
+                };
+            };
+        };
+    };
+    DictionariesController_removeItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+                itemKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    DictionariesController_updateItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+                itemKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDictionaryItemDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictionaryItemDto"];
+                };
+            };
+        };
+    };
     OrgController_get: {
         parameters: {
             query?: never;
@@ -5559,6 +5092,435 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrgSettingsDto"];
+                };
+            };
+        };
+    };
+    RecordsController_schema: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordSchemaDto"];
+                };
+            };
+        };
+    };
+    RecordsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldDefDto"][];
+                };
+            };
+        };
+    };
+    RecordsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateFieldDefDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldDefDto"];
+                };
+            };
+        };
+    };
+    RecordsController_reorder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderFieldDefsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldDefDto"][];
+                };
+            };
+        };
+    };
+    RecordsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    RecordsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateFieldDefDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldDefDto"];
+                };
+            };
+        };
+    };
+    TasksController_list: {
+        parameters: {
+            query?: {
+                status?: "todo" | "queued" | "in_progress" | "review" | "done";
+                /** @description Only tasks where the current user is an assignee. */
+                mine?: "true" | "false";
+                /** @description At most this many tasks (1–500). Done tasks come newest-completed first. */
+                limit?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDto"][];
+                };
+            };
+        };
+    };
+    TasksController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDetailDto"];
+                };
+            };
+        };
+    };
+    TasksController_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelTaskDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    TasksController_take: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDto"];
+                };
+            };
+        };
+    };
+    TasksController_leave: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDto"];
+                };
+            };
+        };
+    };
+    TasksController_start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDto"];
+                };
+            };
+        };
+    };
+    TasksController_submit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDto"];
+                };
+            };
+        };
+    };
+    TasksController_returnForRework: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommentDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDto"];
+                };
+            };
+        };
+    };
+    TasksController_accept: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDto"];
+                };
+            };
+        };
+    };
+    TasksController_addComment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommentDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskCommentDto"];
+                };
+            };
+        };
+    };
+    TasksController_addFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskFileDto"];
+                };
+            };
+        };
+    };
+    TasksController_download: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                fileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    TasksController_removeFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                fileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
                 };
             };
         };

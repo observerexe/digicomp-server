@@ -20,6 +20,7 @@ export const PointsErrors = {
   UnknownMember: 'Unknown or inactive member',
   AlreadyRevoked: 'Already revoked',
   NotRevocable: 'Entry cannot be revoked',
+  HasPaper: 'Points entry has a paper',
 } as const;
 
 /** Month boundaries for the leaderboard. */
@@ -33,6 +34,8 @@ type HistoryRow = {
   taskId: string | null;
   taskTitle: string | null;
   reversesId: string | null;
+  paperId: string | null;
+  paperNumber: string | null;
   createdById: string | null;
   createdByName: string | null;
   revoked: boolean;
@@ -59,12 +62,14 @@ export class PointsService {
     const rows = await this.ds.query<HistoryRow[]>(
       `SELECT p.id, p.kind, p.amount, p.reason, p.task_id AS "taskId",
               t.title AS "taskTitle", p.reverses_id AS "reversesId",
+              p.paper_id AS "paperId", d.number AS "paperNumber",
               p.created_by_id AS "createdById", c.name AS "createdByName",
               EXISTS (SELECT 1 FROM points_ledger r WHERE r.reverses_id = p.id) AS revoked,
               p.created_at AS "createdAt"
        FROM points_ledger p
        LEFT JOIN users c ON c.id = p.created_by_id
        LEFT JOIN tasks t ON t.id = p.task_id
+       LEFT JOIN papers d ON d.id = p.paper_id
        WHERE p.user_id = $1
        ORDER BY p.created_at DESC, p.id
        LIMIT 100`,
@@ -72,12 +77,15 @@ export class PointsService {
     );
     return {
       balance: await this.balance(userId),
-      history: rows.map(({ createdById, createdByName, ...r }) => ({
-        ...r,
-        createdBy: createdById
-          ? { id: createdById, name: createdByName }
-          : null,
-      })),
+      history: rows.map(
+        ({ createdById, createdByName, paperId, paperNumber, ...r }) => ({
+          ...r,
+          createdBy: createdById
+            ? { id: createdById, name: createdByName }
+            : null,
+          paper: paperId ? { id: paperId, number: paperNumber } : null,
+        }),
+      ),
     };
   }
 
@@ -86,73 +94,112 @@ export class PointsService {
     return this.history(userId);
   }
 
-  /** Manual award (not to self for a moderator). */
-  award(dto: AwardPointsDto, actor: Actor): Promise<PointsEntryDto> {
-    return this.ds.transaction(async (m) => {
-      const target = await this.findMember(m, dto.userId);
-      assertCan(actor, Action.PointsAward, { target });
-      const entry = await m.save(
-        PointsEntry,
-        m.create(PointsEntry, {
-          userId: target.id,
-          amount: dto.amount,
-          kind: PointsKind.Manual,
-          reason: dto.reason.trim(),
-          createdById: actor.id,
-        }),
-      );
-      await this.audit.log(
-        {
-          actorId: actor.id,
-          action: 'points.awarded',
-          entity: 'user',
-          entityId: target.id,
-          meta: {
-            entryId: entry.id,
-            amount: entry.amount,
-            reason: entry.reason,
-          },
+  /**
+   * Manual award (not to self for a moderator). Only in the transaction of
+   * its document («Відомість балів»), which the entry refers to.
+   */
+  async award(
+    dto: AwardPointsDto,
+    actor: Actor,
+    m: EntityManager,
+    paperId: string,
+  ): Promise<PointsEntry> {
+    const target = await this.findMember(m, dto.userId);
+    assertCan(actor, Action.PointsAward, { target });
+    const entry = await m.save(
+      PointsEntry,
+      m.create(PointsEntry, {
+        userId: target.id,
+        amount: dto.amount,
+        kind: PointsKind.Manual,
+        reason: dto.reason.trim(),
+        createdById: actor.id,
+        paperId,
+      }),
+    );
+    await this.audit.log(
+      {
+        actorId: actor.id,
+        action: 'points.awarded',
+        entity: 'user',
+        entityId: target.id,
+        meta: {
+          entryId: entry.id,
+          amount: entry.amount,
+          reason: entry.reason,
+          paperId,
         },
-        m,
-      );
-      return entry;
-    });
+      },
+      m,
+    );
+    return entry;
   }
 
-  /** Revoke a manual award: admin any, moderator only their own. */
+  /**
+   * Revokes a manual award made before documents; one from a document goes
+   * only by cancelling the document (409 POINTS_HAS_PAPER).
+   */
   revoke(
     entryId: string,
     dto: RevokeDto,
     actor: Actor,
   ): Promise<PointsEntryDto> {
-    return this.ds.transaction(async (m) => {
-      const entry = await m.findOne(PointsEntry, {
-        where: { id: entryId },
-        lock: { mode: 'pessimistic_write' },
-      });
-      if (!entry) throw new NotFoundException('Points entry not found');
-      // Task points are final; fines are revoked through /discipline.
-      if (entry.kind !== PointsKind.Manual) {
-        throw new ConflictException(PointsErrors.NotRevocable);
-      }
-      assertCan(actor, Action.PointsRevoke, { ownerId: entry.createdById });
-      const reversal = await this.reverse(m, entry, actor, dto.reason);
-      await this.audit.log(
-        {
-          actorId: actor.id,
-          action: 'points.revoked',
-          entity: 'user',
-          entityId: entry.userId,
-          meta: {
-            entryId: entry.id,
-            amount: entry.amount,
-            reason: reversal.reason,
-          },
-        },
-        m,
-      );
-      return reversal;
+    return this.ds.transaction((m) =>
+      this.take(m, entryId, dto.reason, actor, true),
+    );
+  }
+
+  /** Its document is cancelled: the award is revoked with the same reason. */
+  async revokeByPaper(
+    m: EntityManager,
+    entryId: string,
+    reason: string,
+    actor: Actor,
+  ): Promise<void> {
+    await this.take(m, entryId, reason, actor, false);
+  }
+
+  /**
+   * Revoke a manual award: admin any, moderator only their own. `alone` —
+   * not through its document: an award with one stays.
+   */
+  private async take(
+    m: EntityManager,
+    entryId: string,
+    reason: string,
+    actor: Actor,
+    alone: boolean,
+  ) {
+    const entry = await m.findOne(PointsEntry, {
+      where: { id: entryId },
+      lock: { mode: 'pessimistic_write' },
     });
+    if (!entry) throw new NotFoundException('Points entry not found');
+    // Task points are final; fines are revoked through /discipline.
+    if (entry.kind !== PointsKind.Manual) {
+      throw new ConflictException(PointsErrors.NotRevocable);
+    }
+    assertCan(actor, Action.PointsRevoke, { ownerId: entry.createdById });
+    if (alone && entry.paperId) {
+      throw new ConflictException(PointsErrors.HasPaper);
+    }
+    const reversal = await this.reverse(m, entry, actor, reason);
+    await this.audit.log(
+      {
+        actorId: actor.id,
+        action: 'points.revoked',
+        entity: 'user',
+        entityId: entry.userId,
+        meta: {
+          entryId: entry.id,
+          amount: entry.amount,
+          reason: reversal.reason,
+          ...(alone ? {} : { byPaper: true }),
+        },
+      },
+      m,
+    );
+    return reversal;
   }
 
   /**

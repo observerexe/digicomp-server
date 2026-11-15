@@ -20,9 +20,10 @@ export type ResolvedRecord = {
 };
 
 /**
- * Who sees documents of this type through their record: everyone (`true`),
+ * Who sees documents of this type through their records: everyone (`true`),
  * nobody but the usual readers (`false`), or an SQL condition over the
- * document's record id `p.target_id` (named parameters, prefixed by the type).
+ * document `p` — its record id `p.target_id`, or its own `p.id` for the
+ * records of its rows (named parameters, prefixed by the type).
  */
 export type TargetSeen =
   boolean | { sql: string; params: Record<string, unknown> };
@@ -38,11 +39,16 @@ export type TargetSeen =
  * editor shows it on the template's field bound to it.
  */
 export type PaperAdapter = {
-  /** Creates the record from the values of bound fields; returns its id. */
+  /**
+   * Creates the record from the values of bound fields; returns its id.
+   * «Рядок = запис»: called for each row, with the values of its columns.
+   * `paperId` — the document being published (a module may keep it).
+   */
   publish(
     values: RecordValues,
     actor: Actor,
     m: EntityManager,
+    paperId: string,
   ): Promise<string>;
   /**
    * May the actor change the record now (its right and its state): fields
@@ -71,7 +77,7 @@ export type PaperAdapter = {
   ): Promise<(() => Promise<void>) | void>;
   /** The record now; null — there is none any more. */
   resolve(id: string, m: EntityManager): Promise<ResolvedRecord | null>;
-  /** Who sees a published document through its record (see TargetSeen). */
+  /** Who sees a published document through its records (see TargetSeen). */
   canView(actor: Actor): TargetSeen;
 };
 

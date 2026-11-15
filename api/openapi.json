@@ -1026,38 +1026,6 @@
         ]
       }
     },
-    "/api/points/award": {
-      "post": {
-        "operationId": "PointsController_award",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AwardPointsDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PointsEntryDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Manual award; a moderator cannot award to self.",
-        "tags": [
-          "Points"
-        ]
-      }
-    },
     "/api/points/{entryId}/revoke": {
       "post": {
         "operationId": "PointsController_revoke",
@@ -1093,1021 +1061,9 @@
             }
           }
         },
-        "summary": "Revoke a manual award with a reason.",
+        "summary": "Revoke a manual award made before documents, with a reason; one from\n«Відомість балів» — only by cancelling it (409 POINTS_HAS_PAPER).",
         "tags": [
           "Points"
-        ]
-      }
-    },
-    "/api/tasks": {
-      "get": {
-        "operationId": "TasksController_list",
-        "parameters": [
-          {
-            "name": "status",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "todo",
-                "queued",
-                "in_progress",
-                "review",
-                "done"
-              ]
-            }
-          },
-          {
-            "name": "mine",
-            "required": false,
-            "in": "query",
-            "description": "Only tasks where the current user is an assignee.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "true",
-                "false"
-              ]
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "description": "At most this many tasks (1–500). Done tasks come newest-completed first.",
-            "schema": {
-              "maxLength": 3,
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TaskDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "Board: all tasks, filter by status or `mine=true`.",
-        "tags": [
-          "Tasks"
-        ]
-      }
-    },
-    "/api/tasks/{id}": {
-      "get": {
-        "operationId": "TasksController_get",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TaskDetailDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Task with assignees, comments and files.",
-        "tags": [
-          "Tasks"
-        ]
-      }
-    },
-    "/api/tasks/{id}/cancel": {
-      "post": {
-        "operationId": "TasksController_cancel",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CancelTaskDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Only a free task without assignees and without a document (one with a\ndocument is cancelled with it). Tasks are created and changed through\ndocuments of the editor.",
-        "tags": [
-          "Tasks"
-        ]
-      }
-    },
-    "/api/tasks/{id}/take": {
-      "post": {
-        "operationId": "TasksController_take",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TaskDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Tasks"
-        ]
-      }
-    },
-    "/api/tasks/{id}/leave": {
-      "post": {
-        "operationId": "TasksController_leave",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TaskDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Tasks"
-        ]
-      }
-    },
-    "/api/tasks/{id}/start": {
-      "post": {
-        "operationId": "TasksController_start",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TaskDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Tasks"
-        ]
-      }
-    },
-    "/api/tasks/{id}/submit": {
-      "post": {
-        "operationId": "TasksController_submit",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TaskDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Tasks"
-        ]
-      }
-    },
-    "/api/tasks/{id}/return": {
-      "post": {
-        "operationId": "TasksController_returnForRework",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CommentDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TaskDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Back to work from review; `body` is the moderator's comment.",
-        "tags": [
-          "Tasks"
-        ]
-      }
-    },
-    "/api/tasks/{id}/accept": {
-      "post": {
-        "operationId": "TasksController_accept",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TaskDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Accept the task: points are split equally between assignees.",
-        "tags": [
-          "Tasks"
-        ]
-      }
-    },
-    "/api/tasks/{id}/comments": {
-      "post": {
-        "operationId": "TasksController_addComment",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CommentDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TaskCommentDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Tasks"
-        ]
-      }
-    },
-    "/api/tasks/{id}/files": {
-      "post": {
-        "operationId": "TasksController_addFile",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TaskFileDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Tasks"
-        ]
-      }
-    },
-    "/api/tasks/{id}/files/{fileId}/download": {
-      "get": {
-        "operationId": "TasksController_download",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "fileId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Tasks"
-        ]
-      }
-    },
-    "/api/tasks/{id}/files/{fileId}": {
-      "delete": {
-        "operationId": "TasksController_removeFile",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "fileId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "The uploader or staff.",
-        "tags": [
-          "Tasks"
-        ]
-      }
-    },
-    "/api/records/{type}/schema": {
-      "get": {
-        "operationId": "RecordsController_schema",
-        "parameters": [
-          {
-            "name": "type",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RecordSchemaDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Fields of a record type (extra fields included): what templates may bind to. No record data.",
-        "tags": [
-          "Records"
-        ]
-      }
-    },
-    "/api/records/{type}/field-defs": {
-      "get": {
-        "operationId": "RecordsController_list",
-        "parameters": [
-          {
-            "name": "type",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/FieldDefDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "Extra fields of an extensible type, archived too, in order.",
-        "tags": [
-          "Records"
-        ]
-      },
-      "post": {
-        "operationId": "RecordsController_create",
-        "parameters": [
-          {
-            "name": "type",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateFieldDefDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FieldDefDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Records"
-        ]
-      }
-    },
-    "/api/records/{type}/field-defs/order": {
-      "put": {
-        "operationId": "RecordsController_reorder",
-        "parameters": [
-          {
-            "name": "type",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReorderFieldDefsDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/FieldDefDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Records"
-        ]
-      }
-    },
-    "/api/records/{type}/field-defs/{key}": {
-      "patch": {
-        "operationId": "RecordsController_update",
-        "parameters": [
-          {
-            "name": "type",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateFieldDefDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FieldDefDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Records"
-        ]
-      },
-      "delete": {
-        "operationId": "RecordsController_remove",
-        "parameters": [
-          {
-            "name": "type",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Only a field without values in records; otherwise archive it.",
-        "tags": [
-          "Records"
-        ]
-      }
-    },
-    "/api/dictionaries": {
-      "get": {
-        "operationId": "DictionariesController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/DictionaryDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      },
-      "post": {
-        "operationId": "DictionariesController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateDictionaryDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DictionaryDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      }
-    },
-    "/api/dictionaries/{key}": {
-      "get": {
-        "operationId": "DictionariesController_get",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DictionaryDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      },
-      "patch": {
-        "operationId": "DictionariesController_update",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateDictionaryDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DictionaryDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      },
-      "delete": {
-        "operationId": "DictionariesController_remove",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      }
-    },
-    "/api/dictionaries/{key}/items": {
-      "post": {
-        "operationId": "DictionariesController_addItem",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateDictionaryItemDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DictionaryItemDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      }
-    },
-    "/api/dictionaries/{key}/items/order": {
-      "put": {
-        "operationId": "DictionariesController_reorder",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReorderDictionaryItemsDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DictionaryDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      }
-    },
-    "/api/dictionaries/{key}/items/{itemKey}": {
-      "patch": {
-        "operationId": "DictionariesController_updateItem",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "itemKey",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateDictionaryItemDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DictionaryItemDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
-        ]
-      },
-      "delete": {
-        "operationId": "DictionariesController_removeItem",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "itemKey",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Dictionaries"
         ]
       }
     },
@@ -2881,6 +1837,319 @@
         ]
       }
     },
+    "/api/dictionaries": {
+      "get": {
+        "operationId": "DictionariesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DictionaryDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      },
+      "post": {
+        "operationId": "DictionariesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDictionaryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      }
+    },
+    "/api/dictionaries/{key}": {
+      "get": {
+        "operationId": "DictionariesController_get",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      },
+      "patch": {
+        "operationId": "DictionariesController_update",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDictionaryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      },
+      "delete": {
+        "operationId": "DictionariesController_remove",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      }
+    },
+    "/api/dictionaries/{key}/items": {
+      "post": {
+        "operationId": "DictionariesController_addItem",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDictionaryItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryItemDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      }
+    },
+    "/api/dictionaries/{key}/items/order": {
+      "put": {
+        "operationId": "DictionariesController_reorder",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderDictionaryItemsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      }
+    },
+    "/api/dictionaries/{key}/items/{itemKey}": {
+      "patch": {
+        "operationId": "DictionariesController_updateItem",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDictionaryItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictionaryItemDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      },
+      "delete": {
+        "operationId": "DictionariesController_removeItem",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Dictionaries"
+        ]
+      }
+    },
     "/api/org-settings": {
       "get": {
         "operationId": "OrgController_get",
@@ -2928,6 +2197,705 @@
         },
         "tags": [
           "Org"
+        ]
+      }
+    },
+    "/api/records/{type}/schema": {
+      "get": {
+        "operationId": "RecordsController_schema",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordSchemaDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Fields of a record type (extra fields included): what templates may bind to. No record data.",
+        "tags": [
+          "Records"
+        ]
+      }
+    },
+    "/api/records/{type}/field-defs": {
+      "get": {
+        "operationId": "RecordsController_list",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FieldDefDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Extra fields of an extensible type, archived too, in order.",
+        "tags": [
+          "Records"
+        ]
+      },
+      "post": {
+        "operationId": "RecordsController_create",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFieldDefDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldDefDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Records"
+        ]
+      }
+    },
+    "/api/records/{type}/field-defs/order": {
+      "put": {
+        "operationId": "RecordsController_reorder",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderFieldDefsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FieldDefDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Records"
+        ]
+      }
+    },
+    "/api/records/{type}/field-defs/{key}": {
+      "patch": {
+        "operationId": "RecordsController_update",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFieldDefDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldDefDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Records"
+        ]
+      },
+      "delete": {
+        "operationId": "RecordsController_remove",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Only a field without values in records; otherwise archive it.",
+        "tags": [
+          "Records"
+        ]
+      }
+    },
+    "/api/tasks": {
+      "get": {
+        "operationId": "TasksController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "todo",
+                "queued",
+                "in_progress",
+                "review",
+                "done"
+              ]
+            }
+          },
+          {
+            "name": "mine",
+            "required": false,
+            "in": "query",
+            "description": "Only tasks where the current user is an assignee.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "At most this many tasks (1–500). Done tasks come newest-completed first.",
+            "schema": {
+              "maxLength": 3,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaskDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Board: all tasks, filter by status or `mine=true`.",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/api/tasks/{id}": {
+      "get": {
+        "operationId": "TasksController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Task with assignees, comments and files.",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/api/tasks/{id}/cancel": {
+      "post": {
+        "operationId": "TasksController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelTaskDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Only a free task without assignees and without a document (one with a\ndocument is cancelled with it). Tasks are created and changed through\ndocuments of the editor.",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/api/tasks/{id}/take": {
+      "post": {
+        "operationId": "TasksController_take",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/api/tasks/{id}/leave": {
+      "post": {
+        "operationId": "TasksController_leave",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/api/tasks/{id}/start": {
+      "post": {
+        "operationId": "TasksController_start",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/api/tasks/{id}/submit": {
+      "post": {
+        "operationId": "TasksController_submit",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/api/tasks/{id}/return": {
+      "post": {
+        "operationId": "TasksController_returnForRework",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Back to work from review; `body` is the moderator's comment.",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/api/tasks/{id}/accept": {
+      "post": {
+        "operationId": "TasksController_accept",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Accept the task: points are split equally between assignees.",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/api/tasks/{id}/comments": {
+      "post": {
+        "operationId": "TasksController_addComment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskCommentDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/api/tasks/{id}/files": {
+      "post": {
+        "operationId": "TasksController_addFile",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskFileDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/api/tasks/{id}/files/{fileId}/download": {
+      "get": {
+        "operationId": "TasksController_download",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fileId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/api/tasks/{id}/files/{fileId}": {
+      "delete": {
+        "operationId": "TasksController_removeFile",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fileId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The uploader or staff.",
+        "tags": [
+          "Tasks"
         ]
       }
     },
@@ -6212,6 +6180,23 @@
           "id"
         ]
       },
+      "RecordPaperDto": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string",
+            "nullable": true,
+            "description": "«ТЗ-2026-014»; null — the template gives no numbers."
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "number",
+          "id"
+        ]
+      },
       "PointsHistoryEntryDto": {
         "type": "object",
         "properties": {
@@ -6245,6 +6230,16 @@
               }
             ]
           },
+          "paper": {
+            "nullable": true,
+            "description": "The document that made the award («Відомість балів»); null — none.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordPaperDto"
+              }
+            ]
+          },
           "id": {
             "type": "string"
           },
@@ -6270,6 +6265,7 @@
           "taskTitle",
           "reversesId",
           "createdBy",
+          "paper",
           "id",
           "amount",
           "reason",
@@ -6329,26 +6325,15 @@
           "rank"
         ]
       },
-      "AwardPointsDto": {
+      "RevokeDto": {
         "type": "object",
         "properties": {
-          "userId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "amount": {
-            "type": "number",
-            "minimum": 1,
-            "maximum": 1000
-          },
           "reason": {
             "type": "string",
             "maxLength": 500
           }
         },
         "required": [
-          "userId",
-          "amount",
           "reason"
         ]
       },
@@ -6374,6 +6359,11 @@
             "type": "string",
             "nullable": true
           },
+          "paperId": {
+            "type": "string",
+            "nullable": true,
+            "description": "The document that made the award; null — none."
+          },
           "id": {
             "type": "string"
           },
@@ -6396,936 +6386,13 @@
           "taskId",
           "createdById",
           "reversesId",
+          "paperId",
           "id",
           "userId",
           "amount",
           "reason",
           "createdAt"
         ]
-      },
-      "RevokeDto": {
-        "type": "object",
-        "properties": {
-          "reason": {
-            "type": "string",
-            "maxLength": 500
-          }
-        },
-        "required": [
-          "reason"
-        ]
-      },
-      "TaskStatus": {
-        "type": "string",
-        "enum": [
-          "todo",
-          "queued",
-          "in_progress",
-          "review",
-          "done"
-        ]
-      },
-      "TaskAssigneeDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "nullable": true,
-            "description": "null when the user no longer exists."
-          },
-          "avatarUrl": {
-            "type": "string",
-            "nullable": true
-          },
-          "takenAt": {
-            "format": "date-time",
-            "type": "string",
-            "description": "Order of taking decides who gets the remainder of a points split."
-          },
-          "id": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "avatarUrl",
-          "takenAt",
-          "id"
-        ]
-      },
-      "RecordPaperDto": {
-        "type": "object",
-        "properties": {
-          "number": {
-            "type": "string",
-            "nullable": true,
-            "description": "«ТЗ-2026-014»; null — the template gives no numbers."
-          },
-          "id": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "number",
-          "id"
-        ]
-      },
-      "TaskDto": {
-        "type": "object",
-        "properties": {
-          "description": {
-            "type": "string",
-            "nullable": true
-          },
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TaskStatus"
-              }
-            ]
-          },
-          "dueDate": {
-            "format": "date-time",
-            "type": "string",
-            "nullable": true
-          },
-          "extra": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "Extra fields: key → value (string, number, boolean or list of item keys)."
-          },
-          "submittedAt": {
-            "format": "date-time",
-            "type": "string",
-            "nullable": true,
-            "description": "When it was last sent for review."
-          },
-          "completedAt": {
-            "format": "date-time",
-            "type": "string",
-            "nullable": true,
-            "description": "When it was accepted."
-          },
-          "acceptedById": {
-            "type": "string",
-            "nullable": true,
-            "description": "Who accepted it."
-          },
-          "assignees": {
-            "description": "In the order of taking.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TaskAssigneeDto"
-            }
-          },
-          "paper": {
-            "nullable": true,
-            "description": "null — an old task made before documents (no document yet).",
-            "type": "object",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RecordPaperDto"
-              }
-            ]
-          },
-          "id": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "points": {
-            "type": "number"
-          },
-          "maxAssignees": {
-            "type": "number"
-          },
-          "createdById": {
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "description",
-          "status",
-          "dueDate",
-          "extra",
-          "submittedAt",
-          "completedAt",
-          "acceptedById",
-          "assignees",
-          "paper",
-          "id",
-          "title",
-          "points",
-          "maxAssignees",
-          "createdById",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "TaskCommentKind": {
-        "type": "string",
-        "enum": [
-          "comment",
-          "return"
-        ],
-        "description": "`return` — written by a moderator when sending the task back."
-      },
-      "UserRefDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "nullable": true,
-            "description": "null when the user no longer exists."
-          },
-          "avatarUrl": {
-            "type": "string",
-            "nullable": true
-          },
-          "id": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "avatarUrl",
-          "id"
-        ]
-      },
-      "TaskCommentDto": {
-        "type": "object",
-        "properties": {
-          "kind": {
-            "description": "`return` — written by a moderator when sending the task back.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TaskCommentKind"
-              }
-            ]
-          },
-          "id": {
-            "type": "string"
-          },
-          "body": {
-            "type": "string"
-          },
-          "author": {
-            "$ref": "#/components/schemas/UserRefDto"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "kind",
-          "id",
-          "body",
-          "author",
-          "createdAt"
-        ]
-      },
-      "TaskFileDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "fileName": {
-            "type": "string"
-          },
-          "mimeType": {
-            "type": "string"
-          },
-          "size": {
-            "type": "number"
-          },
-          "uploadedById": {
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "fileName",
-          "mimeType",
-          "size",
-          "uploadedById",
-          "createdAt"
-        ]
-      },
-      "TaskDetailDto": {
-        "type": "object",
-        "properties": {
-          "description": {
-            "type": "string",
-            "nullable": true
-          },
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TaskStatus"
-              }
-            ]
-          },
-          "dueDate": {
-            "format": "date-time",
-            "type": "string",
-            "nullable": true
-          },
-          "extra": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "Extra fields: key → value (string, number, boolean or list of item keys)."
-          },
-          "submittedAt": {
-            "format": "date-time",
-            "type": "string",
-            "nullable": true,
-            "description": "When it was last sent for review."
-          },
-          "completedAt": {
-            "format": "date-time",
-            "type": "string",
-            "nullable": true,
-            "description": "When it was accepted."
-          },
-          "acceptedById": {
-            "type": "string",
-            "nullable": true,
-            "description": "Who accepted it."
-          },
-          "assignees": {
-            "description": "In the order of taking.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TaskAssigneeDto"
-            }
-          },
-          "paper": {
-            "nullable": true,
-            "description": "null — an old task made before documents (no document yet).",
-            "type": "object",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RecordPaperDto"
-              }
-            ]
-          },
-          "comments": {
-            "description": "Oldest first.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TaskCommentDto"
-            }
-          },
-          "files": {
-            "description": "GET /tasks/:id/files/:fileId/download",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TaskFileDto"
-            }
-          },
-          "id": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "points": {
-            "type": "number"
-          },
-          "maxAssignees": {
-            "type": "number"
-          },
-          "createdById": {
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "description",
-          "status",
-          "dueDate",
-          "extra",
-          "submittedAt",
-          "completedAt",
-          "acceptedById",
-          "assignees",
-          "paper",
-          "comments",
-          "files",
-          "id",
-          "title",
-          "points",
-          "maxAssignees",
-          "createdById",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "CancelTaskDto": {
-        "type": "object",
-        "properties": {
-          "reason": {
-            "type": "string",
-            "description": "Why: kept in the audit.",
-            "maxLength": 1000
-          }
-        },
-        "required": [
-          "reason"
-        ]
-      },
-      "CommentDto": {
-        "type": "object",
-        "properties": {
-          "body": {
-            "type": "string",
-            "maxLength": 2000
-          }
-        },
-        "required": [
-          "body"
-        ]
-      },
-      "EnumOptionDto": {
-        "type": "object",
-        "properties": {
-          "key": {
-            "type": "string"
-          },
-          "label": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "key",
-          "label"
-        ]
-      },
-      "FieldSource": {
-        "type": "string",
-        "enum": [
-          "column",
-          "relation",
-          "computed",
-          "extra"
-        ],
-        "description": "Where the value lives; default `column`. `extra` — an extra field (field-defs)."
-      },
-      "RecordFieldDto": {
-        "type": "object",
-        "properties": {
-          "options": {
-            "description": "enum: fixed values.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EnumOptionDto"
-            }
-          },
-          "source": {
-            "description": "Where the value lives; default `column`. `extra` — an extra field (field-defs).",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/FieldSource"
-              }
-            ]
-          },
-          "key": {
-            "type": "string",
-            "description": "Same key as in the API of the record."
-          },
-          "label": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "description": "`text`, `richtext`, `int`, `decimal`, `date`, `datetime`, `bool`, `enum`, `color`,\n`ref:<record type>` or `list<…>` of one of them."
-          },
-          "required": {
-            "type": "boolean",
-            "description": "Must be given when the record is created."
-          },
-          "nullable": {
-            "type": "boolean",
-            "description": "May be empty (null)."
-          },
-          "create": {
-            "type": "boolean",
-            "description": "May be set when the record is created."
-          },
-          "update": {
-            "type": "boolean",
-            "description": "May be changed later."
-          },
-          "min": {
-            "type": "number"
-          },
-          "max": {
-            "type": "number"
-          },
-          "scale": {
-            "type": "number",
-            "description": "decimal: digits after the point."
-          },
-          "minLength": {
-            "type": "number",
-            "description": "text: length bounds (for a list — of each item)."
-          },
-          "maxLength": {
-            "type": "number"
-          },
-          "pattern": {
-            "type": "string",
-            "description": "text: the whole value must match this regex."
-          },
-          "maxItems": {
-            "type": "number"
-          },
-          "dictionary": {
-            "type": "string",
-            "description": "enum: key of the dictionary whose item keys are the values."
-          },
-          "archived": {
-            "type": "boolean",
-            "description": "Extra field in the archive: old values stay, new ones are not taken."
-          }
-        },
-        "required": [
-          "key",
-          "label",
-          "type"
-        ]
-      },
-      "RecordSchemaDto": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RecordType"
-              }
-            ]
-          },
-          "fields": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/RecordFieldDto"
-            }
-          },
-          "label": {
-            "type": "string"
-          },
-          "extensible": {
-            "type": "boolean",
-            "description": "Staff may add extra fields (`/records/:type/field-defs`)."
-          },
-          "version": {
-            "type": "string",
-            "description": "Changes with any change of the schema, extra fields included."
-          }
-        },
-        "required": [
-          "type",
-          "fields",
-          "label",
-          "extensible",
-          "version"
-        ]
-      },
-      "ExtraFieldType": {
-        "type": "string",
-        "enum": [
-          "text",
-          "int",
-          "decimal",
-          "date",
-          "bool",
-          "enum",
-          "list<enum>"
-        ]
-      },
-      "FieldDefDto": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ExtraFieldType"
-              }
-            ]
-          },
-          "dictionary": {
-            "type": "string",
-            "nullable": true
-          },
-          "min": {
-            "type": "number",
-            "nullable": true
-          },
-          "max": {
-            "type": "number",
-            "nullable": true
-          },
-          "maxLength": {
-            "type": "number",
-            "nullable": true
-          },
-          "maxItems": {
-            "type": "number",
-            "nullable": true
-          },
-          "id": {
-            "type": "string"
-          },
-          "key": {
-            "type": "string",
-            "description": "Made from the label at creation; never changes."
-          },
-          "label": {
-            "type": "string"
-          },
-          "required": {
-            "type": "boolean"
-          },
-          "position": {
-            "type": "number"
-          },
-          "archived": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "type",
-          "dictionary",
-          "min",
-          "max",
-          "maxLength",
-          "maxItems",
-          "id",
-          "key",
-          "label",
-          "required",
-          "position",
-          "archived"
-        ]
-      },
-      "CreateFieldDefDto": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "description": "Cannot be changed later.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ExtraFieldType"
-              }
-            ]
-          },
-          "label": {
-            "type": "string",
-            "maxLength": 100
-          },
-          "required": {
-            "type": "boolean",
-            "description": "Must be filled when a record is created. Default false."
-          },
-          "dictionary": {
-            "type": "string",
-            "description": "enum, list<enum>: key of the dictionary (required for them). Cannot be changed later.",
-            "maxLength": 40
-          },
-          "min": {
-            "type": "number",
-            "description": "int, decimal: the least value.",
-            "minimum": -1000000000,
-            "maximum": 1000000000
-          },
-          "max": {
-            "type": "number",
-            "description": "int, decimal: the greatest value.",
-            "minimum": -1000000000,
-            "maximum": 1000000000
-          },
-          "maxLength": {
-            "type": "number",
-            "description": "text: the longest value. Default 200.",
-            "minimum": 1,
-            "maximum": 1000
-          },
-          "maxItems": {
-            "type": "number",
-            "description": "list<enum>: at most this many items. Default 10.",
-            "minimum": 1,
-            "maximum": 50
-          }
-        },
-        "required": [
-          "type",
-          "label"
-        ]
-      },
-      "ReorderFieldDefsDto": {
-        "type": "object",
-        "properties": {
-          "keys": {
-            "description": "Every field key of the type (archived too), in the new order.",
-            "maxItems": 500,
-            "type": "array",
-            "items": {
-              "type": "string",
-              "maxLength": 40
-            }
-          }
-        },
-        "required": [
-          "keys"
-        ]
-      },
-      "UpdateFieldDefDto": {
-        "type": "object",
-        "properties": {
-          "label": {
-            "type": "string",
-            "maxLength": 100
-          },
-          "required": {
-            "type": "boolean"
-          },
-          "min": {
-            "type": "number",
-            "nullable": true,
-            "description": "null — no lower bound.",
-            "minimum": -1000000000,
-            "maximum": 1000000000
-          },
-          "max": {
-            "type": "number",
-            "nullable": true,
-            "description": "null — no upper bound.",
-            "minimum": -1000000000,
-            "maximum": 1000000000
-          },
-          "maxLength": {
-            "type": "number",
-            "minimum": 1,
-            "maximum": 1000
-          },
-          "maxItems": {
-            "type": "number",
-            "minimum": 1,
-            "maximum": 50
-          },
-          "archived": {
-            "type": "boolean",
-            "description": "true — to the archive (values stay, new ones are not taken), false — back."
-          }
-        }
-      },
-      "PaletteColor": {
-        "type": "string",
-        "enum": [
-          "gray",
-          "red",
-          "orange",
-          "yellow",
-          "green",
-          "teal",
-          "blue",
-          "purple"
-        ]
-      },
-      "DictionaryItemDto": {
-        "type": "object",
-        "properties": {
-          "color": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PaletteColor"
-              }
-            ]
-          },
-          "id": {
-            "type": "string"
-          },
-          "key": {
-            "type": "string",
-            "description": "Stored in records; never changes."
-          },
-          "title": {
-            "type": "string"
-          },
-          "position": {
-            "type": "number"
-          },
-          "archived": {
-            "type": "boolean",
-            "description": "Not offered for new values; old records keep it."
-          }
-        },
-        "required": [
-          "color",
-          "id",
-          "key",
-          "title",
-          "position",
-          "archived"
-        ]
-      },
-      "DictionaryDto": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "description": "In display order, archived included.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DictionaryItemDto"
-            }
-          },
-          "id": {
-            "type": "string"
-          },
-          "key": {
-            "type": "string",
-            "description": "Modules and templates refer to the dictionary by key; never changes."
-          },
-          "title": {
-            "type": "string"
-          },
-          "required": {
-            "type": "boolean",
-            "description": "A module relies on it: it cannot be deleted."
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "items",
-          "id",
-          "key",
-          "title",
-          "required",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "CreateDictionaryDto": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "maxLength": 100
-          }
-        },
-        "required": [
-          "title"
-        ]
-      },
-      "UpdateDictionaryDto": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "maxLength": 100
-          }
-        },
-        "required": [
-          "title"
-        ]
-      },
-      "CreateDictionaryItemDto": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "maxLength": 100
-          },
-          "color": {
-            "type": "string",
-            "description": "Default gray.",
-            "enum": [
-              "gray",
-              "red",
-              "orange",
-              "yellow",
-              "green",
-              "teal",
-              "blue",
-              "purple"
-            ]
-          }
-        },
-        "required": [
-          "title"
-        ]
-      },
-      "ReorderDictionaryItemsDto": {
-        "type": "object",
-        "properties": {
-          "keys": {
-            "description": "Every item key of the dictionary (archived too), in the new order.",
-            "maxItems": 500,
-            "type": "array",
-            "items": {
-              "type": "string",
-              "maxLength": 40
-            }
-          }
-        },
-        "required": [
-          "keys"
-        ]
-      },
-      "UpdateDictionaryItemDto": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "maxLength": 100
-          },
-          "color": {
-            "type": "string",
-            "enum": [
-              "gray",
-              "red",
-              "orange",
-              "yellow",
-              "green",
-              "teal",
-              "blue",
-              "purple"
-            ]
-          },
-          "archived": {
-            "type": "boolean",
-            "description": "true — to the archive, false — back."
-          }
-        }
       },
       "TemplateKind": {
         "type": "string",
@@ -7513,6 +6580,28 @@
         "required": [
           "kind",
           "title"
+        ]
+      },
+      "UserRefDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true,
+            "description": "null when the user no longer exists."
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "avatarUrl",
+          "id"
         ]
       },
       "TemplateVersionRowDto": {
@@ -8268,7 +7357,7 @@
             "format": "uuid"
           },
           "about": {
-            "description": "With `templateId`: the record the document is about — it goes into the\nfirst field of the template the actor fills that refers to its type\n(`ref:<type>`); checked as any save of the draft. A template without\nsuch a field — as without `about`.",
+            "description": "With `templateId`: the record the document is about — it goes into the\nfirst field of the template the actor fills that refers to its type\n(`ref:<type>`); without one — into the first such column of\n«Повторювані рядки» (the first row). Checked as any save of the draft.\nA template without such a field — as without `about`.",
             "allOf": [
               {
                 "$ref": "#/components/schemas/PaperAboutDto"
@@ -8529,6 +7618,192 @@
           "revision"
         ]
       },
+      "PaletteColor": {
+        "type": "string",
+        "enum": [
+          "gray",
+          "red",
+          "orange",
+          "yellow",
+          "green",
+          "teal",
+          "blue",
+          "purple"
+        ]
+      },
+      "DictionaryItemDto": {
+        "type": "object",
+        "properties": {
+          "color": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaletteColor"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string",
+            "description": "Stored in records; never changes."
+          },
+          "title": {
+            "type": "string"
+          },
+          "position": {
+            "type": "number"
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "Not offered for new values; old records keep it."
+          }
+        },
+        "required": [
+          "color",
+          "id",
+          "key",
+          "title",
+          "position",
+          "archived"
+        ]
+      },
+      "DictionaryDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "In display order, archived included.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DictionaryItemDto"
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string",
+            "description": "Modules and templates refer to the dictionary by key; never changes."
+          },
+          "title": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean",
+            "description": "A module relies on it: it cannot be deleted."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "id",
+          "key",
+          "title",
+          "required",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateDictionaryDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "UpdateDictionaryDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "CreateDictionaryItemDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "color": {
+            "type": "string",
+            "description": "Default gray.",
+            "enum": [
+              "gray",
+              "red",
+              "orange",
+              "yellow",
+              "green",
+              "teal",
+              "blue",
+              "purple"
+            ]
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "ReorderDictionaryItemsDto": {
+        "type": "object",
+        "properties": {
+          "keys": {
+            "description": "Every item key of the dictionary (archived too), in the new order.",
+            "maxItems": 500,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 40
+            }
+          }
+        },
+        "required": [
+          "keys"
+        ]
+      },
+      "UpdateDictionaryItemDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "color": {
+            "type": "string",
+            "enum": [
+              "gray",
+              "red",
+              "orange",
+              "yellow",
+              "green",
+              "teal",
+              "blue",
+              "purple"
+            ]
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "true — to the archive, false — back."
+          }
+        }
+      },
       "OrgSignerDto": {
         "type": "object",
         "properties": {
@@ -8608,6 +7883,693 @@
             "maxLength": 200
           }
         }
+      },
+      "EnumOptionDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label"
+        ]
+      },
+      "FieldSource": {
+        "type": "string",
+        "enum": [
+          "column",
+          "relation",
+          "computed",
+          "extra"
+        ],
+        "description": "Where the value lives; default `column`. `extra` — an extra field (field-defs)."
+      },
+      "RecordFieldDto": {
+        "type": "object",
+        "properties": {
+          "options": {
+            "description": "enum: fixed values.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnumOptionDto"
+            }
+          },
+          "source": {
+            "description": "Where the value lives; default `column`. `extra` — an extra field (field-defs).",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FieldSource"
+              }
+            ]
+          },
+          "key": {
+            "type": "string",
+            "description": "Same key as in the API of the record."
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "description": "`text`, `richtext`, `int`, `decimal`, `date`, `datetime`, `bool`, `enum`, `color`,\n`ref:<record type>` or `list<…>` of one of them."
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Must be given when the record is created."
+          },
+          "nullable": {
+            "type": "boolean",
+            "description": "May be empty (null)."
+          },
+          "create": {
+            "type": "boolean",
+            "description": "May be set when the record is created."
+          },
+          "update": {
+            "type": "boolean",
+            "description": "May be changed later."
+          },
+          "min": {
+            "type": "number"
+          },
+          "max": {
+            "type": "number"
+          },
+          "scale": {
+            "type": "number",
+            "description": "decimal: digits after the point."
+          },
+          "minLength": {
+            "type": "number",
+            "description": "text: length bounds (for a list — of each item)."
+          },
+          "maxLength": {
+            "type": "number"
+          },
+          "pattern": {
+            "type": "string",
+            "description": "text: the whole value must match this regex."
+          },
+          "maxItems": {
+            "type": "number"
+          },
+          "dictionary": {
+            "type": "string",
+            "description": "enum: key of the dictionary whose item keys are the values."
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "Extra field in the archive: old values stay, new ones are not taken."
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type"
+        ]
+      },
+      "RecordSchemaDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecordFieldDto"
+            }
+          },
+          "label": {
+            "type": "string"
+          },
+          "extensible": {
+            "type": "boolean",
+            "description": "Staff may add extra fields (`/records/:type/field-defs`)."
+          },
+          "version": {
+            "type": "string",
+            "description": "Changes with any change of the schema, extra fields included."
+          }
+        },
+        "required": [
+          "type",
+          "fields",
+          "label",
+          "extensible",
+          "version"
+        ]
+      },
+      "ExtraFieldType": {
+        "type": "string",
+        "enum": [
+          "text",
+          "int",
+          "decimal",
+          "date",
+          "bool",
+          "enum",
+          "list<enum>"
+        ]
+      },
+      "FieldDefDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExtraFieldType"
+              }
+            ]
+          },
+          "dictionary": {
+            "type": "string",
+            "nullable": true
+          },
+          "min": {
+            "type": "number",
+            "nullable": true
+          },
+          "max": {
+            "type": "number",
+            "nullable": true
+          },
+          "maxLength": {
+            "type": "number",
+            "nullable": true
+          },
+          "maxItems": {
+            "type": "number",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string",
+            "description": "Made from the label at creation; never changes."
+          },
+          "label": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "position": {
+            "type": "number"
+          },
+          "archived": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "type",
+          "dictionary",
+          "min",
+          "max",
+          "maxLength",
+          "maxItems",
+          "id",
+          "key",
+          "label",
+          "required",
+          "position",
+          "archived"
+        ]
+      },
+      "CreateFieldDefDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "description": "Cannot be changed later.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExtraFieldType"
+              }
+            ]
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Must be filled when a record is created. Default false."
+          },
+          "dictionary": {
+            "type": "string",
+            "description": "enum, list<enum>: key of the dictionary (required for them). Cannot be changed later.",
+            "maxLength": 40
+          },
+          "min": {
+            "type": "number",
+            "description": "int, decimal: the least value.",
+            "minimum": -1000000000,
+            "maximum": 1000000000
+          },
+          "max": {
+            "type": "number",
+            "description": "int, decimal: the greatest value.",
+            "minimum": -1000000000,
+            "maximum": 1000000000
+          },
+          "maxLength": {
+            "type": "number",
+            "description": "text: the longest value. Default 200.",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "maxItems": {
+            "type": "number",
+            "description": "list<enum>: at most this many items. Default 10.",
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "required": [
+          "type",
+          "label"
+        ]
+      },
+      "ReorderFieldDefsDto": {
+        "type": "object",
+        "properties": {
+          "keys": {
+            "description": "Every field key of the type (archived too), in the new order.",
+            "maxItems": 500,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 40
+            }
+          }
+        },
+        "required": [
+          "keys"
+        ]
+      },
+      "UpdateFieldDefDto": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "min": {
+            "type": "number",
+            "nullable": true,
+            "description": "null — no lower bound.",
+            "minimum": -1000000000,
+            "maximum": 1000000000
+          },
+          "max": {
+            "type": "number",
+            "nullable": true,
+            "description": "null — no upper bound.",
+            "minimum": -1000000000,
+            "maximum": 1000000000
+          },
+          "maxLength": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "maxItems": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "true — to the archive (values stay, new ones are not taken), false — back."
+          }
+        }
+      },
+      "TaskStatus": {
+        "type": "string",
+        "enum": [
+          "todo",
+          "queued",
+          "in_progress",
+          "review",
+          "done"
+        ]
+      },
+      "TaskAssigneeDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true,
+            "description": "null when the user no longer exists."
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "takenAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Order of taking decides who gets the remainder of a points split."
+          }
+        },
+        "required": [
+          "name",
+          "avatarUrl",
+          "id",
+          "takenAt"
+        ]
+      },
+      "TaskDto": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TaskStatus"
+              }
+            ]
+          },
+          "dueDate": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Extra fields: key → value (string, number, boolean or list of item keys)."
+          },
+          "submittedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "When it was last sent for review."
+          },
+          "completedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "When it was accepted."
+          },
+          "acceptedById": {
+            "type": "string",
+            "nullable": true,
+            "description": "Who accepted it."
+          },
+          "assignees": {
+            "description": "In the order of taking.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskAssigneeDto"
+            }
+          },
+          "paper": {
+            "nullable": true,
+            "description": "null — an old task made before documents (no document yet).",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordPaperDto"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "points": {
+            "type": "number"
+          },
+          "maxAssignees": {
+            "type": "number"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "description",
+          "status",
+          "dueDate",
+          "extra",
+          "submittedAt",
+          "completedAt",
+          "acceptedById",
+          "assignees",
+          "paper",
+          "id",
+          "title",
+          "points",
+          "maxAssignees",
+          "createdById",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "TaskCommentKind": {
+        "type": "string",
+        "enum": [
+          "comment",
+          "return"
+        ],
+        "description": "`return` — written by a moderator when sending the task back."
+      },
+      "TaskCommentDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "description": "`return` — written by a moderator when sending the task back.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TaskCommentKind"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "author": {
+            "$ref": "#/components/schemas/UserRefDto"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "body",
+          "author",
+          "createdAt"
+        ]
+      },
+      "TaskFileDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "number"
+          },
+          "uploadedById": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "fileName",
+          "mimeType",
+          "size",
+          "uploadedById",
+          "createdAt"
+        ]
+      },
+      "TaskDetailDto": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TaskStatus"
+              }
+            ]
+          },
+          "dueDate": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Extra fields: key → value (string, number, boolean or list of item keys)."
+          },
+          "submittedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "When it was last sent for review."
+          },
+          "completedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "When it was accepted."
+          },
+          "acceptedById": {
+            "type": "string",
+            "nullable": true,
+            "description": "Who accepted it."
+          },
+          "assignees": {
+            "description": "In the order of taking.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskAssigneeDto"
+            }
+          },
+          "paper": {
+            "nullable": true,
+            "description": "null — an old task made before documents (no document yet).",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordPaperDto"
+              }
+            ]
+          },
+          "comments": {
+            "description": "Oldest first.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskCommentDto"
+            }
+          },
+          "files": {
+            "description": "GET /tasks/:id/files/:fileId/download",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskFileDto"
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "points": {
+            "type": "number"
+          },
+          "maxAssignees": {
+            "type": "number"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "description",
+          "status",
+          "dueDate",
+          "extra",
+          "submittedAt",
+          "completedAt",
+          "acceptedById",
+          "assignees",
+          "paper",
+          "comments",
+          "files",
+          "id",
+          "title",
+          "points",
+          "maxAssignees",
+          "createdById",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CancelTaskDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Why: kept in the audit.",
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "CommentDto": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "body"
+        ]
       },
       "DisciplineType": {
         "type": "string",

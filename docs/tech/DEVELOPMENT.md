@@ -67,8 +67,10 @@ Home Assistant і агент для локальної роботи не пот�
   `api/test/paper-refs.e2e-spec.ts`; публікації й скасування (номери, документ, що створює ТЗ, видимість через запис) —
   `api/test/paper-publish.e2e-spec.ts`; авто-полів і зміни опублікованого документа — `api/test/paper-change.e2e-spec.ts`;
   міграцій `PaperPublishing` і `TaskReview` — `api/test/migration-paper-publishing.e2e-spec.ts`.
-  «Повторювані рядки» — `api/src/paperwork/rows.spec.ts` (значення, правила тіла, друк), `api/test/paper-rows.e2e-spec.ts`,
-  на фронті — `web/src/editor/repeat.test.tsx` (аркуш, панель, конструктор).
+  «Повторювані рядки» — `api/src/paperwork/rows.spec.ts` (значення, правила тіла, «рядок = запис», друк), `api/test/paper-rows.e2e-spec.ts`,
+  на фронті — `web/src/editor/repeat.test.tsx` (аркуш, панель, конструктор) і `web/src/editor/builderPanel.test.tsx` (прив'язка стовпців).
+  Бали через «Відомість балів» — `api/src/paperwork/points-templates.spec.ts` (шаблон з міграції), `api/test/points-papers.e2e-spec.ts`;
+  нарахування, зроблене до документів, e2e пишуть помічником `oldAward` (`api/test/helpers.ts`), відомість — `publishSheet`.
   Початкові шаблони з міграції `StarterTemplates` перевіряє `api/src/paperwork/starter-templates.spec.ts`, шаблони ТЗ (`TaskTemplates`) —
   `api/src/paperwork/task-templates.spec.ts`; ТЗ через документ (шаблони з міграції, `for-record`, номер у ТЗ) — `api/test/task-papers.e2e-spec.ts`.
   E2e, яким потрібне ТЗ, а не його створення, роблять його помічником `makeTask` (`api/test/helpers.ts`, сервіс ТЗ, як адаптер документа).

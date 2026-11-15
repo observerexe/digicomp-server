@@ -44,35 +44,71 @@ describe('Рейтинг', () => {
 });
 
 describe('Бали (модератор)', () => {
-  it('модератор не бачить себе; нарахування; помилка за кодом', async () => {
+  const sheetTemplate: TemplateItem = {
+    id: 'vb',
+    title: 'Відомість балів',
+    kind: 'creates',
+    target: 'points_entry',
+    numberPrefix: 'ВБ',
+    autoFreeze: true,
+    creators: 'staff',
+    visibility: 'author',
+    archived: false,
+    currentVersion: 1,
+    draftVersion: null,
+    needsUpdate: false,
+    about: ['user'],
+    createdAt: '2026-11-15T10:00:00Z',
+    updatedAt: '2026-11-15T10:00:00Z',
+  };
+
+  it('модератор не бачить себе; «Нова відомість» з обраним учасником — він у першому рядку', async () => {
     const { calls } = mockApi({
       ...base(staff),
       'GET /api/points/users/u3': () => json(200, { balance: 0, history: [] }),
-      'POST /api/points/award': () => json(201, { id: 'p1', userId: 'u3', amount: 15, kind: 'manual', reason: 'x', taskId: null, createdById: staff.id, reversesId: null, createdAt: '' }),
+      'GET /api/papers/templates': () => json(200, [sheetTemplate]),
+      'POST /api/papers': () => json(201, { id: 'p1' }),
     });
-    renderApp('/points');
-    const who = await screen.findByLabelText('Кому');
+    const { router } = renderApp('/points');
+    const who = await screen.findByLabelText('Учасник');
     await waitFor(() => expect(within(who).getAllByRole('option')).toHaveLength(3));
     expect(within(who).queryByRole('option', { name: staff.name })).not.toBeInTheDocument();
     await userEvent.selectOptions(who, 'u3');
-    await userEvent.clear(screen.getByLabelText('Скільки балів'));
-    await userEvent.type(screen.getByLabelText('Скільки балів'), '15');
-    await userEvent.type(screen.getByLabelText('За що'), 'Чергування');
-    await userEvent.click(screen.getByRole('button', { name: 'Нарахувати' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('Нараховано +15.');
-    expect(JSON.parse(calls.find((c) => c.method === 'POST')!.body)).toEqual({ userId: 'u3', amount: 15, reason: 'Чергування' });
+    await userEvent.click(await screen.findByRole('button', { name: 'Нова відомість' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/editor/p1'));
+    expect(JSON.parse(calls.find((c) => c.path === '/api/papers' && c.method === 'POST')!.body)).toEqual({
+      templateId: 'vb',
+      about: { type: 'user', id: 'u3' },
+    });
+  });
+
+  it('в історії — посилання на відомість; нарахування з відомості тут не знімається', async () => {
+    const entry: PointsHistoryEntry = {
+      id: 'e1', kind: 'manual', amount: 5, reason: 'Чергування', taskId: null, taskTitle: null, reversesId: null,
+      createdBy: { id: staff.id, name: staff.name }, paper: { id: 'p9', number: 'ВБ-2026-001' }, revoked: false, createdAt: '2026-11-15T10:00:00Z',
+    };
+    mockApi({
+      ...base(staff),
+      'GET /api/points/users/u3': () => json(200, { balance: 5, history: [entry] }),
+      'GET /api/papers/templates': () => json(200, [sheetTemplate]),
+    });
+    renderApp('/points?user=u3');
+    const list = await screen.findByRole('list', { name: 'Історія учасника' });
+    expect(within(list).getByRole('link', { name: 'Відомість ВБ-2026-001' })).toHaveAttribute('href', '/editor/p9');
+    expect(within(list).queryByRole('button', { name: 'Зняти' })).not.toBeInTheDocument();
   });
 
   it('хто може зняти нарахування', () => {
     const e = (over: Partial<PointsHistoryEntry>): PointsHistoryEntry => ({
       id: 'e', kind: 'manual', amount: 10, reason: '', taskId: null, taskTitle: null, reversesId: null,
-      createdBy: { id: staff.id, name: staff.name }, revoked: false, createdAt: '', ...over,
+      createdBy: { id: staff.id, name: staff.name }, paper: null, revoked: false, createdAt: '', ...over,
     });
     expect(canRevokeEntry(e({}), staff)).toBe(true);
     expect(canRevokeEntry(e({ createdBy: { id: 'other', name: 'Інший' } }), staff)).toBe(false);
     expect(canRevokeEntry(e({ createdBy: { id: 'other', name: 'Інший' } }), admin)).toBe(true);
     expect(canRevokeEntry(e({ kind: 'task' }), admin)).toBe(false);
     expect(canRevokeEntry(e({ revoked: true }), admin)).toBe(false);
+    expect(canRevokeEntry(e({ paper: { id: 'p9', number: 'ВБ-2026-001' } }), admin)).toBe(false);
   });
 
   it('учаснику сторінки закриті', async () => {

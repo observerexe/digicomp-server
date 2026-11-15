@@ -104,6 +104,7 @@ function PointsCard({ userId }: { userId: string }) {
                 <span className={s.rowTitle}>{pointsReason(e)}</span>
                 <span className={s.rowSub}>
                   {formatDate(e.createdAt)} · {e.createdBy?.name ?? 'Система'}
+                  <EntryPaper e={e} />
                   {e.revoked && (e.revokeReason ? ` · знято: ${e.revokeReason}` : ' · знято')}
                 </span>
               </span>
@@ -122,6 +123,17 @@ function PointsCard({ userId }: { userId: string }) {
 }
 
 type HistoryRow = PointsHistoryEntry & { revokeReason?: string };
+
+/** «Відомість ВБ-2026-001» — a link to the document that made the award. */
+export function EntryPaper({ e }: { e: PointsHistoryEntry }) {
+  if (!e.paper) return null;
+  return (
+    <>
+      {' · '}
+      <Link to={`/editor/${e.paper.id}`}>Відомість{e.paper.number ? ` ${e.paper.number}` : ''}</Link>
+    </>
+  );
+}
 
 /**
  * A revoked entry and its reversal are one event for the person: show the

@@ -5,6 +5,7 @@ import {
   refType,
   repeatParts,
   ROWS,
+  rowsOf,
   signerField,
   walkNodes,
   type PaperContent,
@@ -142,17 +143,35 @@ export function isAutoBinding(kind: TemplateKind, s: FieldSchema) {
 }
 
 /**
+ * Columns of «Повторювані рядки» in a body: the key of their rows field by
+ * the column's key.
+ */
+export function rowColumns(body: PaperContent): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const [rows, keys] of rowsOf(body)) {
+    for (const key of keys) out.set(key, rows);
+  }
+  return out;
+}
+
+/**
  * Bindings against the target's schema: each to a field it may bind to,
  * once, of the same type (a free text zone may bind to a text field: it
  * then takes plain paragraphs), never wider. A template that creates a
  * record binds every field the record needs, as a required field; a field
  * bound to what the record gets later (see isAutoBinding) is neither
  * required nor changeable.
+ *
+ * «Рядок = запис»: a template that creates records may bind the columns of
+ * one «Повторювані рядки» (`columns` — see rowColumns) — each row not empty
+ * then makes a record. Such a template binds nothing else, nothing auto;
+ * its rows are required and never change after publication.
  */
 export function bindingProblem(
   fields: TemplateField[],
   kind: TemplateKind,
   schema: PublishedSchema | null,
+  columns: ReadonlyMap<string, string> = new Map(),
 ): FieldProblem | null {
   const allowed = new Map(
     schema && kind !== TemplateKind.Free
@@ -169,11 +188,22 @@ export function bindingProblem(
       !(f.type === s.type || (f.type === 'richtext' && s.type === 'text')) ||
       !narrower(f, s) ||
       (kind === TemplateKind.Creates && s.required && !f.required) ||
-      (isAutoBinding(kind, s) && (f.required || f.editable))
+      (isAutoBinding(kind, s) && (f.required || f.editable)) ||
+      (columns.has(f.key) &&
+        (kind !== TemplateKind.Creates || isAutoBinding(kind, s)))
     ) {
       return { field: f.key };
     }
     bound.add(f.binding);
+  }
+  const rows = recordRowsKey(fields, columns);
+  if (rows !== null) {
+    const other = fields.find(
+      (f) => f.binding !== null && columns.get(f.key) !== rows,
+    );
+    if (other) return { field: other.key };
+    const own = fields.find((f) => f.key === rows);
+    if (!own?.required || own.editable) return { field: rows };
   }
   if (kind === TemplateKind.Creates) {
     for (const s of allowed.values()) {
@@ -183,18 +213,31 @@ export function bindingProblem(
   return null;
 }
 
-/** The whole check before a version is published. */
+/**
+ * «Рядок = запис»: the rows field whose columns are bound to the record
+ * (the first bound column's); null — the template binds no column.
+ */
+export function recordRowsKey(
+  fields: readonly { key: string; binding: string | null }[],
+  columns: ReadonlyMap<string, string>,
+): string | null {
+  const f = fields.find((x) => x.binding !== null && columns.has(x.key));
+  return f ? columns.get(f.key)! : null;
+}
+
+/** The whole check before a version is published (`columns` — see rowColumns). */
 export function fieldsProblem(
   fields: TemplateField[],
   kind: TemplateKind,
   schema: PublishedSchema | null,
   known: Known,
+  columns: ReadonlyMap<string, string> = new Map(),
 ): FieldProblem | null {
   const dup = duplicateKey(fields);
   if (dup) return { field: dup };
   const bad = fields.find((f) => !ownOk(f, known));
   if (bad) return { field: bad.key };
-  return bindingProblem(fields, kind, schema);
+  return bindingProblem(fields, kind, schema, columns);
 }
 
 /** Dictionaries the fields take values from. */
@@ -264,8 +307,8 @@ export function bodyProblem(
  * «Повторювані рядки»: a single table with the row that repeats; its header
  * holds no fields and no «№ рядка», no zones anywhere in it. Its columns —
  * fields of that row — are its own: of a type a cell holds (not a zone, not
- * rows), not bound to a record, nowhere else on the sheet (not who signs,
- * not what a conditional block waits for).
+ * rows), nowhere else on the sheet (not who signs, not what a conditional
+ * block waits for). Bound columns — see bindingProblem.
  */
 function repeatProblem(
   body: PaperContent,
@@ -306,7 +349,6 @@ function repeatProblem(
         !f ||
         f.type === ROWS ||
         f.type === 'richtext' ||
-        f.binding !== null ||
         (columns.get(key) ?? own) !== own
       ) {
         return { field: key };

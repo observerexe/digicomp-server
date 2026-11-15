@@ -71,6 +71,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   FINE_AMOUNT_REQUIRED: 'Вкажіть, скільки балів знімає штраф.',
   AMOUNT_ONLY_FOR_FINE: 'Суму можна вказати лише для штрафу.',
   DISCIPLINE_HAS_PAPER: 'Стягнення видано поданням: щоб зняти, скасуйте документ.',
+  POINTS_HAS_PAPER: 'Бали нараховано відомістю: щоб зняти, скасуйте відомість.',
   REASON_REQUIRED: 'Вкажіть причину.',
 
   // Обладнання, сеанси, допуски

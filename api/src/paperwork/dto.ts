@@ -58,8 +58,9 @@ export class CreatePaperDto {
   /**
    * With `templateId`: the record the document is about — it goes into the
    * first field of the template the actor fills that refers to its type
-   * (`ref:<type>`); checked as any save of the draft. A template without
-   * such a field — as without `about`.
+   * (`ref:<type>`); without one — into the first such column of
+   * «Повторювані рядки» (the first row). Checked as any save of the draft.
+   * A template without such a field — as without `about`.
    */
   @IsOptional()
   @ValidateNested()
