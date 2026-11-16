@@ -107,6 +107,40 @@ export class ListTasksQuery {
   limit?: string;
 }
 
+export class ListArchiveQuery {
+  /** Part of the title. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  search?: string;
+
+  /** Year of acceptance. */
+  @IsOptional()
+  @Matches(/^\d{4}$/)
+  year?: string;
+
+  /**
+   * `key:item` of a choice field (enum or list<enum>), e.g. `type:dyzain`;
+   * may repeat — all must match (the first 10).
+   */
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @Matches(/^[a-z0-9_]{1,60}:[a-z0-9_]{1,60}$/, { each: true })
+  field?: string | string[];
+
+  /** From 1. */
+  @IsOptional()
+  @IsNumberString({ no_symbols: true })
+  @MaxLength(5)
+  page?: string;
+
+  /** 1–100, default 30. */
+  @IsOptional()
+  @IsNumberString({ no_symbols: true })
+  @MaxLength(3)
+  limit?: string;
+}
+
 export class CommentDto {
   @IsString()
   @Matches(NOT_BLANK)

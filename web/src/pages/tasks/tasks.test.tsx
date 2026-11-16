@@ -18,7 +18,7 @@ function boardApi(me: Me, tasks: Task[], extra: Record<string, (req: Request) =>
     'GET /api/links': () => json(200, { canLink: false, items: [] }),
     'GET /api/tasks': (req: Request) => {
       const q = new URL(req.url).searchParams;
-      let list = tasks.filter((t) => t.status === q.get('status'));
+      let list = tasks.filter((t) => t.status === q.get('status') && !t.archivedAt);
       if (q.get('mine') === 'true') list = list.filter((t) => t.assignees.some((a) => a.id === me.id));
       if (q.get('limit')) list = list.slice(0, Number(q.get('limit')));
       return json(200, list);
@@ -219,6 +219,64 @@ describe('Дошка ТЗ', () => {
     expect(within(column('Вільне')).getByText('Нічого не знайдено.')).toBeInTheDocument();
   });
 
+  it('модератор: «В архів» на виконаній картці — картка зникає з дошки; «Усі виконані — в архів» з підтвердженням', async () => {
+    const archiver: Me = { ...staff, permissions: [...staff.permissions, 'tasks.archive'] };
+    const one = task({ id: 'd1', title: 'Готове 1', status: 'done', assignees: [ref(iryna)] });
+    const two = task({ id: 'd2', title: 'Готове 2', status: 'done', assignees: [ref(iryna)] });
+    const { calls } = mockApi(
+      boardApi(archiver, [one, two], {
+        'POST /api/tasks/d1/archive': () => json(200, Object.assign(one, { archivedAt: '2026-11-16T10:00:00Z' })),
+        'POST /api/tasks/archive-done': () => json(200, { count: 1 }),
+      }),
+    );
+    renderApp('/tasks');
+    const col = await screen.findByRole('region', { name: 'Виконано' });
+    const card = (await within(col).findByText('Готове 1')).closest('article')!;
+    await userEvent.click(within(card).getByRole('button', { name: 'В архів' }));
+    await waitFor(() => expect(within(col).queryByText('Готове 1')).not.toBeInTheDocument());
+    expect(calls.some((c) => c.path === '/api/tasks/d1/archive')).toBe(true);
+
+    await userEvent.click(within(col).getByRole('button', { name: 'Усі виконані — в архів' }));
+    expect(calls.some((c) => c.path === '/api/tasks/archive-done')).toBe(false);
+    await userEvent.click(within(col).getByRole('button', { name: 'Так, в архів' }));
+    await waitFor(() => expect(calls.some((c) => c.path === '/api/tasks/archive-done' && c.method === 'POST')).toBe(true));
+  });
+
+  it('учасник: без кнопок архіву; «Архів» — список з пошуком, роком і «Показати ще»', async () => {
+    const archived = (i: number) =>
+      task({ id: `a${i}`, title: `Архівне ${i}`, status: 'done', assignees: [ref(iryna)], completedAt: '2026-10-01T10:00:00Z', archivedAt: '2026-11-01T10:00:00Z' });
+    const { calls } = mockApi(
+      boardApi(member, [task({ id: 'd1', title: 'Готове', status: 'done', assignees: [ref(member)] })], {
+        'GET /api/tasks/archive': (req: Request) => {
+          const q = new URL(req.url).searchParams;
+          const page = Number(q.get('page'));
+          const items = q.get('search') ? [archived(99)] : page === 1 ? Array.from({ length: 30 }, (_, i) => archived(i)) : [archived(30)];
+          return json(200, { items, total: q.get('search') ? 1 : 31, page, limit: 30, years: [2026, 2025] });
+        },
+      }),
+    );
+    renderApp('/tasks');
+    const col = await screen.findByRole('region', { name: 'Виконано' });
+    const card = (await within(col).findByText('Готове')).closest('article')!;
+    expect(within(card).queryByRole('button', { name: 'В архів' })).not.toBeInTheDocument();
+    expect(within(col).queryByRole('button', { name: 'Усі виконані — в архів' })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Архів' }));
+    expect(await screen.findByText('31 технічне завдання')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Виконано' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('article')).toHaveLength(30);
+    expect(screen.getAllByText('прийнято 1 жовт.')[0]).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Повернути з архіву' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Показати ще' }));
+    await waitFor(() => expect(screen.getAllByRole('article')).toHaveLength(31));
+    expect(screen.queryByRole('button', { name: 'Показати ще' })).not.toBeInTheDocument();
+
+    await userEvent.click(within(screen.getByRole('group', { name: 'Рік прийняття' })).getByRole('button', { name: '2025' }));
+    await waitFor(() => expect(calls.some((c) => c.path === '/api/tasks/archive' && c.url.includes('year=2025'))).toBe(true));
+    await userEvent.type(screen.getByRole('searchbox'), 'відео');
+    expect(await screen.findByText('Архівне 99')).toBeInTheDocument();
+  });
+
   it('«Нове ТЗ» бачить лише модератор', async () => {
     mockApi(boardApi(member, []));
     renderApp('/tasks');
@@ -342,6 +400,22 @@ const template = (over: Partial<TemplateItem> = {}): TemplateItem => ({
   createdAt: '2026-11-01T10:00:00Z',
   updatedAt: '2026-11-01T10:00:00Z',
   ...over,
+});
+
+describe('Архівне ТЗ', () => {
+  it('мітка «В архіві з …»; модератор повертає з архіву', async () => {
+    const archiver: Me = { ...staff, permissions: [...staff.permissions, 'tasks.archive'] };
+    const t = detail({ id: 't1', status: 'done', assignees: [ref(iryna)], archivedAt: '2026-11-10T10:00:00Z', archivedById: 'm1' });
+    const { calls } = mockApi({
+      ...boardApi(archiver, []),
+      'GET /api/tasks/t1': () => json(200, t),
+      'POST /api/tasks/t1/unarchive': () => json(200, { ...t, archivedAt: null, archivedById: null }),
+    });
+    renderApp('/tasks/t1');
+    expect(await screen.findByText(/В архіві з 10 лист/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Повернути з архіву' }));
+    await waitFor(() => expect(calls.some((c) => c.path === '/api/tasks/t1/unarchive')).toBe(true));
+  });
 });
 
 describe('ТЗ через документ', () => {

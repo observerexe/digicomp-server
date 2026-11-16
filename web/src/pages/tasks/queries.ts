@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { api, unwrap } from '../../api/client';
 import type { Me, Task, TaskStatus } from '../../api/types';
@@ -52,6 +52,10 @@ export function useTaskAction(me: Me | null) {
           return unwrap(api.POST('/api/tasks/{id}/accept', path));
         case 'return':
           return unwrap(api.POST('/api/tasks/{id}/return', { ...path, body: { body: body ?? '' } }));
+        case 'archive':
+          return unwrap(api.POST('/api/tasks/{id}/archive', path));
+        case 'unarchive':
+          return unwrap(api.POST('/api/tasks/{id}/unarchive', path));
       }
     },
     onMutate: async ({ task, kind }) => {
@@ -60,7 +64,8 @@ export function useTaskAction(me: Me | null) {
       if (me) {
         const next = predict(task, kind, me);
         for (const [key, data] of before) {
-          if (data) qc.setQueryData(key, { ...data, tasks: data.tasks.map((t) => (t.id === task.id ? next : t)) });
+          // An archived task leaves the board at once.
+          if (data) qc.setQueryData(key, { ...data, tasks: data.tasks.map((t) => (t.id === task.id ? next : t)).filter((t) => !t.archivedAt) });
         }
       }
       return { before };
@@ -93,5 +98,31 @@ export function useTaskPaper() {
       if (taskId) void qc.invalidateQueries({ queryKey: ['tasks'] });
       void navigate(`/editor/${p.id}`, taskId ? { state: { change: true } } : undefined);
     },
+  });
+}
+
+export const ARCHIVE_PAGE = 30;
+
+export type ArchiveFilter = { search: string; year: string | null; fields: Record<string, string | null> };
+
+/** The archive: newest accepted first, ARCHIVE_PAGE at a time («Показати ще»). */
+export function useArchive(f: ArchiveFilter) {
+  const field = Object.entries(f.fields).flatMap(([k, v]) => (v ? [`${k}:${v}`] : []));
+  const query = { limit: String(ARCHIVE_PAGE), ...(f.search ? { search: f.search } : {}), ...(f.year ? { year: f.year } : {}), ...(field.length ? { field } : {}) };
+  return useInfiniteQuery({
+    queryKey: ['tasks', 'archive', query],
+    queryFn: ({ pageParam }) => unwrap(api.GET('/api/tasks/archive', { params: { query: { ...query, page: String(pageParam) } } })),
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.page * last.limit < last.total ? last.page + 1 : undefined),
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** «Усі виконані — в архів» (staff). */
+export function useArchiveDone() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => unwrap(api.POST('/api/tasks/archive-done')),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
   });
 }

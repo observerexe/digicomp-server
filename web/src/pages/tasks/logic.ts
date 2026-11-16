@@ -9,8 +9,11 @@ export const COLUMNS: { status: TaskStatus; title: string }[] = [
   { status: 'done', title: 'Виконано' },
 ];
 
-/** `takeStart` — dragging a free task onto «В роботі» by the one taking its last slot. */
-export type ActionKind = 'take' | 'takeStart' | 'leave' | 'start' | 'submit' | 'return' | 'accept';
+/**
+ * `takeStart` — dragging a free task onto «В роботі» by the one taking its
+ * last slot; `archive`, `unarchive` — a done task to the archive and back (staff).
+ */
+export type ActionKind = 'take' | 'takeStart' | 'leave' | 'start' | 'submit' | 'return' | 'accept' | 'archive' | 'unarchive';
 
 export const ACTION_LABEL: Record<ActionKind, string> = {
   take: 'Взяти',
@@ -20,6 +23,8 @@ export const ACTION_LABEL: Record<ActionKind, string> = {
   submit: 'Здати на перевірку',
   return: 'Повернути',
   accept: 'Прийняти',
+  archive: 'В архів',
+  unarchive: 'Повернути з архіву',
 };
 
 type Can = (action: string) => boolean;
@@ -40,6 +45,7 @@ export function actionsFor(t: Task, me: Me, can: Can): ActionKind[] {
   if (mine && t.status === 'in_progress') out.push('submit');
   if (t.status === 'review' && !mine && can('tasks.accept')) out.push('accept', 'return');
   if (mine && (free || t.status === 'in_progress')) out.push('leave');
+  if (t.status === 'done' && can('tasks.archive')) out.push(t.archivedAt ? 'unarchive' : 'archive');
   return out;
 }
 
@@ -87,6 +93,10 @@ export function predict(t: Task, kind: ActionKind, me: Me, now = new Date()): Ta
       return { ...t, status: 'review', updatedAt: iso };
     case 'accept':
       return { ...t, status: 'done', completedAt: iso };
+    case 'archive':
+      return { ...t, archivedAt: iso, archivedById: me.id };
+    case 'unarchive':
+      return { ...t, archivedAt: null, archivedById: null };
   }
 }
 

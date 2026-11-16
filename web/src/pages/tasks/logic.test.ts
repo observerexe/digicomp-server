@@ -18,6 +18,8 @@ export const task = (over: Partial<Task> = {}): Task => ({
   submittedAt: null,
   completedAt: null,
   acceptedById: null,
+  archivedAt: null,
+  archivedById: null,
   assignees: [],
   paper: null,
   ...over,
@@ -45,6 +47,16 @@ describe('Дії над ТЗ', () => {
     expect(actionsFor(task({ status: 'review', assignees: [as(member)] }), staff, canOf(staff))).toEqual(['accept', 'return']);
     expect(actionsFor(task({ status: 'review', assignees: [as(staff)] }), staff, canOf(staff))).toEqual([]);
     expect(actionsFor(task({ status: 'review', assignees: [as(staff)] }), member, canOf(member))).toEqual([]);
+  });
+  it('архів: виконане — «В архів», архівне — «Повернути з архіву»; лише staff', () => {
+    const archiver: Me = { ...staff, permissions: [...staff.permissions, 'tasks.archive'] };
+    const done = task({ status: 'done', assignees: [as(member)] });
+    expect(actionsFor(done, archiver, canOf(archiver))).toEqual(['archive']);
+    expect(actionsFor({ ...done, archivedAt: '2026-11-10T10:00:00Z' }, archiver, canOf(archiver))).toEqual(['unarchive']);
+    expect(actionsFor(done, member, canOf(member))).toEqual([]);
+    expect(actionsFor(task({ status: 'review', assignees: [as(member)] }), archiver, canOf(archiver))).toEqual(['accept', 'return']);
+    expect(predict(done, 'archive', archiver)).toMatchObject({ archivedById: archiver.id, archivedAt: expect.any(String) });
+    expect(predict({ ...done, archivedAt: 'x', archivedById: 'm1' }, 'unarchive', archiver)).toMatchObject({ archivedAt: null, archivedById: null });
   });
   it('перетягування: лише дозволені переходи', () => {
     const t = task({ status: 'in_progress', assignees: [as(member)] });

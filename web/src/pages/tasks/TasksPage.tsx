@@ -3,6 +3,7 @@ import type { FieldDef, Task } from '../../api/types';
 import { Board } from '../../components/Board';
 import { useAuth } from '../../auth/AuthProvider';
 import { ChoiceButton } from '../../components/ChoiceButton';
+import { ConfirmButton } from '../../components/ui';
 import { Chips } from '../../components/Filters';
 import { ErrorMessage, PageHeader } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
@@ -10,22 +11,34 @@ import { useDictionary, usedItems } from '../../lib/dictionaries';
 import { choiceKeys, filterFields, matchesFilters, stripeField, useFieldDefs } from '../../lib/fields';
 import { templateChoices, useTemplates } from '../../lib/paperTemplates';
 import { COLUMNS, dropAction, type ActionKind } from './logic';
-import { DONE_PAGE, useBoard, useTaskAction, useTaskPaper } from './queries';
+import { DONE_PAGE, useArchiveDone, useBoard, useTaskAction, useTaskPaper } from './queries';
+import { TaskArchive } from './TaskArchive';
 import { TaskCard } from './TaskCard';
 import s from './tasks.module.css';
 
+type View = 'all' | 'mine' | 'archive';
+
+const VIEWS: { key: View; label: string }[] = [
+  { key: 'all', label: 'Усі' },
+  { key: 'mine', label: 'Мої' },
+  { key: 'archive', label: 'Архів' },
+];
+
 /**
- * Task board (approved mockups): five columns side by side on a computer with
+ * Task board (approved mockups): four columns side by side on a computer with
  * drag and drop, one column per tab on a phone with buttons on the cards.
+ * «Архів» — done tasks moved off the board, as a list.
  */
 export function TasksPage() {
   const { user, can } = useAuth();
-  const [mine, setMine] = useState(false);
+  const [view, setView] = useState<View>('all');
+  const mine = view === 'mine';
   const [doneLimit, setDoneLimit] = useState(DONE_PAGE);
   const [returning, setReturning] = useState<string | null>(null);
   const [filters, setFilters] = useState<Record<string, string | null>>({});
   const board = useBoard(mine, doneLimit);
   const action = useTaskAction(user);
+  const archiveDone = useArchiveDone();
   // «Нове ТЗ» opens a document of a template that creates tasks.
   const staff = can('tasks.create');
   const templates = useTemplates(staff);
@@ -52,12 +65,11 @@ export function TasksPage() {
       <PageHeader title="Технічні завдання">
         <div className={s.headerTools}>
           <div className={s.segmented} role="group" aria-label="Які завдання показати">
-            <button type="button" aria-pressed={!mine} onClick={() => setMine(false)}>
-              Усі
-            </button>
-            <button type="button" aria-pressed={mine} onClick={() => setMine(true)}>
-              Мої
-            </button>
+            {VIEWS.map((v) => (
+              <button key={v.key} type="button" aria-pressed={view === v.key} onClick={() => setView(v.key)}>
+                {v.label}
+              </button>
+            ))}
           </div>
           {staff && (
             <ChoiceButton
@@ -70,52 +82,71 @@ export function TasksPage() {
           )}
         </div>
       </PageHeader>
-      {fields.length > 0 && (
-        <div className={s.filters}>
-          {fields.map((f) => (
-            <FieldChips key={f.key} def={f} used={used(f.key)} value={active[f.key] ?? null} onChange={(v) => setFilters((x) => ({ ...x, [f.key]: v }))} />
-          ))}
-        </div>
-      )}
-      <ErrorMessage text={[action, board, newTask, templates].map((q) => (q.isError ? errorOf(q.error) : null)).find(Boolean) ?? null} />
-      <Board
-        columns={COLUMNS.map((c) => ({ key: c.status, title: c.title }))}
-        items={shown}
-        columnOf={(t) => t.status}
-        canDrop={(t, to) => !!dropAction(t, to, user, can)}
-        onDrop={(t, to) => {
-          const kind = dropAction(t, to, user, can);
-          if (kind === 'return') setReturning(t.id);
-          else if (kind) run(t, kind);
-        }}
-        hint={{
-          phone: 'Беріть технічні завдання самі. Поки ніхто з виконавців не натиснув «Почати», до завдання можна приєднатися.',
-          desk:
-            'Перетягніть картку, щоб змінити статус. Приєднатися можна, поки ніхто з виконавців не натиснув «Почати».' +
-            (can('tasks.accept') ? ' Прийняти чи повернути можна лише чуже технічне завдання; бали діляться порівну між виконавцями.' : ''),
-        }}
-        empty={(k) => (Object.values(active).some(Boolean) ? 'Нічого не знайдено.' : k === 'todo' ? 'Вільних технічних завдань немає.' : 'Порожньо.')}
-        footer={(k) =>
-          k === 'done' && board.data?.moreDone ? (
-            <button type="button" className="btn btn-ghost" onClick={() => setDoneLimit((n) => n + DONE_PAGE)}>
-              Показати ще
-            </button>
-          ) : null
-        }
-        renderCard={(t, drag) => (
-          <TaskCard
-            key={t.id}
-            task={t}
-            me={user}
-            busy={action.isPending && action.variables?.task.id === t.id}
-            onAction={(kind, body) => run(t, kind, body)}
-            drag={drag}
-            returning={returning === t.id}
-            setReturning={(v) => setReturning(v ? t.id : null)}
-            stripe={stripeOf(t)}
+      {view === 'archive' ? (
+        <TaskArchive me={user} />
+      ) : (
+        <>
+          {fields.length > 0 && (
+            <div className={s.filters}>
+              {fields.map((f) => (
+                <FieldChips key={f.key} def={f} used={used(f.key)} value={active[f.key] ?? null} onChange={(v) => setFilters((x) => ({ ...x, [f.key]: v }))} />
+              ))}
+            </div>
+          )}
+          <ErrorMessage text={[action, board, newTask, templates, archiveDone].map((q) => (q.isError ? errorOf(q.error) : null)).find(Boolean) ?? null} />
+          <Board
+            columns={COLUMNS.map((c) => ({ key: c.status, title: c.title }))}
+            items={shown}
+            columnOf={(t) => t.status}
+            canDrop={(t, to) => !!dropAction(t, to, user, can)}
+            onDrop={(t, to) => {
+              const kind = dropAction(t, to, user, can);
+              if (kind === 'return') setReturning(t.id);
+              else if (kind) run(t, kind);
+            }}
+            hint={{
+              phone: 'Беріть технічні завдання самі. Поки ніхто з виконавців не натиснув «Почати», до завдання можна приєднатися.',
+              desk:
+                'Перетягніть картку, щоб змінити статус. Приєднатися можна, поки ніхто з виконавців не натиснув «Почати».' +
+                (can('tasks.accept') ? ' Прийняти чи повернути можна лише чуже технічне завдання; бали діляться порівну між виконавцями.' : ''),
+            }}
+            empty={(k) => (Object.values(active).some(Boolean) ? 'Нічого не знайдено.' : k === 'todo' ? 'Вільних технічних завдань немає.' : 'Порожньо.')}
+            footer={(k) =>
+              k === 'done' ? (
+                <>
+                  {board.data?.moreDone && (
+                    <button type="button" className="btn btn-ghost" onClick={() => setDoneLimit((n) => n + DONE_PAGE)}>
+                      Показати ще
+                    </button>
+                  )}
+                  {can('tasks.archive') && shown?.some((t) => t.status === 'done') && (
+                    <ConfirmButton
+                      label="Усі виконані — в архів"
+                      question="Перенести всі виконані технічні завдання в архів?"
+                      confirmLabel="Так, в архів"
+                      disabled={archiveDone.isPending}
+                      onConfirm={() => archiveDone.mutate()}
+                    />
+                  )}
+                </>
+              ) : null
+            }
+            renderCard={(t, drag) => (
+              <TaskCard
+                key={t.id}
+                task={t}
+                me={user}
+                busy={action.isPending && action.variables?.task.id === t.id}
+                onAction={(kind, body) => run(t, kind, body)}
+                drag={drag}
+                returning={returning === t.id}
+                setReturning={(v) => setReturning(v ? t.id : null)}
+                stripe={stripeOf(t)}
+              />
+            )}
           />
-        )}
-      />
+        </>
+      )}
     </>
   );
 }

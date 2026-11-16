@@ -24,6 +24,9 @@ const MESSAGE_CODES: Record<string, string> = {
   'Invalid task status transition': 'TASK_INVALID_TRANSITION',
   'Task has assignees': 'TASK_HAS_ASSIGNEES',
   'Task has a paper': 'TASK_HAS_PAPER',
+  'Task is not done': 'TASK_NOT_DONE',
+  'Task is archived': 'TASK_ARCHIVED',
+  'Task is not archived': 'TASK_NOT_ARCHIVED',
   'Max assignees is below the current number of assignees':
     'MAX_ASSIGNEES_TOO_LOW',
   'Already revoked': 'ALREADY_REVOKED',

@@ -79,6 +79,23 @@ export class Task {
   @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'accepted_by_id' })
   acceptedBy?: User | null;
+
+  /** In the archive since (only done tasks): off the board, in «Архів». */
+  @Index()
+  @Column({ name: 'archived_at', type: 'timestamptz', nullable: true })
+  archivedAt: Date | null;
+
+  /** Who moved it to the archive; null — the server (30 days after acceptance). */
+  @Column({ name: 'archived_by_id', type: 'uuid', nullable: true })
+  archivedById: string | null;
+
+  @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'archived_by_id' })
+  archivedBy?: User | null;
+
+  /** Last returned from the archive: the server archives it again 30 days later. */
+  @Column({ name: 'unarchived_at', type: 'timestamptz', nullable: true })
+  unarchivedAt: Date | null;
 }
 
 @Entity('task_assignees')

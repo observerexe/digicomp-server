@@ -2,11 +2,14 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
+  OnModuleDestroy,
+  OnModuleInit,
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { createHash, randomUUID } from 'crypto';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { DataSource, EntityManager, In, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { Action, Actor, assertCan, can } from '../auth/policy';
 import {
@@ -23,10 +26,12 @@ import {
   CancelTaskDto,
   CommentDto,
   CreateTaskDto,
+  ListArchiveQuery,
   ListTasksQuery,
   UpdateTaskDto,
 } from './dto';
 import { removeLinksOf } from '../links/links.sql';
+import { containsLike } from '../common/like';
 import {
   paperOfRecords,
   papersOf,
@@ -43,6 +48,8 @@ import {
 } from './task.entities';
 import type { OkDto, Plain } from '../common/responses.dto';
 import type {
+  ArchivedCountDto,
+  TaskArchiveDto,
   TaskCommentDto,
   TaskDetailDto,
   TaskDto,
@@ -60,7 +67,15 @@ export const TaskErrors = {
   HasAssignees: 'Task has assignees',
   MaxTooLow: 'Max assignees is below the current number of assignees',
   HasPaper: 'Task has a paper',
+  NotDone: 'Task is not done',
+  Archived: 'Task is archived',
+  NotArchived: 'Task is not archived',
 } as const;
+
+/** The server archives a done task this many days after acceptance (or return from the archive). */
+export const AUTO_ARCHIVE_DAYS = 30;
+const AUTO_ARCHIVE_EVERY_MS = 60 * 60 * 1000;
+const ARCHIVE_PAGE = 30;
 
 const STORAGE_DIR = 'tasks';
 
@@ -92,6 +107,8 @@ function taskView(t: Task, paper: RecordPaper | undefined): Plain<TaskDto> {
     submittedAt: t.submittedAt,
     completedAt: t.completedAt,
     acceptedById: t.acceptedById,
+    archivedAt: t.archivedAt,
+    archivedById: t.archivedById,
     assignees: sortAssignees(t.assignees ?? []).map((a) => ({
       ...userRef(a.user, a.userId),
       takenAt: a.takenAt,
@@ -134,7 +151,10 @@ function fileView(f: TaskFile): TaskFileDto {
 const transition = () => new ConflictException(TaskErrors.Transition);
 
 @Injectable()
-export class TasksService {
+export class TasksService implements OnModuleInit, OnModuleDestroy {
+  private timer?: NodeJS.Timeout;
+  private logger = new Logger('Tasks');
+
   constructor(
     @InjectRepository(Task) private tasks: Repository<Task>,
     @InjectRepository(TaskComment) private comments: Repository<TaskComment>,
@@ -146,11 +166,28 @@ export class TasksService {
     private papers: PaperworkService,
   ) {}
 
+  onModuleInit() {
+    if (process.env.TASK_AUTO_ARCHIVE_DISABLED === 'true') return;
+    const run = () =>
+      this.autoArchive().catch((e: unknown) =>
+        this.logger.error(`Auto-archive failed: ${String(e)}`),
+      );
+    this.timer = setInterval(run, AUTO_ARCHIVE_EVERY_MS);
+    this.timer.unref();
+    void run();
+  }
+
+  onModuleDestroy() {
+    if (this.timer) clearInterval(this.timer);
+  }
+
+  /** The board: tasks that are not in the archive. */
   async list(q: ListTasksQuery, actor: Actor): Promise<TaskDto[]> {
     const qb = this.tasks
       .createQueryBuilder('t')
       .leftJoinAndSelect('t.assignees', 'a')
-      .leftJoinAndSelect('a.user', 'u');
+      .leftJoinAndSelect('a.user', 'u')
+      .where('t.archivedAt IS NULL');
     // Done tasks: the most recently completed first (the board shows the last ones).
     if (q.status === TaskStatus.Done) {
       qb.orderBy('t.completedAt', 'DESC', 'NULLS LAST');
@@ -168,6 +205,63 @@ export class TasksService {
       );
     }
     return taskViews(this.ds.manager, await qb.getMany());
+  }
+
+  /**
+   * The archive: newest accepted first, a page at a time. `field` —
+   * `key:item` of a choice field (enum or list<enum>), all must match.
+   */
+  async listArchive(q: ListArchiveQuery): Promise<TaskArchiveDto> {
+    const page = Math.max(1, Number(q.page ?? 1));
+    const limit = Math.min(100, Math.max(1, Number(q.limit ?? ARCHIVE_PAGE)));
+    const qb = this.tasks
+      .createQueryBuilder('t')
+      .where('t.archivedAt IS NOT NULL');
+    if (q.search?.trim()) {
+      qb.andWhere('t.title ILIKE :s', { s: containsLike(q.search.trim()) });
+    }
+    if (q.year) {
+      qb.andWhere(
+        'EXTRACT(YEAR FROM COALESCE(t.completedAt, t.createdAt)) = :y',
+        { y: Number(q.year) },
+      );
+    }
+    const fields = (q.field === undefined ? [] : [q.field].flat()).slice(0, 10);
+    fields.forEach((f, i) => {
+      const [key, item] = f.split(':');
+      // Scalar equality for enum, membership for list<enum>.
+      qb.andWhere(`(t.extra -> :fk${i}) @> to_jsonb(:fi${i}::text)`, {
+        [`fk${i}`]: key,
+        [`fi${i}`]: item,
+      });
+    });
+    qb.orderBy('t.completedAt', 'DESC', 'NULLS LAST')
+      .addOrderBy('t.createdAt', 'DESC')
+      .addOrderBy('t.id', 'ASC')
+      .skip((page - 1) * limit)
+      .take(limit);
+    const [rows, total] = await qb.getManyAndCount();
+    const withAssignees = rows.length
+      ? await this.tasks.find({
+          where: { id: In(rows.map((r) => r.id)) },
+          relations: { assignees: { user: true } },
+        })
+      : [];
+    const byId = new Map(withAssignees.map((t) => [t.id, t]));
+    const years = await this.ds.query<{ y: number }[]>(
+      `SELECT DISTINCT EXTRACT(YEAR FROM COALESCE(completed_at, created_at))::int AS y
+       FROM tasks WHERE archived_at IS NOT NULL ORDER BY y DESC`,
+    );
+    return {
+      items: await taskViews(
+        this.ds.manager,
+        rows.map((r) => byId.get(r.id)!),
+      ),
+      total,
+      page,
+      limit,
+      years: years.map((r) => r.y),
+    };
   }
 
   async get(id: string): Promise<TaskDetailDto> {
@@ -478,6 +572,110 @@ export class TasksService {
         };
       },
     );
+  }
+
+  /** A done task goes to the archive (staff). */
+  archive(id: string, actor: Actor): Promise<TaskDto> {
+    return this.locked(id, async (m, task) => {
+      if (task.status !== TaskStatus.Done) {
+        throw new ConflictException(TaskErrors.NotDone);
+      }
+      if (task.archivedAt) throw new ConflictException(TaskErrors.Archived);
+      await this.markArchived(m, [task.id], actor.id, {});
+    });
+  }
+
+  /** «Усі виконані — в архів»: every done task on the board (staff). */
+  async archiveDone(actor: Actor): Promise<ArchivedCountDto> {
+    const count = await this.ds.transaction(async (m) => {
+      const rows = await m
+        .createQueryBuilder(Task, 't')
+        .setLock('pessimistic_write')
+        .where('t.status = :done AND t.archivedAt IS NULL', {
+          done: TaskStatus.Done,
+        })
+        .getMany();
+      await this.markArchived(
+        m,
+        rows.map((t) => t.id),
+        actor.id,
+        { all: true },
+      );
+      return rows.length;
+    });
+    return { count };
+  }
+
+  /**
+   * The server archives done tasks accepted (or returned from the archive)
+   * AUTO_ARCHIVE_DAYS ago; in the audit without an actor.
+   */
+  async autoArchive(now = new Date()) {
+    const cutoff = new Date(now.getTime() - AUTO_ARCHIVE_DAYS * 86_400_000);
+    const count = await this.ds.transaction(async (m) => {
+      // completed_at and created_at are `timestamp`, unarchived_at is
+      // `timestamptz`: each compared to its own parameter, written the same way.
+      const rows = await m
+        .createQueryBuilder(Task, 't')
+        .setLock('pessimistic_write')
+        .where('t.status = :done AND t.archivedAt IS NULL', {
+          done: TaskStatus.Done,
+        })
+        .andWhere('COALESCE(t.completedAt, t.createdAt) <= :plain', {
+          plain: cutoff,
+        })
+        .andWhere('(t.unarchivedAt IS NULL OR t.unarchivedAt <= :tz)', {
+          tz: cutoff,
+        })
+        .getMany();
+      await this.markArchived(
+        m,
+        rows.map((t) => t.id),
+        null,
+        { auto: true, days: AUTO_ARCHIVE_DAYS },
+      );
+      return rows.length;
+    });
+    if (count) this.logger.log(`Archived ${count} task(s)`);
+    return count;
+  }
+
+  /** «Повернути з архіву» (staff): back to «Виконано» on the board. */
+  unarchive(id: string, actor: Actor): Promise<TaskDto> {
+    return this.locked(id, async (m, task) => {
+      if (!task.archivedAt) throw new ConflictException(TaskErrors.NotArchived);
+      task.archivedAt = null;
+      task.archivedById = null;
+      task.unarchivedAt = new Date();
+      await m.save(Task, task);
+      await this.log(m, actor, 'task.unarchived', id, {});
+    });
+  }
+
+  private async markArchived(
+    m: EntityManager,
+    ids: string[],
+    actorId: string | null,
+    meta: Record<string, unknown>,
+  ) {
+    if (!ids.length) return;
+    await m.update(
+      Task,
+      { id: In(ids) },
+      { archivedAt: new Date(), archivedById: actorId },
+    );
+    for (const id of ids) {
+      await this.audit.log(
+        {
+          actorId: actorId ?? undefined,
+          action: 'task.archived',
+          entity: 'task',
+          entityId: id,
+          meta,
+        },
+        m,
+      );
+    }
   }
 
   async addComment(id: string, dto: CommentDto, actor: Actor) {

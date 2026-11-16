@@ -77,6 +77,7 @@ function TaskView({ task: t, me }: { task: TaskDetail; me: Me }) {
     <div className={s.detail}>
       <PageHeader title={t.title}>
         <span className={`${s.statusBadge} ${s[`status_${t.status}`] ?? ''}`}>{TASK_STATUS_LABEL[t.status]}</span>
+        {t.archivedAt && <span className={s.statusBadge}>В архіві з {formatDate(t.archivedAt)}</span>}
       </PageHeader>
       <div className={s.detailGrid}>
         <div className={s.detailMain}>
@@ -116,7 +117,7 @@ function TaskView({ task: t, me }: { task: TaskDetail; me: Me }) {
                   <button
                     key={k}
                     type="button"
-                    className={k === 'leave' ? 'btn btn-ghost' : k === 'return' ? 'btn' : 'btn btn-primary'}
+                    className={k === 'leave' || k === 'archive' ? 'btn btn-ghost' : k === 'return' || k === 'unarchive' ? 'btn' : 'btn btn-primary'}
                     disabled={action.isPending}
                     onClick={() => (k === 'return' ? setReturning(true) : run(k))}
                   >

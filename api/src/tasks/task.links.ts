@@ -10,7 +10,7 @@ export const TASK_LINKS: LinkableType = {
   async find(ids, _actor, m) {
     const rows = await m.findBy(Task, { id: In(ids) });
     return new Map(
-      rows.map((t) => [t.id, { title: t.title, archived: false }]),
+      rows.map((t) => [t.id, { title: t.title, archived: !!t.archivedAt }]),
     );
   },
   async search(q, limit, _actor, m) {
@@ -19,6 +19,10 @@ export const TASK_LINKS: LinkableType = {
       order: { title: 'ASC', id: 'ASC' },
       take: limit,
     });
-    return rows.map((t) => ({ id: t.id, title: t.title, archived: false }));
+    return rows.map((t) => ({
+      id: t.id,
+      title: t.title,
+      archived: !!t.archivedAt,
+    }));
   },
 };

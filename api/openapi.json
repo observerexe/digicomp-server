@@ -2953,7 +2953,105 @@
             }
           }
         },
-        "summary": "Board: all tasks, filter by status or `mine=true`.",
+        "summary": "Board: tasks not in the archive, filter by status or `mine=true`.",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/api/tasks/archive": {
+      "get": {
+        "operationId": "TasksController_listArchive",
+        "parameters": [
+          {
+            "name": "field",
+            "required": false,
+            "in": "query",
+            "description": "`key:item` of a choice field (enum or list<enum>), e.g. `type:dyzain`;\nmay repeat — all must match (the first 10).",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[a-z0-9_]{1,60}:[a-z0-9_]{1,60}$"
+              }
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Part of the title.",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "name": "year",
+            "required": false,
+            "in": "query",
+            "description": "Year of acceptance.",
+            "schema": {
+              "pattern": "^\\d{4}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "From 1.",
+            "schema": {
+              "maxLength": 5,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "1–100, default 30.",
+            "schema": {
+              "maxLength": 3,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskArchiveDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The archive: search, year of acceptance, choice fields, pages.",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/api/tasks/archive-done": {
+      "post": {
+        "operationId": "TasksController_archiveDone",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchivedCountDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "«Усі виконані — в архів»: how many went.",
         "tags": [
           "Tasks"
         ]
@@ -3026,6 +3124,67 @@
           }
         },
         "summary": "Only a free task without assignees and without a document (one with a\ndocument is cancelled with it). Tasks are created and changed through\ndocuments of the editor.",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/api/tasks/{id}/archive": {
+      "post": {
+        "operationId": "TasksController_archive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Only a done task.",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/api/tasks/{id}/unarchive": {
+      "post": {
+        "operationId": "TasksController_unarchive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDto"
+                }
+              }
+            }
+          }
+        },
         "tags": [
           "Tasks"
         ]
@@ -9007,6 +9166,17 @@
             "nullable": true,
             "description": "Who accepted it."
           },
+          "archivedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "In the archive since; null — on the board."
+          },
+          "archivedById": {
+            "type": "string",
+            "nullable": true,
+            "description": "Who moved it to the archive; null — the server (or not archived)."
+          },
           "assignees": {
             "description": "In the order of taking.",
             "type": "array",
@@ -9056,6 +9226,8 @@
           "submittedAt",
           "completedAt",
           "acceptedById",
+          "archivedAt",
+          "archivedById",
           "assignees",
           "paper",
           "id",
@@ -9065,6 +9237,51 @@
           "createdById",
           "createdAt",
           "updatedAt"
+        ]
+      },
+      "TaskArchiveDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskDto"
+            }
+          },
+          "years": {
+            "description": "Years of acceptance among archived tasks, newest first.",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "years",
+          "total",
+          "page",
+          "limit"
+        ]
+      },
+      "ArchivedCountDto": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "count"
         ]
       },
       "TaskCommentKind": {
@@ -9181,6 +9398,17 @@
             "nullable": true,
             "description": "Who accepted it."
           },
+          "archivedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "In the archive since; null — on the board."
+          },
+          "archivedById": {
+            "type": "string",
+            "nullable": true,
+            "description": "Who moved it to the archive; null — the server (or not archived)."
+          },
           "assignees": {
             "description": "In the order of taking.",
             "type": "array",
@@ -9244,6 +9472,8 @@
           "submittedAt",
           "completedAt",
           "acceptedById",
+          "archivedAt",
+          "archivedById",
           "assignees",
           "paper",
           "comments",

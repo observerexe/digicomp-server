@@ -32,6 +32,15 @@
   gap: 8px;
   margin-bottom: 16px;
 }
+/* «Архів»: cards in a grid, «Показати ще» under them */
+.archiveList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+.more {
+  margin-top: 12px;
+}
 /* Card */
 .card {
   display: flex;

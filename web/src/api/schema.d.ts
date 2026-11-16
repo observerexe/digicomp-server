@@ -1058,10 +1058,44 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Board: all tasks, filter by status or `mine=true`. */
+        /** Board: tasks not in the archive, filter by status or `mine=true`. */
         get: operations["TasksController_list"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The archive: search, year of acceptance, choice fields, pages. */
+        get: operations["TasksController_listArchive"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/archive-done": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** «Усі виконані — в архів»: how many went. */
+        post: operations["TasksController_archiveDone"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1100,6 +1134,39 @@ export interface paths {
          *     documents of the editor.
          */
         post: operations["TasksController_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Only a done task. */
+        post: operations["TasksController_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{id}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["TasksController_unarchive"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3090,6 +3157,13 @@ export interface components {
             completedAt: string | null;
             /** @description Who accepted it. */
             acceptedById: string | null;
+            /**
+             * Format: date-time
+             * @description In the archive since; null — on the board.
+             */
+            archivedAt: string | null;
+            /** @description Who moved it to the archive; null — the server (or not archived). */
+            archivedById: string | null;
             /** @description In the order of taking. */
             assignees: components["schemas"]["TaskAssigneeDto"][];
             /** @description null — an old task made before documents (no document yet). */
@@ -3103,6 +3177,17 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+        };
+        TaskArchiveDto: {
+            items: components["schemas"]["TaskDto"][];
+            /** @description Years of acceptance among archived tasks, newest first. */
+            years: number[];
+            total: number;
+            page: number;
+            limit: number;
+        };
+        ArchivedCountDto: {
+            count: number;
         };
         /**
          * @description `return` — written by a moderator when sending the task back.
@@ -3148,6 +3233,13 @@ export interface components {
             completedAt: string | null;
             /** @description Who accepted it. */
             acceptedById: string | null;
+            /**
+             * Format: date-time
+             * @description In the archive since; null — on the board.
+             */
+            archivedAt: string | null;
+            /** @description Who moved it to the archive; null — the server (or not archived). */
+            archivedById: string | null;
             /** @description In the order of taking. */
             assignees: components["schemas"]["TaskAssigneeDto"][];
             /** @description null — an old task made before documents (no document yet). */
@@ -5763,6 +5855,58 @@ export interface operations {
             };
         };
     };
+    TasksController_listArchive: {
+        parameters: {
+            query?: {
+                /**
+                 * @description `key:item` of a choice field (enum or list<enum>), e.g. `type:dyzain`;
+                 *     may repeat — all must match (the first 10).
+                 */
+                field?: string[];
+                /** @description Part of the title. */
+                search?: string;
+                /** @description Year of acceptance. */
+                year?: string;
+                /** @description From 1. */
+                page?: string;
+                /** @description 1–100, default 30. */
+                limit?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskArchiveDto"];
+                };
+            };
+        };
+    };
+    TasksController_archiveDone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArchivedCountDto"];
+                };
+            };
+        };
+    };
     TasksController_get: {
         parameters: {
             query?: never;
@@ -5805,6 +5949,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    TasksController_archive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDto"];
+                };
+            };
+        };
+    };
+    TasksController_unarchive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDto"];
                 };
             };
         };

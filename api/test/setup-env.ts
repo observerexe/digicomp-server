@@ -29,4 +29,5 @@ process.env.JWT_SECRET ??= 'e2e-test-secret-not-for-production';
 process.env.STORAGE_DIR ??= join(__dirname, '..', '.e2e-files');
 delete process.env.HA_TOKEN;
 process.env.SESSION_AUTO_CLOSE_DISABLED = 'true';
+process.env.TASK_AUTO_ARCHIVE_DISABLED = 'true';
 process.env.TOTP_KEY ??= Buffer.alloc(32, 7).toString('base64');

@@ -46,7 +46,8 @@ export function TaskCard(props: {
   const { task: t, me } = props;
   const { can } = useAuth();
   const [comment, setComment] = useState('');
-  const actions = actionsFor(t, me, can).filter((a) => a !== 'leave');
+  // «Відмовитися» and «Повернути з архіву» — on the task's page only.
+  const actions = actionsFor(t, me, can).filter((a) => a !== 'leave' && a !== 'unarchive');
   const due = dueState(t);
   const empty = t.status === 'todo' ? Math.max(0, Math.min(MAX_FACES, t.maxAssignees) - t.assignees.length) : 0;
 
@@ -73,7 +74,11 @@ export function TaskCard(props: {
         <span className={s.points}>
           {t.points} {plural(t.points, ['бал', 'бали', 'балів'])}
         </span>
-        <span className={`${s.due} ${s[`due_${due.tone}`] ?? ''}`}>{due.label}</span>
+        {t.archivedAt && t.completedAt ? (
+          <span className={s.due}>прийнято {formatDate(t.completedAt)}</span>
+        ) : (
+          <span className={`${s.due} ${s[`due_${due.tone}`] ?? ''}`}>{due.label}</span>
+        )}
         {props.stripe && <DictChip title={props.stripe.title} color={props.stripe.color} />}
       </div>
       <div className={s.people}>
@@ -104,7 +109,7 @@ export function TaskCard(props: {
               <button
                 key={k}
                 type="button"
-                className={k === 'accept' || k === 'take' ? 'btn btn-primary' : 'btn'}
+                className={k === 'accept' || k === 'take' ? 'btn btn-primary' : k === 'archive' ? 'btn btn-ghost' : 'btn'}
                 disabled={props.busy}
                 onClick={() => props.onAction(k)}
               >

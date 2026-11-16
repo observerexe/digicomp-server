@@ -129,6 +129,8 @@ export const AUDIT_ACTION: Record<string, string> = {
   'task.submitted': 'Здав технічне завдання на перевірку',
   'task.returned': 'Повернув технічне завдання на допрацювання',
   'task.accepted': 'Прийняв технічне завдання',
+  'task.archived': 'Переніс технічне завдання в архів',
+  'task.unarchived': 'Повернув технічне завдання з архіву',
   'task.file_added': 'Додав файл до технічного завдання',
   'task.file_removed': 'Видалив файл технічного завдання',
   'project.created': 'Створив проєкт',

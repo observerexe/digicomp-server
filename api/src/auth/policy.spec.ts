@@ -345,6 +345,11 @@ const ROWS: Record<string, Case[]> = {
     ['moderator', mod, Action.TasksManage, undefined, true],
     ['member', member, Action.TasksManage, undefined, Deny.Forbidden],
   ],
+  'ТЗ в архів і з архіву': [
+    ['admin', admin, Action.TasksArchive, undefined, true],
+    ['moderator', mod, Action.TasksArchive, undefined, true],
+    ['member', member, Action.TasksArchive, undefined, Deny.Forbidden],
+  ],
   'Прийняти ТЗ (нарахування балів)': [
     ['admin: своє', admin, Action.TasksAccept, { participant: true }, true],
     ['moderator: чуже', mod, Action.TasksAccept, { participant: false }, true],

@@ -1,6 +1,8 @@
 import { ApiBody, ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
 import { OkDto } from '../common/responses.dto';
 import {
+  ArchivedCountDto,
+  TaskArchiveDto,
   TaskCommentDto,
   TaskDetailDto,
   TaskDto,
@@ -29,7 +31,13 @@ import { Action } from '../auth/policy';
 import { Can, JwtAuthGuard, PolicyGuard } from '../auth/roles';
 import { contentDisposition } from '../files/content-disposition';
 import type { UploadedFileLike } from '../files/file-validation';
-import { CancelTaskDto, CommentDto, ListTasksQuery, TakeTaskDto } from './dto';
+import {
+  CancelTaskDto,
+  CommentDto,
+  ListArchiveQuery,
+  ListTasksQuery,
+  TakeTaskDto,
+} from './dto';
 import { TasksService } from './tasks.service';
 
 type Req = { user: { id: string; role: string } };
@@ -39,12 +47,29 @@ type Req = { user: { id: string; role: string } };
 export class TasksController {
   constructor(private tasks: TasksService) {}
 
-  /** Board: all tasks, filter by status or `mine=true`. */
+  /** Board: tasks not in the archive, filter by status or `mine=true`. */
   @Can(Action.TasksRead)
   @ApiOkResponse({ type: [TaskDto] })
   @Get()
   list(@Query() q: ListTasksQuery, @Req() req: Req) {
     return this.tasks.list(q, req.user);
+  }
+
+  /** The archive: search, year of acceptance, choice fields, pages. */
+  @Can(Action.TasksRead)
+  @ApiOkResponse({ type: TaskArchiveDto })
+  @Get('archive')
+  listArchive(@Query() q: ListArchiveQuery) {
+    return this.tasks.listArchive(q);
+  }
+
+  /** «Усі виконані — в архів»: how many went. */
+  @Can(Action.TasksArchive)
+  @ApiOkResponse({ type: ArchivedCountDto })
+  @Post('archive-done')
+  @HttpCode(200)
+  archiveDone(@Req() req: Req) {
+    return this.tasks.archiveDone(req.user);
   }
 
   /** Task with assignees, comments and files. */
@@ -70,6 +95,23 @@ export class TasksController {
     @Req() req: Req,
   ) {
     return this.tasks.cancel(id, dto, req.user);
+  }
+
+  /** Only a done task. */
+  @Can(Action.TasksArchive)
+  @ApiOkResponse({ type: TaskDto })
+  @Post(':id/archive')
+  @HttpCode(200)
+  archive(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
+    return this.tasks.archive(id, req.user);
+  }
+
+  @Can(Action.TasksArchive)
+  @ApiOkResponse({ type: TaskDto })
+  @Post(':id/unarchive')
+  @HttpCode(200)
+  unarchive(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
+    return this.tasks.unarchive(id, req.user);
   }
 
   @Can(Action.TasksTake)

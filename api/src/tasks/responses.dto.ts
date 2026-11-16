@@ -45,6 +45,14 @@ export class TaskDto {
   @ApiProperty({ type: String, nullable: true })
   acceptedById: string | null;
 
+  /** In the archive since; null — on the board. */
+  @ApiProperty({ type: Date, nullable: true })
+  archivedAt: Date | null;
+
+  /** Who moved it to the archive; null — the server (or not archived). */
+  @ApiProperty({ type: String, nullable: true })
+  archivedById: string | null;
+
   /** In the order of taking. */
   @ApiProperty({ type: [TaskAssigneeDto] })
   assignees: TaskAssigneeDto[];
@@ -52,6 +60,23 @@ export class TaskDto {
   /** null — an old task made before documents (no document yet). */
   @ApiProperty({ type: RecordPaperDto, nullable: true })
   paper: RecordPaperDto | null;
+}
+
+export class ArchivedCountDto {
+  count: number;
+}
+
+export class TaskArchiveDto {
+  @ApiProperty({ type: [TaskDto] })
+  items: TaskDto[];
+
+  total: number;
+  page: number;
+  limit: number;
+
+  /** Years of acceptance among archived tasks, newest first. */
+  @ApiProperty({ type: [Number] })
+  years: number[];
 }
 
 export class TaskCommentDto {
