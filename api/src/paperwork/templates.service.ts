@@ -15,6 +15,7 @@ import { RecordFieldsService } from '../records/record-fields.service';
 import type { RecordType } from '../records/field-types';
 import type { PublishedSchema } from '../records/records.registry';
 import { PaperAdapterRegistry } from './adapters';
+import { PaperTableRegistry } from './tables';
 import { EMPTY_CONTENT } from './content';
 import { fieldView, PaperFieldErrors, resolveFields } from './paper-fields';
 import { fillableType } from './paper-refs';
@@ -31,6 +32,7 @@ import {
   reportProblem,
   reportRecordKey,
   rowColumns,
+  tableProblem,
   type FieldProblem,
   type TemplateField,
 } from './template-fields';
@@ -167,12 +169,19 @@ export class TemplatesService {
     private recordFields: RecordFieldsService,
     private links: LinkRegistry,
     private adapters: PaperAdapterRegistry,
+    private tables: PaperTableRegistry,
   ) {}
 
   targets(): TemplateTargetsDto {
     return {
       creates: this.adapters.registered(),
       report: this.adapters.readable(),
+      tables: this.tables.entries().map(([key, s]) => ({
+        key,
+        label: s.label,
+        input: s.input,
+        columns: s.columns,
+      })),
     };
   }
 
@@ -440,6 +449,7 @@ export class TemplatesService {
           rowColumns(v.body),
         ) ??
         bodyProblem(v.body, v.fields) ??
+        tableProblem(v.body, v.fields, this.tables.inputs()) ??
         conditionProblem(
           v.body,
           await resolveFields(m, t.kind, v.fields, schema, v.body),
@@ -580,6 +590,10 @@ export class TemplatesService {
     v: PaperTemplateVersion,
     schemas: Schemas,
   ) {
+    // A source of its auto tables is gone (or takes another field now).
+    if (tableProblem(v.body, v.fields, this.tables.inputs()) !== null) {
+      return true;
+    }
     if (t.kind === TemplateKind.Free) return false;
     // A report published before reports named their record: it names none.
     if (

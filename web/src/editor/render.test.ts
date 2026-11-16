@@ -136,6 +136,7 @@ const CASES: [string, PaperContent][] = [
       ],
     }),
   ],
+  ['авто-таблиця', doc(p([text('Журнал')]), { type: 'autoTable', attrs: { source: 'place_sessions', field: 'place' } })],
 ];
 
 describe('Рендер друку = HTML редактора', () => {

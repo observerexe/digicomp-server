@@ -37,6 +37,7 @@ const paper = (over: Partial<Paper> = {}): Paper => ({
   canSign: false,
   snapshot: null,
   snapshots: [],
+  tables: {},
   ...over,
 });
 

@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 import { api, ApiError, unwrap } from '../../api/client';
 import type { Fault, FaultStatus, Place, PlaceStatus } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
+import { NewReport } from '../../components/NewReport';
 import { Card, ErrorMessage, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { formatDate } from '../../lib/format';
@@ -71,11 +72,14 @@ export function FaultsSection({ place }: { place: Place }) {
               </ul>
             )}
             {lastClosed && (
-              <p className="hint">
-                Остання закрита — «{lastClosed.description}», {lastClosed.closedAt && formatDate(lastClosed.closedAt)}
-                {lastClosed.closedBy?.name && `, ${lastClosed.closedBy.name}`}
-                {lastClosed.resolution && `: «${lastClosed.resolution}»`}.
-              </p>
+              <div className={s.actions}>
+                <p className="hint">
+                  Остання закрита — «{lastClosed.description}», {lastClosed.closedAt && formatDate(lastClosed.closedAt)}
+                  {lastClosed.closedBy?.name && `, ${lastClosed.closedBy.name}`}
+                  {lastClosed.resolution && `: «${lastClosed.resolution}»`}.
+                </p>
+                <NewReport type="fault" id={lastClosed.id} label="Скласти акт" />
+              </div>
             )}
           </>
         )}
@@ -242,21 +246,24 @@ export function FaultRow({ fault, placeStatus, showPlace = false }: { fault: Fau
           ))}
         </span>
       )}
-      {staff && !closing && (
+      {!closing && (
         <span className={s.actions}>
-          {fault.status === 'open' && (
+          {staff && fault.status === 'open' && (
             <button type="button" className="btn" disabled={act.isPending} onClick={() => act.mutate('progress')}>
               В роботі
             </button>
           )}
-          {placeStatus === 'active' && (
+          {staff && placeStatus === 'active' && (
             <button type="button" className="btn" disabled={act.isPending} onClick={() => act.mutate('maintenance')}>
               На обслуговування
             </button>
           )}
-          <button type="button" className="btn btn-ghost" onClick={() => setClosing(true)}>
-            Закрити
-          </button>
+          {staff && (
+            <button type="button" className="btn btn-ghost" onClick={() => setClosing(true)}>
+              Закрити
+            </button>
+          )}
+          <NewReport type="fault" id={fault.id} label="Скласти акт" />
         </span>
       )}
       {closing && (

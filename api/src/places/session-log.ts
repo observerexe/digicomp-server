@@ -47,7 +47,7 @@ export function formatDuration(minutes: number | null) {
   return `${h}:${String(m).padStart(2, '0')}`;
 }
 
-function remark(r: LogRow) {
+export function remark(r: LogRow) {
   if (!r.endedAt) return 'триває';
   if (r.autoClosed) return 'закрито автоматично';
   if (r.endedByOther) {

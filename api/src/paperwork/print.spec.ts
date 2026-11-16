@@ -383,6 +383,86 @@ describe('Блоки структури', () => {
   });
 });
 
+describe('Авто-таблиця', () => {
+  const table = {
+    type: 'autoTable',
+    attrs: { source: 'place_sessions', field: 'place' },
+  };
+  const withTable = (
+    t: ReturnType<NonNullable<FieldFill['table']>>,
+  ): FieldFill => ({
+    ...fill(),
+    table: (source, key) =>
+      source === 'place_sessions' && key === 'place' ? t : null,
+  });
+
+  it('у спільному описі — лише на верхньому рівні, з джерелом і полем', () => {
+    expect(checkContent(doc(table))).toBe(true);
+    expect(
+      checkContent(
+        doc({ type: 'autoTable', attrs: { source: 'place_sessions' } }),
+      ),
+    ).toBe(false);
+    expect(
+      checkContent(
+        doc({
+          type: 'autoTable',
+          attrs: { source: 'Bad key', field: 'place' },
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      checkContent(
+        doc({
+          type: 'conditional',
+          attrs: { field: 'k', value: 'a' },
+          content: [table],
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('у HTML редактора — лише елемент із джерелом і полем', () => {
+    expect(renderContent(doc(table))).toBe(
+      '<div class="paper-table" data-source="place_sessions" data-field="place"></div>',
+    );
+  });
+
+  it('у друці: підпис, заголовок зі стовпців, рядки (екрановано), «і ще N» — над ними', () => {
+    const html = renderContent(
+      doc(table),
+      withTable({
+        columns: ['Учасник', 'Початок'],
+        caption: 'Листопад 2026',
+        rows: [['<Олена>', '01.11.2026 10:00']],
+        more: 3,
+      }),
+    );
+    expect(html).toBe(
+      '<div class="paper-table"><p class="paper-table-caption">Листопад 2026</p><table><tbody>' +
+        '<tr><th>Учасник</th><th>Початок</th></tr>' +
+        '<tr><td colspan="2" class="paper-table-more">… і ще 3 раніші рядки</td></tr>' +
+        '<tr><td>&lt;Олена&gt;</td><td>01.11.2026 10:00</td></tr></tbody></table></div>',
+    );
+  });
+
+  it('поле ще порожнє — один порожній рядок; записів немає — «Записів немає»; без даних — нічого', () => {
+    const empty = renderContent(
+      doc(table),
+      withTable({ columns: ['А', 'Б'], caption: null, rows: null, more: 0 }),
+    );
+    expect(empty).toContain('<tr><td></td><td></td></tr>');
+    const none = renderContent(
+      doc(table),
+      withTable({ columns: ['А', 'Б'], caption: null, rows: [], more: 0 }),
+    );
+    expect(none).toContain(
+      '<td colspan="2" class="paper-table-none">Записів немає</td>',
+    );
+    expect(renderContent(doc(table), fill())).toBe('');
+  });
+});
+
 describe('Кольори й шрифт аркуша = docs/design/tokens.json', () => {
   type Tokens = {
     color: { light: { surface: string; text: string } };

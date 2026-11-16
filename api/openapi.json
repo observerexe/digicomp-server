@@ -6724,6 +6724,36 @@
           "updatedAt"
         ]
       },
+      "TableSourceDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "`autoTable.source` in a template body."
+          },
+          "label": {
+            "type": "string",
+            "description": "In the constructor: «Журнал сеансів»."
+          },
+          "input": {
+            "type": "string",
+            "description": "The type of the field it takes its rows for (`ref:place`, `date`)."
+          },
+          "columns": {
+            "description": "Header of the table.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "input",
+          "columns"
+        ]
+      },
       "TemplateTargetsDto": {
         "type": "object",
         "properties": {
@@ -6740,11 +6770,19 @@
             "items": {
               "$ref": "#/components/schemas/RecordType"
             }
+          },
+          "tables": {
+            "description": "Sources of «Авто-таблиця» (modules registered them), sorted by key.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TableSourceDto"
+            }
           }
         },
         "required": [
           "creates",
-          "report"
+          "report",
+          "tables"
         ]
       },
       "CreateTemplateDto": {
@@ -7584,6 +7622,44 @@
           }
         }
       },
+      "AutoTableDto": {
+        "type": "object",
+        "properties": {
+          "caption": {
+            "type": "string",
+            "nullable": true,
+            "description": "Above the table («Листопад 2026»); null — none."
+          },
+          "rows": {
+            "type": "array",
+            "nullable": true,
+            "description": "Text cells, oldest row first; null — its field is empty yet.",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "columns": {
+            "description": "Header: the source's columns.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "more": {
+            "type": "number",
+            "description": "Rows left out over the limit (the oldest): «… і ще N»."
+          }
+        },
+        "required": [
+          "caption",
+          "rows",
+          "columns",
+          "more"
+        ]
+      },
       "PaperRefDto": {
         "type": "object",
         "properties": {
@@ -7749,6 +7825,13 @@
               "$ref": "#/components/schemas/PaperRefDto"
             }
           },
+          "tables": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AutoTableDto"
+            },
+            "description": "«Авто-таблиця» by `<source>:<field>`: live (as the reader may see the\nrows) until frozen; from then — as frozen (as staff saw them)."
+          },
           "targetType": {
             "nullable": true,
             "description": "The record the document created; it stays when the record is gone (cancelled).",
@@ -7839,6 +7922,7 @@
           "values",
           "template",
           "refs",
+          "tables",
           "targetType",
           "targetId",
           "cancelReason",

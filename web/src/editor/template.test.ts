@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { RecordSchema } from '../api/types';
 import { fieldBlockOf, type FieldBlock } from './blocks';
 import { paperExtensions } from './extensions';
-import { bindingOptions, defsOf, recordRowsOf, fieldsOf, fieldTag, keyProblem, keysOf, limitsText, newField, newKey, withType, type FieldDef } from './template';
+import { bindingOptions, defsOf, recordRowsOf, fieldsOf, fieldTag, keyProblem, keysOf, limitsText, newField, newKey, tableField, withType, type FieldDef } from './template';
 
 const NO_ROWS = new Map<string, string>();
 const block = (type: string) => fieldBlockOf(type) as FieldBlock;
@@ -118,5 +118,37 @@ describe('Поля шаблону в конструкторі', () => {
     expect(limitsText(field({ min: 5 }))).toBe('від 5');
     expect(limitsText(field({ type: 'list<ref:user>', maxItems: 3 }))).toBe('до 3 шт.');
     expect(limitsText(field({}))).toBeNull();
+  });
+});
+
+describe('Поле авто-таблиці', () => {
+  const def = (over: Partial<FieldDef> & Pick<FieldDef, 'key' | 'type'>): FieldDef => ({
+    label: over.key,
+    required: false,
+    fill: 'author',
+    editable: false,
+    print: true,
+    binding: null,
+    min: null,
+    max: null,
+    maxLength: null,
+    maxItems: null,
+    dictionary: null,
+    ...over,
+  });
+
+  it('бере поле цього типу на аркуші, яке заповнене до публікації (обов’язкове чи прив’язане), не стовпець', () => {
+    const loose = def({ key: 'a', type: 'ref:place' });
+    const column = def({ key: 'b', type: 'ref:place', required: true });
+    const record = def({ key: 'place', type: 'ref:place', required: true });
+    expect(tableField('ref:place', [loose, column, record], new Map([['b', 'rows']]), new Set())).toBe(record);
+    const bound = def({ key: 'eq', type: 'ref:place', binding: 'placeId' });
+    expect(tableField('ref:place', [bound], new Map(), new Set())).toBe(bound);
+  });
+
+  it('немає такого — нове обов’язкове поле з назвою блоку', () => {
+    expect(tableField('date', [], new Map(), new Set(['date1']))).toMatchObject({ key: 'date2', label: 'Дата 2', type: 'date', required: true, binding: null });
+    expect(tableField('ref:place', [], new Map(), new Set())).toMatchObject({ key: 'place1', label: 'Обладнання', type: 'ref:place', required: true });
+    expect(tableField('ref:session', [], new Map(), new Set())).toBeNull();
   });
 });

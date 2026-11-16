@@ -4,7 +4,9 @@ import { Link } from 'react-router';
 import { api, unwrap } from '../api/client';
 import type { LinkCandidate, RecordLink, RecordType } from '../api/types';
 import { errorOf } from '../errors/messages';
+import { templateChoices, useTemplates } from '../lib/paperTemplates';
 import { recordHref, recordLabel, useCandidates, useSettled } from '../lib/records';
+import { NewReport } from './NewReport';
 import { SearchField } from './Filters';
 import { Card, ErrorMessage, Skeleton } from './ui';
 import s from './Related.module.css';
@@ -26,7 +28,8 @@ export const linksKey = (type: RecordType, id: string) => ['links', type, id] as
 
 /**
  * «Пов'язане»: records linked with this one, grouped by type. Whoever edits
- * the record links it to others and removes its links.
+ * the record links it to others and removes its links; «Новий документ» —
+ * a report about it (its templates the reader may make documents from).
  */
 export function Related({ type, id }: { type: RecordType; id: string }) {
   const qc = useQueryClient();
@@ -50,6 +53,7 @@ export function Related({ type, id }: { type: RecordType; id: string }) {
     mutationFn: (linkId: string) => unwrap(api.DELETE('/api/links/{id}', { params: { path: { id: linkId } } })),
     onSuccess: refresh,
   });
+  const reports = templateChoices(useTemplates().data, { report: type });
 
   if (q.isPending) return null;
   if (q.isError) {
@@ -61,7 +65,7 @@ export function Related({ type, id }: { type: RecordType; id: string }) {
     );
   }
   const { canLink, items } = q.data;
-  if (!items.length && !canLink) return null;
+  if (!items.length && !canLink && !reports.length) return null;
   const groups = GROUPS.map((g) => ({
     ...g,
     items: items.filter((l) => g.types.includes(l.type)),
@@ -71,11 +75,14 @@ export function Related({ type, id }: { type: RecordType; id: string }) {
     <Card>
       <div className={s.head}>
         <h2 className={s.caption}>Пов’язане</h2>
-        {canLink && !adding && (
-          <button type="button" className="btn btn-ghost" onClick={() => setAdding(true)}>
-            Пов’язати
-          </button>
-        )}
+        <span className={s.headActions}>
+          <NewReport type={type} id={id} />
+          {canLink && !adding && (
+            <button type="button" className="btn btn-ghost" onClick={() => setAdding(true)}>
+              Пов’язати
+            </button>
+          )}
+        </span>
       </div>
       {items.length === 0 && !adding && <p className="hint">Ще нічого не пов’язано.</p>}
       {groups.map((g) => (

@@ -219,6 +219,38 @@ describe('Конструктор шаблону', () => {
     expect(last.fields).toEqual([]);
   });
 
+  it('авто-таблиця з «Авто»: на аркуші — стовпці джерела й мітка; нове обов’язкове поле його типу; «Звідки» й підпис поля', async () => {
+    let rev = 1;
+    const targets = {
+      creates: ['task'],
+      report: ['task', 'place'],
+      tables: [{ key: 'points_month', label: 'Рейтинг за місяць', input: 'date', columns: ['Місце', 'Учасник', 'Бали'] }],
+    };
+    const { calls } = mockApi(
+      builder(version(), template(), {
+        'GET /api/papers/templates/targets': () => json(200, targets),
+        'PATCH /api/papers/templates/t1/versions/1': () => saved(++rev),
+      }),
+    );
+    renderApp('/editor/templates/t1');
+    const sheet = await screen.findByLabelText('Аркуш шаблону');
+    const palette = within(screen.getByRole('complementary', { name: 'Конструктор' })).getByRole('tabpanel');
+    await userEvent.click(await within(within(palette).getByRole('region', { name: 'Авто' })).findByRole('button', { name: 'Рейтинг за місяць' }));
+    await waitFor(() => expect(sheet.querySelector('.paper-table')).toHaveTextContent('МісцеУчасникБали'));
+    expect(sheet.querySelector('.paper-block.is-auto')).toHaveAttribute('data-label', 'Авто: рейтинг за місяць · Дата');
+    // Placed — selected, its properties open: where from, the field's label.
+    expect(screen.getByRole('tab', { name: 'Властивості' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByLabelText('Звідки')).toHaveDisplayValue('Поле «Дата»');
+    const label = screen.getByLabelText('Підпис у формі');
+    await userEvent.clear(label);
+    await userEvent.type(label, 'Місяць');
+    await waitFor(() => expect(sheet.querySelector('.paper-block.is-auto')).toHaveAttribute('data-label', 'Авто: рейтинг за місяць · Місяць'));
+    await waitFor(() => expect(JSON.parse(calls.filter((c) => c.method === 'PATCH').at(-1)?.body ?? '{}').fields?.[0]?.label).toBe('Місяць'), { timeout: 4000 });
+    const all = calls.filter((c) => c.method === 'PATCH').map((c) => JSON.parse(c.body) as { body?: unknown; fields?: { key: string; type: string; required: boolean }[] });
+    expect(JSON.stringify(all.filter((c) => c.body).at(-1)!.body)).toContain('{"type":"autoTable","attrs":{"source":"points_month","field":"date1"}}');
+    expect(all.at(-1)!.fields).toMatchObject([{ key: 'date1', type: 'date', required: true }]);
+  });
+
   it('зв’язок із записом: поля запису того самого типу; прив’язка бере назву й обов’язковість поля запису', async () => {
     const v = version({
       body: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'field', attrs: { key: 'number1' } }] }] },

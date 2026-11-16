@@ -7,7 +7,7 @@
  * attributes as format classes or checked numbers, escaped text.
  */
 import { conditionOf, RECORD_MISSING, repeatParts } from './fields';
-import { formatClass, MARKS, NODES, SIGNER_AUTHOR, SIGNER_ORG, type PaperAttrs, type PaperMark, type PaperNode } from './index';
+import { formatClass, MARKS, NODES, SIGNER_AUTHOR, SIGNER_ORG, tableKey, type AutoTableData, type PaperAttrs, type PaperMark, type PaperNode } from './index';
 
 const TEXT_ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\u00a0': '&nbsp;' };
 
@@ -79,6 +79,8 @@ export type FieldFill = {
   rows?(key: string): FieldFill[];
   /** A fill of a row: its number for «№ рядка» (from 1); none — not a row, or one to fill in by hand. */
   row?: number | null;
+  /** «Авто-таблиця» of `source` for the field `field` (see tableKey); none — nothing to print. */
+  table?(source: string, field: string): AutoTableData | null;
   info: PaperInfo;
 };
 
@@ -372,8 +374,62 @@ function renderRepeat(n: PaperNode, fill: FieldFill | undefined): string {
   return `<div class="paper-rows"><table><tbody>${header.map((r) => renderNode(r, fill)).join('')}${body}</tbody></table></div>`;
 }
 
+/** Words for «і ще N»: «рядок», «рядки», «рядків». */
+function rowWord(n: number): string {
+  const d = n % 10;
+  const dd = n % 100;
+  if (d === 1 && dd !== 11) return 'раніший рядок';
+  if (d >= 2 && d <= 4 && (dd < 12 || dd > 14)) return 'раніші рядки';
+  return 'раніших рядків';
+}
+
+/**
+ * What an auto table holds (the editor draws the same inside its own
+ * element): the caption, the source's columns, then its rows — none yet
+ * (its field is empty): one empty row; none at all: «Записів немає».
+ */
+export function autoTableInner(t: AutoTableData): string {
+  const cols = t.columns.length || 1;
+  const wide = (cls: string, text: string) => `<tr><td colspan="${cols}" class="${cls}">${escapeText(text)}</td></tr>`;
+  const head = `<tr>${t.columns.map((c) => `<th>${escapeText(c)}</th>`).join('')}</tr>`;
+  const more = t.more > 0 ? wide('paper-table-more', `… і ще ${t.more} ${rowWord(t.more)}`) : '';
+  const rows =
+    t.rows === null
+      ? `<tr>${t.columns.map(() => '<td></td>').join('')}</tr>`
+      : t.rows.length === 0
+        ? wide('paper-table-none', 'Записів немає')
+        : t.rows.map((r) => `<tr>${t.columns.map((_, i) => `<td>${escapeText(r[i] ?? '')}</td>`).join('')}</tr>`).join('');
+  const caption = t.caption ? p('paper-table-caption', escapeText(t.caption)) : '';
+  return `${caption}<table><tbody>${head}${more}${rows}</tbody></table>`;
+}
+
+/** «Авто-таблиця»: in the editor's HTML — its element with the source and the field; in the print — the table (see autoTableInner). */
+function renderAutoTable(n: PaperNode, fill: FieldFill | undefined): string {
+  // Source and field match TABLE_SOURCE_KEY and FIELD_KEY: nothing to escape.
+  const source = nodeAttr(n, 'source') as string | null;
+  const field = nodeAttr(n, 'field') as string | null;
+  if (!fill)
+    return (
+      tag('div', [
+        ['class', 'paper-table'],
+        ['data-source', source],
+        ['data-field', field],
+      ]) + '</div>'
+    );
+  const t = source && field ? (fill.table?.(source, field) ?? null) : null;
+  return t ? `<div class="paper-table">${autoTableInner(t)}</div>` : '';
+}
+
+/** The data of an auto table in `tables` (see tableKey); null — none. */
+export function tableOf(tables: Record<string, AutoTableData>, n: PaperNode): AutoTableData | null {
+  const source = nodeAttr(n, 'source') as string | null;
+  const field = nodeAttr(n, 'field') as string | null;
+  return (source && field && tables[tableKey(source, field)]) || null;
+}
+
 function renderNode(n: PaperNode, fill: FieldFill | undefined): string {
   if (n.type === 'pageBreak') return '<div class="page-break"></div>';
+  if (n.type === 'autoTable') return renderAutoTable(n, fill);
   if (n.type === 'conditional') return renderConditional(n, fill);
   if (n.type === 'repeat') return renderRepeat(n, fill);
   if (STRUCTURE_CLASS[n.type]) return renderStructure(n, fill);

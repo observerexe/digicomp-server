@@ -258,15 +258,29 @@ export class PointsService {
    * out, so a fine revoked next month does not add points to that month.
    */
   leaderboard(q: LeaderboardQuery = {}): Promise<LeaderboardRowDto[]> {
-    const month = q.period === 'month';
-    return this.ds.query<LeaderboardRowDto[]>(
-      `WITH effective AS (
+    return this.ranking(q.period === 'month' ? null : undefined);
+  }
+
+  /**
+   * The ranking for the month (Europe/Kyiv) of a day (`2026-11-15`; null —
+   * the current month), or for all time (undefined).
+   */
+  ranking(
+    day: string | null | undefined,
+    m: EntityManager = this.ds.manager,
+  ): Promise<LeaderboardRowDto[]> {
+    return m.query<LeaderboardRowDto[]>(
+      `WITH month AS (
+         SELECT date_trunc('month', COALESCE($3::date, (now() AT TIME ZONE $2)::date)::timestamp) AS f
+       ),
+       effective AS (
          SELECT p.user_id, p.amount
-         FROM points_ledger p
+         FROM points_ledger p, month
          WHERE p.reverses_id IS NULL
            AND NOT EXISTS (SELECT 1 FROM points_ledger r WHERE r.reverses_id = p.id)
            AND ($1::boolean = false
-                OR p.created_at::timestamptz >= date_trunc('month', now(), $2))
+                OR (p.created_at::timestamptz >= month.f AT TIME ZONE $2
+                    AND p.created_at::timestamptz < (month.f + interval '1 month') AT TIME ZONE $2))
        )
        SELECT u.id, u.name, u.avatar_url AS "avatarUrl", u.position,
               COALESCE(SUM(e.amount), 0)::int AS total,
@@ -276,7 +290,7 @@ export class PointsService {
        WHERE u.active
        GROUP BY u.id
        ORDER BY total DESC, u.name ASC`,
-      [month, POINTS_TIMEZONE],
+      [day !== undefined, POINTS_TIMEZONE, day ?? null],
     );
   }
 

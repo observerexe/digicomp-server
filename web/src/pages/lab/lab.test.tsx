@@ -334,6 +334,30 @@ describe('Несправності', () => {
     await waitFor(() => expect(calls.some((c) => c.path === '/api/faults/f1/maintenance')).toBe(true));
   });
 
+  it('«Скласти акт»: звіт про несправність — і біля відкритої, і біля останньої закритої', async () => {
+    const fault = {
+      id: 'f1', description: 'Шпиндель гуде', status: 'open', resolution: '', place: { id: place().id },
+      reporter: null, closedBy: null, closedAt: null, createdAt: NOW.toISOString(), updatedAt: NOW.toISOString(), photosCount: 0,
+    };
+    const closed = { ...fault, id: 'f0', description: 'Ремінь', status: 'closed', closedAt: NOW.toISOString(), resolution: 'Замінили' };
+    const act = {
+      id: 'an', title: 'Акт несправності', kind: 'report', target: 'fault', numberPrefix: 'АН', autoFreeze: false, creators: 'staff',
+      visibility: 'members', archived: false, currentVersion: 1, draftVersion: null, needsUpdate: false, about: ['fault'], createdAt: '', updatedAt: '',
+    };
+    const { calls } = mockApi({
+      ...labApi(staff).handlers,
+      'GET /api/faults': () => json(200, { items: [fault, closed], total: 2, page: 1, limit: 20 }),
+      'GET /api/papers/templates': () => json(200, [act]),
+      'POST /api/papers': () => json(201, { id: 'p1' }),
+    });
+    const { router } = renderApp('/lab/CNC-1');
+    const section = await screen.findByRole('region', { name: 'Несправності' });
+    await waitFor(() => expect(within(section).getAllByRole('button', { name: 'Скласти акт' })).toHaveLength(2));
+    await userEvent.click(within(section).getAllByRole('button', { name: 'Скласти акт' })[1]!);
+    await waitFor(() => expect(router.state.location.pathname).toBe('/editor/p1'));
+    expect(JSON.parse(calls.find((c) => c.path === '/api/papers' && c.method === 'POST')!.body)).toEqual({ templateId: 'an', about: { type: 'fault', id: 'f0' } });
+  });
+
   it('учасник не бачить дій модератора', async () => {
     const fault = {
       id: 'f1', description: 'Шпиндель гуде', status: 'open', resolution: '', place: { id: place().id },

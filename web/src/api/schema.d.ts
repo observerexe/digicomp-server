@@ -2355,11 +2355,23 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        TableSourceDto: {
+            /** @description `autoTable.source` in a template body. */
+            key: string;
+            /** @description In the constructor: «Журнал сеансів». */
+            label: string;
+            /** @description The type of the field it takes its rows for (`ref:place`, `date`). */
+            input: string;
+            /** @description Header of the table. */
+            columns: string[];
+        };
         TemplateTargetsDto: {
             /** @description Types whose records a `creates` template may create (a module registered its adapter). */
             creates: components["schemas"]["RecordType"][];
             /** @description Types a `report` template may be about (a module registered how to read its records). */
             report: components["schemas"]["RecordType"][];
+            /** @description Sources of «Авто-таблиця» (modules registered them), sorted by key. */
+            tables: components["schemas"]["TableSourceDto"][];
         };
         CreateTemplateDto: {
             /** @description Cannot be changed later. */
@@ -2611,6 +2623,16 @@ export interface components {
              */
             about?: components["schemas"]["PaperAboutDto"];
         };
+        AutoTableDto: {
+            /** @description Above the table («Листопад 2026»); null — none. */
+            caption: string | null;
+            /** @description Text cells, oldest row first; null — its field is empty yet. */
+            rows: string[][] | null;
+            /** @description Header: the source's columns. */
+            columns: string[];
+            /** @description Rows left out over the limit (the oldest): «… і ще N». */
+            more: number;
+        };
         PaperRefDto: {
             type: components["schemas"]["RecordType"];
             /** @description QR code, for records opened by it (equipment, inventory). */
@@ -2667,6 +2689,13 @@ export interface components {
              *     not here — not seen, or deleted: «запис недоступний».
              */
             refs: components["schemas"]["PaperRefDto"][];
+            /**
+             * @description «Авто-таблиця» by `<source>:<field>`: live (as the reader may see the
+             *     rows) until frozen; from then — as frozen (as staff saw them).
+             */
+            tables: {
+                [key: string]: components["schemas"]["AutoTableDto"];
+            };
             /** @description The record the document created; it stays when the record is gone (cancelled). */
             targetType: components["schemas"]["RecordType"] | null;
             targetId: string | null;

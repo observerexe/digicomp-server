@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import type { Me, RecordLink, TaskDetail } from '../api/types';
+import type { Me, RecordLink, TaskDetail, TemplateItem } from '../api/types';
 import { task } from '../pages/tasks/logic.test';
 import { json, member, mockApi, moderator, renderApp } from '../test/render';
 
@@ -227,5 +227,52 @@ describe('Блок «Пов’язане»', () => {
     await userEvent.click(within(block).getByRole('button', { name: 'Пов’язати' }));
     await userEvent.click(await within(block).findByRole('button', { name: 'Інструкція' }));
     expect(await within(block).findByText('Ці записи вже пов’язані.')).toBeInTheDocument();
+  });
+});
+
+describe('«Новий документ» у «Пов’язане»', () => {
+  const report = (over: Partial<TemplateItem> = {}): TemplateItem => ({
+    id: 'rt',
+    title: 'Звіт про ТЗ',
+    kind: 'report',
+    target: 'task',
+    numberPrefix: null,
+    autoFreeze: false,
+    creators: 'all',
+    visibility: 'author',
+    archived: false,
+    currentVersion: 1,
+    draftVersion: null,
+    needsUpdate: false,
+    about: ['task'],
+    createdAt: '',
+    updatedAt: '',
+    ...over,
+  });
+
+  it('звіт про цей запис: документ з ним і відкривається в редакторі; блок є навіть без зв’язків', async () => {
+    const { calls } = mockApi(
+      taskApi(
+        member,
+        { canLink: false, items: [] },
+        {
+          // Another type's report and a template only referring to tasks are not offered.
+          'GET /api/papers/templates': () => json(200, [report(), report({ id: 'x', title: 'Паспорт', target: 'place', about: ['place'] }), report({ id: 'y', kind: 'free', target: null })]),
+          'POST /api/papers': () => json(201, { id: 'p9' }),
+        },
+      ),
+    );
+    const { router } = renderApp('/tasks/t1');
+    const block = await related();
+    await userEvent.click(within(block).getByRole('button', { name: 'Новий документ' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/editor/p9'));
+    expect(JSON.parse(calls.find((c) => c.path === '/api/papers' && c.method === 'POST')!.body)).toEqual({ templateId: 'rt', about: { type: 'task', id: 't1' } });
+  });
+
+  it('звітів про цей тип немає — кнопки немає', async () => {
+    mockApi(taskApi(member, { canLink: false, items: [link({})] }, { 'GET /api/papers/templates': () => json(200, [report({ target: 'place', about: ['place'] })]) }));
+    renderApp('/tasks/t1');
+    const block = await related();
+    expect(within(block).queryByRole('button', { name: 'Новий документ' })).not.toBeInTheDocument();
   });
 });

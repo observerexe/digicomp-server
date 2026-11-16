@@ -292,8 +292,9 @@ export function fieldDictionaries(fields: TemplateField[]): string[] {
  * The body and the fields agree: every field is in the body; a free zone
  * (`richtext`) — once, as a zone; rows — once, as «Повторювані рядки»; the
  * rest — as inline fields (any number of times; a `ref:user` field may stand
- * only as who signs a column of signatures); no unknown keys; nothing of a
- * field inside a zone; a zone bound to a text field starts as plain paragraphs.
+ * only as who signs a column of signatures, any field — only as what an auto
+ * table takes); no unknown keys; nothing of a field inside a zone; a zone
+ * bound to a text field starts as plain paragraphs.
  */
 export function bodyProblem(
   body: PaperContent,
@@ -312,6 +313,11 @@ export function bodyProblem(
         if (byKey.get(key)?.type !== 'ref:user') problem = { field: key };
         else seen.add(key);
       }
+      return;
+    }
+    if (n.type === 'autoTable') {
+      // The field a table takes its rows for is on the sheet (see tableProblem).
+      seen.add(n.attrs?.field as string);
       return;
     }
     if (n.type === 'repeat') {
@@ -342,6 +348,42 @@ export function bodyProblem(
   const missing = fields.find((f) => !seen.has(f.key));
   if (missing) return { field: missing.key };
   return conditionalProblem(body, byKey) ?? repeatProblem(body, byKey);
+}
+
+/**
+ * «Авто-таблиця»: of a source that exists (`inputs` — the type of field each
+ * takes, see PaperTableRegistry), for a field of that type that holds a
+ * value once published (required, or bound to the record), outside
+ * conditional blocks and not a column of rows.
+ */
+export function tableProblem(
+  body: PaperContent,
+  fields: TemplateField[],
+  inputs: ReadonlyMap<string, string>,
+): FieldProblem | null {
+  const byKey = new Map(fields.map((f) => [f.key, f]));
+  const columns = rowColumns(body);
+  const top = body.content ?? [];
+  const conditional = new Set(
+    top.filter((n) => conditionOf(n) !== null).flatMap((n) => [...keysIn(n)]),
+  );
+  for (const n of top) {
+    if (n.type !== 'autoTable') continue;
+    const key = n.attrs?.field as string;
+    const f = byKey.get(key);
+    const input = inputs.get(n.attrs?.source as string);
+    if (
+      !f ||
+      input === undefined ||
+      f.type !== input ||
+      !(f.required || f.binding !== null) ||
+      columns.has(key) ||
+      conditional.has(key)
+    ) {
+      return { field: key };
+    }
+  }
+  return null;
 }
 
 /**

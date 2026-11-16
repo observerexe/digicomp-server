@@ -26,7 +26,7 @@ import { zone } from './zone';
 /**
  * Groups of the palette; the colour of a group is the colour of its labels on
  * the sheet. `schema` — fields of the template's record (blocks/schema.ts);
- * `auto` — what the document gets by itself (number, day, author);
+ * `auto` — what the document gets by itself (number, day, author, tables of a section);
  * `structure` — the header, «Затверджую», signatures, rows, the footer.
  */
 export type BlockGroup = 'text' | 'field' | 'data' | 'auto' | 'structure' | 'schema';
@@ -75,7 +75,31 @@ export type FieldBlock = BlockBase & {
 /** Filled by the document itself: an inline node of the shared description (editor/structure.ts draws it). */
 export type AutoBlock = BlockBase & { kind: 'auto'; node: string };
 
-export type Block = TextBlock | FieldBlock | AutoBlock;
+/**
+ * «Авто-таблиця»: rows a module gives (a source, from the server) for the
+ * value of a field of type `input`; the header — `columns`.
+ */
+export type TableBlock = BlockBase & { kind: 'table'; source: string; input: string; columns: string[] };
+
+export type Block = TextBlock | FieldBlock | AutoBlock | TableBlock;
+
+/** A source of auto tables, as `GET /papers/templates/targets` gives it. */
+export type TableSourceInfo = { key: string; label: string; input: string; columns: string[] };
+
+/** «Авто»: a block per source of auto tables. */
+export function tableBlocks(sources: readonly TableSourceInfo[]): TableBlock[] {
+  return sources.map((t) => ({
+    key: `table:${t.key}`,
+    group: 'auto',
+    kind: 'table',
+    label: t.label,
+    icon: 'table',
+    words: ['авто', 'таблиця'],
+    source: t.key,
+    input: t.input,
+    columns: t.columns,
+  }));
+}
 
 export const BLOCKS: Block[] = [
   heading,

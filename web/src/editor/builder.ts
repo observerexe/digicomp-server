@@ -30,6 +30,8 @@ export type BuilderLook = {
   fields: Record<string, BuilderField>;
   /** A conditional block's condition in words: ««Вид стягнення» = «Штраф»». */
   condition?: (field: string, value: string) => string;
+  /** An auto table's label: «Авто: журнал сеансів · Обладнання». */
+  table?: (source: string, field: string) => string;
   /** false — a published version is shown: no hint under the last block, no «/». */
   editable: boolean;
 };
@@ -74,6 +76,11 @@ export function blockTag(node: PMNode, look: BuilderLook): { label: string; grou
     const n = keysIn(node).length;
     const tag = look.fields[node.attrs.key as string]?.tag ?? `Повторювані рядки · ${String(node.attrs.key)}`;
     return { label: `${tag} · ${n ? `${n} ${plural(n, ['стовпець', 'стовпці', 'стовпців'])}` : 'перетягніть поля в нижній рядок'}`, group: 'structure' };
+  }
+  if (node.type.name === 'autoTable') {
+    const source = node.attrs.source as string;
+    const field = node.attrs.field as string;
+    return { label: look.table?.(source, field) ?? `Авто-таблиця · ${source} · ${field}`, group: 'auto' };
   }
   if (node.type.name === 'conditional') {
     const field = node.attrs.field as string;
@@ -175,6 +182,7 @@ function zoneKeys(doc: PMNode): Set<string> {
 export function blockContent(block: Block, key: string | null): { content: JSONContent; inline: boolean } {
   if (block.kind === 'text') return { content: block.content(), inline: false };
   if (block.kind === 'auto') return { content: { type: block.node }, inline: true };
+  if (block.kind === 'table') return { content: { type: 'autoTable', attrs: { source: block.source, field: key } }, inline: false };
   if (block.type === 'richtext') return { content: { type: 'fieldZone', attrs: { key }, content: [{ type: 'paragraph' }] }, inline: false };
   if (block.type === 'rows') return { content: rowsContent(key!), inline: false };
   return { content: { type: 'field', attrs: { key } }, inline: true };
@@ -184,7 +192,7 @@ export function blockContent(block: Block, key: string | null): { content: JSONC
  * Puts a block in place of `range` (the typed «/…», or an empty range — the
  * cursor, the point of a drop). A field goes into the text there (outside a
  * zone; in a zone — after it); a block — in place of an empty paragraph or
- * after the paragraph. Then a field is selected, a block gets the cursor.
+ * after the paragraph. Then a field (an auto table) is selected, a block gets the cursor.
  */
 export function placeBlock(editor: Editor, block: Block, key: string | null, range: { from: number; to: number }): boolean {
   const { state, view } = editor;
@@ -216,6 +224,9 @@ export function placeBlock(editor: Editor, block: Block, key: string | null, ran
   if (isField && inline) {
     const fieldAt = placed === node ? at : at + 1;
     tr.setSelection(NodeSelection.create(tr.doc, fieldAt));
+  } else if (block.kind === 'table') {
+    // An auto table is selected: «Властивості» show where it takes its rows from.
+    tr.setSelection(NodeSelection.create(tr.doc, at));
   } else {
     tr.setSelection(TextSelection.near(tr.doc.resolve(at + 1)));
   }
@@ -241,13 +252,14 @@ export function renameField(editor: Editor, from: string, to: string) {
   editor.state.doc.descendants((n, pos) => {
     // An attribute step: the node stays (and stays selected).
     if (['field', 'fieldZone', 'repeat'].includes(n.type.name) && n.attrs.key === from) tr.setNodeAttribute(pos, 'key', to);
+    if (n.type.name === 'autoTable' && n.attrs.field === from) tr.setNodeAttribute(pos, 'field', to);
     return true;
   });
   resign(tr, from, to);
   if (tr.docChanged) editor.view.dispatch(tr.setMeta('addToHistory', false));
 }
 
-/** Changes attributes of the block of the top level at `index` (signatures, the footer). */
+/** Changes attributes of the block of the top level at `index` (signatures, the footer, an auto table's field). */
 export function setBlockAttrs(editor: Editor, index: number, attrs: Record<string, unknown>) {
   const { doc } = editor.state;
   if (index < 0 || index >= doc.childCount) return;
@@ -259,12 +271,17 @@ export function setBlockAttrs(editor: Editor, index: number, attrs: Record<strin
 
 /**
  * Takes a field off the sheet: a paragraph holding only it — with the paragraph;
- * rows — the whole block; signatures by it — a line to sign by hand.
+ * rows — the whole block; auto tables of it — too (they show nothing without
+ * it); signatures by it — a line to sign by hand.
  */
 export function removeField(editor: Editor, key: string) {
   const { state } = editor;
   const ranges: [number, number][] = [];
   state.doc.descendants((n, pos) => {
+    if (n.type.name === 'autoTable' && n.attrs.field === key) {
+      ranges.push([pos, pos + n.nodeSize]);
+      return false;
+    }
     if (!['field', 'fieldZone', 'repeat'].includes(n.type.name) || n.attrs.key !== key) return true;
     const $pos = state.doc.resolve(pos);
     const alone = n.type.name === 'field' && $pos.parent.childCount === 1 && $pos.depth > 0 && $pos.parent.type.name === 'paragraph';

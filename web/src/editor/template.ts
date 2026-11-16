@@ -78,12 +78,15 @@ export function defsOf(fields: readonly TemplateField[], body: PaperNode): Map<s
 
 /**
  * Keys of fields and zones in the order of the sheet, each once; rows — before
- * their columns; a member who signs a column of signatures is a field too.
+ * their columns; a member who signs a column of signatures and what an auto
+ * table takes are fields too.
  */
 export function keysOf(doc: PMNode): string[] {
   const keys = new Set<string>();
   doc.descendants((n) => {
     if (n.type.name === 'field' || n.type.name === 'fieldZone' || n.type.name === 'repeat') keys.add(n.attrs.key as string);
+    // The field an auto table takes its rows for: it may stand nowhere else.
+    if (n.type.name === 'autoTable') keys.add(n.attrs.field as string);
     if (n.type.name === 'signatures') {
       for (const side of ['leftSigner', 'rightSigner']) {
         const key = signerField(n.attrs[side]);
@@ -199,4 +202,18 @@ export function blockLabel(type: string): string {
 export function fieldTag(f: FieldDef, schema: RecordSchema | null | undefined): string {
   const bound = f.binding ? (schema?.fields.find((s) => s.key === f.binding)?.label ?? f.binding) : null;
   return [blockLabel(f.type), bound ? `${f.key} → ${bound}` : f.key, limitsText(f), f.required ? 'обов’язкове' : null].filter(Boolean).join(' · ');
+}
+
+/**
+ * The field an auto table taking `input` stands on: the first field of that
+ * type on the sheet that holds a value once published (required, or bound —
+ * a report's record first of all), not a column of rows; none — a new
+ * required one (its block's name). null — no block makes a field of that type.
+ */
+export function tableField(input: string, fields: readonly FieldDef[], columns: ReadonlyMap<string, string>, taken: ReadonlySet<string>): FieldDef | null {
+  const own = fields.find((f) => f.type === input && (f.required || f.binding) && !columns.has(f.key));
+  if (own) return own;
+  const block = fieldBlockOf(input);
+  if (!block) return null;
+  return { ...newField({ ...block, type: input }, taken), required: true };
 }

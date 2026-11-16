@@ -23,6 +23,8 @@ const INFO: SheetInfo = {
     date: null,
     year: '2026',
   },
+  table: () => null,
+  tableHint: (field) => `з’явиться, коли виберете «${field}»`,
 };
 
 function open(content: JSONContent) {
@@ -110,6 +112,48 @@ describe('Конструктор: блоки структури', () => {
     removeField(e, 'head');
     expect(e.state.doc.child(1).attrs.leftSigner).toBeNull();
     expect(keysOf(e.state.doc)).toEqual([]);
+    e.destroy();
+  });
+});
+
+describe('Авто-таблиця на аркуші', () => {
+  const table = { type: 'autoTable', attrs: { source: 'place_sessions', field: 'place' } };
+  const rows = { columns: ['Учасник', 'Початок'], caption: null, more: 0 };
+
+  it('рядки з SheetInfo — той самий HTML, що в друці; поле порожнє — підказка; невідоме джерело — пояснення', () => {
+    const e = open(doc(p(t('Журнал')), table));
+    const root = e.view.dom;
+    setSheetInfo(e, { ...INFO, table: () => ({ ...rows, rows: [['<Олена>', '01.10.2026']] }) });
+    expect(root.querySelector('.paper-table')!.innerHTML).toBe(
+      '<table><tbody><tr><th>Учасник</th><th>Початок</th></tr><tr><td>&lt;Олена&gt;</td><td>01.10.2026</td></tr></tbody></table>',
+    );
+    setSheetInfo(e, { ...INFO, table: () => ({ ...rows, rows: null }) });
+    expect(root.querySelector('.paper-table')!.textContent).toBe('УчасникПочатокз’явиться, коли виберете «place»');
+    // In the constructor — no hint: the field is filled in a document.
+    setSheetInfo(e, { ...INFO, builder: true, table: () => ({ ...rows, rows: null }) });
+    expect(root.querySelector('.paper-table')!.textContent).toBe('УчасникПочаток');
+    setSheetInfo(e, INFO);
+    expect(root.querySelector('.paper-table')!.textContent).toBe('Авто-таблиця: джерело недоступне');
+    e.destroy();
+  });
+
+  it('у конструкторі: мітка — джерело й поле; поле таблиці — поле версії; перейменування й прибирання поля — і таблиці', () => {
+    const e = open(doc(p({ type: 'field', attrs: { key: 'place' } }), table));
+    const look = { editable: true, fields: {}, table: (source: string, field: string) => `Авто: ${source} · ${field}` };
+    expect(blockTag(e.state.doc.child(1), look)).toEqual({ label: 'Авто: place_sessions · place', group: 'auto' });
+    expect(keysOf(e.state.doc)).toEqual(['place']);
+    renameField(e, 'place', 'eq');
+    expect(e.getJSON().content![1]!.attrs).toEqual({ source: 'place_sessions', field: 'eq' });
+    removeField(e, 'eq');
+    // The field's paragraph and the table go; the sheet keeps an empty paragraph.
+    expect(e.getJSON().content!.map((n) => n.type)).toEqual(['paragraph']);
+    e.destroy();
+  });
+
+  it('стоїть лише на верхньому рівні', () => {
+    const e = open(doc(p(t('Текст'))));
+    e.chain().focus('end').insertContent(table).run();
+    expect(e.getJSON().content!.map((n) => n.type)).toEqual(['paragraph', 'autoTable', 'paragraph']);
     e.destroy();
   });
 });

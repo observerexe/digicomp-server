@@ -2,7 +2,7 @@ import { useEffect, useId, useState, type DragEvent, type KeyboardEvent, type Re
 import type { RecordSchema, TemplateKind } from '../api/types';
 import { Icon } from '../components/Icon';
 import { useDictionaries } from '../lib/dictionaries';
-import { fieldBlockOf, textBlockOf, type Block, type Palette } from './blocks';
+import { fieldBlockOf, textBlockOf, type Block, type Palette, type TableBlock } from './blocks';
 import { FOOTER_MAX, SIGN_LABEL_MAX, SIGNER_AUTHOR, SIGNER_ORG } from '../../../shared/editor-schema';
 import { FIELD_LIMITS } from '../../../shared/editor-schema/fields';
 import { BLOCK_MIME, type BuilderSelection } from './builder';
@@ -137,6 +137,9 @@ function PaletteTab({ palette, used, onPick }: { palette: Palette; used: Readonl
 function Properties(props: Props) {
   const { selected, defs } = props;
   if (!selected) return <p className="hint">Виберіть блок на аркуші.</p>;
+  if (selected.kind === 'block' && selected.node === 'autoTable') {
+    return <AutoTableForm {...props} index={selected.index} attrs={selected.attrs} />;
+  }
   if (selected.kind === 'block') {
     const block = textBlockOf(selected.node);
     const setAttrs = (attrs: Record<string, unknown>) => props.onBlockAttrs(selected.index, attrs);
@@ -237,6 +240,76 @@ function SignaturesForm({ attrs, fields, onChange }: { attrs: Record<string, unk
       })}
       {people.length === 0 && <p className="hint">Щоб підписував учасник, вибраний у документі, додайте на аркуш поле «Учасник».</p>}
     </>
+  );
+}
+
+/**
+ * «Авто-таблиця»: what it shows and «Звідки» — the field of the template it
+ * takes its rows for (of the source's type, holding a value once published);
+ * the label of that field is changed here too: it may stand nowhere else.
+ */
+function AutoTableForm(props: Props & { index: number; attrs: Record<string, unknown> }) {
+  const { palette, fields, columns, defs, index, attrs } = props;
+  const id = useId();
+  const source = attrs.source as string;
+  const key = attrs.field as string;
+  const block = palette.blocks.find((b): b is TableBlock => b.kind === 'table' && b.source === source) ?? null;
+  const options = block ? fields.filter((f) => f.type === block.input && (f.required || f.binding) && !columns.has(f.key)) : [];
+  const f = defs.get(key);
+  return (
+    <>
+      <Heading
+        block={block}
+        label={block ? `Авто-таблиця «${block.label}»` : 'Авто-таблиця'}
+        hint={
+          block
+            ? `Стовпці: ${block.columns.join(', ')}. Рядки підставляються самі для значення поля; після фіксації — такі, як були.`
+            : `Джерело «${source}» недоступне: видаліть таблицю або опублікуйте нову версію без неї.`
+        }
+      />
+      {block && (
+        <div className="field">
+          <label htmlFor={`${id}-from`}>Звідки</label>
+          <select id={`${id}-from`} value={key} onChange={(e) => props.onBlockAttrs(index, { field: e.target.value })}>
+            {options.map((o) => (
+              <option key={o.key} value={o.key}>
+                Поле «{o.label}»
+              </option>
+            ))}
+            {!options.some((o) => o.key === key) && <option value={key}>{f ? `Поле «${f.label}»` : key}</option>}
+          </select>
+          <span className="hint">Обов’язкове поле чи поле запису, яке заповнюється до публікації.</span>
+        </div>
+      )}
+      {f && <TableFieldLabel key={f.key} f={f} onChange={props.onChange} />}
+      <button type="button" className={`btn btn-danger ${s.remove}`} onClick={() => props.onRemoveBlock(index)}>
+        <Icon name="trash" size={18} />
+        Видалити блок
+      </button>
+    </>
+  );
+}
+
+/** The label of the field an auto table takes: empty is not saved (and comes back on leaving). */
+function TableFieldLabel({ f, onChange }: { f: FieldDef; onChange: (f: FieldDef) => void }) {
+  const id = useId();
+  const [label, setLabel] = useState(f.label);
+  return (
+    <div className="field">
+      <label htmlFor={id}>Підпис у формі</label>
+      <input
+        id={id}
+        value={label}
+        maxLength={LABEL_MAX}
+        aria-invalid={!label.trim()}
+        onChange={(e) => {
+          setLabel(e.target.value);
+          if (e.target.value.trim()) onChange({ ...f, label: e.target.value });
+        }}
+        onBlur={() => !label.trim() && setLabel(f.label)}
+      />
+      <span className="hint">Так поле називається на панелі «Поля» документа.</span>
+    </div>
   );
 }
 

@@ -11,6 +11,7 @@ import {
 import type { RecordType } from '../records/field-types';
 import { User } from '../users/user.entity';
 import type { FieldValues, PaperContent } from './content';
+import type { AutoTables } from './tables';
 // Type only: template.entities imports this file (by name below, no cycle at load).
 import type { PaperTemplateVersion } from './template.entities';
 
@@ -77,6 +78,13 @@ export class Paper {
   /** Values of the template's fields by key (zones live in `content`). */
   @Column({ type: 'jsonb', default: {} })
   values: FieldValues;
+
+  /**
+   * «Авто-таблиця» as frozen (as staff saw them), by tableKey; null — never
+   * frozen: the tables are live.
+   */
+  @Column({ type: 'jsonb', nullable: true })
+  tables: AutoTables | null;
 
   /**
    * The record the document created (a `creates` template): its type and

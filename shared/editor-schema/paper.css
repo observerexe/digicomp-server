@@ -95,6 +95,25 @@
 .paper th {
   font-weight: 700;
 }
+/* «Авто-таблиця»: rows a module gives, smaller (12 pt) — they are many and wide. */
+.paper .paper-table {
+  font-size: 12pt;
+}
+.paper .paper-table-caption {
+  margin-top: 6pt;
+  text-indent: 0;
+  font-weight: 700;
+  text-align: center;
+}
+.paper .paper-table td:empty::after {
+  content: '\00a0';
+}
+.paper .paper-table .paper-table-more,
+.paper .paper-table .paper-table-none {
+  color: var(--sheet-gray);
+  font-style: italic;
+  text-align: center;
+}
 .paper .page-break {
   margin: 12pt 0;
   border-top: 1px dashed var(--sheet-gray);

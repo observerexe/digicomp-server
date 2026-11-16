@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { UserRefDto } from '../common/responses.dto';
 import { RECORD_TYPES, type RecordType } from '../records/field-types';
 import type { FieldValues, PaperContent } from './content';
@@ -183,6 +183,28 @@ export class PaperSnapshotDto {
   signed: PaperSignedDto | null;
 }
 
+/** What a «Авто-таблиця» shows (see shared/editor-schema AutoTableData). */
+export class AutoTableDto {
+  /** Header: the source's columns. */
+  columns: string[];
+
+  /** Above the table («Листопад 2026»); null — none. */
+  @ApiProperty({ type: String, nullable: true })
+  caption: string | null;
+
+  /** Text cells, oldest row first; null — its field is empty yet. */
+  @ApiProperty({
+    type: 'array',
+    items: { type: 'array', items: { type: 'string' } },
+    nullable: true,
+  })
+  rows: string[][] | null;
+
+  /** Rows left out over the limit (the oldest): «… і ще N». */
+  more: number;
+}
+
+@ApiExtraModels(AutoTableDto)
 export class PaperDto extends PaperItemDto {
   /** ProseMirror document. */
   @ApiProperty({ type: 'object', additionalProperties: true })
@@ -202,6 +224,16 @@ export class PaperDto extends PaperItemDto {
    */
   @ApiProperty({ type: [PaperRefDto] })
   refs: PaperRefDto[];
+
+  /**
+   * «Авто-таблиця» by `<source>:<field>`: live (as the reader may see the
+   * rows) until frozen; from then — as frozen (as staff saw them).
+   */
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: { $ref: getSchemaPath(AutoTableDto) },
+  })
+  tables: Record<string, AutoTableDto>;
 
   /** The record the document created; it stays when the record is gone (cancelled). */
   @ApiProperty({ enum: RECORD_TYPES, enumName: 'RecordType', nullable: true })

@@ -13,11 +13,29 @@ export function useTemplates(enabled = true) {
   });
 }
 
-/** Which templates: those that create records of a type, or whose documents may be about a record of a type. */
-export type TemplateFilter = { creates: RecordType } | { about: RecordType };
+/** What templates may work with (staff): record types to create and to report on, sources of auto tables. */
+export function useTemplateTargets(enabled = true) {
+  return useQuery({
+    queryKey: ['paper-templates', 'targets'],
+    queryFn: () => unwrap(api.GET('/api/papers/templates/targets')),
+    staleTime: 5 * 60_000,
+    enabled,
+  });
+}
+
+/**
+ * Which templates: those that create records of a type, whose documents may
+ * be about a record of a type, or reports about records of a type.
+ */
+export type TemplateFilter = { creates: RecordType } | { about: RecordType } | { report: RecordType };
 
 const fits = (t: TemplateItem, filter: TemplateFilter | undefined) =>
-  !filter || ('creates' in filter ? t.kind === 'creates' && t.target === filter.creates : t.about.includes(filter.about));
+  !filter ||
+  ('creates' in filter
+    ? t.kind === 'creates' && t.target === filter.creates
+    : 'report' in filter
+      ? t.kind === 'report' && t.target === filter.report
+      : t.about.includes(filter.about));
 
 /**
  * Templates a new document can be made from, as choices (see TemplateFilter).

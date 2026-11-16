@@ -9,6 +9,8 @@ import {
   fieldsProblem,
   reportProblem,
   reportRecordKey,
+  tableProblem,
+  bodyProblem,
   type TemplateField,
 } from './template-fields';
 
@@ -333,5 +335,119 @@ describe('Звіт: запис у полі', () => {
   it('інші види шаблонів поля запису не потребують', () => {
     expect(reportProblem(body, [title], C, 'task')).toBeNull();
     expect(reportProblem(body, [], TemplateKind.Free, null)).toBeNull();
+  });
+});
+
+describe('Авто-таблиця: джерело й поле', () => {
+  const inputs = new Map([
+    ['place_sessions', 'ref:place'],
+    ['points_month', 'date'],
+  ]);
+  const table = (source: string, key: string): PaperNode => ({
+    type: 'autoTable',
+    attrs: { source, field: key },
+  });
+  const doc = (...content: PaperNode[]): PaperContent => ({
+    type: 'doc',
+    content,
+  });
+  const place = field({ key: 'place', type: 'ref:place', required: true });
+  const month = field({ key: 'month', type: 'date', required: true });
+
+  it('відоме джерело й обов’язкове поле його типу — добре', () => {
+    const body = doc(
+      table('place_sessions', 'place'),
+      table('points_month', 'month'),
+    );
+    expect(tableProblem(body, [place, month], inputs)).toBeNull();
+  });
+
+  it('поле лише в таблиці — уже є на аркуші', () => {
+    expect(
+      bodyProblem(doc(table('points_month', 'month')), [month]),
+    ).toBeNull();
+  });
+
+  it('невідоме джерело — ключ поля', () => {
+    expect(
+      tableProblem(doc(table('nowhere', 'place')), [place], inputs),
+    ).toEqual({ field: 'place' });
+  });
+
+  it('немає такого поля', () => {
+    expect(
+      tableProblem(doc(table('place_sessions', 'other')), [place], inputs),
+    ).toEqual({ field: 'other' });
+  });
+
+  it('тип поля не той, що бере джерело', () => {
+    expect(
+      tableProblem(doc(table('points_month', 'place')), [place], inputs),
+    ).toEqual({ field: 'place' });
+  });
+
+  it('необов’язкове поле — ні; прив’язане до запису — так', () => {
+    const loose = { ...place, required: false };
+    expect(
+      tableProblem(doc(table('place_sessions', 'place')), [loose], inputs),
+    ).toEqual({ field: 'place' });
+    const bound = { ...loose, binding: 'placeId' };
+    expect(
+      tableProblem(doc(table('place_sessions', 'place')), [bound], inputs),
+    ).toBeNull();
+  });
+
+  it('поле в умовному блоці — ні', () => {
+    const kind = field({
+      key: 'kind',
+      type: 'enum',
+      dictionary: 'k',
+      required: true,
+    });
+    const body = doc(
+      {
+        type: 'conditional',
+        attrs: { field: 'kind', value: 'a' },
+        content: [
+          {
+            type: 'paragraph',
+            content: [{ type: 'field', attrs: { key: 'place' } }],
+          },
+        ],
+      },
+      table('place_sessions', 'place'),
+    );
+    expect(tableProblem(body, [kind, place], inputs)).toEqual({
+      field: 'place',
+    });
+  });
+
+  it('стовпець повторюваних рядків — ні', () => {
+    const rows = field({ key: 'rows', type: 'rows', required: true });
+    const cell = (content: PaperNode[]): PaperNode => ({
+      type: 'tableCell',
+      content: [{ type: 'paragraph', content }],
+    });
+    const body = doc(
+      {
+        type: 'repeat',
+        attrs: { key: 'rows' },
+        content: [
+          {
+            type: 'table',
+            content: [
+              {
+                type: 'tableRow',
+                content: [cell([{ type: 'field', attrs: { key: 'place' } }])],
+              },
+            ],
+          },
+        ],
+      },
+      table('place_sessions', 'place'),
+    );
+    expect(tableProblem(body, [rows, place], inputs)).toEqual({
+      field: 'place',
+    });
   });
 });

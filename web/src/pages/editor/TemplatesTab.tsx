@@ -1,4 +1,4 @@
-import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
 import { useId, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { api, unwrap } from '../../api/client';
@@ -7,7 +7,7 @@ import { Icon } from '../../components/Icon';
 import { ErrorMessage, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { recordsKey } from '../../lib/fields';
-import { useTemplates } from '../../lib/paperTemplates';
+import { useTemplates, useTemplateTargets } from '../../lib/paperTemplates';
 import { RECORD_TYPES } from '../../lib/records';
 import s from './editor.module.css';
 
@@ -30,11 +30,7 @@ function useRecordTypes() {
       staleTime: 5 * 60_000,
     })),
   });
-  const targets = useQuery({
-    queryKey: ['paper-templates', 'targets'],
-    queryFn: () => unwrap(api.GET('/api/papers/templates/targets')),
-    staleTime: 5 * 60_000,
-  });
+  const targets = useTemplateTargets();
   const creates = new Set<string>(targets.data?.creates ?? []);
   const report = new Set<string>(targets.data?.report ?? []);
   return RECORD_TYPES.map((type, i) => {

@@ -17,6 +17,7 @@ import { PaperworkController } from './paperwork.controller';
 import { PaperworkService } from './paperwork.service';
 import { PaperTemplate, PaperTemplateVersion } from './template.entities';
 import { TemplatesController } from './templates.controller';
+import { PaperTableRegistry } from './tables';
 import { TemplatesService } from './templates.service';
 
 /** Editor documents (drafts, revisions, visibility, print, snapshots) and their templates. */
@@ -38,8 +39,13 @@ import { TemplatesService } from './templates.service';
   ],
   // Templates first: `/papers/templates` must not reach `/papers/:id`.
   controllers: [TemplatesController, PaperworkController],
-  providers: [PaperworkService, TemplatesService, PaperAdapterRegistry],
-  exports: [PaperworkService, PaperAdapterRegistry],
+  providers: [
+    PaperworkService,
+    TemplatesService,
+    PaperAdapterRegistry,
+    PaperTableRegistry,
+  ],
+  exports: [PaperworkService, PaperAdapterRegistry, PaperTableRegistry],
 })
 export class PaperworkModule implements OnModuleInit {
   constructor(

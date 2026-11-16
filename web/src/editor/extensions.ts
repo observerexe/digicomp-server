@@ -20,7 +20,7 @@ import { Conditional } from './conditional';
 import { Field, FieldZone, templateExtension, type TemplateOptions } from './fields';
 import { Mention, type MentionOptions } from './mention';
 import { Repeat, RowNumber } from './repeat';
-import { Approval, OrgHeader, PageFooter, PaperAuthor, PaperDate, PaperNumber, SheetLook, Signatures } from './structure';
+import { Approval, AutoTable, OrgHeader, PageFooter, PaperAuthor, PaperDate, PaperNumber, SheetLook, Signatures } from './structure';
 
 /**
  * The editor's extensions, built to match shared/editor-schema exactly
@@ -151,8 +151,8 @@ const PageBreak = Node.create({
   },
 });
 
-/** Structure blocks (the header, signatures…), conditional blocks and rows only on the sheet's top level. */
-const PaperDocument = Node.create({ name: 'doc', topNode: true, content: '(block | structure | conditional | repeat)+' });
+/** Structure blocks (the header, signatures…), conditional blocks, rows and auto tables only on the sheet's top level. */
+const PaperDocument = Node.create({ name: 'doc', topNode: true, content: '(block | structure | conditional | repeat | autoTable)+' });
 
 /** Our spans carry format classes, not styles (TipTap's own parse needs `style`). */
 const ClassTextStyle = TextStyle.extend({
@@ -231,6 +231,7 @@ export function paperExtensions(opts: { template?: TemplateOptions; mention?: Pa
     Approval,
     Signatures,
     PageFooter,
+    AutoTable,
     SheetLook,
     mention ? Mention.configure(mention) : Mention,
     ...(template ? [templateExtension(template)] : []),

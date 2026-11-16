@@ -1,5 +1,5 @@
 import type { RecordField, RecordSchema, TemplateKind } from '../../api/types';
-import { BLOCK_GROUPS, BLOCKS, fieldBlockOf, type FieldBlock, type Palette } from '.';
+import { BLOCK_GROUPS, BLOCKS, fieldBlockOf, tableBlocks, type FieldBlock, type Palette, type TableSourceInfo } from '.';
 
 /** A text of the record longer than this goes on the sheet as a free zone (paragraphs, no formatting). */
 export const LONG_TEXT = 500;
@@ -68,9 +68,15 @@ export function schemaBlocks(kind: TemplateKind, schema: RecordSchema | null | u
   return [record, ...fields];
 }
 
-/** The palette of a template: its record's fields first (if any), then every block. */
-export function paletteOf(kind: TemplateKind, schema: RecordSchema | null | undefined): Palette {
+/**
+ * The palette of a template: its record's fields first (if any), then every
+ * block; auto tables of `sources` — at the end of «Авто».
+ */
+export function paletteOf(kind: TemplateKind, schema: RecordSchema | null | undefined, sources: readonly TableSourceInfo[] = []): Palette {
   const own = schemaBlocks(kind, schema);
-  if (!own.length) return { groups: BLOCK_GROUPS, blocks: BLOCKS };
-  return { groups: [{ key: 'schema', label: `Поля запису «${schema!.label}»` }, ...BLOCK_GROUPS], blocks: [...own, ...BLOCKS] };
+  const tables = tableBlocks(sources);
+  const at = BLOCKS.findLastIndex((b) => b.group === 'auto') + 1;
+  const blocks = [...own, ...BLOCKS.slice(0, at), ...tables, ...BLOCKS.slice(at)];
+  if (!own.length) return { groups: BLOCK_GROUPS, blocks };
+  return { groups: [{ key: 'schema', label: `Поля запису «${schema!.label}»` }, ...BLOCK_GROUPS], blocks };
 }

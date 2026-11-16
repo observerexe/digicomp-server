@@ -8,6 +8,7 @@ import { LinkRegistry } from '../links/link-registry';
 import { LinksModule } from '../links/links.module';
 import { PaperAdapterRegistry } from '../paperwork/adapters';
 import { PaperworkModule } from '../paperwork/paperwork.module';
+import { PaperTableRegistry } from '../paperwork/tables';
 import { UsersModule } from '../users/users.module';
 import {
   AuthorizationsController,
@@ -18,6 +19,7 @@ import { PlaceAuthorization } from './place-authorization.entity';
 import { Place, PLACE_CATEGORY } from './place.entity';
 import { PLACE_LINKS } from './place.links';
 import { PLACE_READER } from './place.reader';
+import { PLACE_AUTHORIZATIONS, PLACE_SESSIONS } from './place.tables';
 import { PlacesService } from './places.service';
 import { WorkSession } from './work-session.entity';
 import { WorkSessionsService } from './work-sessions.service';
@@ -44,11 +46,14 @@ export class PlacesModule implements OnModuleInit {
     private dictionaries: DictionaryUsageRegistry,
     private links: LinkRegistry,
     private papers: PaperAdapterRegistry,
+    private tables: PaperTableRegistry,
   ) {}
 
   onModuleInit() {
     this.dictionaries.registerColumn(PLACE_CATEGORY, Place, 'category');
     this.links.register('place', PLACE_LINKS);
     this.papers.registerReader('place', PLACE_READER);
+    this.tables.register('place_authorizations', PLACE_AUTHORIZATIONS);
+    this.tables.register('place_sessions', PLACE_SESSIONS);
   }
 }

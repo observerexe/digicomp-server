@@ -17,6 +17,7 @@ import { PaperForm } from '../../editor/PaperForm';
 import { PaperRecordsContext } from '../../editor/records';
 import { useFill, useFillSheet } from '../../editor/useFill';
 import type { FieldValue, FieldValues } from '../../../../shared/editor-schema/fields';
+import type { PaperNode } from '../../../../shared/editor-schema';
 import '../../../../shared/editor-schema/paper.css';
 import '../../editor/format.css';
 import { MiniRibbon, Ribbon } from '../../editor/Ribbon';
@@ -153,12 +154,20 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
     },
   });
   const { values } = fill;
+  // Auto tables: their rows come from the server for the values of their fields.
+  const [tables, setTables] = useState(paper.tables);
+  // What the server reads anew once saved: a report's record, the fields of auto tables.
   const recordKey = reportRecordKey(template);
-  const shownRecord = useRef(recordKey ? paper.values[recordKey] : undefined);
+  const watched = [...new Set([...(recordKey ? [recordKey] : []), ...tableFields(paper.content as PaperNode)])];
+  const watchedOf = (v: Record<string, unknown>) => JSON.stringify(watched.map((k) => v[k] ?? null));
+  const shownWatched = useRef(watchedOf(paper.values));
   onSaved.current = (change) => {
-    if (!recordKey || !change.values || change.values[recordKey] === shownRecord.current) return;
-    shownRecord.current = change.values[recordKey];
-    void unwrap(api.GET('/api/papers/{id}', { params: { path: { id: paper.id } } })).then((p) => fill.takeAuto(p.values as FieldValues, p.refs as RecordView[]));
+    if (!watched.length || !change.values || watchedOf(change.values) === shownWatched.current) return;
+    shownWatched.current = watchedOf(change.values);
+    void unwrap(api.GET('/api/papers/{id}', { params: { path: { id: paper.id } } })).then((p) => {
+      if (recordKey) fill.takeAuto(p.values as FieldValues, p.refs as RecordView[]);
+      setTables(p.tables);
+    });
   };
   const editor = useEditor({
     extensions: fill.extensions,
@@ -233,6 +242,8 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
     publishedAt: paper.publishedAt,
     number: paper.number,
     people: template ? peopleOf(template.fields, values, fill.recordTitle) : {},
+    tables,
+    labels: Object.fromEntries((template?.fields ?? []).map((f) => [f.key, f.label])),
   });
 
   // A draft never sends what the record shows (a report's auto fields): nobody fills it.
@@ -648,4 +659,9 @@ function MoreMenu({ children }: { children: ReactNode }) {
       )}
     </div>
   );
+}
+
+/** Fields auto tables of a document take their rows for (they stand on its top level). */
+function tableFields(content: PaperNode): string[] {
+  return (content.content ?? []).filter((n) => n.type === 'autoTable').map((n) => n.attrs?.field as string);
 }

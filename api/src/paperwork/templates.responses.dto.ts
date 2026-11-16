@@ -7,6 +7,18 @@ import { TemplateCreators, TemplateKind } from './template.entities';
 import { TemplateFieldDto } from './templates.dto';
 
 /** Record types templates may work with. */
+/** A source of «Авто-таблиця»: what rows it gives and for which field. */
+export class TableSourceDto {
+  /** `autoTable.source` in a template body. */
+  key: string;
+  /** In the constructor: «Журнал сеансів». */
+  label: string;
+  /** The type of the field it takes its rows for (`ref:place`, `date`). */
+  input: string;
+  /** Header of the table. */
+  columns: string[];
+}
+
 export class TemplateTargetsDto {
   /** Types whose records a `creates` template may create (a module registered its adapter). */
   @ApiProperty({ enum: RECORD_TYPES, enumName: 'RecordType', isArray: true })
@@ -15,6 +27,9 @@ export class TemplateTargetsDto {
   /** Types a `report` template may be about (a module registered how to read its records). */
   @ApiProperty({ enum: RECORD_TYPES, enumName: 'RecordType', isArray: true })
   report: RecordType[];
+
+  /** Sources of «Авто-таблиця» (modules registered them), sorted by key. */
+  tables: TableSourceDto[];
 }
 
 /** A template without its versions (lists). */

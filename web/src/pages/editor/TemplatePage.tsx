@@ -10,6 +10,7 @@ import { OfflineBanner } from '../../components/OfflineBanner';
 import { ConfirmButton, ErrorMessage } from '../../components/ui';
 import { BlockMenu } from '../../editor/BlockMenu';
 import { fieldBlockOf, type Palette } from '../../editor/blocks';
+import { useTemplateTargets } from '../../lib/paperTemplates';
 import { isAutoBinding, paletteOf } from '../../editor/blocks/schema';
 import {
   builderExtension,
@@ -32,7 +33,7 @@ import { fieldPosition } from '../../editor/fields';
 import { Ribbon } from '../../editor/Ribbon';
 import { Ruler } from '../../editor/Ruler';
 import { StatusBar, useZoom } from '../../editor/StatusBar';
-import { columnsOf, defsOf, fieldsOf, fieldTag, keysOf, newField, type FieldDef } from '../../editor/template';
+import { columnsOf, defsOf, fieldsOf, fieldTag, keysOf, newField, tableField, type FieldDef } from '../../editor/template';
 import { useAutosave, type SaveState } from '../../editor/useAutosave';
 import { usePageStats } from '../../editor/usePageStats';
 import { errorOf } from '../../errors/messages';
@@ -192,7 +193,8 @@ function TemplateBuilder({ template, version, schema, onReload, onTemplate, onPu
   const [trial, setTrial] = useState<{ template: PaperTemplateRef; body: JSONContent } | null>(null);
 
   // The palette: the record's fields first; those bound on the sheet are not offered again.
-  const palette = useMemo(() => paletteOf(template.kind, schema), [template.kind, schema]);
+  const sources = useTemplateTargets().data?.tables;
+  const palette = useMemo(() => paletteOf(template.kind, schema, sources), [template.kind, schema, sources]);
   const used = useMemo(() => new Set(fields.flatMap((f) => (f.binding ? [f.binding] : []))), [fields]);
   const menuPalette: Palette = useMemo(() => ({ ...palette, blocks: palette.blocks.filter((b) => !isUsed(b, used)) }), [palette, used]);
 
@@ -249,6 +251,14 @@ function TemplateBuilder({ template, version, schema, onReload, onTemplate, onPu
         fieldKey = f.key;
         changeDefs(new Map(defsRef.current).set(f.key, f));
       }
+      if (block.kind === 'table') {
+        // The table takes a field of its type already on the sheet, or a new one.
+        const own = fieldsOf(defsRef.current, keysOf(editor.state.doc));
+        const f = tableField(block.input, own, columnsOf(editor.state.doc), new Set(defsRef.current.keys()));
+        if (!f) return;
+        fieldKey = f.key;
+        if (!defsRef.current.has(f.key)) changeDefs(new Map(defsRef.current).set(f.key, f));
+      }
       if (placeBlock(editor, block, fieldKey, range) && fieldKey) setTab('props');
     },
     end: () => cursorAtEnd(editor),
@@ -277,11 +287,21 @@ function TemplateBuilder({ template, version, schema, onReload, onTemplate, onPu
       const choice = schema?.fields.find((x) => x.key === f?.binding)?.options?.find((o) => o.key === value)?.label ?? value;
       return `«${f ? (showKeys ? f.key : f.label) : field}» = «${choice}»`;
     };
+    // An auto table: its source and the field it takes.
+    look.table = (source, field) => {
+      const label = sources?.find((x) => x.key === source)?.label ?? source;
+      const f = defs.get(field);
+      return `Авто: ${label.toLowerCase()} · ${f ? (showKeys ? f.key : f.label) : field}`;
+    };
     setBuilderLook(editor, look);
-  }, [editor, defs, showKeys, schema, readOnly, template.kind]);
+  }, [editor, defs, showKeys, schema, readOnly, template.kind, sources]);
 
   // The header and «Затверджую» from «Реквізити»; auto values and who signs — by their names.
-  useSheet(editor, { builder: true, people: Object.fromEntries(fields.filter((f) => f.type === 'ref:user').map((f) => [f.key, `{${showKeys ? f.key : f.label}}`])) });
+  useSheet(editor, {
+    builder: true,
+    people: Object.fromEntries(fields.filter((f) => f.type === 'ref:user').map((f) => [f.key, `{${showKeys ? f.key : f.label}}`])),
+    sources,
+  });
 
   const saveFields = (next: Map<string, FieldDef>) => {
     changeDefs(next);
@@ -387,7 +407,7 @@ function TemplateBuilder({ template, version, schema, onReload, onTemplate, onPu
         </span>
       </header>
       <OfflineBanner />
-      {trial && <TemplateTrial template={trial.template} body={trial.body} />}
+      {trial && <TemplateTrial template={trial.template} body={trial.body} sources={sources} />}
       <div className={trial ? s.gone : s.contents}>
         {!readOnly && (
           <Ribbon

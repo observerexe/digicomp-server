@@ -80,6 +80,16 @@ describe('Поля запису в палітрі', () => {
     expect(palette.blocks.length).toBe(BLOCKS.length + 6);
   });
 
+  it('авто-таблиці з джерел сервера — у кінці групи «Авто»: тип джерела й стовпці', () => {
+    const sources = [{ key: 'place_sessions', label: 'Журнал сеансів', input: 'ref:place', columns: ['Учасник', 'Початок'] }];
+    const blocks = paletteOf('free', null, sources).blocks;
+    const auto = blocks.filter((b) => b.group === 'auto');
+    expect(auto.at(-1)).toMatchObject({ key: 'table:place_sessions', kind: 'table', label: 'Журнал сеансів', source: 'place_sessions', input: 'ref:place' });
+    expect(blocks.length).toBe(BLOCKS.length + 1);
+    // The groups stay in order: the table stands right after the other auto blocks.
+    expect(blocks.findIndex((b) => b.key === 'table:place_sessions')).toBe(BLOCKS.findLastIndex((b) => b.group === 'auto') + 1);
+  });
+
   it('авто-поле: текст лишається рядком (не зона), підказка — «заповниться із запису»', () => {
     const split = schemaBlocks('creates', schema).find((b) => b.binding === 'split');
     expect(split).toMatchObject({ type: 'text', required: false, hint: 'Заповниться із запису «ТЗ» після публікації' });

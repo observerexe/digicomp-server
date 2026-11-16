@@ -2,8 +2,8 @@ import { Extension, mergeAttributes, Node, type Editor } from '@tiptap/core';
 import type { Node as PMNode } from '@tiptap/pm/model';
 import { NodeSelection, Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
-import { NODES, SIGNER_AUTHOR, type PaperNode } from '../../../shared/editor-schema';
-import { STRUCTURE_CLASS, structureInner, type PaperInfo } from '../../../shared/editor-schema/render';
+import { NODES, SIGNER_AUTHOR, type AutoTableData, type PaperNode } from '../../../shared/editor-schema';
+import { autoTableInner, STRUCTURE_CLASS, structureInner, type PaperInfo } from '../../../shared/editor-schema/render';
 import { lookView, type FieldLook } from './fields';
 
 /**
@@ -21,6 +21,10 @@ export type SheetInfo = {
   number: string | null;
   /** The template constructor: auto values by their names (`{Номер}`). */
   builder: boolean;
+  /** «Авто-таблиця» of a source for a field: its rows (none yet — `rows: null`); null — nothing known of it. */
+  table: (source: string, field: string) => AutoTableData | null;
+  /** Under an auto table without rows yet (its field `field` is empty). */
+  tableHint: (field: string) => string;
 };
 
 /** An auto value before the document is published. */
@@ -30,6 +34,8 @@ const EMPTY_INFO: SheetInfo = {
   paper: { institution: '', groupName: '', signerPosition: '', person: () => null, date: null, year: '' },
   number: null,
   builder: false,
+  table: () => null,
+  tableHint: () => '',
 };
 
 const sheetKey = new PluginKey<SheetInfo>('sheetInfo');
@@ -153,7 +159,63 @@ export const Signatures = structureNode('signatures', {
 });
 export const PageFooter = structureNode('pageFooter', { text: dataAttr('pageFooter', 'text', '') });
 
-const STRUCTURE_NODES = new Set(Object.keys(STRUCTURE_CLASS));
+/**
+ * «Авто-таблиця» (shared/editor-schema: `autoTable`): the rows SheetInfo
+ * gives, drawn as the print draws them; its field empty — a hint under it.
+ */
+export const AutoTable = Node.create({
+  name: 'autoTable',
+  group: 'autoTable',
+  atom: true,
+  selectable: true,
+  draggable: false,
+  addAttributes() {
+    return { source: dataAttr('autoTable', 'source', null), field: dataAttr('autoTable', 'field', null) };
+  },
+  parseHTML() {
+    return [{ tag: 'div.paper-table' }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ['div', mergeAttributes({ class: 'paper-table' }, HTMLAttributes)];
+  },
+  addNodeView() {
+    return ({ node, decorations }) => {
+      const dom = document.createElement('div');
+      dom.className = 'paper-table';
+      dom.contentEditable = 'false';
+      const paint = (n: PMNode, decos: readonly Decoration[]) => {
+        const info = (decos.find((d) => (d.spec as { sheet?: unknown }).sheet !== undefined)?.spec as { sheet: SheetInfo } | undefined)?.sheet ?? EMPTY_INFO;
+        const source = n.attrs.source as string;
+        const field = n.attrs.field as string;
+        const t = info.table(source, field);
+        if (!t) {
+          dom.innerHTML = '<p class="paper-structure-empty">Авто-таблиця: джерело недоступне</p>';
+          return;
+        }
+        dom.innerHTML = autoTableInner(t);
+        if (t.rows === null && !info.builder) {
+          const hint = document.createElement('p');
+          hint.className = 'paper-structure-empty';
+          hint.textContent = info.tableHint(field);
+          dom.append(hint);
+        }
+      };
+      paint(node, decorations as readonly Decoration[]);
+      return {
+        dom,
+        update: (n: PMNode, decos: readonly Decoration[]) => {
+          if (n.type.name !== 'autoTable') return false;
+          paint(n, decos);
+          return true;
+        },
+        ignoreMutation: () => true,
+      };
+    };
+  },
+});
+
+/** Nodes drawn from SheetInfo as a whole: the structure and auto tables. */
+const STRUCTURE_NODES = new Set([...Object.keys(STRUCTURE_CLASS), 'autoTable']);
 
 /** The sheet's outside data on its structure and auto values; an auto value selected — outlined. */
 export const SheetLook = Extension.create({

@@ -254,14 +254,16 @@ img.ProseMirror-separator {
 .paper .paper-org,
 .paper .paper-approval,
 .paper .paper-signs,
-.paper .paper-footer {
+.paper .paper-footer,
+.paper .paper-table {
   cursor: default;
   user-select: none;
 }
 .paper .paper-org.ProseMirror-selectednode,
 .paper .paper-approval.ProseMirror-selectednode,
 .paper .paper-signs.ProseMirror-selectednode,
-.paper .paper-footer.ProseMirror-selectednode {
+.paper .paper-footer.ProseMirror-selectednode,
+.paper .paper-table.ProseMirror-selectednode {
   outline: 2px solid var(--c-primary);
   outline-offset: 2px;
 }

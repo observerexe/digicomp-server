@@ -34,6 +34,7 @@ const paper = (over: Partial<Paper> = {}): Paper => ({
   canSign: false,
   snapshot: null,
   snapshots: [],
+  tables: {},
   ...over,
 });
 const item = (p: Paper) => {
@@ -785,6 +786,28 @@ describe('Редактор: документ із шаблону', () => {
         await userEvent.click(await within(panel).findByRole('option', { name: /Фрезер/ }));
         await waitFor(() => expect(sheetField('code')).toHaveTextContent('CNC-1'), { timeout: 4000 });
         expect(JSON.parse(calls.find((c) => c.method === 'PATCH')!.body)).toEqual({ revision: 1, values: { place: 'pl1' } });
+      });
+
+      it('авто-таблиця: поле порожнє — підказка; вибрали — після збереження рядки з сервера', async () => {
+        const content = { ...reportContent, content: [...reportContent.content, { type: 'autoTable', attrs: { source: 'place_sessions', field: 'place' } }] };
+        const empty = { 'place_sessions:place': { columns: ['Учасник', 'Початок'], caption: null, rows: null, more: 0 } };
+        const filled = { 'place_sessions:place': { columns: ['Учасник', 'Початок'], caption: null, rows: [['Олена', '01.10.2026']], more: 0 } };
+        const chosen = report({ content, revision: 2, values: { place: 'pl1', code: 'CNC-1' }, refs: [lathe], tables: filled });
+        let gets = 0;
+        mockApi(
+          base(writer, {
+            'GET /api/papers/p1': () => json(200, gets++ === 0 ? report({ content, tables: empty }) : chosen),
+            'GET /api/links/candidates': () => json(200, [lathe]),
+            'PATCH /api/papers/p1': () => json(200, { ...item(chosen), updatedAt: '2026-11-16T12:30:00Z' }),
+          }),
+        );
+        renderApp('/editor/p1');
+        const panel = await screen.findByRole('complementary', { name: 'Поля документа' });
+        const sheet = screen.getByLabelText('Текст документа');
+        await waitFor(() => expect(sheet.querySelector('.paper-table')).toHaveTextContent('УчасникПочатокз’явиться, коли виберете «Обладнання»'));
+        await userEvent.click(within(panel).getByRole('combobox', { name: /^Обладнання/ }));
+        await userEvent.click(await within(panel).findByRole('option', { name: /Фрезер/ }));
+        await waitFor(() => expect(sheet.querySelector('.paper-table')).toHaveTextContent('УчасникПочатокОлена01.10.2026'), { timeout: 4000 });
       });
 
       it('чернетка не надсилає того, що показує запис', async () => {

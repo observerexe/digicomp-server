@@ -311,12 +311,14 @@ export function checkContent(
   if (body === null) {
     let found = false;
     walkNodes(content, (n) => {
-      // A conditional block waits for a field, rows are a field: a free document has none.
+      // A conditional block waits for a field, rows are a field, an auto
+      // table takes one: a free document has none.
       if (
         n.type === 'field' ||
         n.type === 'fieldZone' ||
         n.type === 'conditional' ||
-        n.type === 'repeat'
+        n.type === 'repeat' ||
+        n.type === 'autoTable'
       ) {
         found = true;
       }

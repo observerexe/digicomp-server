@@ -1,8 +1,9 @@
 import type { Editor } from '@tiptap/core';
 import { useEffect } from 'react';
-import { SIGNER_AUTHOR, SIGNER_ORG } from '../../../shared/editor-schema';
+import { SIGNER_AUTHOR, SIGNER_ORG, tableKey, type AutoTables } from '../../../shared/editor-schema';
 import { dayText, signName, yearText, type FieldValues, type RecordTitle } from '../../../shared/editor-schema/fields';
 import { useOrgSettings } from '../lib/org';
+import type { TableSourceInfo } from './blocks';
 import { setSheetInfo } from './structure';
 
 /** Names of the members `ref:user` fields hold (signatures), by the field's key; null — none picked. */
@@ -28,21 +29,38 @@ type SheetOptions = {
   publishedAt?: string | null;
   number?: string | null;
   people?: People;
+  /** «Авто-таблиця» of the document (PaperDto.tables). */
+  tables?: AutoTables;
+  /** Sources of auto tables: a table not in `tables` shows their columns, no rows yet. */
+  sources?: readonly TableSourceInfo[];
+  /** Labels of the template's fields by key (the hint of an empty auto table). */
+  labels?: Record<string, string>;
+  /** «Документ» of the constructor: auto tables never get rows here. */
+  trial?: boolean;
 };
 
 /**
  * What the header, «Затверджую», signatures and auto values show on the
  * sheet: «Реквізити», the author, the day of publication, members of fields.
  */
-export function useSheet(editor: Editor, { builder = false, author = null, publishedAt = null, number = null, people = {} }: SheetOptions) {
+export function useSheet(editor: Editor, { builder = false, author = null, publishedAt = null, number = null, people = {}, tables, sources, labels = {}, trial = false }: SheetOptions) {
   const org = useOrgSettings().data;
-  // The names are compared by value: a new object each render is the same sheet.
+  // Compared by value: a new object each render is the same sheet.
   const peopleKey = JSON.stringify(people);
+  const tablesKey = JSON.stringify([tables ?? {}, sources ?? [], labels]);
   useEffect(() => {
     const names = JSON.parse(peopleKey) as People;
+    const [rows, known, label] = JSON.parse(tablesKey) as [AutoTables, TableSourceInfo[], Record<string, string>];
     setSheetInfo(editor, {
       builder,
       number,
+      table: (source, field) => {
+        const own = rows[tableKey(source, field)];
+        if (own) return own;
+        const s = known.find((x) => x.key === source);
+        return s ? { columns: s.columns, caption: null, rows: null, more: 0 } : null;
+      },
+      tableHint: (key) => (trial ? 'Рядки з’являться в документі' : `з’явиться, коли виберете «${label[key] ?? key}»`),
       paper: {
         institution: org?.institution ?? '',
         groupName: org?.groupName ?? '',
@@ -56,5 +74,5 @@ export function useSheet(editor: Editor, { builder = false, author = null, publi
         year: yearText(publishedAt ?? new Date()),
       },
     });
-  }, [editor, org, builder, author, publishedAt, number, peopleKey]);
+  }, [editor, org, builder, author, publishedAt, number, peopleKey, tablesKey, trial]);
 }

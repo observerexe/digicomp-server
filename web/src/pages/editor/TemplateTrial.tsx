@@ -1,6 +1,6 @@
 import type { JSONContent } from '@tiptap/core';
 import { EditorContent, useEditor } from '@tiptap/react';
-import type { PaperTemplateRef } from '../../api/types';
+import type { PaperTemplateRef, TableSource } from '../../api/types';
 import { FieldsPanel } from '../../editor/FieldsPanel';
 import { MentionMenu } from '../../editor/MentionMenu';
 import { PaperRecordsContext } from '../../editor/records';
@@ -17,7 +17,7 @@ import s from './editor.module.css';
  * fills it — the panel «Поля», Tab, pickers, required fields and limits.
  * Nothing is saved and no document is made: values live on this page.
  */
-export function TemplateTrial({ template, body }: { template: PaperTemplateRef; body: JSONContent }) {
+export function TemplateTrial({ template, body, sources }: { template: PaperTemplateRef; body: JSONContent; sources?: readonly TableSource[] }) {
   const fill = useFill({ template, values: {}, refs: [], editable: true });
   const editor = useEditor({
     extensions: fill.extensions,
@@ -32,7 +32,7 @@ export function TemplateTrial({ template, body }: { template: PaperTemplateRef; 
   const sheet = useFillSheet(editor, fill);
   // As a document of the one trying it would show.
   const { user } = useAuth();
-  useSheet(editor, { author: user?.name ?? null, people: peopleOf(template.fields, fill.values, fill.recordTitle) });
+  useSheet(editor, { author: user?.name ?? null, people: peopleOf(template.fields, fill.values, fill.recordTitle), sources, trial: true });
   const [zoom, setZoom, zoomClass] = useZoom();
   const stats = usePageStats(editor, zoom);
 

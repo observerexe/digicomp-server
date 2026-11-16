@@ -106,6 +106,8 @@ export const STRUCTURE = ['orgHeader', 'approval', 'signatures', 'pageFooter'] a
 export const CONDITIONAL = 'conditional';
 /** «Повторювані рядки»: a table on the top level whose last row repeats, a row a value of a `rows` field. */
 export const REPEAT = 'repeat';
+/** «Авто-таблиця»: rows a module gives (a source) for the value of a field; only on the top level. */
+export const AUTO_TABLE = 'autoTable';
 const INLINE = ['text', 'hardBreak', 'field', 'mention', 'paperNumber', 'paperDate', 'paperAuthor', 'rowNumber'] as const;
 
 /** Key of a template field: Latin, starts with a small letter (`title`, `goal_2`). */
@@ -138,10 +140,25 @@ export const CONDITION_VALUE_MAX = 40;
 const conditionValue: AttrRule = { default: null, valid: (v) => typeof v === 'string' && v.length > 0 && lineOf(CONDITION_VALUE_MAX)(v) };
 
 const recordType: AttrRule = { default: null, valid: (v) => typeof v === 'string' && RECORD_TYPE_KEY.test(v) };
+
+/** Key of a source of auto tables (`place_sessions`). */
+export const TABLE_SOURCE_KEY = /^[a-z][a-z_]{0,39}$/;
+const tableSource: AttrRule = { default: null, valid: (v) => typeof v === 'string' && TABLE_SOURCE_KEY.test(v) };
+
+/**
+ * What an auto table shows: the source's columns, a caption above it (the
+ * month of a ranking; null — none) and rows of text cells; null rows — its
+ * field is empty yet. `more` — rows left out (the oldest), over the limit.
+ */
+export type AutoTableData = { columns: string[]; caption: string | null; rows: string[][] | null; more: number };
+/** Auto tables of a document by tableKey. */
+export type AutoTables = Record<string, AutoTableData>;
+/** An auto table's key in AutoTables: its source and field (two equal tables show the same). */
+export const tableKey = (source: string, field: string) => `${source}:${field}`;
 const recordId: AttrRule = { default: null, valid: (v) => typeof v === 'string' && RECORD_ID.test(v) };
 
 export const NODES: Record<string, NodeRule> = {
-  doc: { attrs: {}, children: [...BLOCKS, ...STRUCTURE, CONDITIONAL, REPEAT] },
+  doc: { attrs: {}, children: [...BLOCKS, ...STRUCTURE, CONDITIONAL, REPEAT, AUTO_TABLE] },
   paragraph: { attrs: BLOCK_FORMAT, children: INLINE },
   heading: {
     attrs: { level: { default: 1, valid: oneOf(HEADING_LEVELS, false) }, ...BLOCK_FORMAT },
@@ -196,6 +213,11 @@ export const NODES: Record<string, NodeRule> = {
   repeat: { attrs: { key: fieldKey }, children: ['table'] },
   /** «№ рядка»: the number of the row of «Повторювані рядки» it stands in. */
   rowNumber: { attrs: {} },
+  /**
+   * «Авто-таблиця»: the rows the source `source` (a module's, which ones —
+   * the API decides) gives for the value of the template's field `field`.
+   */
+  autoTable: { attrs: { source: tableSource, field: fieldKey } },
 };
 
 /** In the editor's order: marks nest in it (textStyle outermost, underline innermost). */
@@ -278,8 +300,9 @@ export function checkContent(v: unknown): v is PaperContent {
     if (n.type === CONDITIONAL && !(isPlainObject(n.attrs) && own(n.attrs, 'field') && own(n.attrs, 'value'))) return false;
     // «№ рядка» stands only in «Повторювані рядки».
     if (n.type === 'rowNumber' && !inRepeat) return false;
-    // A reference carries both.
+    // A reference carries both; so does an auto table.
     if (n.type === 'mention' && !(isPlainObject(n.attrs) && own(n.attrs, 'type') && own(n.attrs, 'id'))) return false;
+    if (n.type === AUTO_TABLE && !(isPlainObject(n.attrs) && own(n.attrs, 'source') && own(n.attrs, 'field'))) return false;
     if (n.marks !== undefined) {
       const inline = (INLINE as readonly string[]).includes(n.type);
       if (!inline || !Array.isArray(n.marks) || !n.marks.every(validMark)) return false;

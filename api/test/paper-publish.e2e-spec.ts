@@ -530,7 +530,8 @@ describe('Публікація документів (e2e)', () => {
   describe('шаблони', () => {
     it('«створює запис» — лише для типів з адаптером; їх список — модераторам', async () => {
       const targets = await as(app, mod).get(`${T}/targets`).expect(200);
-      expect(targets.body).toEqual({
+      // Sources of auto tables — paper-tables.e2e-spec.ts.
+      expect(targets.body).toMatchObject({
         creates: ['discipline_record', 'points_entry', 'task'],
         report: ['discipline_record', 'fault', 'place', 'points_entry', 'task'],
       });

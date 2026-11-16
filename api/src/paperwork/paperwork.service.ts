@@ -105,6 +105,7 @@ import {
   PaperTemplateVersion,
   TemplateKind,
 } from './template.entities';
+import { PaperTableRegistry, tableKey, type AutoTables } from './tables';
 import { reportRecordKey } from './template-fields';
 import { TemplateErrors, TemplatesService } from './templates.service';
 
@@ -473,6 +474,7 @@ export class PaperworkService {
     private links: LinkRegistry,
     private adapters: PaperAdapterRegistry,
     private documents: DocumentsService,
+    private tables: PaperTableRegistry,
   ) {}
 
   /** Records the document (as it shows them) refers to that the actor sees. */
@@ -670,6 +672,37 @@ export class PaperworkService {
   }
 
   /**
+   * «Авто-таблиця» of what the document shows: as frozen (Paper.tables);
+   * until then (and `fresh`: a report frozen again) live — the rows of each
+   * source for the value of its field, as `reader` may see them.
+   */
+  private async tablesOf(
+    m: EntityManager,
+    p: Paper,
+    shown: Shown,
+    reader: Actor,
+    fresh = false,
+  ): Promise<AutoTables> {
+    if (p.tables && !fresh) return p.tables;
+    const out: AutoTables = {};
+    for (const n of shown.content.content ?? []) {
+      if (n.type !== 'autoTable') continue;
+      const source = n.attrs?.source as string;
+      const field = n.attrs?.field as string;
+      const key = tableKey(source, field);
+      if (key in out) continue;
+      const data = await this.tables.data(
+        source,
+        shown.values[field],
+        reader,
+        m,
+      );
+      if (data) out[key] = data;
+    }
+    return out;
+  }
+
+  /**
    * The record a report is about — the value of its record field (see
    * reportRecordKey), as its module reads it now; null — not chosen yet,
    * or there is none any more.
@@ -738,6 +771,7 @@ export class PaperworkService {
       refs: (await this.refsOf(m, shown, form, actor)).map(
         (r): Plain<PaperRefDto> => ({ ...r, type: r.type as RecordType }),
       ),
+      tables: await this.tablesOf(m, p, shown, actor),
       canEdit: editable,
       canChange: !!may && !!form?.fields.some(may),
       canPublish:
@@ -884,6 +918,7 @@ export class PaperworkService {
     shown: Shown,
     form: Form | null,
     viewer: Actor,
+    tables: AutoTables,
   ): Promise<FieldFill> {
     const { values } = shown;
     const fields = new Map((form?.fields ?? []).map((f) => [f.key, f]));
@@ -928,6 +963,7 @@ export class PaperworkService {
         }));
       },
       title,
+      table: (source, field) => tables[tableKey(source, field)] ?? null,
       info: {
         institution: org.institution,
         groupName: org.groupName,
@@ -1000,7 +1036,14 @@ export class PaperworkService {
     }
     const form = await this.formOf(m, p);
     const shown = await this.shown(m, p, form);
-    const fill = await this.fillOf(m, p, shown, form, actor);
+    const fill = await this.fillOf(
+      m,
+      p,
+      shown,
+      form,
+      actor,
+      await this.tablesOf(m, p, shown, actor),
+    );
     return paperPrintHtml({
       title: p.title,
       sheet: sheetHtml(shown.content, fill),
@@ -1095,7 +1138,8 @@ export class PaperworkService {
       (await m.getRepository(User).findOneBy({ id: p.authorId })) ?? undefined;
     const shown = await this.shown(m, p, form, true);
     const viewer: Actor = { id: actor.id, role: Role.Admin };
-    const fill = await this.fillOf(m, p, shown, form, viewer);
+    const tables = await this.tablesOf(m, p, shown, viewer, true);
+    const fill = await this.fillOf(m, p, shown, form, viewer, tables);
     const [{ n }] = await m.query<{ n: number }[]>(
       `SELECT COALESCE(MAX("n"), 0)::int + 1 AS "n" FROM "paper_snapshots" WHERE "paper_id" = $1`,
       [p.id],
@@ -1117,6 +1161,7 @@ export class PaperworkService {
     );
     p.content = shown.content;
     p.values = shown.values;
+    p.tables = tables;
     p.status = PaperStatus.Frozen;
     p.revision += 1;
     await m.getRepository(Paper).save(p);
