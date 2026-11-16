@@ -39,10 +39,13 @@ import { Ruler } from '../../editor/Ruler';
 import { StatusBar, useZoom } from '../../editor/StatusBar';
 import { columnsOf, conditionFields, defsOf, fieldChoices, fieldsOf, fieldTag, keysOf, newField, tableField, type FieldDef } from '../../editor/template';
 import { useAutosave, type SaveState } from '../../editor/useAutosave';
+import { useLocalDraft } from '../../editor/useLocalDraft';
+import { useAuth } from '../../auth/AuthProvider';
+import { sameJson, type LocalDraft } from '../../lib/localDrafts';
 import { usePageStats } from '../../editor/usePageStats';
 import { errorOf } from '../../errors/messages';
 import { recordsKey } from '../../lib/fields';
-import { formatTime, plural } from '../../lib/format';
+import { formatDateTime, formatTime, plural } from '../../lib/format';
 import { useMediaQuery } from '../../lib/useMediaQuery';
 import type { PaperNode } from '../../../../shared/editor-schema';
 import '../../../../shared/editor-schema/paper.css';
@@ -77,6 +80,10 @@ export function TemplatePage() {
   const t = template.data;
   // A draft if there is one (or nothing is published: the server makes v1), otherwise the current version.
   const shown = !t ? null : editing || t.draftVersion !== null || t.currentVersion === null ? 'draft' : t.currentVersion;
+  // Changes of the draft version this device kept, the server did not receive. Read first:
+  // one being sent in the background reaches the server before the version is read.
+  const { user } = useAuth();
+  const local = useLocalDraft(user?.id, wide && id ? { kind: 'template', id } : null);
   // Our own saves change the draft's revision: no refetch.
   const version = useQuery({
     queryKey: ['paper-templates', 'version', id, shown],
@@ -86,7 +93,7 @@ export function TemplatePage() {
           ? api.POST('/api/papers/templates/{id}/versions', { params: { path: { id } } })
           : api.GET('/api/papers/templates/{id}/versions/{v}', { params: { path: { id, v: shown! } } }),
       ),
-    enabled: shown !== null,
+    enabled: shown !== null && local.ready,
     staleTime: Infinity,
     gcTime: 0,
     refetchOnWindowFocus: false,
@@ -99,6 +106,21 @@ export function TemplatePage() {
   });
   // The list shows the draft: refresh it when leaving.
   useEffect(() => () => void qc.invalidateQueries({ queryKey: ['paper-templates', 'list'] }), [qc]);
+  const v = version.data;
+  const verdict = v ? verdictOf(local.draft, v) : 'none';
+  const gone = template.error instanceof ApiError && (template.error.status === 403 || template.error.status === 404);
+  const { done, drop } = local;
+  useEffect(() => {
+    if (verdict === 'same' || (gone && local.draft)) drop();
+    else if (verdict === 'restore') done();
+  }, [verdict, gone, local.draft, done, drop]);
+  // What the constructor starts with, once per answer of the server: the version, or it with the kept changes.
+  const [start, setStart] = useState<{ at: string; version: TemplateVersion; restored: Partial<VersionChange> | null } | null>(null);
+  const at = v ? `${v.number}:${v.publishedAt ?? 'draft'}:${version.dataUpdatedAt}` : '';
+  if (v && local.ready && verdict !== 'stale' && start?.at !== at) {
+    const c = verdict === 'restore' ? (local.draft!.change as Partial<VersionChange>) : null;
+    setStart({ at, version: c ? { ...v, body: c.body ?? v.body, fields: c.fields ?? v.fields } : v, restored: c });
+  }
 
   if (!wide) {
     return (
@@ -108,7 +130,7 @@ export function TemplatePage() {
       </main>
     );
   }
-  if (template.isPending || (shown !== null && version.isPending)) return <PaperLoading />;
+  if (template.isPending || (shown !== null && version.isPending) || !local.ready) return <PaperLoading />;
   if (template.isError || version.isError) {
     return (
       <main id="main" className={s.alone}>
@@ -117,12 +139,15 @@ export function TemplatePage() {
       </main>
     );
   }
+  if (verdict === 'stale') return <StaleDraft draft={local.draft!} onDrop={drop} />;
+  if (start?.at !== at) return <PaperLoading />;
   const reloadTemplate = () => void qc.invalidateQueries({ queryKey: templateKey });
   return (
     <TemplateBuilder
-      key={`${version.data!.number}:${version.data!.publishedAt ?? 'draft'}:${version.dataUpdatedAt}`}
+      key={start.at}
       template={template.data}
-      version={version.data!}
+      version={start.version}
+      restored={start.restored}
       schema={schema.data}
       onReload={() => void version.refetch()}
       onTemplate={(next) => qc.setQueryData(templateKey, next)}
@@ -152,10 +177,42 @@ function BackLink() {
   );
 }
 
+/**
+ * The kept changes against the server's version: restore — the same draft
+ * (the same revision); same — the server has them already; stale — the draft
+ * changed meanwhile (or was published, discarded).
+ */
+function verdictOf(d: LocalDraft | null, v: TemplateVersion): 'none' | 'restore' | 'same' | 'stale' {
+  if (!d) return 'none';
+  const draft = d.target.kind === 'template' && d.target.v === v.number && v.publishedAt === null;
+  if (draft && d.revision === v.revision) return 'restore';
+  const c = d.change as Partial<VersionChange>;
+  const same = draft && (c.body === undefined || sameJson(c.body, v.body)) && (c.fields === undefined || sameJson(c.fields, v.fields));
+  return same ? 'same' : 'stale';
+}
+
+/** Kept changes of a draft that changed meanwhile: they cannot be applied. */
+function StaleDraft({ draft, onDrop }: { draft: LocalDraft; onDrop: () => void }) {
+  return (
+    <main id="main" className={s.alone}>
+      <BackLink />
+      <div className={s.conflict} role="alert">
+        <p>На цьому пристрої лишилися зміни шаблону ({formatDateTime(draft.at)}), які не дійшли на сервер. Тим часом чернетку шаблону змінили, тому застосувати їх не можна.</p>
+        <div className={s.conflictActions}>
+          <button type="button" className="btn btn-primary" onClick={onDrop}>
+            Відкрити останню версію
+          </button>
+        </div>
+      </div>
+    </main>
+  );
+}
+
 const SAVE_TEXT: Record<Exclude<SaveState, 'saved'>, string> = {
   dirty: 'Зміни ще не збережено',
   saving: 'Збереження…',
   error: 'Не вдалося зберегти, спробуємо ще раз',
+  local: 'Збережено на цьому пристрої, надішлемо пізніше',
   rejected: 'Не збережено',
   conflict: 'Не збережено',
 };
@@ -166,6 +223,8 @@ type BuilderProps = {
   template: Template;
   /** The draft, or the current version (read only). */
   version: TemplateVersion;
+  /** Changes kept on this device last time: in the version already, sent at once. */
+  restored: Partial<VersionChange> | null;
   schema: RecordSchema | undefined;
   onReload: () => void;
   /** The server's template after a change of it. */
@@ -177,11 +236,13 @@ type BuilderProps = {
   onDeleted: () => void;
 };
 
-function TemplateBuilder({ template, version, schema, onReload, onTemplate, onPublished, onEdit, onDiscarded, onDeleted }: BuilderProps) {
+function TemplateBuilder({ template, version, restored, schema, onReload, onTemplate, onPublished, onEdit, onDiscarded, onDeleted }: BuilderProps) {
   const readOnly = version.publishedAt !== null;
+  const { user } = useAuth();
   const autosave = useAutosave<VersionChange>(
     (change, revision) => unwrap(api.PATCH('/api/papers/templates/{id}/versions/{v}', { params: { path: { id: template.id, v: version.number } }, body: { revision, ...change } })),
     version.revision,
+    !readOnly && user ? { userId: user.id, target: { kind: 'template', id: template.id, v: version.number }, restored } : null,
   );
   // Settings of every field met here, those taken off the sheet too: «Скасувати» brings a field back with them.
   const [defs, setDefs] = useState(() => defsOf(version.fields, version.body as PaperNode));
@@ -453,11 +514,23 @@ function TemplateBuilder({ template, version, schema, onReload, onTemplate, onPu
             <div className={s.conflict} role="alert">
               <p>Шаблон змінили в іншому вікні чи іншою людиною, тому ваші останні зміни не збережено. Відкрийте останню версію чернетки: ваші зміни зникнуть.</p>
               <div className={s.conflictActions}>
-                <button type="button" className="btn btn-primary" onClick={onReload}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => {
+                    autosave.cancel();
+                    onReload();
+                  }}
+                >
                   Відкрити останню версію
                 </button>
               </div>
             </div>
+          )}
+          {restored && autosave.state !== 'conflict' && (
+            <p className="hint" role="status">
+              Відновлено зміни з цього пристрою, які минулого разу не дійшли на сервер.
+            </p>
           )}
           {template.needsUpdate && (
             <p className="hint">Поля запису змінилися, і поточна версія потребує оновлення: нові документи з неї не створюються. Виправте поля й опублікуйте нову версію.</p>

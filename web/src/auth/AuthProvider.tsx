@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api, ApiError, onLoggedOut, unwrap } from '../api/client';
 import type { LoginResult, Me } from '../api/types';
+import { dropDrafts, sendDrafts } from '../lib/localDrafts';
 
 export const ME_KEY = ['me'] as const;
 
@@ -57,8 +58,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [qc],
   );
 
-  // A session that cannot be refreshed: show the login screen.
+  // A session that cannot be refreshed: show the login screen. Drafts kept on
+  // the device stay: the same person logs in again and they are sent.
   useEffect(() => onLoggedOut(() => setUser(null)), [setUser]);
+
+  // Drafts kept on the device: only this person's stay, and they are sent
+  // now and whenever the connection is back.
+  const userId = me.data?.id;
+  useEffect(() => {
+    if (!userId) return;
+    const send = () => void sendDrafts(userId);
+    void dropDrafts(userId).then(send);
+    window.addEventListener('online', send);
+    return () => window.removeEventListener('online', send);
+  }, [userId]);
 
   const login = useCallback(
     async (email: string, password: string) => {
@@ -88,6 +101,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (opts.everywhere) await api.POST('/api/auth/logout-all');
         else await api.POST('/api/auth/logout', { body: {} });
       } finally {
+        // Nothing of the person stays on the device.
+        void dropDrafts();
         setUser(null);
       }
     },

@@ -24,10 +24,12 @@ import { MiniRibbon, Ribbon } from '../../editor/Ribbon';
 import { Ruler } from '../../editor/Ruler';
 import { StatusBar, useZoom } from '../../editor/StatusBar';
 import { useAutosave, type SaveState } from '../../editor/useAutosave';
+import { useLocalDraft } from '../../editor/useLocalDraft';
 import { peopleOf, useSheet } from '../../editor/useSheet';
 import { usePageStats } from '../../editor/usePageStats';
 import { errorOf } from '../../errors/messages';
-import { formatDate, formatTime } from '../../lib/format';
+import { formatDate, formatDateTime, formatTime } from '../../lib/format';
+import { sameJson, type LocalDraft } from '../../lib/localDrafts';
 import { PAPER_STATUS_LABEL } from '../../lib/labels';
 import { recordHref, recordLabel, type RecordView } from '../../lib/records';
 import { useDropdown } from '../../lib/useDropdown';
@@ -43,9 +45,14 @@ import { PaperLoading } from './PaperLoading';
 export function PaperPage() {
   const { id = '' } = useParams();
   const qc = useQueryClient();
+  const { user } = useAuth();
+  // Changes this device kept, the server did not receive. Read first: one
+  // being sent in the background reaches the server before the document is read.
+  const local = useLocalDraft(user?.id, id ? { kind: 'paper', id } : null);
   const paper = useQuery({
     queryKey: ['papers', 'one', id],
     queryFn: () => unwrap(api.GET('/api/papers/{id}', { params: { path: { id } } })),
+    enabled: local.ready,
     // Our own saves change the revision: a refetch would start a conflict with ourselves.
     staleTime: Infinity,
     gcTime: 0,
@@ -57,8 +64,21 @@ export function PaperPage() {
   // A record's «Редагувати» opens its document so at once: `navigate(…, { state: { change: true } })`.
   const asked = (useLocation().state as { change?: boolean } | null)?.change === true;
   const [changing, setChanging] = useState(asked);
+  const verdict = paper.data ? verdictOf(local.draft, paper.data) : 'none';
+  const gone = paper.error instanceof ApiError && (paper.error.status === 403 || paper.error.status === 404);
+  const { done, drop } = local;
+  useEffect(() => {
+    if (verdict === 'same' || (gone && local.draft)) drop();
+    else if (verdict === 'restore') done();
+  }, [verdict, gone, local.draft, done, drop]);
+  // What the editor starts with, once per answer of the server: the document, or it with the kept changes.
+  const [start, setStart] = useState<{ at: string; paper: Paper; restored: Partial<PaperChange> | null } | null>(null);
+  const at = paper.data ? `${paper.data.id}:${paper.dataUpdatedAt}` : '';
+  if (paper.data && local.ready && verdict !== 'stale' && start?.at !== at) {
+    setStart({ at, ...(verdict === 'restore' ? restoredOf(paper.data, local.draft!) : { paper: paper.data, restored: null }) });
+  }
 
-  if (paper.isPending) return <PaperLoading />;
+  if (paper.isPending || !local.ready) return <PaperLoading />;
   if (paper.isError) {
     return (
       <main id="main" className={s.alone}>
@@ -67,10 +87,13 @@ export function PaperPage() {
       </main>
     );
   }
+  if (verdict === 'stale') return <StaleDraft paper={paper.data} draft={local.draft!} onDrop={drop} />;
+  if (start?.at !== at) return <PaperLoading />;
   return (
     <PaperEditor
-      key={`${paper.data.id}:${paper.dataUpdatedAt}:${changing && paper.data.canChange}`}
-      paper={paper.data}
+      key={`${start.at}:${changing && paper.data.canChange}`}
+      paper={start.paper}
+      restored={start.restored}
       changing={changing && paper.data.canChange}
       onChanging={setChanging}
       onReload={() => void paper.refetch()}
@@ -87,10 +110,93 @@ function BackLink() {
   );
 }
 
+/**
+ * The kept changes against the server's document: restore — it is still the
+ * same draft (the same revision); same — the server has them already (the tab
+ * closed while they were on their way); stale — the document changed meanwhile.
+ */
+function verdictOf(d: LocalDraft | null, p: Paper): 'none' | 'restore' | 'same' | 'stale' {
+  if (!d) return 'none';
+  if (p.status === 'draft' && p.canEdit && d.revision === p.revision) return 'restore';
+  const c = d.change as Partial<PaperChange>;
+  const same =
+    (c.title === undefined || c.title === p.title) &&
+    (c.content === undefined || sameJson(c.content, p.content)) &&
+    (c.values === undefined || sameJson(c.values, withoutAuto(p.values as FieldValues, p.template)));
+  return same ? 'same' : 'stale';
+}
+
+/** The document with the kept changes: values the record fills stay the server's. */
+function restoredOf(p: Paper, d: LocalDraft) {
+  const c = d.change as Partial<PaperChange>;
+  const auto = Object.fromEntries(Object.entries(p.values).filter(([k]) => p.template?.fields.find((f) => f.key === k)?.auto));
+  return {
+    paper: { ...p, title: c.title ?? p.title, content: c.content ?? p.content, values: c.values ? { ...auto, ...c.values } : p.values },
+    restored: c,
+  };
+}
+
+/** What a draft sends: never the values the record shows (a report's auto fields), nobody fills them. */
+function withoutAuto(values: FieldValues, template: Paper['template']): FieldValues {
+  return Object.fromEntries(Object.entries(values).filter(([k]) => !template?.fields.find((f) => f.key === k)?.auto));
+}
+
+/** What a copy takes: only the values the actor fills (the copy is their own draft). */
+function ownValues(values: Record<string, unknown>, template: Paper['template']) {
+  return Object.fromEntries(Object.entries(values).filter(([k]) => template?.fields.find((f) => f.key === k)?.canFill));
+}
+
+/**
+ * Changes this device kept the server never received, while the document
+ * changed meanwhile: they cannot be applied. Saved as a copy — or thrown away.
+ */
+function StaleDraft({ paper, draft, onDrop }: { paper: Paper; draft: LocalDraft; onDrop: () => void }) {
+  const navigate = useNavigate();
+  const c = draft.change as Partial<PaperChange>;
+  const copy = useMutation({
+    mutationFn: () =>
+      unwrap(
+        api.POST('/api/papers/{id}/copy', {
+          params: { path: { id: paper.id } },
+          body: {
+            title: `${c.title ?? paper.title} (копія)`.slice(0, TITLE_MAX),
+            content: (c.content ?? paper.content) as JSONContent,
+            values: ownValues(c.values ?? paper.values, paper.template),
+          },
+        }),
+      ),
+    onSuccess: (p) => {
+      onDrop();
+      void navigate(`/editor/${p.id}`);
+    },
+  });
+  return (
+    <main id="main" className={s.alone}>
+      <BackLink />
+      <div className={s.conflict} role="alert">
+        <p>
+          На цьому пристрої лишилися зміни документа «{c.title ?? paper.title}» ({formatDateTime(draft.at)}), які не дійшли на сервер. Тим часом документ змінили, тому застосувати
+          їх не можна. Збережіть їх окремою чернеткою або відкиньте.
+        </p>
+        <ErrorMessage text={copy.isError ? errorOf(copy.error) : null} />
+        <div className={s.conflictActions}>
+          <button type="button" className="btn btn-primary" disabled={copy.isPending} onClick={() => copy.mutate()}>
+            Зберегти мої зміни як копію
+          </button>
+          <button type="button" className="btn" disabled={copy.isPending} onClick={onDrop}>
+            Відкинути мої зміни
+          </button>
+        </div>
+      </div>
+    </main>
+  );
+}
+
 const SAVE_TEXT: Record<Exclude<SaveState, 'saved'>, string> = {
   dirty: 'Зміни ще не збережено',
   saving: 'Збереження…',
   error: 'Не вдалося зберегти, спробуємо ще раз',
+  local: 'Збережено на цьому пристрої, надішлемо пізніше',
   rejected: 'Не збережено',
   conflict: 'Не збережено',
 };
@@ -101,13 +207,15 @@ type PaperChange = { title: string; content: JSONContent; values: FieldValues };
 
 type EditorProps = {
   paper: Paper;
+  /** Changes kept on this device last time: in the paper already, sent at once. */
+  restored: Partial<PaperChange> | null;
   /** Changing a published document: no autosave, «Зберегти зміни» sends it all at once. */
   changing: boolean;
   onChanging: (on: boolean) => void;
   onReload: () => void;
 };
 
-function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
+function PaperEditor({ paper, restored, changing, onChanging, onReload }: EditorProps) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
@@ -132,6 +240,7 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
         return saved;
       }),
     paper.revision,
+    filling && user ? { userId: user.id, target: { kind: 'paper', id: paper.id }, restored } : null,
   );
   const [title, setTitle] = useState(paper.title);
   const lastTitle = useRef(paper.title);
@@ -250,7 +359,7 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
   // A change of a published document sends everything it shows: the server compares.
   const changeValue = (key: string, v: FieldValue | null) => {
     const next = fill.change(key, v);
-    keep({ values: filling ? Object.fromEntries(Object.entries(next).filter(([k]) => !template?.fields.find((f) => f.key === k)?.auto)) : next });
+    keep({ values: filling ? withoutAuto(next, template) : next });
   };
   /** A zone from the form: to it on the page, the cursor in it. */
   const toPage = (key: string) => {
@@ -271,11 +380,15 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
   const copy = useMutation({
     mutationFn: () => {
       const name = `${lastTitle.current} (копія)`.slice(0, TITLE_MAX);
-      // Only what the actor fills: the copy is their own draft.
-      const own = Object.fromEntries(Object.entries(values).filter(([k]) => template?.fields.find((f) => f.key === k)?.canFill));
-      return unwrap(api.POST('/api/papers/{id}/copy', { params: { path: { id: paper.id } }, body: { title: name, content: editor.getJSON(), values: own } }));
+      return unwrap(
+        api.POST('/api/papers/{id}/copy', { params: { path: { id: paper.id } }, body: { title: name, content: editor.getJSON(), values: ownValues(values, template) } }),
+      );
     },
-    onSuccess: (p) => void navigate(`/editor/${p.id}`),
+    onSuccess: (p) => {
+      // The changes the server refused live on in the copy.
+      if (autosave.state === 'conflict') autosave.cancel();
+      void navigate(`/editor/${p.id}`);
+    },
   });
 
   const changeTitle = (v: string) => {
@@ -508,7 +621,14 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
               окремою чернеткою.
             </p>
             <div className={s.conflictActions}>
-              <button type="button" className="btn btn-primary" onClick={onReload}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  autosave.cancel();
+                  onReload();
+                }}
+              >
                 Відкрити останню версію
               </button>
               <button type="button" className="btn" disabled={copy.isPending} onClick={() => copy.mutate()}>
@@ -516,6 +636,11 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
               </button>
             </div>
           </div>
+        )}
+        {restored && autosave.state !== 'conflict' && (
+          <p className="hint" role="status">
+            Відновлено зміни з цього пристрою, які минулого разу не дійшли на сервер.
+          </p>
         )}
         {!filling && paper.status !== 'cancelled' && <p className="hint">{readHint(paper, changing)}</p>}
       </div>
