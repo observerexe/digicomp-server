@@ -114,6 +114,7 @@ const MESSAGE_CODES: Record<string, string> = {
   'Template version is published': 'TEMPLATE_VERSION_PUBLISHED',
   'Invalid template field': 'TEMPLATE_FIELD_INVALID',
   'Invalid template kind': 'TEMPLATE_KIND_INVALID',
+  'Report has no record field': 'TEMPLATE_REPORT_RECORD',
   'Invalid paper field': 'PAPER_FIELD_INVALID',
   'Paper content is locked by its template': 'PAPER_CONTENT_LOCKED',
   'Template needs update': 'TEMPLATE_NEEDS_UPDATE',

@@ -6733,10 +6733,18 @@
             "items": {
               "$ref": "#/components/schemas/RecordType"
             }
+          },
+          "report": {
+            "type": "array",
+            "description": "Types a `report` template may be about (a module registered how to read its records).",
+            "items": {
+              "$ref": "#/components/schemas/RecordType"
+            }
           }
         },
         "required": [
-          "creates"
+          "creates",
+          "report"
         ]
       },
       "CreateTemplateDto": {
@@ -7670,6 +7678,23 @@
           "createdAt"
         ]
       },
+      "PaperSnapshotItemDto": {
+        "type": "object",
+        "properties": {
+          "n": {
+            "type": "number",
+            "description": "1, 2, … within the document (`print?snapshot=`)."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "n",
+          "createdAt"
+        ]
+      },
       "PaperDto": {
         "type": "object",
         "properties": {
@@ -7752,6 +7777,13 @@
               }
             ]
           },
+          "snapshots": {
+            "description": "Every snapshot, the first first (a report is frozen again and again).",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaperSnapshotItemDto"
+            }
+          },
           "canEdit": {
             "type": "boolean",
             "description": "The actor may change and delete it: their own draft (admin — any)."
@@ -7770,11 +7802,11 @@
           },
           "canFreeze": {
             "type": "boolean",
-            "description": "Published, and its records are ready: the actor may freeze it for print\nand signature (a member — own free document; staff — any)."
+            "description": "Published, and its records are ready: the actor may freeze it for print\nand signature (a member — own free document or report; staff — any).\nA report frozen (or signed) already — a new snapshot with its record now."
           },
           "canSign": {
             "type": "boolean",
-            "description": "Frozen (or signed): the actor may upload the signed scan (a member — own\nfree document; staff — any)."
+            "description": "Frozen (or signed): the actor may upload the signed scan (a member — own\nfree document or report; staff — any)."
           },
           "id": {
             "type": "string"
@@ -7811,6 +7843,7 @@
           "targetId",
           "cancelReason",
           "snapshot",
+          "snapshots",
           "canEdit",
           "canPublish",
           "canCancel",

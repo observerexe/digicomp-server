@@ -34,11 +34,12 @@ export const RECORD_LABEL: Partial<Record<RecordType, string>> = {
   project: 'Проєкт',
   place: 'Обладнання',
   inventory_item: 'Склад',
+  fault: 'Несправність',
 };
 
 export const recordLabel = (type: RecordType) => RECORD_LABEL[type] ?? type;
 
-/** Page of a record; equipment and inventory open by their QR code. */
+/** Page of a record; equipment and inventory open by their QR code, a fault — on its equipment's page. */
 export function recordHref(type: RecordType, id: string, code?: string) {
   switch (type) {
     case 'user':
@@ -55,6 +56,8 @@ export function recordHref(type: RecordType, id: string, code?: string) {
       return `/lab/${encodeURIComponent(code ?? id)}`;
     case 'inventory_item':
       return `/inventory/${encodeURIComponent(code ?? id)}`;
+    case 'fault':
+      return code ? `/lab/${encodeURIComponent(code)}#faults` : null;
     default:
       return null;
   }

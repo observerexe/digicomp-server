@@ -7,7 +7,7 @@ import type { RecordType } from '../records/field-types';
 export type LinkedRecord = {
   title: string;
   archived: boolean;
-  /** The record's QR code, for records opened by it (equipment, inventory). */
+  /** The QR code the record opens by: equipment's, inventory's; a fault's — its equipment's. */
   code?: string;
 };
 

@@ -2,10 +2,13 @@ import type { FieldSchema } from '../records/field-types';
 import { publishSchema } from '../records/records.registry';
 import { TASK_SCHEMA } from '../tasks/task.schema';
 import { TemplateKind } from './template.entities';
+import type { PaperContent, PaperNode } from './content';
 import {
   bindingProblem,
   fieldDictionaries,
   fieldsProblem,
+  reportProblem,
+  reportRecordKey,
   type TemplateField,
 } from './template-fields';
 
@@ -262,4 +265,73 @@ it('довідники полів — без повторів', () => {
       field({ key: 'c' }),
     ]),
   ).toEqual(['x']);
+});
+
+describe('Звіт: запис у полі', () => {
+  const R = TemplateKind.Report;
+  const place = field({ key: 'place', type: 'ref:place', required: true });
+  const title = field({ key: 'title', binding: 'title' });
+  const fieldNode = (key: string): PaperNode => ({
+    type: 'paragraph',
+    content: [{ type: 'field', attrs: { key } }],
+  });
+  const doc = (...content: PaperNode[]): PaperContent => ({
+    type: 'doc',
+    content,
+  });
+  const body = doc(fieldNode('place'), fieldNode('title'));
+
+  it('поле запису — перше неприв’язане посилання на тип звіту', () => {
+    const other = field({ key: 'who', type: 'ref:user', required: true });
+    expect(reportRecordKey([other, title, place], 'place')).toBe('place');
+    expect(reportRecordKey([other, title], 'place')).toBeNull();
+    // Bound to the record's own field — shows the record, does not name it.
+    const bound = field({ key: 'p', type: 'ref:place', binding: 'placeId' });
+    expect(reportRecordKey([bound], 'place')).toBeNull();
+  });
+
+  it('прив’язані поля звіту — авто: не обов’язкові й незмінні', () => {
+    const schema = publishSchema(TASK_SCHEMA);
+    const t = field({ key: 't', binding: 'title' });
+    expect(bindingProblem([t], R, schema)).toBeNull();
+    expect(bindingProblem([{ ...t, required: true }], R, schema)).toEqual({
+      field: 't',
+    });
+    expect(bindingProblem([{ ...t, editable: true }], R, schema)).toEqual({
+      field: 't',
+    });
+  });
+
+  it('без поля запису — missing', () => {
+    expect(reportProblem(doc(fieldNode('title')), [title], R, 'place')).toBe(
+      'missing',
+    );
+  });
+
+  it('поле запису обов’язкове, без «можна змінити»', () => {
+    expect(reportProblem(body, [place, title], R, 'place')).toBeNull();
+    expect(
+      reportProblem(body, [{ ...place, required: false }, title], R, 'place'),
+    ).toEqual({ field: 'place' });
+    expect(
+      reportProblem(body, [{ ...place, editable: true }, title], R, 'place'),
+    ).toEqual({ field: 'place' });
+  });
+
+  it('поле запису — не в умовному блоці', () => {
+    const kind = field({ key: 'kind', type: 'enum', dictionary: 'd' });
+    const inBlock = doc(fieldNode('kind'), {
+      type: 'conditional',
+      attrs: { field: 'kind', value: 'a' },
+      content: [fieldNode('place')],
+    });
+    expect(reportProblem(inBlock, [kind, place], R, 'place')).toEqual({
+      field: 'place',
+    });
+  });
+
+  it('інші види шаблонів поля запису не потребують', () => {
+    expect(reportProblem(body, [title], C, 'task')).toBeNull();
+    expect(reportProblem(body, [], TemplateKind.Free, null)).toBeNull();
+  });
 });

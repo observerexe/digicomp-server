@@ -105,6 +105,7 @@ import {
   PaperTemplateVersion,
   TemplateKind,
 } from './template.entities';
+import { reportRecordKey } from './template-fields';
 import { TemplateErrors, TemplatesService } from './templates.service';
 
 const UNTITLED = 'Без назви';
@@ -131,6 +132,14 @@ const LIVE = new Set([
 
 /** Takes a signed scan: frozen, or signed already (a better scan). */
 const SIGNABLE = new Set([PaperStatus.Frozen, PaperStatus.Signed]);
+
+/** May be frozen now: published; a report — frozen or signed too (a new snapshot). */
+function freezable(p: Paper, form: { template: PaperTemplate } | null) {
+  return (
+    p.status === PaperStatus.Published ||
+    (form?.template.kind === TemplateKind.Report && SIGNABLE.has(p.status))
+  );
+}
 
 /** The archive category of signed scans (made when the first one comes). */
 const SCAN_CATEGORY = { key: 'signed_papers', title: 'Підписані документи' };
@@ -286,13 +295,16 @@ function withoutEmptyRows(
 
 /**
  * Text and values with the fields bound to the record taken from it (zones —
- * as plain paragraphs); `auto` — the fields nobody fills too.
+ * as plain paragraphs); `auto` — the fields nobody fills too; `zones` — off:
+ * the text stays as it is (a draft saves its text: a zone of the record's
+ * text in it would be a change of a locked zone).
  */
 function withRecord(
   fields: PaperField[],
   record: RecordValues,
   own: Shown,
   auto: boolean,
+  zones = true,
 ): Shown {
   let content = own.content;
   const values = { ...own.values };
@@ -300,6 +312,7 @@ function withRecord(
     if (f.binding === null || (f.auto && !auto)) continue;
     const raw = record[f.binding];
     if (!isFillable(f.type)) {
+      if (!zones) continue;
       content = withZoneText(
         content,
         f.key,
@@ -614,23 +627,39 @@ export class PaperworkService {
   }
 
   /**
-   * What the document shows: once published (until frozen or cancelled),
-   * fields bound to its record show the record as it is now; without the
-   * record — as they were written. Freezing writes what it showed into the
-   * document itself.
+   * What the document shows. A document that created a record: once
+   * published (until frozen or cancelled), fields bound to the record show
+   * it as it is now. A report: its bound fields show its record (see
+   * recordOfReport) as soon as it is chosen (zones — once published), until
+   * frozen; `fresh` — a frozen report too (a new snapshot). Without the
+   * record — as they were written.
+   * Freezing writes what it showed into the document itself.
    */
   private async shown(
     m: EntityManager,
     p: Paper,
     form: Form | null,
+    fresh = false,
   ): Promise<Shown> {
     const own = { content: p.content, values: p.values };
-    if (
-      !form ||
-      !p.targetType ||
-      !p.targetId ||
-      p.status !== PaperStatus.Published
-    ) {
+    if (!form) return own;
+    if (form.template.kind === TemplateKind.Report) {
+      const live =
+        p.status === PaperStatus.Draft ||
+        p.status === PaperStatus.Published ||
+        (fresh && SIGNABLE.has(p.status));
+      const record = live ? await this.recordOfReport(m, form, p.values) : null;
+      return record
+        ? withRecord(
+            form.fields,
+            record,
+            own,
+            true,
+            p.status !== PaperStatus.Draft,
+          )
+        : own;
+    }
+    if (!p.targetType || !p.targetId || p.status !== PaperStatus.Published) {
       return own;
     }
     const record = await this.adapters
@@ -638,6 +667,24 @@ export class PaperworkService {
       ?.resolve(p.targetId, m);
     if (!record) return own;
     return withRecord(form.fields, record.values, own, true);
+  }
+
+  /**
+   * The record a report is about — the value of its record field (see
+   * reportRecordKey), as its module reads it now; null — not chosen yet,
+   * or there is none any more.
+   */
+  private async recordOfReport(
+    m: EntityManager,
+    form: Form,
+    values: FieldValues,
+  ): Promise<RecordValues | null> {
+    const type = form.template.target!;
+    const key = reportRecordKey(form.fields, type);
+    const id = key === null ? undefined : values[key];
+    if (typeof id !== 'string') return null;
+    const record = await this.adapters.reader(type)?.resolve(id, m);
+    return record?.values ?? null;
   }
 
   private async view(
@@ -652,10 +699,18 @@ export class PaperworkService {
     const { content, values } = shown;
     const may = await this.changer(m, p, form, actor);
     const owner = { ownerId: p.authorId };
-    const snap = await m.findOne(PaperSnapshot, {
+    const snaps = await m.find(PaperSnapshot, {
+      select: {
+        id: true,
+        n: true,
+        sha256: true,
+        archiveDocId: true,
+        createdAt: true,
+      },
       where: { paperId: p.id },
-      order: { n: 'DESC' },
+      order: { n: 'ASC' },
     });
+    const snap = snaps.at(-1);
     return {
       ...itemView(p),
       content,
@@ -690,17 +745,20 @@ export class PaperworkService {
         can(actor, Action.PapersPublish, owner),
       canCancel: LIVE.has(p.status) && can(actor, Action.PapersCancel, owner),
       canFreeze:
-        p.status === PaperStatus.Published &&
+        freezable(p, form) &&
         can(actor, Action.PapersFreeze, freezeOwner(p)) &&
         (await this.ready(m, p)),
       canSign:
         SIGNABLE.has(p.status) && can(actor, Action.PapersSign, freezeOwner(p)),
-      snapshot: snap && {
-        n: snap.n,
-        sha256: snap.sha256,
-        createdAt: snap.createdAt,
-        signed: await this.signedOf(m, snap),
-      },
+      snapshot: snap
+        ? {
+            n: snap.n,
+            sha256: snap.sha256,
+            createdAt: snap.createdAt,
+            signed: await this.signedOf(m, snap),
+          }
+        : null,
+      snapshots: snaps.map((x) => ({ n: x.n, createdAt: x.createdAt })),
     };
   }
 
@@ -955,23 +1013,26 @@ export class PaperworkService {
    * Freezes a published document whose records are ready: the sheet as the
    * server renders it now, its SHA-256 and the values it shows become a
    * snapshot; the document keeps those values (bound fields stop following
-   * the record) and is «Зафіксовано». Once only: a frozen document is
-   * PAPER_FROZEN.
+   * the record) and is «Зафіксовано». Once only (PAPER_FROZEN) — but a
+   * report: frozen or signed, it takes a new snapshot with its record as it
+   * is now and is «Зафіксовано» again.
    */
   async freeze(id: string, actor: Actor): Promise<PaperDto> {
     return this.ds.transaction(async (m) => {
       const p = await this.accessible(m, id, actor, true);
       assertCan(actor, Action.PapersFreeze, freezeOwner(p));
-      if (p.status === PaperStatus.Frozen || p.status === PaperStatus.Signed) {
-        throw new ConflictException(PaperErrors.Frozen);
-      }
-      if (p.status !== PaperStatus.Published) {
-        throw new ConflictException(PaperErrors.NotPublished);
+      const form = await this.formOf(m, p);
+      if (!freezable(p, form)) {
+        throw new ConflictException(
+          SIGNABLE.has(p.status)
+            ? PaperErrors.Frozen
+            : PaperErrors.NotPublished,
+        );
       }
       if (!(await this.ready(m, p))) {
         throw new ConflictException(PaperErrors.NotReady);
       }
-      await this.snapshot(m, p, await this.formOf(m, p), actor, false);
+      await this.snapshot(m, p, form, actor, false);
       return this.view(m, p, actor);
     });
   }
@@ -1032,7 +1093,7 @@ export class PaperworkService {
   ) {
     p.author ??=
       (await m.getRepository(User).findOneBy({ id: p.authorId })) ?? undefined;
-    const shown = await this.shown(m, p, form);
+    const shown = await this.shown(m, p, form, true);
     const viewer: Actor = { id: actor.id, role: Role.Admin };
     const fill = await this.fillOf(m, p, shown, form, viewer);
     const [{ n }] = await m.query<{ n: number }[]>(
@@ -1791,6 +1852,16 @@ export class PaperworkService {
         // Rows as the author sees them: an error names a row by its place there.
         const drafted = p.values;
         p.values = withoutEmptyRows(form.fields, p.values);
+        if (form.template.kind === TemplateKind.Report) {
+          // A version naming no record — TEMPLATE_NEEDS_UPDATE.
+          await this.templates.assertCurrent(form.template, form.version);
+          // Its record still stands (it may have been deleted since).
+          if (!(await this.recordOfReport(m, form, p.values))) {
+            throw fieldInvalid(
+              reportRecordKey(form.fields, form.template.target!)!,
+            );
+          }
+        }
         if (form.template.kind === TemplateKind.Creates) {
           await this.templates.assertCurrent(form.template, form.version);
           const type = form.template.target!;

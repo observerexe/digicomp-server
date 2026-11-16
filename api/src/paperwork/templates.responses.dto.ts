@@ -11,6 +11,10 @@ export class TemplateTargetsDto {
   /** Types whose records a `creates` template may create (a module registered its adapter). */
   @ApiProperty({ enum: RECORD_TYPES, enumName: 'RecordType', isArray: true })
   creates: RecordType[];
+
+  /** Types a `report` template may be about (a module registered how to read its records). */
+  @ApiProperty({ enum: RECORD_TYPES, enumName: 'RecordType', isArray: true })
+  report: RecordType[];
 }
 
 /** A template without its versions (lists). */

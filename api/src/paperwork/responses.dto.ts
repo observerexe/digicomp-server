@@ -164,6 +164,13 @@ export class PaperSignedDto {
   uploadedAt: Date;
 }
 
+/** A snapshot among the document's snapshots. */
+export class PaperSnapshotItemDto {
+  /** 1, 2, … within the document (`print?snapshot=`). */
+  n: number;
+  createdAt: Date;
+}
+
 /** A snapshot of a frozen document. */
 export class PaperSnapshotDto {
   /** 1, 2, … within the document (`print?snapshot=`). */
@@ -227,19 +234,24 @@ export class PaperDto extends PaperItemDto {
 
   /**
    * Published, and its records are ready: the actor may freeze it for print
-   * and signature (a member — own free document; staff — any).
+   * and signature (a member — own free document or report; staff — any).
+   * A report frozen (or signed) already — a new snapshot with its record now.
    */
   canFreeze: boolean;
 
   /**
    * Frozen (or signed): the actor may upload the signed scan (a member — own
-   * free document; staff — any).
+   * free document or report; staff — any).
    */
   canSign: boolean;
 
   /** The latest snapshot (frozen, signed; cancelled after freezing); null — none. */
   @ApiProperty({ type: PaperSnapshotDto, nullable: true })
   snapshot: PaperSnapshotDto | null;
+
+  /** Every snapshot, the first first (a report is frozen again and again). */
+  @ApiProperty({ type: [PaperSnapshotItemDto] })
+  snapshots: PaperSnapshotItemDto[];
 }
 
 /** Who froze a snapshot. */

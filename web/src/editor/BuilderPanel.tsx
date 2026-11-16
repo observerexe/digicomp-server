@@ -1,4 +1,4 @@
-import { useId, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useId, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import type { RecordSchema, TemplateKind } from '../api/types';
 import { Icon } from '../components/Icon';
 import { useDictionaries } from '../lib/dictionaries';
@@ -8,7 +8,7 @@ import { FIELD_LIMITS } from '../../../shared/editor-schema/fields';
 import { BLOCK_MIME, type BuilderSelection } from './builder';
 import s from './BuilderPanel.module.css';
 import { isAutoBinding } from './blocks/schema';
-import { bindingOptions, hasLength, isChoice, isList, isNumeric, keyProblem, LABEL_MAX, limitsText, recordRowsOf, withType, type FieldDef, type FieldType } from './template';
+import { bindingOptions, hasLength, isChoice, isList, isNumeric, keyProblem, LABEL_MAX, limitsText, recordRowsOf, reportRecordOf, withType, type FieldDef, type FieldType } from './template';
 
 export type BuilderTab = 'blocks' | 'props' | 'template';
 
@@ -292,6 +292,12 @@ function FieldForm({ f, fields, columns, defs, kind, schema, onChange, onRename,
     if (ownRows && (!ownRows.required || ownRows.editable)) onChange({ ...ownRows, required: true, editable: false });
   };
   const rowsOwnRecords = rows && recordRows === f.key;
+  // A report's record: required, never changed after publication.
+  const reportRecord = kind === 'report' && !!schema && reportRecordOf(fields, schema.type, columns) === f.key;
+  const recordRuleBroken = reportRecord && (!f.required || f.editable);
+  useEffect(() => {
+    if (recordRuleBroken) onChange({ ...f, required: true, editable: false });
+  }, [recordRuleBroken]);
 
   return (
     <>
@@ -345,7 +351,8 @@ function FieldForm({ f, fields, columns, defs, kind, schema, onChange, onRename,
       {rowsOwnRecords && schema && (
         <p className="hint">Рядок = запис «{schema.label}»: кожен заповнений рядок створить запис. Хоча б один рядок обов’язковий; після публікації рядки не змінюються.</p>
       )}
-      {kind !== 'free' && schema && !rows && (!ownRows || kind === 'creates') && (
+      {reportRecord && <p className="hint">Про цей запис звіт: людина вибирає його, решта полів підставиться з нього. Обов’язкове; після публікації не змінюється.</p>}
+      {kind !== 'free' && schema && !rows && !reportRecord && (!ownRows || kind === 'creates') && (
         <div className="field">
           <label htmlFor={`${id}-binding`}>Зв’язок із записом</label>
           <select id={`${id}-binding`} value={f.binding ?? ''} onChange={(e) => bind(e.target.value)}>
@@ -359,7 +366,9 @@ function FieldForm({ f, fields, columns, defs, kind, schema, onChange, onRename,
           </select>
           <span className="hint">
             {auto
-              ? `Заповниться із запису «${bound!.label}» після публікації; ніхто не заповнює.`
+              ? kind === 'report'
+                ? `Підставиться з поля «${bound!.label}» запису, про який звіт; ніхто не заповнює.`
+                : `Заповниться із запису «${bound!.label}» після публікації; ніхто не заповнює.`
               : bound
                 ? [
                     `Значення піде в поле запису «${bound.label}».`,
@@ -393,10 +402,10 @@ function FieldForm({ f, fields, columns, defs, kind, schema, onChange, onRename,
               </select>
             </div>
           )}
-          {!rowsOwnRecords && (
+          {!rowsOwnRecords && !reportRecord && (
             <Switch label={rows ? 'Хоча б один рядок' : ownRows ? 'Обов’язкове в кожному рядку' : 'Обов’язкове'} on={f.required} onChange={(required) => set({ required })} />
           )}
-          {!ownRows && !rowsOwnRecords && <Switch label="Можна змінити після публікації" on={f.editable} onChange={(editable) => set({ editable })} />}
+          {!ownRows && !rowsOwnRecords && !reportRecord && <Switch label="Можна змінити після публікації" on={f.editable} onChange={(editable) => set({ editable })} />}
         </>
       )}
       {!ownRows && <Switch label="Показувати в друці" on={f.print} onChange={(print) => set({ print })} />}

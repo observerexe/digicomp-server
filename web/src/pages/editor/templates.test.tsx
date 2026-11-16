@@ -62,7 +62,12 @@ const schemas = Object.fromEntries(
   RECORD_TYPES.map((type) => [
     `GET /api/records/${type}/schema`,
     () =>
-      json(200, type === 'task' ? TASK : { type, label: type === 'session' ? 'Сеанс' : type, extensible: false, version: 'v', fields: [{ key: 'id', label: 'Id', type: 'text' }] }),
+      json(
+        200,
+        type === 'task'
+          ? TASK
+          : { type, label: type === 'session' ? 'Сеанс' : type === 'place' ? 'Обладнання' : type, extensible: false, version: 'v', fields: [{ key: 'id', label: 'Id', type: 'text' }] },
+      ),
   ]),
 );
 
@@ -71,7 +76,7 @@ const base = (me: Me, extra: Record<string, (r: Request) => Response | Promise<R
   'GET /api/work-sessions': () => json(200, { items: [], total: 0, page: 1, limit: 1 }),
   'GET /api/papers': () => json(200, { items: [], total: 0, page: 1, limit: 100 }),
   'GET /api/papers/templates': () => json(200, []),
-  'GET /api/papers/templates/targets': () => json(200, { creates: ['task'] }),
+  'GET /api/papers/templates/targets': () => json(200, { creates: ['task'], report: ['task', 'place'] }),
   ...schemas,
   ...extra,
 });
@@ -110,7 +115,7 @@ describe('Редактор: вкладка «Шаблони»', () => {
     expect(screen.queryByRole('button', { name: 'Шаблони' })).not.toBeInTheDocument();
   });
 
-  it('«Новий шаблон»: «Створює запис» — лише типи зі списку API (є адаптер); шаблон відкривається в конструкторі', async () => {
+  it('«Новий шаблон»: «Створює запис» і «Звіт» — лише типи зі списку API (модуль створює чи читає); шаблон відкривається в конструкторі', async () => {
     const { calls } = mockApi(
       builder(version(), template(), {
         'POST /api/papers/templates': () => json(201, template()),
@@ -127,8 +132,10 @@ describe('Редактор: вкладка «Шаблони»', () => {
     const target = within(form).getByLabelText('Запис');
     await waitFor(() => expect(within(target).getByRole('option', { name: 'ТЗ' })).toBeInTheDocument());
     expect(within(target).queryByRole('option', { name: 'Сеанс' })).not.toBeInTheDocument();
+    expect(within(target).queryByRole('option', { name: 'Обладнання' })).not.toBeInTheDocument();
     await userEvent.selectOptions(within(form).getByLabelText('Призначення'), 'report');
-    expect(within(target).getByRole('option', { name: 'Сеанс' })).toBeInTheDocument();
+    expect(within(target).getByRole('option', { name: 'Обладнання' })).toBeInTheDocument();
+    expect(within(target).queryByRole('option', { name: 'Сеанс' })).not.toBeInTheDocument();
     await userEvent.selectOptions(within(form).getByLabelText('Призначення'), 'creates');
     await userEvent.selectOptions(target, 'task');
     await userEvent.click(create);

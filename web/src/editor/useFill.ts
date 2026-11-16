@@ -9,7 +9,7 @@ import { conditionsIn } from './conditional';
 import { paperExtensions } from './extensions';
 import type { RibbonLock } from './Ribbon';
 import { fieldPosition, setFieldsLook, zoneAtSelection, zoneTexts, type FieldLook, type FieldsLook } from './fields';
-import { cellControlId, fieldControlId, isFilled } from './FieldsPanel';
+import { cellControlId, fieldControlId, isFilled, reportRecordKey } from './FieldsPanel';
 import type { MentionMenuState, MentionSuggest } from './mention';
 import { recordKey, type PaperRecords } from './records';
 import type { RowCell } from './repeat';
@@ -48,7 +48,9 @@ export function lookOf(template: PaperTemplateRef, values: FieldValues, zones: R
     if (f.auto && f.type !== 'richtext') {
       const v = values[f.key];
       look.fields[f.key] =
-        v !== undefined ? { text: valueText(f.type, v, f.options, title), state: 'fixed' } : { text: published ? 'ще немає' : 'заповниться після публікації', state: 'auto' };
+        v !== undefined
+          ? { text: valueText(f.type, v, f.options, title), state: 'fixed' }
+          : { text: published ? 'ще немає' : template.kind === 'report' ? 'з’явиться, коли виберете запис' : 'заповниться після публікації', state: 'auto' };
       continue;
     }
     if (f.type === 'richtext') {
@@ -72,7 +74,7 @@ type FillOptions = {
   refs: readonly RecordView[];
   /** The actor fills a draft or changes a published document now. */
   editable: boolean;
-  /** Published (or later): auto fields show the record. */
+  /** Published (or later): auto fields show the record (a report's — once it is chosen). */
   published?: boolean;
   /**
    * The fields' controls are not on the screen now (the phone shows the page):
@@ -176,12 +178,35 @@ export function useFill({ template, values: initial, refs, editable, published =
     return next;
   };
 
+  /**
+   * A report's draft: what its record shows now in the fields nobody fills
+   * (the server's answer to a save), with the records they refer to.
+   */
+  const takeAuto = (next: FieldValues, found: readonly RecordView[]) => {
+    for (const r of found) records.add(r);
+    setValues((prev) => {
+      const out = { ...prev };
+      for (const f of template?.fields ?? []) {
+        if (!f.auto) continue;
+        if (next[f.key] === undefined) delete out[f.key];
+        else out[f.key] = next[f.key]!;
+      }
+      return JSON.stringify(out) === JSON.stringify(prev) ? prev : out;
+    });
+  };
+
+  // A report shows its record as soon as it is chosen.
+  const reportKey = reportRecordKey(template);
+  const shown = published || (reportKey !== null && values[reportKey] !== undefined);
+
   return {
     template,
     editable,
-    published,
+    /** Auto fields show the record: published, or a report's record chosen. */
+    published: shown,
     values,
     change,
+    takeAuto,
     zones,
     conditions,
     syncZones,

@@ -26,7 +26,7 @@ const rows = field('rows', { key: 'rows1', label: 'Нарахування' });
 const member = field('ref:user', { key: 'member', label: 'Учасник' });
 const note = field('text', { key: 'note', label: 'Примітка' });
 
-function panel(selected: string, fields: FieldDef[], onChange = vi.fn()) {
+function panel(selected: string, fields: FieldDef[], onChange = vi.fn(), kind: 'creates' | 'report' = 'creates', schema: RecordSchema = ENTRY) {
   render(
     <QueryClientProvider client={new QueryClient()}>
       <BuilderPanel
@@ -40,8 +40,8 @@ function panel(selected: string, fields: FieldDef[], onChange = vi.fn()) {
         defs={new Map(fields.map((f) => [f.key, f]))}
         fields={fields}
         columns={new Map([['member', 'rows1']])}
-        kind="creates"
-        schema={ENTRY}
+        kind={kind}
+        schema={schema}
         onPick={() => {}}
         onChange={onChange}
         onRename={() => {}}
@@ -80,5 +80,32 @@ describe('Конструктор: рядок = запис', () => {
     const binding = screen.getByLabelText('Зв’язок із записом');
     expect(within(binding).getAllByRole('option')).toHaveLength(1);
     expect(screen.getByText(/Записи створюють рядки блоку «Нарахування»/)).toBeInTheDocument();
+  });
+});
+
+describe('Конструктор: звіт', () => {
+  const PLACE: RecordSchema = {
+    type: 'place',
+    label: 'Обладнання',
+    extensible: false,
+    version: 'v1',
+    fields: [{ key: 'code', label: 'Код', type: 'text', required: true, create: true }],
+  };
+  const place = field('ref:place', { key: 'place1', label: 'Обладнання' });
+  const code = field('text', { key: 'code', label: 'Код', binding: 'code' });
+
+  it('поле запису звіту: пояснення замість зв’язку й перемикачів; стає обов’язковим і незмінним', () => {
+    const onChange = panel('place1', [place, code], vi.fn(), 'report', PLACE);
+    expect(screen.getByText(/Про цей запис звіт/)).toBeInTheDocument();
+    expect(screen.queryByLabelText('Зв’язок із записом')).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'Обов’язкове' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'Можна змінити після публікації' })).not.toBeInTheDocument();
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ key: 'place1', required: true, editable: false }));
+  });
+
+  it('прив’язане поле звіту — авто: підставиться із запису, без перемикачів', () => {
+    panel('code', [{ ...place, required: true }, code], vi.fn(), 'report', PLACE);
+    expect(screen.getByText('Підставиться з поля «Код» запису, про який звіт; ніхто не заповнює.')).toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'Обов’язкове' })).not.toBeInTheDocument();
   });
 });

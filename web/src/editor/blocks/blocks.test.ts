@@ -71,9 +71,9 @@ describe('Поля запису в палітрі', () => {
     ],
   };
 
-  it('«Створює запис» — спершу поля, які задаються при створенні, потім авто-поля; «Звіт» — усі; вільний — немає групи', () => {
+  it('«Створює запис» — спершу поля, які задаються при створенні, потім авто-поля; «Звіт» — запис, потім усі; вільний — немає групи', () => {
     expect(schemaBlocks('creates', schema).map((b) => b.binding)).toEqual(['title', 'description', 'assigneeIds', 'kind', 'status', 'split']);
-    expect(schemaBlocks('report', schema).map((b) => b.binding)).toEqual(['title', 'description', 'assigneeIds', 'status', 'split', 'kind']);
+    expect(schemaBlocks('report', schema).map((b) => b.binding)).toEqual([undefined, 'title', 'description', 'assigneeIds', 'status', 'split', 'kind']);
     expect(paletteOf('free', schema).groups).toEqual(BLOCK_GROUPS);
     const palette = paletteOf('creates', schema);
     expect(palette.groups[0]).toEqual({ key: 'schema', label: 'Поля запису «ТЗ»' });
@@ -90,7 +90,16 @@ describe('Поля запису в палітрі', () => {
     expect(title).toMatchObject({ type: 'text', icon: 'textField', required: true, prefix: 'title' });
     expect(description).toMatchObject({ type: 'richtext', icon: 'zone', required: false });
     expect(assignees).toMatchObject({ type: 'list<ref:user>', icon: 'users' });
-    expect(schemaBlocks('report', schema)[0]!.required).toBe(false);
+    expect(schemaBlocks('report', schema)[1]!.required).toBe(false);
+  });
+
+  it('«Звіт»: перший блок — сам запис (обов’язковий, не прив’язаний); поля запису — авто, рядком', () => {
+    const [record, title, description] = schemaBlocks('report', schema);
+    expect(record).toMatchObject({ type: 'ref:task', label: 'ТЗ', prefix: 'task', required: true });
+    expect(record!.binding).toBeUndefined();
+    expect(newField(record!, new Set())).toMatchObject({ type: 'ref:task', required: true, editable: false, binding: null });
+    expect(title).toMatchObject({ binding: 'title', required: false, hint: 'Підставиться із запису «ТЗ», про який звіт' });
+    expect(description).toMatchObject({ type: 'text', binding: 'description' });
   });
 
   it('нове поле — з ключем поля запису, поки він вільний, прив’язане', () => {

@@ -36,9 +36,10 @@ function useRecordTypes() {
     staleTime: 5 * 60_000,
   });
   const creates = new Set<string>(targets.data?.creates ?? []);
+  const report = new Set<string>(targets.data?.report ?? []);
   return RECORD_TYPES.map((type, i) => {
     const schema = schemas[i]!.data;
-    return { type: type as RecordType, label: schema?.label ?? type, creatable: creates.has(type), ready: !!schema && targets.isSuccess };
+    return { type: type as RecordType, label: schema?.label ?? type, creatable: creates.has(type), readable: report.has(type), ready: !!schema && targets.isSuccess };
   });
 }
 
@@ -93,7 +94,7 @@ export function NewTemplate({ onClose }: { onClose: () => void }) {
   const [kind, setKind] = useState<TemplateKind>('free');
   const [target, setTarget] = useState<RecordType | ''>('');
   const types = useRecordTypes();
-  const offered = types.filter((t) => t.ready && (kind !== 'creates' || t.creatable));
+  const offered = types.filter((t) => t.ready && (kind === 'creates' ? t.creatable : t.readable));
   const create = useMutation({
     mutationFn: () => unwrap(api.POST('/api/papers/templates', { body: { title: title.trim(), kind, ...(kind !== 'free' && target ? { target } : {}) } })),
     onSuccess: (t) => {
@@ -127,7 +128,7 @@ export function NewTemplate({ onClose }: { onClose: () => void }) {
             ? 'Документ без запису: протокол, інструкція, лист.'
             : kind === 'creates'
               ? 'Коли документ опублікують, з нього створиться запис.'
-              : 'Документ про наявний запис: паспорт, звіт, акт.'}{' '}
+              : 'Документ про наявний запис: паспорт, звіт, акт. Запис вибирають у полі документа, решту поля бере із запису.'}{' '}
           Призначення й запис потім не змінюються.
         </span>
       </div>

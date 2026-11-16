@@ -134,12 +134,53 @@ export function bindable(schema: PublishedSchema) {
 }
 
 /**
- * A field of a `creates` template bound to a field of the record set not on
- * creation (assignees, acceptance…): nobody fills it, it shows the record
- * once the document is published.
+ * A field nobody fills — it shows the record: in a `creates` template, one
+ * bound to what the record gets after creation (assignees, acceptance…),
+ * shown once the document is published; in a report, every bound field,
+ * shown as soon as the record is chosen.
  */
 export function isAutoBinding(kind: TemplateKind, s: FieldSchema) {
-  return kind === TemplateKind.Creates && !s.create;
+  return (
+    kind === TemplateKind.Report || (kind === TemplateKind.Creates && !s.create)
+  );
+}
+
+/**
+ * The field a report takes its record from: its first field referring to
+ * the target's type that is not bound and not a column of rows; null —
+ * none (see reportProblem).
+ */
+export function reportRecordKey(
+  fields: readonly { key: string; type: string; binding: string | null }[],
+  target: string,
+  columns: ReadonlyMap<string, string> = new Map(),
+): string | null {
+  const f = fields.find(
+    (x) =>
+      x.type === `ref:${target}` && x.binding === null && !columns.has(x.key),
+  );
+  return f ? f.key : null;
+}
+
+/**
+ * A report names its record in a field (see reportRecordKey): required,
+ * never changed after publication, outside conditional blocks. `missing` —
+ * there is no such field.
+ */
+export function reportProblem(
+  body: PaperContent,
+  fields: TemplateField[],
+  kind: TemplateKind,
+  target: string | null,
+): FieldProblem | 'missing' | null {
+  if (kind !== TemplateKind.Report || target === null) return null;
+  const key = reportRecordKey(fields, target, rowColumns(body));
+  if (key === null) return 'missing';
+  const f = fields.find((x) => x.key === key)!;
+  const conditional = (body.content ?? []).some(
+    (n) => conditionOf(n) !== null && keysIn(n).has(key),
+  );
+  return !f.required || f.editable || conditional ? { field: key } : null;
 }
 
 /**

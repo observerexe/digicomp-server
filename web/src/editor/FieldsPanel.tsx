@@ -45,8 +45,17 @@ export function fillProgress(template: PaperTemplateRef, values: FieldValues, zo
  */
 export type FieldsMode = 'fill' | 'change' | 'view';
 
-/** What an auto field shows before the record has it. */
-export const autoPlaceholder = (published: boolean) => (published ? 'ще немає' : 'після публікації');
+
+/** A report's record field: its first field referring to the record's type, not bound; null — not a report. */
+export function reportRecordKey(template: PaperTemplateRef | null): string | null {
+  if (template?.kind !== 'report') return null;
+  return template.fields.find((f) => f.type === `ref:${template.target}` && !f.binding)?.key ?? null;
+}
+
+/** What an auto field shows before the record has it: `shown` — the record is there (published; a report — chosen). */
+export function autoPlaceholder(kind: PaperTemplateRef['kind'], shown: boolean) {
+  return shown ? 'ще немає' : kind === 'report' ? 'коли виберете запис' : 'після публікації';
+}
 
 export type GroupsProps = {
   template: PaperTemplateRef;
@@ -56,7 +65,7 @@ export type GroupsProps = {
   /** Fields of conditional blocks: shown only while the block is on. */
   conditions: Conditions;
   mode: FieldsMode;
-  /** Published (or later): auto fields show the record. */
+  /** Auto fields show the record: published (a report — its record chosen). */
   published: boolean;
   active: string | null;
   onChange: (key: string, value: FieldValue | null) => void;
@@ -130,7 +139,7 @@ export function FieldGroups({ template, values, zones, conditions, mode, publish
         <section className={s.group}>
           <h3>Підставить система</h3>
           {auto.map((f) => (
-            <AutoRow key={f.key} field={f} value={values[f.key]} published={published} />
+            <AutoRow key={f.key} field={f} value={values[f.key]} placeholder={autoPlaceholder(template.kind, published)} />
           ))}
         </section>
       )}
@@ -139,13 +148,13 @@ export function FieldGroups({ template, values, zones, conditions, mode, publish
 }
 
 /** An auto field: what the record holds, or when it comes. */
-function AutoRow({ field: f, value, published }: { field: PaperField; value: FieldValue | undefined; published: boolean }) {
+function AutoRow({ field: f, value, placeholder }: { field: PaperField; value: FieldValue | undefined; placeholder: string }) {
   const records = usePaperRecords();
   const text = value !== undefined ? valueText(f.type, value, f.options, (type, id) => records.get(type, id)?.title ?? null) : null;
   return (
     <div className={s.autoRow}>
       <span>{f.label}</span>
-      <span className={text === null ? s.later : undefined}>{text ?? autoPlaceholder(published)}</span>
+      <span className={text === null ? s.later : undefined}>{text ?? placeholder}</span>
     </div>
   );
 }

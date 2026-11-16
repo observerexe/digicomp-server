@@ -162,6 +162,15 @@ export function bindingOptions(
   );
 }
 
+/**
+ * The field a report takes its record from: its first field referring to the
+ * record's type, not bound and not a column of rows; null — none (the server
+ * then refuses to publish: TEMPLATE_REPORT_RECORD).
+ */
+export function reportRecordOf(fields: readonly FieldDef[], target: string, columns: ReadonlyMap<string, string>): string | null {
+  return fields.find((f) => f.type === `ref:${target}` && !f.binding && !columns.has(f.key))?.key ?? null;
+}
+
 /** «Рядок = запис»: the key of the rows field whose columns are bound; null — none. */
 export function recordRowsOf(fields: readonly FieldDef[], columns: ReadonlyMap<string, string>): string | null {
   const f = fields.find((x) => x.binding && columns.has(x.key));

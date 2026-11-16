@@ -36,6 +36,7 @@ const paper = (over: Partial<Paper> = {}): Paper => ({
   canFreeze: false,
   canSign: false,
   snapshot: null,
+  snapshots: [],
   ...over,
 });
 

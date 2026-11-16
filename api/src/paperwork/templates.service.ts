@@ -28,6 +28,8 @@ import {
   fieldDictionaries,
   fieldsProblem,
   isAutoBinding,
+  reportProblem,
+  reportRecordKey,
   rowColumns,
   type FieldProblem,
   type TemplateField,
@@ -58,6 +60,7 @@ export const TemplateErrors = {
   Published: 'Template version is published',
   FieldInvalid: 'Invalid template field',
   KindInvalid: 'Invalid template kind',
+  ReportRecord: 'Report has no record field',
   Conflict: 'Template was changed by someone else',
 } as const;
 
@@ -113,10 +116,10 @@ function versionView(v: PaperTemplateVersion): TemplateVersionDto {
 }
 
 /**
- * The kind fits the target: `free` has none; `report` — any record type;
- * `creates` — a type whose module creates records from documents (its
- * adapter is registered). Auto-freeze needs a record that gets done:
- * `creates` only.
+ * The kind fits the target: `free` has none; `report` — a type whose module
+ * reads its records for documents (its reader is registered); `creates` — a
+ * type whose module creates records from documents (its adapter is
+ * registered). Auto-freeze needs a record that gets done: `creates` only.
  */
 function assertKind(
   adapters: PaperAdapterRegistry,
@@ -128,7 +131,9 @@ function assertKind(
     kind === TemplateKind.Free
       ? target === null
       : target !== null &&
-        (kind === TemplateKind.Report || adapters.get(target) !== undefined);
+        (kind === TemplateKind.Report
+          ? adapters.reader(target) !== undefined
+          : adapters.get(target) !== undefined);
   if (!ok || (autoFreeze && kind !== TemplateKind.Creates)) {
     throw new BadRequestException(TemplateErrors.KindInvalid);
   }
@@ -165,7 +170,10 @@ export class TemplatesService {
   ) {}
 
   targets(): TemplateTargetsDto {
-    return { creates: this.adapters.registered() };
+    return {
+      creates: this.adapters.registered(),
+      report: this.adapters.readable(),
+    };
   }
 
   /**
@@ -274,7 +282,10 @@ export class TemplatesService {
         changes.archived = { from: !!t.archivedAt, to: dto.archived };
         t.archivedAt = dto.archived ? new Date() : null;
       }
-      assertKind(this.adapters, t.kind, t.target, t.autoFreeze);
+      // A template made before its target lost its module stays archivable.
+      if (changes.autoFreeze) {
+        assertKind(this.adapters, t.kind, t.target, t.autoFreeze);
+      }
       if (Object.keys(changes).length) {
         await m.save(t);
         await this.log(m, actor, 'paper_template.updated', t, { changes });
@@ -433,7 +444,11 @@ export class TemplatesService {
           v.body,
           await resolveFields(m, t.kind, v.fields, schema, v.body),
           schema,
-        );
+        ) ??
+        reportProblem(v.body, v.fields, t.kind, t.target);
+      if (problem === 'missing') {
+        throw new BadRequestException(TemplateErrors.ReportRecord);
+      }
       if (problem) throw fieldInvalid(problem);
       v.publishedAt = new Date();
       v.publishedById = actor.id;
@@ -566,6 +581,13 @@ export class TemplatesService {
     schemas: Schemas,
   ) {
     if (t.kind === TemplateKind.Free) return false;
+    // A report published before reports named their record: it names none.
+    if (
+      t.kind === TemplateKind.Report &&
+      reportRecordKey(v.fields, t.target!, rowColumns(v.body)) === null
+    ) {
+      return true;
+    }
     const schema = await schemas.of(t.target);
     if (!schema || schema.version === v.schemaVersion) return false;
     return (
@@ -584,8 +606,7 @@ export class TemplatesService {
   ): Promise<RecordType[]> {
     const v = t.currentVersion;
     if (!v) return [];
-    const schema =
-      t.kind === TemplateKind.Creates ? await schemas.of(t.target) : null;
+    const schema = await schemas.of(t.target);
     const types = new Set<RecordType>();
     for (const f of v.fields) {
       if (!f.type.startsWith('ref:')) continue;

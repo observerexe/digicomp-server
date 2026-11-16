@@ -10,7 +10,7 @@ import { Icon } from '../../components/Icon';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { DropZone } from '../../components/DropZone';
 import { ConfirmButton, ErrorMessage } from '../../components/ui';
-import { FieldsPanel } from '../../editor/FieldsPanel';
+import { FieldsPanel, reportRecordKey } from '../../editor/FieldsPanel';
 import { setZoneText } from '../../editor/fields';
 import { MentionMenu } from '../../editor/MentionMenu';
 import { PaperForm } from '../../editor/PaperForm';
@@ -122,8 +122,14 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
     pending.current = { ...pending.current, ...change };
     setDirty(true);
   };
+  // A report's draft shows its record as soon as it is chosen: once saved, the record is read anew.
+  const onSaved = useRef<(change: Partial<PaperChange>) => void>(() => {});
   const autosave = useAutosave<PaperChange>(
-    (change, revision) => unwrap(api.PATCH('/api/papers/{id}', { params: { path: { id: paper.id } }, body: { revision, ...change } })),
+    (change, revision) =>
+      unwrap(api.PATCH('/api/papers/{id}', { params: { path: { id: paper.id } }, body: { revision, ...change } })).then((saved) => {
+        onSaved.current(change);
+        return saved;
+      }),
     paper.revision,
   );
   const [title, setTitle] = useState(paper.title);
@@ -147,6 +153,13 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
     },
   });
   const { values } = fill;
+  const recordKey = reportRecordKey(template);
+  const shownRecord = useRef(recordKey ? paper.values[recordKey] : undefined);
+  onSaved.current = (change) => {
+    if (!recordKey || !change.values || change.values[recordKey] === shownRecord.current) return;
+    shownRecord.current = change.values[recordKey];
+    void unwrap(api.GET('/api/papers/{id}', { params: { path: { id: paper.id } } })).then((p) => fill.takeAuto(p.values as FieldValues, p.refs as RecordView[]));
+  };
   const editor = useEditor({
     extensions: fill.extensions,
     content: paper.content,
@@ -222,7 +235,12 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
     people: template ? peopleOf(template.fields, values, fill.recordTitle) : {},
   });
 
-  const changeValue = (key: string, v: FieldValue | null) => keep({ values: fill.change(key, v) });
+  // A draft never sends what the record shows (a report's auto fields): nobody fills it.
+  // A change of a published document sends everything it shows: the server compares.
+  const changeValue = (key: string, v: FieldValue | null) => {
+    const next = fill.change(key, v);
+    keep({ values: filling ? Object.fromEntries(Object.entries(next).filter(([k]) => !template?.fields.find((f) => f.key === k)?.auto)) : next });
+  };
   /** A zone from the form: to it on the page, the cursor in it. */
   const toPage = (key: string) => {
     setView('page');
@@ -312,16 +330,26 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
       {paper.canPublish && (
         <ConfirmButton label="Опублікувати" question={publishQuestion(paper)} confirmLabel="Опублікувати" primary disabled={publish.isPending} onConfirm={() => publish.mutate()} />
       )}
-      {paper.canFreeze && (
-        <ConfirmButton
-          label="Зафіксувати для підпису"
-          question="Зафіксувати документ? Він стане остаточним: друк і PDF — з цього знімка, з QR-кодом перевірки."
-          confirmLabel="Зафіксувати"
-          primary
-          disabled={freeze.isPending}
-          onConfirm={() => freeze.mutate()}
-        />
-      )}
+      {paper.canFreeze &&
+        (paper.snapshot ? (
+          // A report: each freezing is a new version with its record as it is now.
+          <ConfirmButton
+            label="Зафіксувати нову версію"
+            question="Зафіксувати нову версію? Вона візьме дані запису, які є зараз; попередні версії лишаються."
+            confirmLabel="Зафіксувати"
+            disabled={freeze.isPending}
+            onConfirm={() => freeze.mutate()}
+          />
+        ) : (
+          <ConfirmButton
+            label="Зафіксувати для підпису"
+            question="Зафіксувати документ? Він стане остаточним: друк і PDF — з цього знімка, з QR-кодом перевірки."
+            confirmLabel="Зафіксувати"
+            primary
+            disabled={freeze.isPending}
+            onConfirm={() => freeze.mutate()}
+          />
+        ))}
       {paper.canSign && scan === undefined && (
         <button type="button" className={`btn ${paper.status === 'frozen' ? 'btn-primary' : ''}`} onClick={() => setScan(null)}>
           {paper.status === 'frozen' ? 'Завантажити підписаний скан' : 'Інший скан'}
@@ -335,7 +363,7 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
     zones: fill.zones,
     conditions: fill.conditions,
     mode: filling ? ('fill' as const) : changing ? ('change' as const) : ('view' as const),
-    published,
+    published: fill.published,
     active: sheet.shownActive,
     onChange: changeValue,
     onActive: sheet.onActive,
@@ -459,6 +487,7 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
           </form>
         )}
         {paper.snapshot?.signed && <SignedScan paper={paper} signed={paper.snapshot.signed} />}
+        {paper.snapshots.length > 1 && <Versions paper={paper} />}
         {paper.status === 'cancelled' && <p className="hint">Документ скасовано{paper.cancelReason ? `: ${paper.cancelReason}` : ''}.</p>}
         {paper.status !== 'cancelled' && paper.targetType && paper.targetId && <CreatedRecord type={paper.targetType} id={paper.targetId} />}
         {autosave.state === 'conflict' && (
@@ -517,7 +546,11 @@ function PaperEditor({ paper, changing, onChanging, onReload }: EditorProps) {
 /** Why the text does not change, or what changes. */
 function readHint(paper: Paper, changing: boolean) {
   if (paper.status === 'draft') return 'Це чужа чернетка: її можна лише переглядати.';
-  if (paper.snapshot) return 'Документ зафіксовано: друк і PDF — зі знімка, з QR-кодом перевірки.';
+  if (paper.snapshot) {
+    return paper.canFreeze
+      ? 'Документ зафіксовано: друк і PDF — з останньої версії, з QR-кодом перевірки. «Зафіксувати нову версію» візьме дані запису, які є зараз.'
+      : 'Документ зафіксовано: друк і PDF — зі знімка, з QR-кодом перевірки.';
+  }
   if (changing) {
     const record = paper.targetType ? ` Поля, пов’язані із записом «${recordLabel(paper.targetType)}», змінять і сам запис.` : '';
     return `Змініть поля, які можна змінити, і натисніть «Зберегти зміни».${record}`;
@@ -567,6 +600,23 @@ function SignedScan({ paper, signed }: { paper: Paper; signed: NonNullable<NonNu
           Завантажити скан
         </a>
       )}
+    </p>
+  );
+}
+
+/** Every version of a report frozen again: each prints its own snapshot. */
+function Versions({ paper }: { paper: Paper }) {
+  return (
+    <p className="hint">
+      Версії:{' '}
+      {paper.snapshots.map((v, i) => (
+        <span key={v.n}>
+          {i > 0 && ' · '}
+          <a href={`/api/papers/${paper.id}/print?snapshot=${v.n}`} target="_blank" rel="noopener noreferrer" title={`Версія ${v.n} від ${formatDate(v.createdAt)}`}>
+            {v.n}
+          </a>
+        </span>
+      ))}
     </p>
   );
 }

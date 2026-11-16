@@ -2358,6 +2358,8 @@ export interface components {
         TemplateTargetsDto: {
             /** @description Types whose records a `creates` template may create (a module registered its adapter). */
             creates: components["schemas"]["RecordType"][];
+            /** @description Types a `report` template may be about (a module registered how to read its records). */
+            report: components["schemas"]["RecordType"][];
         };
         CreateTemplateDto: {
             /** @description Cannot be changed later. */
@@ -2637,6 +2639,12 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        PaperSnapshotItemDto: {
+            /** @description 1, 2, … within the document (`print?snapshot=`). */
+            n: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
         PaperDto: {
             /** @description `ТЗ-2026-014`: given when published, if the template has a prefix. */
             number: string | null;
@@ -2666,6 +2674,8 @@ export interface components {
             cancelReason: string | null;
             /** @description The latest snapshot (frozen, signed; cancelled after freezing); null — none. */
             snapshot: components["schemas"]["PaperSnapshotDto"] | null;
+            /** @description Every snapshot, the first first (a report is frozen again and again). */
+            snapshots: components["schemas"]["PaperSnapshotItemDto"][];
             /** @description The actor may change and delete it: their own draft (admin — any). */
             canEdit: boolean;
             /**
@@ -2682,12 +2692,13 @@ export interface components {
             canChange: boolean;
             /**
              * @description Published, and its records are ready: the actor may freeze it for print
-             *     and signature (a member — own free document; staff — any).
+             *     and signature (a member — own free document or report; staff — any).
+             *     A report frozen (or signed) already — a new snapshot with its record now.
              */
             canFreeze: boolean;
             /**
              * @description Frozen (or signed): the actor may upload the signed scan (a member — own
-             *     free document; staff — any).
+             *     free document or report; staff — any).
              */
             canSign: boolean;
             id: string;

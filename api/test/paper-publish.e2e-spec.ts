@@ -532,6 +532,7 @@ describe('Публікація документів (e2e)', () => {
       const targets = await as(app, mod).get(`${T}/targets`).expect(200);
       expect(targets.body).toEqual({
         creates: ['discipline_record', 'points_entry', 'task'],
+        report: ['discipline_record', 'fault', 'place', 'points_entry', 'task'],
       });
       await as(app, member).get(`${T}/targets`).expect(403);
       const res = await as(app, mod)

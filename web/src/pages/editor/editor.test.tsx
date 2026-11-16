@@ -33,6 +33,7 @@ const paper = (over: Partial<Paper> = {}): Paper => ({
   canFreeze: false,
   canSign: false,
   snapshot: null,
+  snapshots: [],
   ...over,
 });
 const item = (p: Paper) => {
@@ -750,6 +751,73 @@ describe('Редактор: документ із шаблону', () => {
       expect(body).toEqual({ revision: 3, values: { ...values, count: 3 } });
       // Збережено: знову перегляд (документ з сервера).
       expect(await screen.findByRole('button', { name: 'Змінити' })).toBeInTheDocument();
+    });
+
+    describe('звіт', () => {
+      const REPORT: PaperField[] = [
+        f({ key: 'place', label: 'Обладнання', type: 'ref:place', required: true }),
+        f({ key: 'code', label: 'Код', binding: 'code', auto: true, canFill: false }),
+        f({ key: 'note', label: 'Примітка' }),
+      ];
+      const reportContent = {
+        type: 'doc',
+        content: ['place', 'code', 'note'].map((key) => ({ type: 'paragraph', content: [{ type: 'field', attrs: { key } }] })),
+      };
+      const report = (over: Partial<Paper> = {}) =>
+        paper({ title: 'Паспорт', content: reportContent, template: { id: 't2', title: 'Паспорт', version: 1, kind: 'report', target: 'place', fields: REPORT }, ...over });
+      const lathe = { type: 'place' as const, id: 'pl1', title: 'Фрезер', archived: false, code: 'CNC-1' };
+
+      it('запис не вибрано — «коли виберете запис»; вибрали — після збереження поля запису підставляються', async () => {
+        const chosen = report({ revision: 2, values: { place: 'pl1', code: 'CNC-1' }, refs: [lathe] });
+        let gets = 0;
+        const { calls } = mockApi(
+          base(writer, {
+            'GET /api/papers/p1': () => json(200, gets++ === 0 ? report() : chosen),
+            'GET /api/links/candidates': () => json(200, [lathe]),
+            'PATCH /api/papers/p1': () => json(200, { ...item(chosen), updatedAt: '2026-11-16T12:30:00Z' }),
+          }),
+        );
+        renderApp('/editor/p1');
+        const panel = await screen.findByRole('complementary', { name: 'Поля документа' });
+        expect(within(panel).getByText('коли виберете запис')).toBeInTheDocument();
+        await waitFor(() => expect(sheetField('code')).toHaveTextContent('з’явиться, коли виберете запис'));
+        await userEvent.click(within(panel).getByRole('combobox', { name: /^Обладнання/ }));
+        await userEvent.click(await within(panel).findByRole('option', { name: /Фрезер/ }));
+        await waitFor(() => expect(sheetField('code')).toHaveTextContent('CNC-1'), { timeout: 4000 });
+        expect(JSON.parse(calls.find((c) => c.method === 'PATCH')!.body)).toEqual({ revision: 1, values: { place: 'pl1' } });
+      });
+
+      it('чернетка не надсилає того, що показує запис', async () => {
+        const doc = report({ values: { place: 'pl1', code: 'CNC-1' }, refs: [lathe] });
+        const { calls } = mockApi(
+          base(writer, {
+            'GET /api/papers/p1': () => json(200, doc),
+            'PATCH /api/papers/p1': () => json(200, { ...item(doc), revision: 2 }),
+          }),
+        );
+        renderApp('/editor/p1');
+        const panel = await screen.findByRole('complementary', { name: 'Поля документа' });
+        await waitFor(() => expect(sheetField('code')).toHaveTextContent('CNC-1'));
+        await userEvent.type(within(panel).getByLabelText('Примітка'), 'Так');
+        await waitFor(() => expect(calls.some((c) => c.method === 'PATCH')).toBe(true), { timeout: 4000 });
+        expect(JSON.parse(calls.find((c) => c.method === 'PATCH')!.body)).toEqual({ revision: 1, values: { place: 'pl1', note: 'Так' } });
+      });
+
+      it('зафіксований звіт: «Зафіксувати нову версію» з підтвердженням; «Версії» ведуть на друк знімків', async () => {
+        const snapshot = { n: 1, sha256: 'a'.repeat(64), createdAt: '2026-11-15T11:00:00Z', signed: null };
+        const frozen = report({ status: 'frozen', canEdit: false, canFreeze: true, values: { place: 'pl1', code: 'CNC-1' }, refs: [lathe], snapshot, snapshots: [snapshot] });
+        const again = { ...frozen, revision: 2, snapshot: { ...snapshot, n: 2 }, snapshots: [snapshot, { n: 2, createdAt: '2026-11-16T11:00:00Z' }] };
+        const { calls } = mockApi(base(writer, { 'GET /api/papers/p1': () => json(200, frozen), 'POST /api/papers/p1/freeze': () => json(200, again) }));
+        renderApp('/editor/p1');
+        expect(await screen.findByText(/«Зафіксувати нову версію» візьме дані запису/)).toBeInTheDocument();
+        expect(screen.queryByText(/^Версії:/)).not.toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'Зафіксувати нову версію' }));
+        expect(screen.getByText('Зафіксувати нову версію? Вона візьме дані запису, які є зараз; попередні версії лишаються.')).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'Зафіксувати' }));
+        expect(await screen.findByRole('link', { name: '2' })).toHaveAttribute('href', '/api/papers/p1/print?snapshot=2');
+        expect(screen.getByRole('link', { name: '1' })).toHaveAttribute('href', '/api/papers/p1/print?snapshot=1');
+        expect(calls.filter((c) => c.method === 'POST' && c.path === '/api/papers/p1/freeze')).toHaveLength(1);
+      });
     });
 
     it('«Скасувати» — без запиту; помилка запису підсвічує поле', async () => {

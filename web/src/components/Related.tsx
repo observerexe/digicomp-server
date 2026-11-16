@@ -16,10 +16,11 @@ const GROUPS: { title: string; types: RecordType[] }[] = [
   { title: 'Проєкти', types: ['project'] },
   { title: 'Обладнання', types: ['place'] },
   { title: 'Склад', types: ['inventory_item'] },
+  { title: 'Несправності', types: ['fault'] },
 ];
 
 /** What can be picked to link, one chip per type. */
-const LINKABLE: RecordType[] = ['document', 'task', 'project', 'place', 'inventory_item'];
+const LINKABLE: RecordType[] = ['document', 'task', 'project', 'place', 'inventory_item', 'fault'];
 
 export const linksKey = (type: RecordType, id: string) => ['links', type, id] as const;
 
