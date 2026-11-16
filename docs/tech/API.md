@@ -30,7 +30,8 @@
   далі `POST /api/auth/2fa/verify { challengeToken, code }` або `{ challengeToken, recoveryCode }`. `challengeToken` діє 5 хвилин.
 - `POST /api/auth/refresh` — новий токен доступу (1 год) і новий refresh (30 днів); старий refresh більше не діє.
 - `POST /api/auth/logout` — цей пристрій; `POST /api/auth/logout-all` — усі.
-- `POST /api/auth/setup` — створює першого адміна, лише поки в базі немає користувачів.
+- `POST /api/auth/setup` — створює першого адміна, лише поки в базі немає користувачів, і публікує від його імені початкові шаблони
+  редактора (ТЗ, подання, відомість, звіти, допуск, акт списання тощо), яких ще немає.
 
 **2FA (свій акаунт).** `POST /api/auth/2fa/setup` → `{ secret, otpauthUri }`; `POST /api/auth/2fa/enable { code }` → 8 запасних кодів
 (показуються раз) і закриття всіх сесій; `disable` і `recovery-codes` — з кодом. Адмін скидає 2FA іншому: `POST /api/users/:id/2fa/reset`.

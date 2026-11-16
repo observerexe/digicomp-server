@@ -6,8 +6,9 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as argon2 from 'argon2';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
+import { seedTemplates } from '../paperwork/seed-templates';
 import { SessionsService } from '../sessions/sessions.service';
 import { Role, User } from '../users/user.entity';
 import { toProfile } from '../users/profile';
@@ -24,6 +25,7 @@ export class AuthService {
     private sessions: SessionsService,
     private audit: AuditService,
     private twoFactor: TwoFactorService,
+    private dataSource: DataSource,
   ) {}
 
   async setupFirstAdmin(dto: CreateUserDto) {
@@ -31,7 +33,10 @@ export class AuthService {
     if (count > 0) {
       throw new ConflictException('Setup already completed');
     }
-    return this.create(dto, Role.Admin);
+    const admin = await this.create(dto, Role.Admin);
+    // The starter templates wait for an admin to be their author.
+    await this.dataSource.transaction((m) => seedTemplates(m.queryRunner!));
+    return admin;
   }
 
   async create(dto: CreateUserDto, role: Role, actorId?: string) {
