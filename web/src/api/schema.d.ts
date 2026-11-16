@@ -734,6 +734,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/papers/{id}/docx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A copy in Word of the sheet the print shows (the latest snapshot or the
+         *     given one; not frozen — the current content, marked at the top).
+         */
+        get: operations["PaperworkController_docx"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/papers/verify/{sha}": {
         parameters: {
             query?: never;
@@ -5020,6 +5040,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaperDto"];
+                };
+            };
+        };
+    };
+    PaperworkController_docx: {
+        parameters: {
+            query?: {
+                /** @description The snapshot's number (1, 2, …); none — the latest one, if frozen. */
+                snapshot?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description DOCX file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": string;
                 };
             };
         };

@@ -259,6 +259,14 @@ describe('Знімок: аркуш, хеш, печатка, водяний зн�
     expect(styleOf(html)).toMatch(/\.watermark \{ position: fixed;/);
     expect(page().html).not.toContain('class="watermark"');
   });
+
+  it('у підказці — посилання на копію DOCX (екрановане); без адреси — без посилання', () => {
+    const { html } = page({ docx: '/api/papers/x/docx?snapshot=2&a' });
+    expect(html).toMatch(
+      /<p class="hint">[^<]*<a href="\/api\/papers\/x\/docx\?snapshot=2&amp;a" download>Завантажити копію DOCX<\/a><\/p>/,
+    );
+    expect(page().html).not.toContain('DOCX');
+  });
 });
 
 describe('Блоки структури', () => {

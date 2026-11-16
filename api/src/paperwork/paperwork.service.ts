@@ -86,6 +86,7 @@ import {
   type PaperField,
 } from './paper-fields';
 import { papersOf, recordsOfPaper } from './paper-targets';
+import { docxFileName, paperDocx } from './docx';
 import { paperPrintHtml, sheetHash, sheetHtml, type Seal } from './print';
 import {
   footerText,
@@ -1003,18 +1004,14 @@ export class PaperworkService {
   }
 
   /**
-   * Print page. A frozen document prints its snapshot (the latest or the
-   * given one) with the seal: QR to the check page and SHA-256; cancelled
-   * after freezing — the same with «Скасовано» across it. A document never
-   * frozen prints its current content with the values of fields, marked
+   * The sheet to print or copy. A frozen document — its snapshot (the latest
+   * or the given one) with the seal: QR to the check page and SHA-256;
+   * cancelled after freezing — the same marked «Скасовано». A document never
+   * frozen — its current content with the values of fields, marked
    * «Чернетка», «Не зафіксовано» or «Скасовано»: print and PDF come from
    * snapshots only.
    */
-  async printHtml(
-    id: string,
-    q: PrintPaperQuery,
-    actor: Actor,
-  ): Promise<{ html: string; csp: string }> {
+  private async sheetOf(id: string, q: PrintPaperQuery, actor: Actor) {
     const m = this.ds.manager;
     const p = await this.accessible(m, id, actor);
     const snap = await this.snapshotOf(
@@ -1023,16 +1020,17 @@ export class PaperworkService {
       q.snapshot === undefined ? undefined : Number(q.snapshot),
     );
     if (snap) {
-      return paperPrintHtml({
-        title: p.title,
+      return {
+        paper: p,
+        snapshot: snap.n,
         sheet: snap.html,
         footer: footerText(p.content),
         seal: sealOf(snap),
-        watermark:
+        mark:
           p.status === PaperStatus.Cancelled
             ? WATERMARK[PaperStatus.Cancelled]
             : null,
-      });
+      };
     }
     const form = await this.formOf(m, p);
     const shown = await this.shown(m, p, form);
@@ -1044,12 +1042,49 @@ export class PaperworkService {
       actor,
       await this.tablesOf(m, p, shown, actor),
     );
-    return paperPrintHtml({
-      title: p.title,
+    return {
+      paper: p,
+      snapshot: null,
       sheet: sheetHtml(shown.content, fill),
       footer: footerText(shown.content),
-      watermark: WATERMARK[p.status],
+      seal: null,
+      mark: WATERMARK[p.status],
+    };
+  }
+
+  /** Print page (see sheetOf), with a link to its DOCX copy. */
+  async printHtml(
+    id: string,
+    q: PrintPaperQuery,
+    actor: Actor,
+  ): Promise<{ html: string; csp: string }> {
+    const s = await this.sheetOf(id, q, actor);
+    return paperPrintHtml({
+      title: s.paper.title,
+      sheet: s.sheet,
+      footer: s.footer,
+      seal: s.seal,
+      watermark: s.mark,
+      // The copy of the very snapshot shown, even if one more is taken meanwhile.
+      docx: `/api/papers/${s.paper.id}/docx${s.snapshot === null ? '' : `?snapshot=${s.snapshot}`}`,
     });
+  }
+
+  /** A copy in Word of the same sheet the print shows (see sheetOf). */
+  async docx(
+    id: string,
+    q: PrintPaperQuery,
+    actor: Actor,
+  ): Promise<{ file: Buffer; name: string }> {
+    const s = await this.sheetOf(id, q, actor);
+    const file = await paperDocx({
+      title: s.paper.title,
+      sheet: s.sheet,
+      footer: s.footer,
+      seal: s.seal,
+      mark: s.mark,
+    });
+    return { file, name: docxFileName(s.paper.title, s.paper.number) };
   }
 
   /**

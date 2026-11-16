@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { createHash } from 'crypto';
+import { strFromU8, unzipSync } from 'fflate';
 import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
 import { AuditLog } from '../src/audit/audit-log.entity';
@@ -341,6 +342,90 @@ describe('Фіксація документів (e2e)', () => {
       expect(res.text).toContain(`SHA-256: ${sha}`);
       expect(res.text).toContain('>Скасовано</div>');
       expect(res.text).not.toContain('<svg'); // no PUBLIC_ORIGIN
+    });
+  });
+
+  describe('копія DOCX', () => {
+    const docx = (u: TestUser, id: string, query = '') =>
+      as(app, u)
+        .get(`/api/papers/${id}/docx${query}`)
+        .buffer(true)
+        .parse((res, done) => {
+          const chunks: Buffer[] = [];
+          res.on('data', (c: Buffer) => chunks.push(c));
+          res.on('end', () => done(null, Buffer.concat(chunks)));
+        });
+    /** The text of the document's body and of its page headers. */
+    const words = (file: Buffer) => {
+      const zip = unzipSync(new Uint8Array(file));
+      const of = (k: string) =>
+        [...strFromU8(zip[k]!).matchAll(/<w:t[^>]*>([^<]*)<\/w:t>/g)]
+          .map((m) => m[1])
+          .join(' ');
+      return {
+        body: of('word/document.xml'),
+        headers: Object.keys(zip)
+          .filter((k) => k.startsWith('word/header'))
+          .map(of)
+          .join(' '),
+      };
+    };
+
+    it('не зафіксований — поточний вміст з позначкою; друк веде на нього', async () => {
+      const d = (
+        await as(app, member)
+          .post('/api/papers')
+          .send({ title: 'План: тиждень', content: doc('Текст') })
+          .expect(201)
+      ).body as Paper;
+      const res = await docx(member, d.id).expect(200);
+      expect(res.headers['content-type']).toBe(
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      );
+      expect(res.headers['content-disposition']).toMatch(/^attachment; /);
+      expect(res.headers['content-disposition']).toContain(
+        `filename*=UTF-8''${encodeURIComponent('План_ тиждень.docx')}`,
+      );
+      const w = words(res.body as Buffer);
+      expect(w.body).toContain('Текст');
+      expect(w.headers).toContain('ЧЕРНЕТКА');
+      expect((await print(member, d.id).expect(200)).text).toContain(
+        `<a href="/api/papers/${d.id}/docx" download>Завантажити копію DOCX</a>`,
+      );
+    });
+
+    it('зафіксований — копія знімка з SHA-256; друк веде на той самий знімок; ?snapshot=', async () => {
+      process.env.PUBLIC_ORIGIN = 'https://digicomp.example';
+      const p = await freePaper(member, 'Зафіксований текст');
+      const sha = ((await freeze(member, p.id)).body as Paper).snapshot!.sha256;
+      const res = await docx(member, p.id).expect(200);
+      // A free document has no number: the title alone.
+      expect(res.headers['content-disposition']).toContain(
+        `''${encodeURIComponent('Протокол.docx')}`,
+      );
+      const w = words(res.body as Buffer);
+      expect(w.body).toContain('Зафіксований текст');
+      expect(w.body).toContain(`SHA-256: ${sha}`);
+      expect(w.body).toContain(`https://digicomp.example/papers/verify/${sha}`);
+      expect(w.headers).not.toContain('ЗАФІКСОВАНО');
+      expect((await print(member, p.id).expect(200)).text).toContain(
+        `href="/api/papers/${p.id}/docx?snapshot=1"`,
+      );
+      await docx(member, p.id, '?snapshot=1').expect(200);
+      code(
+        await as(app, member).get(`/api/papers/${p.id}/docx?snapshot=2`),
+        404,
+        'PAPER_SNAPSHOT_NOT_FOUND',
+      );
+    });
+
+    it('хто не бачить документа, копії не отримує', async () => {
+      const p = await freePaper(member);
+      code(
+        await as(app, member2).get(`/api/papers/${p.id}/docx`),
+        404,
+        'PAPER_NOT_FOUND',
+      );
     });
   });
 

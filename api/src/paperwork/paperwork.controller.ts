@@ -52,6 +52,9 @@ import {
 
 type Req = { user: { id: string; role: string } };
 
+const DOCX =
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
 const SCAN_UPLOAD = FileInterceptor('file', {
   limits: { fileSize: 20 * 1024 * 1024, files: 1 },
 });
@@ -147,6 +150,34 @@ export class PaperworkController {
     @Req() req: Req,
   ) {
     return this.papers.sign(id, file, req.user);
+  }
+
+  /**
+   * A copy in Word of the sheet the print shows (the latest snapshot or the
+   * given one; not frozen — the current content, marked at the top).
+   */
+  @Can(Action.PapersRead)
+  @ApiProduces(DOCX)
+  @ApiOkResponse({
+    description: 'DOCX file',
+    schema: { type: 'string', format: 'binary' },
+  })
+  @Get(':id/docx')
+  async docx(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() q: PrintPaperQuery,
+    @Req() req: Req,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { file, name } = await this.papers.docx(id, q, req.user);
+    res.set({
+      'Content-Type': DOCX,
+      'Content-Disposition': contentDisposition(name),
+      'Content-Length': String(file.length),
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': 'private, no-store',
+    });
+    return new StreamableFile(file);
   }
 
   /** The latest signed scan, for who sees the document; `inline=1` — a PDF opens in the browser. */

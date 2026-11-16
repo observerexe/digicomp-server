@@ -57,6 +57,7 @@ ${PAPER_CSS}
 html { background: color-mix(in srgb, var(--sheet-ink) 6%, var(--sheet-paper)); }
 body { margin: 0; padding: 16px 0 32px; }
 .hint { box-sizing: border-box; width: 210mm; margin: 0 auto 12px; color: var(--sheet-gray); font: 13px/1.4 var(--font-body); }
+.hint a { color: var(--sheet-blue); }
 .page { box-sizing: border-box; width: 210mm; min-height: 297mm; margin: 0 auto; padding: 20mm 10mm 20mm 30mm; background: var(--sheet-paper); box-shadow: 0 1px 4px color-mix(in srgb, var(--sheet-ink) 25%, transparent); }
 .seal { display: flex; gap: 4mm; align-items: center; margin-top: 10mm; break-inside: avoid; color: var(--sheet-ink); font: 9pt/1.35 ${SERIF_FONT}; }
 .seal svg { flex: none; width: 22mm; height: 22mm; }
@@ -177,6 +178,8 @@ export function paperPrintHtml(paper: {
   seal?: Seal | null;
   /** Across every page: «Чернетка», «Скасовано»…; none — a clean print. */
   watermark?: string | null;
+  /** The address of the same sheet as DOCX (a link in the hint); none — no link. */
+  docx?: string | null;
 }): { html: string; csp: string } {
   const style = pageStyle(paper.footer);
   const mark = paper.watermark
@@ -190,7 +193,7 @@ export function paperPrintHtml(paper: {
 <style>${style}</style>
 </head>
 <body>
-<p class="hint">Щоб роздрукувати або зберегти PDF: Ctrl+P (на телефоні — «Поділитися» → «Друк»). У вікні друку вимкніть колонтитули браузера, щоб він не додав свою адресу й дату. Ця підказка не друкується.</p>
+<p class="hint">Щоб роздрукувати або зберегти PDF: Ctrl+P (на телефоні — «Поділитися» → «Друк»). У вікні друку вимкніть колонтитули браузера, щоб він не додав свою адресу й дату. Ця підказка не друкується.${paper.docx ? ` <a href="${esc(paper.docx)}" download>Завантажити копію DOCX</a>` : ''}</p>
 ${mark}<div class="page">${paper.sheet}${paper.seal ? sealHtml(paper.seal) : ''}</div>
 </body>
 </html>

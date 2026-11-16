@@ -1847,6 +1847,48 @@
         ]
       }
     },
+    "/api/papers/{id}/docx": {
+      "get": {
+        "operationId": "PaperworkController_docx",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "snapshot",
+            "required": false,
+            "in": "query",
+            "description": "The snapshot's number (1, 2, …); none — the latest one, if frozen.",
+            "schema": {
+              "maxLength": 6,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "DOCX file",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "summary": "A copy in Word of the sheet the print shows (the latest snapshot or the\ngiven one; not frozen — the current content, marked at the top).",
+        "tags": [
+          "Paperwork"
+        ]
+      }
+    },
     "/api/papers/verify/{sha}": {
       "get": {
         "operationId": "PaperworkController_verify",
