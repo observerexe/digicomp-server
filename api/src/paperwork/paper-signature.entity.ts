@@ -9,7 +9,7 @@ import {
 } from 'typeorm';
 import { User } from '../users/user.entity';
 import { PaperSnapshot } from './paper-snapshot.entity';
-import type { Strokes } from './signatures';
+import type { Strokes } from '../../../shared/editor-schema/signature';
 
 /**
  * A drawn signature on a line of a snapshot (its `signers`): by the person
@@ -43,7 +43,7 @@ export class PaperSignature {
   @JoinColumn({ name: 'user_id' })
   user?: User;
 
-  /** The drawing: strokes of points on a 1500 × 500 field (see signatures.ts). */
+  /** The drawing: strokes of points on a 1500 × 500 field (see shared/editor-schema/signature.ts). */
   @Column({ type: 'jsonb' })
   strokes: Strokes;
 

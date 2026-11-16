@@ -26,6 +26,7 @@ type Line = {
   label: string;
   person: { id: string; name: string } | null;
   signedAt: string | null;
+  strokes: number[][] | null;
 };
 
 type Paper = {
@@ -145,20 +146,29 @@ describe('Графічний підпис (e2e)', () => {
           label: 'Затверджую',
           person: { id: mod.id, name: mod.name },
           signedAt: null,
+          strokes: null,
         },
         {
           row: 1,
           label: 'Склав',
           person: { id: member.id, name: member.name },
           signedAt: null,
+          strokes: null,
         },
         {
           row: 2,
           label: 'Погодив',
           person: { id: mod.id, name: mod.name },
           signedAt: null,
+          strokes: null,
         },
-        { row: 3, label: 'Ознайомлений', person: null, signedAt: null },
+        {
+          row: 3,
+          label: 'Ознайомлений',
+          person: null,
+          signedAt: null,
+          strokes: null,
+        },
       ]);
       expect(p.canSignDrawn).toBe(true);
       expect((await get(mod, p.id)).canSignDrawn).toBe(true);
@@ -180,7 +190,13 @@ describe('Графічний підпис (e2e)', () => {
         .expect(200);
       const p = await freePaper(member, doc({ type: 'approval' }, para('a')));
       expect(p.snapshot!.signatures).toEqual([
-        { row: 0, label: 'Затверджую', person: null, signedAt: null },
+        {
+          row: 0,
+          label: 'Затверджую',
+          person: null,
+          signedAt: null,
+          strokes: null,
+        },
       ]);
       expect(p.canSignDrawn).toBe(false);
     });
@@ -201,6 +217,13 @@ describe('Графічний підпис (e2e)', () => {
       });
       const signed = byMod.snapshot!.signatures.filter((l) => l.signedAt);
       expect(signed.map((l) => l.row)).toEqual([0, 2]);
+      // The editor draws them over their lines: the strokes come with the document.
+      expect(signed.map((l) => l.strokes)).toEqual([STROKES, STROKES]);
+      expect(
+        byMod
+          .snapshot!.signatures.filter((l) => !l.signedAt)
+          .map((l) => l.strokes),
+      ).toEqual([null, null]);
       code(await signDrawn(mod, p.id), 409, 'PAPER_SIGNED_BY_YOU');
       code(await signDrawn(admin, p.id), 403, 'NOT_SIGNER');
 
@@ -269,13 +292,7 @@ describe('Графічний підпис (e2e)', () => {
 
     it('штрихи поза межами — VALIDATION_ERROR; нічого не записано', async () => {
       const p = await freePaper(member);
-      for (const strokes of [
-        null,
-        [],
-        [[1501, 0]],
-        [[1, 2, 3]],
-        '<svg/>',
-      ]) {
+      for (const strokes of [null, [], [[1501, 0]], [[1, 2, 3]], '<svg/>']) {
         code(await signDrawn(member, p.id, strokes), 400, 'VALIDATION_ERROR');
       }
       expect(await ds.getRepository(PaperSignature).count()).toBe(0);

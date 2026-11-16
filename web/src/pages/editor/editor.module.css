@@ -427,3 +427,11 @@
   align-items: center;
   gap: 8px;
 }
+
+/* Who signs the snapshot and who has; on a phone — «Підписати» under it (the header's actions are behind «Ще»). */
+.signLines {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}

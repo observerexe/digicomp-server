@@ -37,6 +37,27 @@ describe('Перевірка документа за QR', () => {
     expect(screen.getByRole('link', { name: 'Друк цього знімка' })).toHaveAttribute('href', '/api/papers/p1/print?snapshot=1');
   });
 
+  it('графічні підписи: хто й коли підписав, кого ще чекає рядок', async () => {
+    mockApi(
+      api(() =>
+        json(
+          200,
+          checked({
+            signatures: [
+              { label: 'Затверджую', name: 'Артур Машталер', signedAt: '2026-11-21T09:00:00Z' },
+              { label: 'Роботу прийняв', name: 'Олена Коваль', signedAt: null },
+            ],
+          }),
+        ),
+      ),
+    );
+    renderApp(`/papers/verify/${SHA}`);
+    expect(await screen.findByText('Затверджую')).toBeInTheDocument();
+    expect(screen.getByText(/^Артур Машталер · підписано .*21 лист\., 11:00$/)).toBeInTheDocument();
+    expect(screen.getByText('Роботу прийняв')).toBeInTheDocument();
+    expect(screen.getByText('Олена Коваль · підпису в DigiComp HUB ще немає')).toBeInTheDocument();
+  });
+
   it('скасований і не останній — так і сказано; без доступу — без посилань', async () => {
     mockApi(api(() => json(200, checked({ status: 'cancelled', cancelReason: 'помилка в балах', latest: false, paperId: null }))));
     renderApp(`/papers/verify/${SHA}`);

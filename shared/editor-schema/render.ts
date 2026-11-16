@@ -135,15 +135,18 @@ export type SignLine = { label: string; signer: string | null };
  * Structure stands on the top level only.
  */
 export function signLines(doc: PaperNode): SignLine[] {
-  return (doc.content ?? []).flatMap((n): SignLine[] => {
-    if (n.type === 'approval') return [{ label: 'Затверджую', signer: SIGNER_ORG }];
-    if (n.type !== 'signatures') return [];
-    const column = (side: 'left' | 'right'): SignLine => ({
-      label: nodeAttr(n, `${side}Label`) as string,
-      signer: nodeAttr(n, `${side}Signer`) as string | null,
-    });
-    return (nodeAttr(n, 'rightLabel') as string) ? [column('left'), column('right')] : [column('left')];
+  return (doc.content ?? []).flatMap(nodeSignLines);
+}
+
+/** The lines to sign on one top-level block draws (none — not «Затверджую» or «Блок підписів»). */
+export function nodeSignLines(n: PaperNode): SignLine[] {
+  if (n.type === 'approval') return [{ label: 'Затверджую', signer: SIGNER_ORG }];
+  if (n.type !== 'signatures') return [];
+  const column = (side: 'left' | 'right'): SignLine => ({
+    label: nodeAttr(n, `${side}Label`) as string,
+    signer: nodeAttr(n, `${side}Signer`) as string | null,
   });
+  return (nodeAttr(n, 'rightLabel') as string) ? [column('left'), column('right')] : [column('left')];
 }
 
 /** The text of the page footer (the first «Колонтитул»); '' — none. */

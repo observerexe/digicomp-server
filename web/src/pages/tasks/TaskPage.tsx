@@ -195,6 +195,14 @@ function TaskPaper({ task: t }: { task: TaskDetail }) {
   const manage = can('tasks.manage');
   const templates = useTemplates(manage && !t.paper && t.status !== 'done');
   const edit = useTaskPaper();
+  // An accepted task's document is frozen: who its lines await may sign it now (or later, from «Головна»).
+  const paperId = t.status === 'done' ? t.paper?.id : undefined;
+  const toSign = useQuery({
+    queryKey: ['papers', 'sign', paperId],
+    queryFn: () => unwrap(api.GET('/api/papers/{id}', { params: { path: { id: paperId! } } })),
+    enabled: !!paperId && can('papers.read'),
+    select: (p) => p.canSignDrawn,
+  });
   const [reason, setReason] = useState<string | null>(null);
   const cancel = useMutation({
     mutationFn: async () => {
@@ -223,6 +231,16 @@ function TaskPaper({ task: t }: { task: TaskDetail }) {
               Відкрити документ
             </Link>
           </div>
+          {toSign.data && (
+            <>
+              <p className="hint">Документ зафіксовано й чекає вашого підпису. Його можна підписати зараз або пізніше — з «Головної».</p>
+              <div className={s.cardActions}>
+                <Link to={`/editor/${t.paper.id}`} className="btn btn-primary">
+                  Підписати документ
+                </Link>
+              </div>
+            </>
+          )}
           {manage && t.status !== 'done' && <p className="hint">Назву, мету, бали й термін змінюють у документі: «Змінити».</p>}
         </>
       ) : (

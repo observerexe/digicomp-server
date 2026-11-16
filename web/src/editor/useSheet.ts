@@ -2,6 +2,7 @@ import type { Editor } from '@tiptap/core';
 import { useEffect } from 'react';
 import { SIGNER_AUTHOR, SIGNER_ORG, tableKey, type AutoTables } from '../../../shared/editor-schema';
 import { dayText, signName, yearText, type FieldValues, type RecordTitle } from '../../../shared/editor-schema/fields';
+import type { SheetSignature } from '../../../shared/editor-schema/signature';
 import { useOrgSettings } from '../lib/org';
 import type { TableSourceInfo } from './blocks';
 import { setSheetInfo } from './structure';
@@ -37,17 +38,23 @@ type SheetOptions = {
   labels?: Record<string, string>;
   /** «Документ» of the constructor: auto tables never get rows here. */
   trial?: boolean;
+  /** Drawn signatures of a frozen document: over their lines. */
+  signatures?: SheetSignature[];
 };
 
 /**
  * What the header, «Затверджую», signatures and auto values show on the
  * sheet: «Реквізити», the author, the day of publication, members of fields.
  */
-export function useSheet(editor: Editor, { builder = false, author = null, publishedAt = null, number = null, people = {}, tables, sources, labels = {}, trial = false }: SheetOptions) {
+export function useSheet(
+  editor: Editor,
+  { builder = false, author = null, publishedAt = null, number = null, people = {}, tables, sources, labels = {}, trial = false, signatures = [] }: SheetOptions,
+) {
   const org = useOrgSettings().data;
   // Compared by value: a new object each render is the same sheet.
   const peopleKey = JSON.stringify(people);
   const tablesKey = JSON.stringify([tables ?? {}, sources ?? [], labels]);
+  const signaturesKey = JSON.stringify(signatures);
   useEffect(() => {
     const names = JSON.parse(peopleKey) as People;
     const [rows, known, label] = JSON.parse(tablesKey) as [AutoTables, TableSourceInfo[], Record<string, string>];
@@ -60,6 +67,7 @@ export function useSheet(editor: Editor, { builder = false, author = null, publi
         const s = known.find((x) => x.key === source);
         return s ? { columns: s.columns, caption: null, rows: null, more: 0 } : null;
       },
+      signatures: JSON.parse(signaturesKey) as SheetSignature[],
       tableHint: (key) => (trial ? 'Рядки з’являться в документі' : `з’явиться, коли виберете «${label[key] ?? key}»`),
       paper: {
         institution: org?.institution ?? '',
@@ -74,5 +82,5 @@ export function useSheet(editor: Editor, { builder = false, author = null, publi
         year: yearText(publishedAt ?? new Date()),
       },
     });
-  }, [editor, org, builder, author, publishedAt, number, peopleKey, tablesKey, trial]);
+  }, [editor, org, builder, author, publishedAt, number, peopleKey, tablesKey, signaturesKey, trial]);
 }

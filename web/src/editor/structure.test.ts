@@ -25,6 +25,7 @@ const INFO: SheetInfo = {
   },
   table: () => null,
   tableHint: (field) => `з’явиться, коли виберете «${field}»`,
+  signatures: [],
 };
 
 function open(content: JSONContent) {
@@ -41,6 +42,24 @@ describe('Структура аркуша (structure.ts)', () => {
     expect([...root.querySelectorAll('.paper-signs-col')].map((c) => c.textContent)).toEqual(['ВидавАндрій ШЕВЧУК', 'ПрийнявМарія ЛИСЕНКО']);
     setSheetInfo(e, { ...INFO, paper: { ...INFO.paper, institution: '', groupName: '' } });
     expect(root.querySelector('.paper-org')!.textContent).toBe('Шапка: заповніть «Реквізити» на панелі керування');
+    e.destroy();
+  });
+
+  it('графічні підписи — поверх своїх ліній у порядку аркуша (як у друці), під ними — примітка', () => {
+    const e = open(doc({ type: 'approval' }, p(t('Текст')), sign({ leftLabel: 'Видав', rightLabel: 'Прийняв', rightSigner: 'boss' })));
+    const at = (row: number, note: string) => ({ row, strokes: [[10, 10, 200, 300]], note });
+    setSheetInfo(e, { ...INFO, signatures: [at(0, 'Підписано в DigiComp HUB 16.11.2026, 14:32'), at(2, 'Підписано в DigiComp HUB 16.11.2026, 15:00')] });
+    const root = e.view.dom;
+    expect(root.querySelector('.paper-approval .paper-sign-line svg.paper-signature path')!.getAttribute('d')).toBe('M10 10L200 300');
+    expect(root.querySelector('.paper-approval .paper-signed-note')!.textContent).toBe('Підписано в DigiComp HUB 16.11.2026, 14:32');
+    const cols = [...root.querySelectorAll('.paper-signs-col')];
+    expect(cols.map((c) => !!c.querySelector('svg.paper-signature'))).toEqual([false, true]);
+    expect(cols[1]!.querySelector('.paper-signed-note')!.textContent).toBe('Підписано в DigiComp HUB 16.11.2026, 15:00');
+    // A block above changes the rows: the signatures follow the order, not the element.
+    e.commands.setContent(doc(sign({ leftLabel: 'Видав' }), { type: 'approval' }));
+    setSheetInfo(e, { ...INFO, signatures: [at(1, 'x')] });
+    expect(root.querySelector('.paper-signs svg')).toBeNull();
+    expect(root.querySelector('.paper-approval svg')).not.toBeNull();
     e.destroy();
   });
 

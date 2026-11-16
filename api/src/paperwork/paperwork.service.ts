@@ -96,7 +96,12 @@ import {
   signLines,
   type FieldFill,
 } from '../../../shared/editor-schema/render';
-import { SIGNED_IN, signedSheet, type SheetSignature } from './signatures';
+import {
+  SIGNED_IN,
+  signedNote,
+  signedSheet,
+  type SheetSignature,
+} from '../../../shared/editor-schema/signature';
 import type {
   PaperDto,
   PaperFieldDto,
@@ -1068,7 +1073,7 @@ export class PaperworkService {
         s.sheet,
         s.signatures.map((x): SheetSignature => ({
           ...x,
-          note: `${SIGNED_IN} ${momentText(x.signedAt)}`,
+          note: signedNote(x.signedAt),
         })),
       ),
       footer: s.footer,
@@ -1306,7 +1311,7 @@ export class PaperworkService {
     });
   }
 
-  /** The lines to sign on of a snapshot: who each awaits, signed when; none — frozen before drawn signatures. */
+  /** The lines to sign on of a snapshot: who each awaits, signed when and how; none — frozen before drawn signatures. */
   private async signLinesOf(
     m: EntityManager,
     snap: PaperSnapshot,
@@ -1327,18 +1332,20 @@ export class PaperworkService {
     const signed = new Map(
       (
         await m.find(PaperSignature, {
-          select: { row: true, signedAt: true },
+          select: { row: true, signedAt: true, strokes: true },
           where: { snapshotId: snap.id },
         })
-      ).map((g) => [g.row, g.signedAt]),
+      ).map((g) => [g.row, g]),
     );
     return signers.map((s, row) => {
       const u = s.userId ? users.get(s.userId) : undefined;
+      const g = signed.get(row);
       return {
         row,
         label: s.label,
         person: u ? { id: u.id, name: u.name } : null,
-        signedAt: signed.get(row) ?? null,
+        signedAt: g?.signedAt ?? null,
+        strokes: g?.strokes ?? null,
       };
     });
   }

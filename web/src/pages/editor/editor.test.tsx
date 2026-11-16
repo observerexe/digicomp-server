@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { Me, Paper, PaperField, TemplateItem } from '../../api/types';
@@ -290,6 +290,102 @@ describe('Редактор: документ', () => {
     expect(screen.getAllByText('Підписано').length).toBeGreaterThan(0);
     expect(screen.queryByRole('button', { name: 'Завантажити підписаний скан' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Інший скан' })).toBeInTheDocument();
+  });
+
+  describe('графічний підпис', () => {
+    class FakePointerEvent extends MouseEvent {
+      pointerId: number;
+      pointerType = 'mouse';
+      constructor(type: string, init: PointerEventInit = {}) {
+        super(type, init);
+        this.pointerId = init.pointerId ?? 1;
+      }
+    }
+    const signs = { type: 'signatures', attrs: { leftLabel: 'Склав', leftSigner: '@author', rightLabel: 'Погодив', rightSigner: '@signer' } };
+    const lines = (signedByMe: boolean) => [
+      { row: 0, label: 'Затверджую', person: { id: 'm1', name: 'Олег Петренко' }, signedAt: '2026-11-15T12:32:00Z', strokes: [[0, 0, 1500, 500]] },
+      { row: 1, label: 'Склав', person: { id: 'u1', name: 'Марта Коваль' }, signedAt: signedByMe ? '2026-11-15T13:00:00Z' : null, strokes: signedByMe ? [[10, 10, 20, 20]] : null },
+      { row: 2, label: 'Погодив', person: null, signedAt: null, strokes: null },
+    ];
+    const frozen = (signedByMe = false) =>
+      paper({
+        status: signedByMe ? 'signed' : 'frozen',
+        canEdit: false,
+        canSign: true,
+        canSignDrawn: !signedByMe,
+        number: 'ПР-2026-001',
+        publishedAt: '2026-11-15T10:00:00Z',
+        revision: signedByMe ? 3 : 2,
+        content: { type: 'doc', content: [{ type: 'approval' }, { type: 'paragraph', content: [{ type: 'text', text: 'Текст' }] }, signs] },
+        snapshot: { n: 1, sha256: 'a'.repeat(64), createdAt: '2026-11-15T11:00:00Z', signed: null, signatures: lines(signedByMe) },
+        snapshots: [{ n: 1, createdAt: '2026-11-15T11:00:00Z' }],
+      });
+
+    it('хто підписав і кого чекають; підпис — поверх лінії на аркуші; «Підписати» — головна дія, скан — другорядна', async () => {
+      mockApi(base(writer, { 'GET /api/papers/p1': () => json(200, frozen()) }));
+      renderApp('/editor/p1');
+      expect(await screen.findByText(/^Підписи:/)).toHaveTextContent(/^Підписи: Затверджую — Олег Петренко, .*15 лист\., 14:32 · Склав — ви, чекає підпису$/);
+      expect(screen.getByText(/чекає вашого підпису: «Підписати»/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Підписати' })).toHaveClass('btn-primary');
+      expect(screen.getByRole('button', { name: 'Завантажити підписаний скан' })).not.toHaveClass('btn-primary');
+      await waitFor(() => expect(document.querySelector('.ProseMirror .paper-approval svg.paper-signature path')).toHaveAttribute('d', 'M0 0L1500 500'));
+      expect(document.querySelector('.ProseMirror .paper-approval .paper-signed-note')).toHaveTextContent('Підписано в DigiComp HUB 15.11.2026, 14:32');
+      expect(document.querySelector('.ProseMirror .paper-signs svg')).toBeNull();
+    });
+
+    it('вікно підпису: свої рядки, малюнок → POST штрихів; підпис на аркуші, кнопки більше немає', async () => {
+      vi.stubGlobal('PointerEvent', FakePointerEvent);
+      const { calls } = mockApi(
+        base(writer, {
+          'GET /api/papers/p1': () => json(200, frozen()),
+          'POST /api/papers/p1/signatures': () => json(200, frozen(true)),
+        }),
+      );
+      renderApp('/editor/p1');
+      await userEvent.click(await screen.findByRole('button', { name: 'Підписати' }));
+      const dialog = screen.getByRole('dialog', { name: 'Підписати документ' });
+      expect(dialog).toHaveAccessibleDescription('«Склав» · № ПР-2026-001. Підпис не можна зняти.');
+      const field = within(dialog).getByTestId('signature-field');
+      field.getBoundingClientRect = () => DOMRect.fromRect({ x: 0, y: 0, width: 300, height: 100 });
+      fireEvent.pointerDown(field, { clientX: 2, clientY: 2, button: 0 });
+      fireEvent.pointerMove(field, { clientX: 4, clientY: 4 });
+      fireEvent.pointerUp(field, {});
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Підписати' }));
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(JSON.parse(calls.find((c) => c.path === '/api/papers/p1/signatures')!.body!)).toEqual({ strokes: [[10, 10, 20, 20]] });
+      await waitFor(() => expect(document.querySelectorAll('.ProseMirror svg.paper-signature')).toHaveLength(2));
+      expect(screen.queryByRole('button', { name: 'Підписати' })).not.toBeInTheDocument();
+      expect(screen.getByText(/^Підписи:/)).toHaveTextContent(/Склав — ви, .*15 лист\., 15:00$/);
+    });
+
+    it('телефон: «Підписати» — під рядком підписів, не за «Ще»', async () => {
+      vi.stubGlobal('matchMedia', (q: string) => ({ matches: false, media: q, addEventListener: () => {}, removeEventListener: () => {} }));
+      mockApi(base(writer, { 'GET /api/papers/p1': () => json(200, frozen()) }));
+      renderApp('/editor/p1');
+      await screen.findByText(/^Підписи:/);
+      expect(screen.getAllByRole('button', { name: 'Підписати' })).toHaveLength(1);
+      await userEvent.click(screen.getByRole('button', { name: 'Підписати' }));
+      expect(screen.getByRole('dialog', { name: 'Підписати документ' })).toBeInTheDocument();
+    });
+
+    it('помилка сервера — у вікні, воно лишається відкритим', async () => {
+      vi.stubGlobal('PointerEvent', FakePointerEvent);
+      mockApi(
+        base(writer, {
+          'GET /api/papers/p1': () => json(200, frozen()),
+          'POST /api/papers/p1/signatures': () => json(409, { statusCode: 409, message: 'Signed', errorCode: 'PAPER_SIGNED_BY_YOU' }),
+        }),
+      );
+      renderApp('/editor/p1');
+      await userEvent.click(await screen.findByRole('button', { name: 'Підписати' }));
+      const dialog = screen.getByRole('dialog');
+      const field = within(dialog).getByTestId('signature-field');
+      field.getBoundingClientRect = () => DOMRect.fromRect({ x: 0, y: 0, width: 300, height: 100 });
+      fireEvent.pointerDown(field, { clientX: 2, clientY: 2, button: 0 });
+      fireEvent.pointerUp(field, {});
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Підписати' }));
+      expect(await within(dialog).findByRole('alert')).toBeInTheDocument();
+    });
   });
 
   it('скан-фото завантажується; без права — кнопки скану немає', async () => {

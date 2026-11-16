@@ -360,6 +360,26 @@ describe('Сторінка ТЗ', () => {
     expect(JSON.parse(calls.find((c) => c.path === '/api/papers/p1/cancel')!.body)).toEqual({ reason: 'Не потрібно' });
   });
 
+  it('прийняте ТЗ: документ чекає мого підпису — «Підписати документ» (необов’язково)', async () => {
+    const reader: Me = { ...staff, permissions: [...staff.permissions, 'papers.read'] };
+    const done = detail({ id: 't1', status: 'done', paper: { id: 'p1', number: 'ТЗ-2026-014' } });
+    mockApi({ ...boardApi(reader, []), 'GET /api/tasks/t1': () => json(200, done), 'GET /api/papers/p1': () => json(200, { canSignDrawn: true }) });
+    renderApp('/tasks/t1');
+    expect(await screen.findByRole('link', { name: 'Підписати документ' })).toHaveAttribute('href', '/editor/p1');
+    expect(screen.getByText(/чекає вашого підпису/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Відкрити документ' })).toBeInTheDocument();
+  });
+
+  it('прийняте ТЗ, підпис не чекає — лише «Відкрити документ»', async () => {
+    const reader: Me = { ...staff, permissions: [...staff.permissions, 'papers.read'] };
+    const done = detail({ id: 't1', status: 'done', paper: { id: 'p1', number: 'ТЗ-2026-014' } });
+    const { calls } = mockApi({ ...boardApi(reader, []), 'GET /api/tasks/t1': () => json(200, done), 'GET /api/papers/p1': () => json(200, { canSignDrawn: false }) });
+    renderApp('/tasks/t1');
+    await screen.findByRole('link', { name: 'Відкрити документ' });
+    await waitFor(() => expect(calls.some((c) => c.path === '/api/papers/p1')).toBe(true));
+    expect(screen.queryByRole('link', { name: 'Підписати документ' })).not.toBeInTheDocument();
+  });
+
   it('учасник бачить «Відкрити документ», але не «Скасувати ТЗ»', async () => {
     mockApi({ ...boardApi(member, []), 'GET /api/tasks/t1': () => json(200, detail({ id: 't1', paper: { id: 'p1', number: null } })) });
     renderApp('/tasks/t1');

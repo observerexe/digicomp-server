@@ -14,10 +14,12 @@ import { FieldsPanel, reportRecordKey } from '../../editor/FieldsPanel';
 import { setZoneText } from '../../editor/fields';
 import { MentionMenu } from '../../editor/MentionMenu';
 import { PaperForm } from '../../editor/PaperForm';
+import { SignaturePad } from '../../editor/SignaturePad';
 import { PaperRecordsContext } from '../../editor/records';
 import { useFill, useFillSheet } from '../../editor/useFill';
 import type { FieldValue, FieldValues } from '../../../../shared/editor-schema/fields';
 import type { PaperNode } from '../../../../shared/editor-schema';
+import { signedNote, type Strokes } from '../../../../shared/editor-schema/signature';
 import '../../../../shared/editor-schema/paper.css';
 import '../../editor/format.css';
 import { MiniRibbon, Ribbon } from '../../editor/Ribbon';
@@ -327,6 +329,16 @@ function PaperEditor({ paper, restored, changing, onChanging, onReload }: Editor
       replace(p);
     },
   });
+  // The drawn signature: the window is open while `signing`.
+  const [signing, setSigning] = useState(false);
+  const signDrawn = useMutation({
+    mutationFn: (strokes: Strokes) => unwrap(api.POST('/api/papers/{id}/signatures', { params: { path: { id: paper.id } }, body: { strokes } })),
+    onSuccess: (p) => {
+      setSigning(false);
+      replace(p);
+    },
+  });
+  const lines = paper.snapshot?.signatures ?? [];
   const [reason, setReason] = useState<string | null>(null);
   const cancel = useMutation({
     mutationFn: () => unwrap(api.POST('/api/papers/{id}/cancel', { params: { path: { id: paper.id } }, body: { reason: (reason ?? '').trim() } })),
@@ -353,6 +365,7 @@ function PaperEditor({ paper, restored, changing, onChanging, onReload }: Editor
     people: template ? peopleOf(template.fields, values, fill.recordTitle) : {},
     tables,
     labels: Object.fromEntries((template?.fields ?? []).map((f) => [f.key, f.label])),
+    signatures: lines.flatMap((l) => (l.strokes && l.signedAt ? [{ row: l.row, strokes: l.strokes, note: signedNote(l.signedAt) }] : [])),
   });
 
   // A draft never sends what the record shows (a report's auto fields): nobody fills it.
@@ -474,8 +487,13 @@ function PaperEditor({ paper, restored, changing, onChanging, onReload }: Editor
             onConfirm={() => freeze.mutate()}
           />
         ))}
+      {paper.canSignDrawn && wide && (
+        <button type="button" className="btn btn-primary" onClick={() => setSigning(true)}>
+          Підписати
+        </button>
+      )}
       {paper.canSign && scan === undefined && (
-        <button type="button" className={`btn ${paper.status === 'frozen' ? 'btn-primary' : ''}`} onClick={() => setScan(null)}>
+        <button type="button" className={`btn ${paper.status === 'frozen' && !paper.canSignDrawn ? 'btn-primary' : ''}`} onClick={() => setScan(null)}>
           {paper.status === 'frozen' ? 'Завантажити підписаний скан' : 'Інший скан'}
         </button>
       )}
@@ -610,6 +628,9 @@ function PaperEditor({ paper, restored, changing, onChanging, onReload }: Editor
             </div>
           </form>
         )}
+        {lines.some((l) => l.person) && paper.status !== 'cancelled' && (
+          <SignLines lines={lines} meId={user?.id} onSign={paper.canSignDrawn && !wide ? () => setSigning(true) : null} />
+        )}
         {paper.snapshot?.signed && <SignedScan paper={paper} signed={paper.snapshot.signed} />}
         {paper.snapshots.length > 1 && <Versions paper={paper} />}
         {paper.status === 'cancelled' && <p className="hint">{sentence(`Документ скасовано${paper.cancelReason ? `: ${paper.cancelReason}` : ''}`)}</p>}
@@ -666,6 +687,19 @@ function PaperEditor({ paper, restored, changing, onChanging, onReload }: Editor
         )}
       </div>
       {fill.menu && <MentionMenu menu={fill.menu} keys={fill.menuKeys} />}
+      {signing && paper.snapshot && (
+        <SignaturePad
+          lines={lines.filter((l) => l.person?.id === user?.id && !l.signedAt).map((l) => l.label)}
+          about={[paper.number ? `№ ${paper.number}` : `«${paper.title}»`, paper.snapshots.length > 1 && `версія ${paper.snapshot.n}`].filter(Boolean).join(', ')}
+          pending={signDrawn.isPending}
+          error={signDrawn.isError ? errorOf(signDrawn.error) : null}
+          onSign={(strokes) => signDrawn.mutate(strokes)}
+          onClose={() => {
+            setSigning(false);
+            signDrawn.reset();
+          }}
+        />
+      )}
       {!formShown && (
         <StatusBar
           stats={stats}
@@ -683,6 +717,7 @@ function PaperEditor({ paper, restored, changing, onChanging, onReload }: Editor
 function readHint(paper: Paper, changing: boolean) {
   if (paper.status === 'draft') return 'Це чужа чернетка: її можна лише переглядати.';
   if (paper.snapshot) {
+    if (paper.canSignDrawn) return 'Документ зафіксовано й чекає вашого підпису: «Підписати». Друк і PDF — зі знімка, з QR-кодом перевірки.';
     return paper.canFreeze
       ? 'Документ зафіксовано: друк і PDF — з останньої версії, з QR-кодом перевірки. «Зафіксувати нову версію» візьме дані запису, які є зараз.'
       : 'Документ зафіксовано: друк і PDF — зі знімка, з QR-кодом перевірки.';
@@ -737,6 +772,31 @@ function SignedScan({ paper, signed }: { paper: Paper; signed: NonNullable<NonNu
         </a>
       )}
     </p>
+  );
+}
+
+type SignLine = NonNullable<Paper['snapshot']>['signatures'][number];
+
+/** Who signs the snapshot's lines and who has: «Затверджую — Ім'я, 16.11.2026, 14:32 · Склав — Ім'я, чекає підпису». */
+function SignLines({ lines, meId, onSign }: { lines: SignLine[]; meId: string | undefined; onSign: (() => void) | null }) {
+  const named = lines.filter((l) => l.person);
+  return (
+    <div className={s.signLines}>
+      <p className="hint">
+        Підписи:{' '}
+        {named.map((l, i) => (
+          <span key={l.row}>
+            {i > 0 && ' · '}
+            {l.label} — {l.person!.id === meId ? 'ви' : l.person!.name}, {l.signedAt ? formatDateTime(l.signedAt) : 'чекає підпису'}
+          </span>
+        ))}
+      </p>
+      {onSign && (
+        <button type="button" className="btn btn-primary" onClick={onSign}>
+          Підписати
+        </button>
+      )}
+    </div>
   );
 }
 

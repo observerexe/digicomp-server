@@ -2772,6 +2772,8 @@ export interface components {
              * @description When it was signed by drawing; null — not yet.
              */
             signedAt: string | null;
+            /** @description The drawing: strokes `[x0, y0, x1, y1, …]` on a 1500 × 500 field (the editor draws it over the line); null — not signed. */
+            strokes: number[][] | null;
             /** @description Index of the line on the sheet, from 0. */
             row: number;
             /** @description «Затверджую», or the label of a «Блок підписів» column. */

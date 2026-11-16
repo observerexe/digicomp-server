@@ -11,9 +11,10 @@ import {
   SIGN_LIMITS,
   SIGN_WIDTH,
   signatureSvg,
+  signedNote,
   signedSheet,
   strokesValid,
-} from './signatures';
+} from '../../../shared/editor-schema/signature';
 
 const doc = (...content: unknown[]) =>
   ({ type: 'doc', content }) as PaperContent;
@@ -160,6 +161,28 @@ describe('Підписи поверх аркуша (signedSheet)', () => {
     expect(col).toContain('<span class="paper-sign-line"><svg');
     expect(col).toContain(
       'Олена КОВАЛЬ</span></p><p class="paper-signed-note">Підписано в DigiComp HUB 16.11.2026, 14:32</p>',
+    );
+  });
+
+  it('редактор малює блок окремо: first — рядок першої лінії блоку', () => {
+    const block = signedSheet(
+      '<p class="paper-sign"><span class="paper-sign-line"></span></p><p class="paper-sign"><span class="paper-sign-line"></span></p>',
+      [
+        { row: 0, strokes: [[1, 1]], note: 'a' },
+        { row: 2, strokes: [[1, 1]], note: 'b' },
+      ],
+      1,
+    );
+    expect(block.match(/<svg class="paper-signature"/g)).toHaveLength(1);
+    expect(block).toContain(
+      '<span class="paper-sign-line"></span></p><p class="paper-sign"><span class="paper-sign-line"><svg',
+    );
+    expect(block).toContain('<p class="paper-signed-note">b</p>');
+  });
+
+  it('примітка — київський час', () => {
+    expect(signedNote('2026-11-16T12:32:00Z')).toBe(
+      'Підписано в DigiComp HUB 16.11.2026, 14:32',
     );
   });
 

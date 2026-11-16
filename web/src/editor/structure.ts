@@ -3,7 +3,8 @@ import type { Node as PMNode } from '@tiptap/pm/model';
 import { NodeSelection, Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { NODES, SIGNER_AUTHOR, type AutoTableData, type PaperNode } from '../../../shared/editor-schema';
-import { autoTableInner, STRUCTURE_CLASS, structureInner, type PaperInfo } from '../../../shared/editor-schema/render';
+import { autoTableInner, nodeSignLines, STRUCTURE_CLASS, structureInner, type PaperInfo } from '../../../shared/editor-schema/render';
+import { signedSheet, type SheetSignature } from '../../../shared/editor-schema/signature';
 import { lookView, type FieldLook } from './fields';
 
 /**
@@ -25,6 +26,8 @@ export type SheetInfo = {
   table: (source: string, field: string) => AutoTableData | null;
   /** Under an auto table without rows yet (its field `field` is empty). */
   tableHint: (field: string) => string;
+  /** Drawn signatures of a frozen document, over their lines (row — render.ts signLines order). */
+  signatures: SheetSignature[];
 };
 
 /** An auto value before the document is published. */
@@ -36,6 +39,7 @@ const EMPTY_INFO: SheetInfo = {
   builder: false,
   table: () => null,
   tableHint: () => '',
+  signatures: [],
 };
 
 const sheetKey = new PluginKey<SheetInfo>('sheetInfo');
@@ -85,6 +89,9 @@ export const PaperDate = autoNode('paperDate', 'paper-date');
 /** «Авто: автор»: the document's author. */
 export const PaperAuthor = autoNode('paperAuthor', 'paper-author');
 
+/** What a structure block's decoration carries: the sheet, and the row of its first line to sign on. */
+type SheetSpec = { sheet: SheetInfo; row: number };
+
 /** A structure block drawn from SheetInfo: the editor's element holds what the print holds. */
 function structureView(name: string) {
   return ({ node, decorations }: { node: PMNode; decorations: readonly unknown[] }) => {
@@ -92,13 +99,16 @@ function structureView(name: string) {
     dom.className = STRUCTURE_CLASS[name]!;
     dom.contentEditable = 'false';
     const paint = (n: PMNode, decos: readonly Decoration[]) => {
-      const info = (decos.find((d) => (d.spec as { sheet?: unknown }).sheet !== undefined)?.spec as { sheet: SheetInfo } | undefined)?.sheet ?? EMPTY_INFO;
+      const spec = decos.find((d) => (d.spec as { sheet?: unknown }).sheet !== undefined)?.spec as SheetSpec | undefined;
+      const info = spec?.sheet ?? EMPTY_INFO;
       if (name === 'pageFooter') {
         dom.textContent = `Колонтитул: ${(n.attrs.text as string).trim() || '—'}`;
         return;
       }
-      // The same HTML as the print (escaped there): a header without requisites — a hint.
-      dom.innerHTML = structureInner(n.toJSON() as PaperNode, info.paper) ?? '<p class="paper-structure-empty">Шапка: заповніть «Реквізити» на панелі керування</p>';
+      // The same HTML as the print (escaped there), signatures over their lines: a header without requisites — a hint.
+      const inner = structureInner(n.toJSON() as PaperNode, info.paper);
+      dom.innerHTML =
+        inner === null ? '<p class="paper-structure-empty">Шапка: заповніть «Реквізити» на панелі керування</p>' : signedSheet(inner, info.signatures, spec?.row ?? 0);
     };
     paint(node, decorations as readonly Decoration[]);
     return {
@@ -235,12 +245,15 @@ export const SheetLook = Extension.create({
             if (cache?.doc === state.doc && cache.info === info && cache.sel === state.selection) return cache.set;
             const sel = state.selection;
             const decos: Decoration[] = [];
+            // Lines to sign on are counted in the sheet's order, as the print counts them (signLines).
+            let row = 0;
             state.doc.descendants((n, pos) => {
               const name = n.type.name;
               if (AUTO[name]) {
                 decos.push(Decoration.node(pos, pos + n.nodeSize, {}, { look: autoLook(name, info), active: sel instanceof NodeSelection && sel.from === pos }));
               } else if (STRUCTURE_NODES.has(name)) {
-                decos.push(Decoration.node(pos, pos + n.nodeSize, {}, { sheet: info }));
+                decos.push(Decoration.node(pos, pos + n.nodeSize, {}, { sheet: info, row } satisfies SheetSpec));
+                if (name === 'approval' || name === 'signatures') row += nodeSignLines(n.toJSON() as PaperNode).length;
                 return false;
               }
               return true;

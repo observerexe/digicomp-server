@@ -193,6 +193,13 @@ export class PaperSignLineDto {
   /** When it was signed by drawing; null — not yet. */
   @ApiProperty({ type: Date, nullable: true })
   signedAt: Date | null;
+  /** The drawing: strokes `[x0, y0, x1, y1, …]` on a 1500 × 500 field (the editor draws it over the line); null — not signed. */
+  @ApiProperty({
+    type: 'array',
+    items: { type: 'array', items: { type: 'integer' } },
+    nullable: true,
+  })
+  strokes: number[][] | null;
 }
 
 /** A snapshot of a frozen document. */

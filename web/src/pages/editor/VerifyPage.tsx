@@ -63,6 +63,15 @@ function Verified({ v }: { v: PaperVerify }) {
           <dt>Зафіксовано</dt>
           <dd>{[formatDateTime(v.frozenAt), v.frozenBy?.name].filter(Boolean).join(' · ')}</dd>
         </div>
+        {/* Drawn signatures: who each line awaits and when they signed (a paper signature shows on the paper itself). */}
+        {v.signatures.map((g, i) => (
+          <div key={i}>
+            <dt>{g.label}</dt>
+            <dd>
+              {g.name} · {g.signedAt ? `підписано ${formatDateTime(g.signedAt)}` : 'підпису в DigiComp HUB ще немає'}
+            </dd>
+          </div>
+        ))}
         <div className={s.wide}>
           <dt>Код перевірки (SHA-256)</dt>
           <dd className={s.code}>{v.sha256}</dd>
