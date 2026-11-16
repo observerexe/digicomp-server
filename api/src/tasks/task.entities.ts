@@ -14,12 +14,12 @@ import type { Extra } from '../records/extra-values';
 import { User } from '../users/user.entity';
 
 /**
- * Task board: todo (free) -> queued (taken, not started, others may join)
- * -> in_progress -> review -> done. Review may return to in_progress.
+ * Task board: todo (free: people take it while there are slots) ->
+ * in_progress (an assignee pressed «Почати») -> review -> done. Review may
+ * return to in_progress.
  */
 export enum TaskStatus {
   Todo = 'todo',
-  Queued = 'queued',
   InProgress = 'in_progress',
   Review = 'review',
   Done = 'done',

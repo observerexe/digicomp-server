@@ -8,7 +8,6 @@ export const ROLE_LABEL: Record<Role, string> = {
 
 export const TASK_STATUS_LABEL: Record<TaskStatus, string> = {
   todo: 'Вільне',
-  queued: 'У черзі',
   in_progress: 'В роботі',
   review: 'На перевірці',
   done: 'Виконано',

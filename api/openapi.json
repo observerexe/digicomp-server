@@ -2908,7 +2908,6 @@
               "type": "string",
               "enum": [
                 "todo",
-                "queued",
                 "in_progress",
                 "review",
                 "done"
@@ -3045,6 +3044,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TakeTaskDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -8918,7 +8927,6 @@
         "type": "string",
         "enum": [
           "todo",
-          "queued",
           "in_progress",
           "review",
           "done"
@@ -9255,6 +9263,15 @@
         "required": [
           "reason"
         ]
+      },
+      "TakeTaskDto": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "boolean",
+            "description": "Take the last free slot and start at once («взяти й почати»)."
+          }
+        }
       },
       "CommentDto": {
         "type": "object",

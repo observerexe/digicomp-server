@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsNumberString,
   IsObject,
   IsDateString,
@@ -111,6 +112,13 @@ export class CommentDto {
   @Matches(NOT_BLANK)
   @MaxLength(2000)
   body: string;
+}
+
+export class TakeTaskDto {
+  /** Take the last free slot and start at once («взяти й почати»). */
+  @IsOptional()
+  @IsBoolean()
+  start?: boolean;
 }
 
 export class CancelTaskDto {

@@ -4,16 +4,17 @@ import { addDays, kyivParts } from '../../lib/kyiv';
 
 export const COLUMNS: { status: TaskStatus; title: string }[] = [
   { status: 'todo', title: 'Вільне' },
-  { status: 'queued', title: 'В черзі' },
   { status: 'in_progress', title: 'В роботі' },
   { status: 'review', title: 'На перевірці' },
   { status: 'done', title: 'Виконано' },
 ];
 
-export type ActionKind = 'take' | 'leave' | 'start' | 'submit' | 'return' | 'accept';
+/** `takeStart` — dragging a free task onto «В роботі» by the one taking its last slot. */
+export type ActionKind = 'take' | 'takeStart' | 'leave' | 'start' | 'submit' | 'return' | 'accept';
 
 export const ACTION_LABEL: Record<ActionKind, string> = {
   take: 'Взяти',
+  takeStart: 'Взяти й почати',
   leave: 'Відмовитися',
   start: 'Почати',
   submit: 'Здати на перевірку',
@@ -27,17 +28,18 @@ export const isAssignee = (t: Task, me: Me) => t.assignees.some((a) => a.id === 
 
 /**
  * What this person can do with the task now (the API checks it again):
- * docs/tech/API.md «ТЗ», policy: TasksAccept is staff and never one's own task.
+ * docs/tech/API.md «Технічні завдання», policy: TasksAccept is staff and never
+ * one's own task. A free task stays free until an assignee presses «Почати».
  */
 export function actionsFor(t: Task, me: Me, can: Can): ActionKind[] {
   const mine = isAssignee(t, me);
   const out: ActionKind[] = [];
-  const open = t.status === 'todo' || t.status === 'queued';
-  if (open && !mine && t.assignees.length < t.maxAssignees && can('tasks.take')) out.push('take');
-  if (mine && t.status === 'queued') out.push('start');
+  const free = t.status === 'todo';
+  if (free && !mine && t.assignees.length < t.maxAssignees && can('tasks.take')) out.push('take');
+  if (mine && free) out.push('start');
   if (mine && t.status === 'in_progress') out.push('submit');
   if (t.status === 'review' && !mine && can('tasks.accept')) out.push('accept', 'return');
-  if (mine && (t.status === 'queued' || t.status === 'in_progress')) out.push('leave');
+  if (mine && (free || t.status === 'in_progress')) out.push('leave');
   return out;
 }
 
@@ -47,24 +49,20 @@ export function actionLabel(kind: ActionKind, t: Task): string {
   return kind === 'submit' ? 'Здати' : ACTION_LABEL[kind];
 }
 
-/** Dragging a card to a column: the action it means, or null if not allowed. */
+/**
+ * Dragging a card to a column: the action it means, or null if not allowed.
+ * Free → «В роботі»: one's own task — «Почати»; someone else's — «взяти й
+ * почати», only by taking its last slot (nobody is left out).
+ */
 export function dropAction(t: Task, to: TaskStatus, me: Me, can: Can): ActionKind | null {
   const allowed = actionsFor(t, me, can);
+  if (t.status === 'todo' && to === 'in_progress') {
+    if (allowed.includes('start')) return 'start';
+    return allowed.includes('take') && t.assignees.length + 1 === t.maxAssignees ? 'takeStart' : null;
+  }
   const want: ActionKind | null =
-    t.status === 'todo' && to === 'queued'
-      ? 'take'
-      : t.status === 'queued' && to === 'queued'
-        ? 'take'
-        : t.status === 'queued' && to === 'in_progress'
-          ? 'start'
-          : t.status === 'in_progress' && to === 'review'
-            ? 'submit'
-            : t.status === 'review' && to === 'done'
-              ? 'accept'
-              : t.status === 'review' && to === 'in_progress'
-                ? 'return'
-                : null;
-  return want && allowed.includes(want) && !(t.status === to && want !== 'take') ? want : null;
+    t.status === 'in_progress' && to === 'review' ? 'submit' : t.status === 'review' && to === 'done' ? 'accept' : t.status === 'review' && to === 'in_progress' ? 'return' : null;
+  return want && allowed.includes(want) ? want : null;
 }
 
 /** The task as it will be after the action (optimistic update). */
@@ -72,9 +70,10 @@ export function predict(t: Task, kind: ActionKind, me: Me, now = new Date()): Ta
   const iso = now.toISOString();
   switch (kind) {
     case 'take':
+    case 'takeStart':
       return {
         ...t,
-        status: t.status === 'todo' ? 'queued' : t.status,
+        status: kind === 'takeStart' ? 'in_progress' : t.status,
         assignees: [...t.assignees, { id: me.id, name: me.name, avatarUrl: me.avatarUrl, takenAt: iso }],
       };
     case 'leave': {

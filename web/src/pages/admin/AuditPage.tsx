@@ -96,7 +96,7 @@ export function AuditPage() {
 
 function Entry({ e }: { e: AuditEntry }) {
   const link = entityLink(e.entity, e.entityId);
-  const lines = metaLines(e.meta);
+  const lines = metaLines(e.meta, e.entity);
   return (
     <li className={s.entry}>
       <span className={s.entryHead}>

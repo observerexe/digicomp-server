@@ -54,6 +54,7 @@ export const TaskErrors = {
   Full: 'Task is full',
   AlreadyTaken: 'Task already taken',
   AlreadyStarted: 'Task already started',
+  SlotsLeft: 'Free slots are left',
   Completed: 'Task already completed',
   Transition: 'Invalid task status transition',
   HasAssignees: 'Task has assignees',
@@ -337,16 +338,16 @@ export class TasksService {
       await this.storage.remove(`${STORAGE_DIR}/${name}`);
   }
 
-  /** Take a free or queued task while there are free slots. */
-  take(id: string, actor: Actor): Promise<TaskDto> {
+  /**
+   * Take a free task while there are free slots; it stays free until an
+   * assignee starts it. `start` — take the last slot and start at once.
+   */
+  take(id: string, actor: Actor, start = false): Promise<TaskDto> {
     return this.locked(id, async (m, task, assignees) => {
       if (task.status === TaskStatus.Done) {
         throw new ConflictException(TaskErrors.Completed);
       }
-      if (
-        task.status !== TaskStatus.Todo &&
-        task.status !== TaskStatus.Queued
-      ) {
+      if (task.status !== TaskStatus.Todo) {
         throw new ConflictException(TaskErrors.AlreadyStarted);
       }
       if (assignees.some((a) => a.userId === actor.id)) {
@@ -355,13 +356,22 @@ export class TasksService {
       if (assignees.length >= task.maxAssignees) {
         throw new ConflictException(TaskErrors.Full);
       }
-      await m.insert(TaskAssignee, { taskId: id, userId: actor.id });
-      const from = task.status;
-      if (from === TaskStatus.Todo) {
-        task.status = TaskStatus.Queued;
-        await m.save(Task, task);
+      if (start && assignees.length + 1 < task.maxAssignees) {
+        throw new ConflictException(TaskErrors.SlotsLeft);
       }
-      await this.log(m, actor, 'task.taken', id, { from, to: task.status });
+      await m.insert(TaskAssignee, { taskId: id, userId: actor.id });
+      await this.log(m, actor, 'task.taken', id, {
+        from: task.status,
+        to: task.status,
+      });
+      if (start) {
+        task.status = TaskStatus.InProgress;
+        await m.save(Task, task);
+        await this.log(m, actor, 'task.started', id, {
+          from: TaskStatus.Todo,
+          to: task.status,
+        });
+      }
     });
   }
 
@@ -373,14 +383,14 @@ export class TasksService {
         throw new ConflictException(TaskErrors.Completed);
       }
       if (
-        task.status !== TaskStatus.Queued &&
+        task.status !== TaskStatus.Todo &&
         task.status !== TaskStatus.InProgress
       ) {
         throw transition();
       }
       await m.delete(TaskAssignee, { taskId: id, userId: actor.id });
       const from = task.status;
-      if (assignees.length === 1) {
+      if (assignees.length === 1 && task.status !== TaskStatus.Todo) {
         task.status = TaskStatus.Todo;
         await m.save(Task, task);
       }
@@ -388,13 +398,13 @@ export class TasksService {
     });
   }
 
-  /** queued -> in_progress; nobody can join after that. */
+  /** todo -> in_progress by an assignee; nobody can join after that. */
   start(id: string, actor: Actor): Promise<TaskDto> {
     return this.move(
       id,
       actor,
       Action.TasksWork,
-      TaskStatus.Queued,
+      TaskStatus.Todo,
       TaskStatus.InProgress,
       'task.started',
     );

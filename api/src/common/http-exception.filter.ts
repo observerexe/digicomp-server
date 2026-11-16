@@ -20,6 +20,7 @@ const MESSAGE_CODES: Record<string, string> = {
   'Task is full': 'TASK_FULL',
   'Task already taken': 'TASK_ALREADY_TAKEN',
   'Task already started': 'TASK_ALREADY_STARTED',
+  'Free slots are left': 'TASK_SLOTS_LEFT',
   'Invalid task status transition': 'TASK_INVALID_TRANSITION',
   'Task has assignees': 'TASK_HAS_ASSIGNEES',
   'Task has a paper': 'TASK_HAS_PAPER',

@@ -61,7 +61,6 @@ export const TASK_SCHEMA: RecordSchemaDef = {
       type: 'enum',
       options: enumOptions<TaskStatus>({
         todo: 'Вільне',
-        queued: 'У черзі',
         in_progress: 'В роботі',
         review: 'На перевірці',
         done: 'Виконано',

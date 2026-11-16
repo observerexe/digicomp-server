@@ -1,4 +1,5 @@
 import type { components } from '../../api/schema';
+import { TASK_STATUS_LABEL } from '../../lib/labels';
 
 type S = components['schemas'];
 export type PanelOverview = S['PanelOverviewDto'];
@@ -187,10 +188,15 @@ export function entityLink(entity: string, id: string | null): string | null {
 }
 
 /** meta as short «key: value» lines; nested values as compact JSON. */
-export function metaLines(meta: Record<string, unknown> | null): string[] {
+/** Task statuses in the audit, with the old «У черзі» of earlier entries. */
+const AUDIT_TASK_STATUS: Record<string, string> = { ...TASK_STATUS_LABEL, queued: 'У черзі' };
+
+/** «key: value» lines; a task's `from` / `to` — status names. */
+export function metaLines(meta: Record<string, unknown> | null, entity?: string): string[] {
   if (!meta) return [];
   return Object.entries(meta).map(([k, v]) => {
-    const text = typeof v === 'string' ? v : JSON.stringify(v);
+    const status = entity === 'task' && (k === 'from' || k === 'to') && typeof v === 'string' ? AUDIT_TASK_STATUS[v] : undefined;
+    const text = status ?? (typeof v === 'string' ? v : JSON.stringify(v));
     return `${k}: ${text.length > 200 ? `${text.slice(0, 200)}…` : text}`;
   });
 }

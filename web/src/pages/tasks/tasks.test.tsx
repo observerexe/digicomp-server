@@ -37,7 +37,7 @@ describe('Дошка ТЗ', () => {
       boardApi(member, [t], {
         'POST /api/tasks/t1/take': () =>
           new Promise<Response>((r) => {
-            release = () => r(json(200, { ...t, status: 'queued', assignees: [ref(member)] }));
+            release = () => r(json(200, { ...t, assignees: [ref(member)] }));
           }),
       }),
     );
@@ -46,11 +46,34 @@ describe('Дошка ТЗ', () => {
     const card = await within(column('Вільне')).findByText('Зняти репортаж');
     expect(within(column('Вільне')).getByText('0 з 3')).toBeInTheDocument();
     await userEvent.click(within(card.closest('article')!).getByRole('button', { name: 'Взяти' }));
-    // Optimistic: already in «В черзі».
-    expect(within(column('В черзі')).getByText('Зняти репортаж')).toBeInTheDocument();
-    expect(within(column('В черзі')).getByText('1 з 3 · можна приєднатися')).toBeInTheDocument();
+    // Optimistic: taken at once, stays free — others may join.
+    expect(within(column('Вільне')).getByText('1 з 3 · можна приєднатися')).toBeInTheDocument();
+    expect(within(card.closest('article')!).getByRole('button', { name: 'Почати' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'В черзі' })).not.toBeInTheDocument();
     expect(calls.some((c) => c.path === '/api/tasks/t1/take')).toBe(true);
     release();
+  });
+
+  it('перетягування вільного на «В роботі»: останнє місце — взяти й почати', async () => {
+    const t = task({ id: 't1', title: 'Зняти репортаж', maxAssignees: 2, assignees: [ref(iryna)] });
+    const { calls } = mockApi(
+      boardApi(member, [t], {
+        'POST /api/tasks/t1/take': () => {
+          Object.assign(t, { status: 'in_progress', assignees: [ref(iryna), ref(member)] });
+          return json(200, t);
+        },
+      }),
+    );
+    renderApp('/tasks');
+    await screen.findByRole('region', { name: 'Вільне' });
+    const card = (await within(column('Вільне')).findByText('Зняти репортаж')).closest('article')!;
+    const dt = { setData: () => undefined, effectAllowed: '' };
+    fireEvent.dragStart(card, { dataTransfer: dt });
+    expect(column('В роботі')).toHaveAttribute('data-droppable', 'true');
+    fireEvent.dragOver(column('В роботі'), { dataTransfer: dt });
+    fireEvent.drop(column('В роботі'), { dataTransfer: dt });
+    expect(await within(column('В роботі')).findByText('Зняти репортаж')).toBeInTheDocument();
+    await waitFor(() => expect(calls.find((c) => c.path === '/api/tasks/t1/take')?.body).toBe(JSON.stringify({ start: true })));
   });
 
   it('сервер відмовив — картка повертається, текст за кодом', async () => {

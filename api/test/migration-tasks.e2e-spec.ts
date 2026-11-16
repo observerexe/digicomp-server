@@ -101,8 +101,9 @@ describe('Міграція ТЗ і балів (e2e)', () => {
     await ds.runMigrations({ transaction: 'all' });
 
     expect(await taskRow('free')).toEqual({ status: 'todo', max_assignees: 1 });
+    // 1795 ставила 'queued'; 6.2 (TaskStatusWithoutQueued) повертає у 'todo'.
     expect(await taskRow('takenNotStarted')).toEqual({
-      status: 'queued',
+      status: 'todo',
       max_assignees: 2,
     });
     expect(await taskRow('working')).toEqual({
@@ -151,6 +152,6 @@ describe('Міграція ТЗ і балів (e2e)', () => {
     );
     expect(n).toBe(2);
     await ds.runMigrations({ transaction: 'all' });
-    expect((await taskRow('takenNotStarted')).status).toBe('queued');
+    expect((await taskRow('takenNotStarted')).status).toBe('todo');
   });
 });

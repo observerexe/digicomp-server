@@ -201,8 +201,7 @@
   background: var(--c-warning-soft);
   color: var(--c-warning);
 }
-.status_in_progress,
-.status_queued {
+.status_in_progress {
   background: var(--c-primary-soft);
   color: var(--c-primary-text);
 }

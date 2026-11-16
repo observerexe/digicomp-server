@@ -29,7 +29,7 @@ export function slotsText(t: Task, now = new Date()): string {
     return `здано ${day} о ${formatTime(d)}`;
   }
   const base = `${n} з ${t.maxAssignees}`;
-  return (t.status === 'todo' || t.status === 'queued') && n > 0 && n < t.maxAssignees ? `${base} · можна приєднатися` : base;
+  return t.status === 'todo' && n > 0 && n < t.maxAssignees ? `${base} · можна приєднатися` : base;
 }
 
 export function TaskCard(props: {
@@ -48,8 +48,7 @@ export function TaskCard(props: {
   const [comment, setComment] = useState('');
   const actions = actionsFor(t, me, can).filter((a) => a !== 'leave');
   const due = dueState(t);
-  const open = t.status === 'todo' || t.status === 'queued';
-  const empty = open ? Math.max(0, Math.min(MAX_FACES, t.maxAssignees) - t.assignees.length) : 0;
+  const empty = t.status === 'todo' ? Math.max(0, Math.min(MAX_FACES, t.maxAssignees) - t.assignees.length) : 0;
 
   const onSubmitReturn = (e: FormEvent) => {
     e.preventDefault();

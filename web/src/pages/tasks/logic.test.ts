@@ -30,12 +30,14 @@ const as = (u: Me) => ({ id: u.id, name: u.name, avatarUrl: null, takenAt: '2026
 describe('Дії над ТЗ', () => {
   it('учасник: взяти, приєднатися, ліміт', () => {
     expect(actionsFor(task(), member, canOf(member))).toEqual(['take']);
-    expect(actionsFor(task({ status: 'queued', assignees: [as(staff)] }), member, canOf(member))).toEqual(['take']);
-    expect(actionsFor(task({ status: 'queued', maxAssignees: 1, assignees: [as(staff)] }), member, canOf(member))).toEqual([]);
+    expect(actionsFor(task({ assignees: [as(staff)] }), member, canOf(member))).toEqual(['take']);
+    expect(actionsFor(task({ maxAssignees: 1, assignees: [as(staff)] }), member, canOf(member))).toEqual([]);
     expect(actionsFor(task({ status: 'in_progress', assignees: [as(staff)] }), member, canOf(member))).toEqual([]);
   });
   it('виконавець: почати, здати, відмовитися', () => {
-    expect(actionsFor(task({ status: 'queued', assignees: [as(member)] }), member, canOf(member))).toEqual(['start', 'leave']);
+    expect(actionsFor(task({ assignees: [as(member)] }), member, canOf(member))).toEqual(['start', 'leave']);
+    // Усі місця зайняті — завдання чекає «Почати» у «Вільне».
+    expect(actionsFor(task({ maxAssignees: 1, assignees: [as(member)] }), member, canOf(member))).toEqual(['start', 'leave']);
     expect(actionsFor(task({ status: 'in_progress', assignees: [as(member)] }), member, canOf(member))).toEqual(['submit', 'leave']);
     expect(actionsFor(task({ status: 'review', assignees: [as(member)] }), member, canOf(member))).toEqual([]);
   });
@@ -48,8 +50,14 @@ describe('Дії над ТЗ', () => {
     const t = task({ status: 'in_progress', assignees: [as(member)] });
     expect(dropAction(t, 'review', member, canOf(member))).toBe('submit');
     expect(dropAction(t, 'done', member, canOf(member))).toBeNull();
-    expect(dropAction(task(), 'queued', member, canOf(member))).toBe('take');
+    // Вільне → «В роботі»: своє — «Почати»; чуже — лише останнім місцем, «взяти й почати».
     expect(dropAction(task(), 'in_progress', member, canOf(member))).toBeNull();
+    expect(dropAction(task({ maxAssignees: 1 }), 'in_progress', member, canOf(member))).toBe('takeStart');
+    expect(dropAction(task({ maxAssignees: 2, assignees: [as(staff)] }), 'in_progress', member, canOf(member))).toBe('takeStart');
+    expect(dropAction(task({ maxAssignees: 2, assignees: [as(staff)] }), 'in_progress', staff, canOf(staff))).toBe('start');
+    expect(dropAction(task({ maxAssignees: 1, assignees: [as(staff)] }), 'in_progress', member, canOf(member))).toBeNull();
+    expect(dropAction(task(), 'todo', member, canOf(member))).toBeNull();
+    expect(dropAction(task({ assignees: [as(member)] }), 'review', member, canOf(member))).toBeNull();
     const r = task({ status: 'review', assignees: [as(member)] });
     expect(dropAction(r, 'done', staff, canOf(staff))).toBe('accept');
     expect(dropAction(r, 'in_progress', staff, canOf(staff))).toBe('return');
@@ -57,9 +65,13 @@ describe('Дії над ТЗ', () => {
   });
   it('передбачений стан після дії', () => {
     const taken = predict(task(), 'take', member);
-    expect(taken.status).toBe('queued');
+    expect(taken.status).toBe('todo');
     expect(taken.assignees.map((a) => a.id)).toEqual([member.id]);
-    expect(predict(taken, 'leave', member).status).toBe('todo');
+    expect(predict(taken, 'leave', member)).toMatchObject({ status: 'todo', assignees: [] });
+    expect(predict(task({ maxAssignees: 1 }), 'takeStart', member)).toMatchObject({ status: 'in_progress', assignees: [{ id: member.id }] });
+    const working = task({ status: 'in_progress', assignees: [as(staff), as(member)] });
+    expect(predict(working, 'leave', member)).toMatchObject({ status: 'in_progress', assignees: [{ id: staff.id }] });
+    expect(predict(task({ status: 'in_progress', assignees: [as(member)] }), 'leave', member).status).toBe('todo');
     expect(predict(task({ status: 'review' }), 'accept', staff).status).toBe('done');
   });
 });

@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { Me } from '../../api/types';
 import { json, mockApi, moderator, renderApp } from '../../test/render';
 import { POLL } from './AdminPage';
-import { containerTone, formatAgo, formatBytes, formatUptime, type AuditEntry, type PanelJob, type PanelOverview } from './labels';
+import { containerTone, formatAgo, formatBytes, formatUptime, metaLines, type AuditEntry, type PanelJob, type PanelOverview } from './labels';
 
 const admin: Me = {
   ...moderator,
@@ -289,5 +289,9 @@ describe('Форматування панелі', () => {
     expect(containerTone({ state: 'running', health: 'starting' })).toBe('warn');
     expect(containerTone({ state: 'running', health: null })).toBe('ok');
     expect(containerTone({ state: 'missing', health: null })).toBe('bad');
+  });
+  it('аудит: статуси технічного завдання назвами, давнє «У черзі» теж', () => {
+    expect(metaLines({ from: 'queued', to: 'in_progress' }, 'task')).toEqual(['from: У черзі', 'to: В роботі']);
+    expect(metaLines({ from: 'idea', to: 'done' }, 'project')).toEqual(['from: idea', 'to: done']);
   });
 });

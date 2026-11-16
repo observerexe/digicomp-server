@@ -118,12 +118,13 @@ describe('ТЗ (e2e)', () => {
       files: [],
     });
 
-    // Перший бере: ТЗ стає «в черзі», інші приєднуються.
-    expect((await act(a, id, 'take')).body.status).toBe('queued');
+    // Беруть по одному: ТЗ лишається вільним, навіть коли місць більше немає.
+    expect((await act(a, id, 'take')).body.status).toBe('todo');
     await new Promise((r) => setTimeout(r, 5));
-    expect((await act(b, id, 'take')).body.status).toBe('queued');
+    expect((await act(b, id, 'take')).body.status).toBe('todo');
     await new Promise((r) => setTimeout(r, 5));
     const third = await act(c, id, 'take');
+    expect(third.body.status).toBe('todo');
     expect(third.body.assignees.map((x: { id: string }) => x.id)).toEqual([
       a.id,
       b.id,
@@ -201,6 +202,36 @@ describe('ТЗ (e2e)', () => {
     code(await act(c, id, 'take'), 409, 'TASK_FULL');
   });
 
+  it('«взяти й почати» — лише останнім місцем', async () => {
+    const id = await create({ maxAssignees: 2 });
+    code(await act(a, id, 'take', { start: true }), 409, 'TASK_SLOTS_LEFT');
+    expect((await as(app, a).get(`/api/tasks/${id}`)).body).toMatchObject({
+      status: 'todo',
+      assignees: [],
+    });
+    await act(a, id, 'take').expect(200);
+    const res = await act(b, id, 'take', { start: true }).expect(200);
+    expect(res.body.status).toBe('in_progress');
+    expect(res.body.assignees.map((x: { id: string }) => x.id)).toEqual([
+      a.id,
+      b.id,
+    ]);
+    code(await act(c, id, 'take'), 409, 'TASK_ALREADY_STARTED');
+    await act(c, id, 'take', { start: 'yes' }).expect(400);
+    const actions = (
+      await ds.query<{ action: string; meta: { to: string } }[]>(
+        `SELECT action, meta FROM audit_log WHERE entity_id = $1 ORDER BY created_at, action DESC`,
+        [id],
+      )
+    ).map((r) => `${r.action}:${r.meta?.to ?? ''}`);
+    expect(actions).toEqual([
+      'task.created:',
+      'task.taken:todo',
+      'task.taken:todo',
+      'task.started:in_progress',
+    ]);
+  });
+
   it('одночасні запити не перевищують ліміт', async () => {
     const id = await create({ maxAssignees: 1 });
     const res = await Promise.all([a, b, c].map((u) => act(u, id, 'take')));
@@ -223,7 +254,12 @@ describe('ТЗ (e2e)', () => {
     const id = await create();
     await act(a, id, 'take');
     await act(b, id, 'take');
-    expect((await act(a, id, 'leave')).body.status).toBe('queued');
+    expect((await act(a, id, 'leave')).body.status).toBe('todo');
+    expect((await act(b, id, 'leave')).body).toMatchObject({
+      status: 'todo',
+      assignees: [],
+    });
+    await act(b, id, 'take');
     await act(b, id, 'start');
     const left = await act(b, id, 'leave');
     expect(left.body).toMatchObject({ status: 'todo', assignees: [] });
@@ -300,8 +336,11 @@ describe('ТЗ (e2e)', () => {
     await act(a, t1, 'take');
     const mine = await as(app, a).get('/api/tasks?mine=true');
     expect(mine.body.map((t: { id: string }) => t.id)).toEqual([t1]);
+    // Узяте, але не почате ТЗ лишається вільним.
     const free = await as(app, a).get('/api/tasks?status=todo');
-    expect(free.body.map((t: { id: string }) => t.id)).toEqual([t2]);
+    expect(free.body.map((t: { id: string }) => t.id).sort()).toEqual(
+      [t1, t2].sort(),
+    );
     expect((await as(app, a).get('/api/tasks?status=bad')).status).toBe(400);
   });
 

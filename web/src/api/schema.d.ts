@@ -3055,7 +3055,7 @@ export interface components {
             archived?: boolean;
         };
         /** @enum {string} */
-        TaskStatus: "todo" | "queued" | "in_progress" | "review" | "done";
+        TaskStatus: "todo" | "in_progress" | "review" | "done";
         TaskAssigneeDto: {
             /** @description null when the user no longer exists. */
             name: string | null;
@@ -3167,6 +3167,10 @@ export interface components {
         CancelTaskDto: {
             /** @description Why: kept in the audit. */
             reason: string;
+        };
+        TakeTaskDto: {
+            /** @description Take the last free slot and start at once («взяти й почати»). */
+            start?: boolean;
         };
         CommentDto: {
             body: string;
@@ -5735,7 +5739,7 @@ export interface operations {
     TasksController_list: {
         parameters: {
             query?: {
-                status?: "todo" | "queued" | "in_progress" | "review" | "done";
+                status?: "todo" | "in_progress" | "review" | "done";
                 /** @description Only tasks where the current user is an assignee. */
                 mine?: "true" | "false";
                 /** @description At most this many tasks (1–500). Done tasks come newest-completed first. */
@@ -5812,7 +5816,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["TakeTaskDto"];
+            };
+        };
         responses: {
             200: {
                 headers: {

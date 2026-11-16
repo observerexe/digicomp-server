@@ -1,4 +1,4 @@
-import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
+import { ApiBody, ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
 import { OkDto } from '../common/responses.dto';
 import {
   TaskCommentDto,
@@ -29,7 +29,7 @@ import { Action } from '../auth/policy';
 import { Can, JwtAuthGuard, PolicyGuard } from '../auth/roles';
 import { contentDisposition } from '../files/content-disposition';
 import type { UploadedFileLike } from '../files/file-validation';
-import { CancelTaskDto, CommentDto, ListTasksQuery } from './dto';
+import { CancelTaskDto, CommentDto, ListTasksQuery, TakeTaskDto } from './dto';
 import { TasksService } from './tasks.service';
 
 type Req = { user: { id: string; role: string } };
@@ -74,10 +74,16 @@ export class TasksController {
 
   @Can(Action.TasksTake)
   @ApiOkResponse({ type: TaskDto })
+  @ApiBody({ type: TakeTaskDto, required: false })
   @Post(':id/take')
   @HttpCode(200)
-  take(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
-    return this.tasks.take(id, req.user);
+  take(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: TakeTaskDto,
+    @Req() req: Req,
+  ) {
+    // Without a body Nest passes undefined (the DTO is still validated when sent).
+    return this.tasks.take(id, req.user, dto?.start === true);
   }
 
   @Can(Action.TasksWork)

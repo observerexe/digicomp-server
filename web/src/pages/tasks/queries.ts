@@ -8,7 +8,7 @@ export const DONE_PAGE = 30;
 export const boardKey = (mine: boolean, doneLimit: number) => ['tasks', 'board', { mine, doneLimit }] as const;
 export const taskKey = (id: string) => ['tasks', 'one', id] as const;
 
-const ACTIVE: TaskStatus[] = ['todo', 'queued', 'in_progress', 'review'];
+const ACTIVE: TaskStatus[] = ['todo', 'in_progress', 'review'];
 
 /** Active tasks in full, done ones — the last `doneLimit` completed. */
 export function useBoard(mine: boolean, doneLimit: number) {
@@ -40,6 +40,8 @@ export function useTaskAction(me: Me | null) {
       switch (kind) {
         case 'take':
           return unwrap(api.POST('/api/tasks/{id}/take', path));
+        case 'takeStart':
+          return unwrap(api.POST('/api/tasks/{id}/take', { ...path, body: { start: true } }));
         case 'leave':
           return unwrap(api.POST('/api/tasks/{id}/leave', path));
         case 'start':
