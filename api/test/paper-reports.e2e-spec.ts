@@ -175,6 +175,7 @@ describe('Звіти (e2e)', () => {
         'discipline_record',
         'fault',
         'place',
+        'place_authorization',
         'points_entry',
         'task',
       ]);

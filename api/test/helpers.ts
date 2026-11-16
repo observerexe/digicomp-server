@@ -21,6 +21,11 @@ import {
   POINTS_TEMPLATES,
   PointsTemplates1815000000000,
 } from '../src/migrations/1815000000000-PointsTemplates';
+import {
+  AUTHORIZATION_TEMPLATES,
+  AuthorizationTemplates1821000000000,
+} from '../src/migrations/1821000000000-AuthorizationTemplates';
+import { PlaceAuthorization } from '../src/places/place-authorization.entity';
 import { PointsEntry, PointsKind } from '../src/points/points-entry.entity';
 import { slugify } from '../src/dictionaries/keys';
 import { setupApp } from '../src/setup-app';
@@ -250,6 +255,92 @@ export function oldAward(
       kind: PointsKind.Manual,
       createdById: by.id,
     }),
+  );
+}
+
+/**
+ * «Запис про інструктаж і допуск» as the migration makes it (it needs an
+ * active admin).
+ */
+export async function authorizationTemplates(app: INestApplication) {
+  const q = app.get(DataSource).createQueryRunner();
+  try {
+    await new AuthorizationTemplates1821000000000().up(q);
+  } finally {
+    await q.release();
+  }
+  return AUTHORIZATION_TEMPLATES[0]!.id;
+}
+
+type PaperNode = {
+  type: string;
+  attrs?: Record<string, unknown>;
+  content?: PaperNode[];
+};
+
+/** The doc with the zone `key` holding this text. */
+export function withZone(n: PaperNode, key: string, text: string): PaperNode {
+  if (n.type === 'fieldZone' && n.attrs?.key === key) {
+    return {
+      ...n,
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text } as PaperNode] },
+      ],
+    };
+  }
+  return n.content
+    ? { ...n, content: n.content.map((c) => withZone(c, key, text)) }
+    : n;
+}
+
+/**
+ * A допуск granted through «Запис про інструктаж і допуск» (see
+ * authorizationTemplates): the document is made, filled (the briefing
+ * written) and published by `by`; the response of the first request that
+ * failed, or of publish.
+ */
+export async function grantByPaper(
+  app: INestApplication<App>,
+  by: { token: string },
+  templateId: string,
+  values: {
+    userId: string;
+    placeId: string;
+    expiresAt?: string;
+    note?: string;
+  },
+) {
+  const p = await as(app, by).post('/api/papers').send({ templateId });
+  if (p.status !== 201) return p;
+  const saved = await as(app, by)
+    .patch(`/api/papers/${p.body.id}`)
+    .send({
+      revision: p.body.revision,
+      values,
+      content: withZone(
+        p.body.content as PaperNode,
+        'briefing',
+        'Правила роботи',
+      ),
+    });
+  if (saved.status !== 200) return saved;
+  return as(app, by).post(`/api/papers/${p.body.id}/publish`);
+}
+
+/**
+ * A допуск granted before documents (no document refers to it): written
+ * straight to the table, as the old `POST /place-authorizations` wrote it.
+ */
+export function oldAuthorization(
+  app: INestApplication,
+  by: { id: string },
+  to: { id: string },
+  placeId: string,
+  expiresAt: Date | null = null,
+) {
+  const repo = app.get(DataSource).getRepository(PlaceAuthorization);
+  return repo.save(
+    repo.create({ userId: to.id, placeId, grantedById: by.id, expiresAt }),
   );
 }
 

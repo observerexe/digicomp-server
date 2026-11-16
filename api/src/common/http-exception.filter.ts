@@ -31,6 +31,7 @@ const MESSAGE_CODES: Record<string, string> = {
   'Amount is allowed only for a fine': 'AMOUNT_ONLY_FOR_FINE',
   'Discipline record has a paper': 'DISCIPLINE_HAS_PAPER',
   'Points entry has a paper': 'POINTS_HAS_PAPER',
+  'Authorization has a paper': 'AUTHORIZATION_HAS_PAPER',
   'Place is in use': 'PLACE_IN_USE',
   'Place is booked': 'PLACE_BOOKED',
   'Time slot is already booked': 'BOOKING_OVERLAP',

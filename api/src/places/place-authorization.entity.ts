@@ -1,12 +1,13 @@
 import {
   Column,
-  CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
   Unique,
 } from 'typeorm';
+import { Paper } from '../paperwork/paper.entity';
 import { User } from '../users/user.entity';
 import { Place } from './place.entity';
 
@@ -33,7 +34,8 @@ export class PlaceAuthorization {
   @Column({ name: 'granted_by_id', type: 'uuid' })
   grantedById: string;
 
-  @CreateDateColumn({ name: 'granted_at', type: 'timestamptz' })
+  /** When the current term was granted: a repeat briefing renews it. */
+  @Column({ name: 'granted_at', type: 'timestamptz', default: () => 'now()' })
   grantedAt: Date;
 
   @Column({ name: 'expires_at', type: 'timestamptz', nullable: true })
@@ -41,4 +43,18 @@ export class PlaceAuthorization {
 
   @Column({ type: 'varchar', length: 500, default: '' })
   note: string;
+
+  /**
+   * The document («Запис про інструктаж і допуск») that granted the
+   * current term; null — granted before documents. A repeat briefing
+   * renews the same row and its document becomes this one. Published
+   * documents are never deleted.
+   */
+  @Index()
+  @Column({ name: 'paper_id', type: 'uuid', nullable: true })
+  paperId: string | null;
+
+  @ManyToOne(() => Paper, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'paper_id' })
+  paper?: Paper;
 }

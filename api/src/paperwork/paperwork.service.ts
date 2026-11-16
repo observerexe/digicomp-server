@@ -1998,7 +1998,7 @@ export class PaperworkService {
       const targetIds = await recordsOfPaper(m, p);
       const adapter = p.targetType ? this.adapters.get(p.targetType) : null;
       for (const id of adapter ? targetIds : []) {
-        const then = await adapter!.cancel(id, reason, actor, m);
+        const then = await adapter!.cancel(id, reason, actor, m, p.id);
         if (then) after.push(then);
       }
       p.status = PaperStatus.Cancelled;

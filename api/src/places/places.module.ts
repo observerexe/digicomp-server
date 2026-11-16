@@ -15,6 +15,7 @@ import {
   PlacesController,
   WorkSessionsController,
 } from './places.controller';
+import { placeAuthorizationAdapter } from './place-authorization.adapter';
 import { PlaceAuthorization } from './place-authorization.entity';
 import { Place, PLACE_CATEGORY } from './place.entity';
 import { PLACE_LINKS } from './place.links';
@@ -47,12 +48,17 @@ export class PlacesModule implements OnModuleInit {
     private links: LinkRegistry,
     private papers: PaperAdapterRegistry,
     private tables: PaperTableRegistry,
+    private places: PlacesService,
   ) {}
 
   onModuleInit() {
     this.dictionaries.registerColumn(PLACE_CATEGORY, Place, 'category');
     this.links.register('place', PLACE_LINKS);
     this.papers.registerReader('place', PLACE_READER);
+    this.papers.register(
+      'place_authorization',
+      placeAuthorizationAdapter(this.places),
+    );
     this.tables.register('place_authorizations', PLACE_AUTHORIZATIONS);
     this.tables.register('place_sessions', PLACE_SESSIONS);
   }

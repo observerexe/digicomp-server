@@ -532,8 +532,20 @@ describe('Публікація документів (e2e)', () => {
       const targets = await as(app, mod).get(`${T}/targets`).expect(200);
       // Sources of auto tables — paper-tables.e2e-spec.ts.
       expect(targets.body).toMatchObject({
-        creates: ['discipline_record', 'points_entry', 'task'],
-        report: ['discipline_record', 'fault', 'place', 'points_entry', 'task'],
+        creates: [
+          'discipline_record',
+          'place_authorization',
+          'points_entry',
+          'task',
+        ],
+        report: [
+          'discipline_record',
+          'fault',
+          'place',
+          'place_authorization',
+          'points_entry',
+          'task',
+        ],
       });
       await as(app, member).get(`${T}/targets`).expect(403);
       const res = await as(app, mod)

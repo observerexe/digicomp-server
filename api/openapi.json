@@ -3947,35 +3947,6 @@
         "tags": [
           "Authorizations"
         ]
-      },
-      "post": {
-        "operationId": "AuthorizationsController_grant",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GrantAuthorizationDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GrantedAuthorizationDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Authorizations"
-        ]
       }
     },
     "/api/place-authorizations/{id}": {
@@ -9836,6 +9807,16 @@
             "nullable": true,
             "description": "null — no end date."
           },
+          "paper": {
+            "nullable": true,
+            "description": "The document that granted the current term; null — granted before documents.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordPaperDto"
+              }
+            ]
+          },
           "id": {
             "type": "string"
           },
@@ -9861,74 +9842,13 @@
         },
         "required": [
           "expiresAt",
+          "paper",
           "id",
           "user",
           "place",
           "grantedById",
           "grantedAt",
           "expired",
-          "note"
-        ]
-      },
-      "GrantAuthorizationDto": {
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "placeId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "expiresAt": {
-            "type": "string"
-          },
-          "note": {
-            "type": "string",
-            "maxLength": 500
-          }
-        },
-        "required": [
-          "userId",
-          "placeId"
-        ]
-      },
-      "GrantedAuthorizationDto": {
-        "type": "object",
-        "properties": {
-          "expiresAt": {
-            "format": "date-time",
-            "type": "string",
-            "nullable": true
-          },
-          "id": {
-            "type": "string"
-          },
-          "userId": {
-            "type": "string"
-          },
-          "placeId": {
-            "type": "string"
-          },
-          "grantedById": {
-            "type": "string"
-          },
-          "grantedAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "note": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "expiresAt",
-          "id",
-          "userId",
-          "placeId",
-          "grantedById",
-          "grantedAt",
           "note"
         ]
       },

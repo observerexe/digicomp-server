@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { PlaceRefDto, UserRefDto } from '../common/responses.dto';
+import { RecordPaperDto } from '../paperwork/responses.dto';
 import { PlaceStatus } from './place.entity';
 
 export class AuthorizationUserDto {
@@ -21,20 +22,10 @@ export class AuthorizationDto {
 
   expired: boolean;
   note: string;
-}
 
-/** Result of granting: the stored row without relations. */
-export class GrantedAuthorizationDto {
-  id: string;
-  userId: string;
-  placeId: string;
-  grantedById: string;
-  grantedAt: Date;
-
-  @ApiProperty({ type: Date, nullable: true })
-  expiresAt: Date | null;
-
-  note: string;
+  /** The document that granted the current term; null — granted before documents. */
+  @ApiProperty({ type: RecordPaperDto, nullable: true })
+  paper: RecordPaperDto | null;
 }
 
 export class PlaceSessionRefDto {

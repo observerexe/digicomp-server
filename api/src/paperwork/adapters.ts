@@ -93,14 +93,15 @@ export type PaperAdapter = {
     m: EntityManager,
   ): Promise<void>;
   /**
-   * Takes the record off (the document is cancelled). May return work for
-   * after the commit (files of a deleted record).
+   * Takes the record off (the document `paperId` is cancelled). May return
+   * work for after the commit (files of a deleted record).
    */
   cancel(
     id: string,
     reason: string,
     actor: Actor,
     m: EntityManager,
+    paperId: string,
   ): Promise<(() => Promise<void>) | void>;
   /** The record now; null — there is none any more. */
   resolve(id: string, m: EntityManager): Promise<ResolvedRecord | null>;

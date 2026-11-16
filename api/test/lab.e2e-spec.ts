@@ -6,8 +6,10 @@ import { WorkSessionsService } from '../src/places/work-sessions.service';
 import { Role } from '../src/users/user.entity';
 import {
   as,
+  authorizationTemplates,
   category,
   createTestApp,
+  grantByPaper,
   makeUser,
   PNG_1PX,
   resetDb,
@@ -130,14 +132,17 @@ describe('Лабораторія і проєкти (e2e)', () => {
         category: 'verstaty',
         needsAuthorization: true,
       });
-      await as(app, mod)
-        .post('/api/place-authorizations')
-        .send({
+      const granted = await grantByPaper(
+        app,
+        mod,
+        await authorizationTemplates(app),
+        {
           userId: a.id,
           placeId: p.body.id,
           expiresAt: iso(Date.now() + 26 * H),
-        })
-        .expect(201);
+        },
+      );
+      expect(granted.status).toBe(200);
       const t = Date.now() + 24 * H;
       const body = (s: number, e: number) => ({
         placeId: p.body.id,

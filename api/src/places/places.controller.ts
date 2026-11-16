@@ -2,7 +2,6 @@ import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
 import { OkDto } from '../common/responses.dto';
 import {
   AuthorizationDto,
-  GrantedAuthorizationDto,
   PlaceDto,
   RecentSessionDto,
   WorkSessionDto,
@@ -30,7 +29,6 @@ import {
   CreatePlaceDto,
   EndSessionDto,
   ExportSessionsQuery,
-  GrantAuthorizationDto,
   ListAuthorizationsQuery,
   ListPlacesQuery,
   ListSessionsQuery,
@@ -165,13 +163,6 @@ export class AuthorizationsController {
   @Get()
   list(@Query() q: ListAuthorizationsQuery, @Req() req: Req) {
     return this.places.listAuthorizations(q, req.user);
-  }
-
-  @Can(Action.PlacesAuthorize)
-  @ApiCreatedResponse({ type: GrantedAuthorizationDto })
-  @Post()
-  grant(@Body() dto: GrantAuthorizationDto, @Req() req: Req) {
-    return this.places.grant(dto, req.user);
   }
 
   @Can(Action.PlacesAuthorize)

@@ -10,8 +10,10 @@ import { PointsEntry, PointsKind } from '../src/points/points-entry.entity';
 import { Role } from '../src/users/user.entity';
 import {
   as,
+  authorizationTemplates,
   category,
   createTestApp,
+  grantByPaper,
   makeUser,
   resetDb,
   TestUser,
@@ -89,11 +91,14 @@ describe('Авто-таблиці (e2e)', () => {
         .send({ code: 'PRN-1', title: 'Принтер', category: cat })
         .expect(201)
     ).body.id;
+    const briefing = await authorizationTemplates(app);
     for (const u of [member, member2]) {
-      await as(app, mod)
-        .post('/api/place-authorizations')
-        .send({ userId: u.id, placeId, note: `допуск ${u.name}` })
-        .expect(201);
+      const granted = await grantByPaper(app, mod, briefing, {
+        userId: u.id,
+        placeId,
+        note: `допуск ${u.name}`,
+      });
+      expect(granted.status).toBe(200);
     }
     await session(member, '2026-10-01T08:00:00Z');
     await session(member2, '2026-10-02T08:00:00Z');

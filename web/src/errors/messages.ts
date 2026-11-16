@@ -72,6 +72,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   AMOUNT_ONLY_FOR_FINE: 'Суму можна вказати лише для штрафу.',
   DISCIPLINE_HAS_PAPER: 'Стягнення видано поданням: щоб зняти, скасуйте документ.',
   POINTS_HAS_PAPER: 'Бали нараховано відомістю: щоб зняти, скасуйте відомість.',
+  AUTHORIZATION_HAS_PAPER: 'Допуск видано записом про інструктаж: щоб відкликати, скасуйте запис.',
   REASON_REQUIRED: 'Вкажіть причину.',
 
   // Обладнання, сеанси, допуски

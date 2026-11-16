@@ -1444,7 +1444,7 @@ export interface paths {
         };
         get: operations["AuthorizationsController_list"];
         put?: never;
-        post: operations["AuthorizationsController_grant"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3308,6 +3308,8 @@ export interface components {
              * @description null — no end date.
              */
             expiresAt: string | null;
+            /** @description The document that granted the current term; null — granted before documents. */
+            paper: components["schemas"]["RecordPaperDto"] | null;
             id: string;
             user: components["schemas"]["AuthorizationUserDto"];
             place: components["schemas"]["PlaceRefDto"];
@@ -3315,25 +3317,6 @@ export interface components {
             /** Format: date-time */
             grantedAt: string;
             expired: boolean;
-            note: string;
-        };
-        GrantAuthorizationDto: {
-            /** Format: uuid */
-            userId: string;
-            /** Format: uuid */
-            placeId: string;
-            expiresAt?: string;
-            note?: string;
-        };
-        GrantedAuthorizationDto: {
-            /** Format: date-time */
-            expiresAt: string | null;
-            id: string;
-            userId: string;
-            placeId: string;
-            grantedById: string;
-            /** Format: date-time */
-            grantedAt: string;
             note: string;
         };
         CreateBookingDto: {
@@ -6313,29 +6296,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuthorizationDto"][];
-                };
-            };
-        };
-    };
-    AuthorizationsController_grant: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["GrantAuthorizationDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GrantedAuthorizationDto"];
                 };
             };
         };

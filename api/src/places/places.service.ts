@@ -7,7 +7,7 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { isUUID } from 'class-validator';
 import { DataSource, EntityManager, In, IsNull, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
-import { Action, can } from '../auth/policy';
+import { Action, assertCan, can } from '../auth/policy';
 import {
   assertDictionaryItem,
   itemTitleLike,
@@ -23,15 +23,17 @@ import {
 import { PlaceAuthorization } from './place-authorization.entity';
 import { Place, PLACE_CATEGORY, PlaceStatus } from './place.entity';
 import { WorkSession } from './work-session.entity';
-import type {
-  AuthorizationDto,
-  GrantedAuthorizationDto,
-  PlaceDto,
-} from './responses.dto';
+import type { AuthorizationDto, PlaceDto } from './responses.dto';
 import type { OkDto } from '../common/responses.dto';
 import { escapeLike } from '../common/like';
+import { fieldInvalid } from '../paperwork/paper-fields';
+import { papersOf } from '../paperwork/paper-targets';
 
 type Actor = { id: string; role: string };
+
+export const PlaceErrors = {
+  AuthorizationHasPaper: 'Authorization has a paper',
+} as const;
 
 export function authIsValid(a: PlaceAuthorization | null | undefined) {
   return !!a && (!a.expiresAt || a.expiresAt.getTime() > Date.now());
@@ -44,7 +46,6 @@ export class PlacesService {
     @InjectRepository(PlaceAuthorization)
     private auths: Repository<PlaceAuthorization>,
     @InjectRepository(WorkSession) private sessions: Repository<WorkSession>,
-    @InjectRepository(User) private users: Repository<User>,
     @InjectDataSource() private ds: DataSource,
     private audit: AuditService,
   ) {}
@@ -166,7 +167,7 @@ export class PlacesService {
     if (q.placeId) where.placeId = q.placeId;
     const rows = await this.auths.find({
       where,
-      relations: { user: true, place: true },
+      relations: { user: true, place: true, paper: true },
       order: { grantedAt: 'DESC' },
     });
     return rows.map((a) => ({
@@ -178,65 +179,152 @@ export class PlacesService {
       expiresAt: a.expiresAt,
       expired: !authIsValid(a),
       note: a.note,
+      paper: a.paper ? { id: a.paper.id, number: a.paper.number } : null,
     }));
   }
 
+  /**
+   * Grants a допуск, only in the transaction of its document («Запис про
+   * інструктаж і допуск», `paperId`): staff, to an active member, for
+   * equipment not archived. A repeat briefing renews the допуск the member
+   * has (the same row: new term, who and when) and this document becomes
+   * its document.
+   */
   async grant(
     dto: GrantAuthorizationDto,
     actor: Actor,
-  ): Promise<GrantedAuthorizationDto> {
-    const user = await this.users.findOneBy({ id: dto.userId });
-    if (!user || !user.active) throw new NotFoundException('User not found');
-    const place = await this.resolve(dto.placeId);
-    let row = await this.auths.findOneBy({
-      userId: user.id,
-      placeId: place.id,
-    });
-    const expiresAt = dto.expiresAt ? new Date(dto.expiresAt) : null;
-    if (row) {
-      row.expiresAt = expiresAt;
-      row.note = dto.note ?? row.note;
-      row.grantedById = actor.id;
-    } else {
-      row = this.auths.create({
-        userId: user.id,
-        placeId: place.id,
-        grantedById: actor.id,
-        expiresAt,
-        note: dto.note ?? '',
-      });
+    m: EntityManager,
+    paperId: string,
+  ): Promise<PlaceAuthorization> {
+    assertCan(actor, Action.PlacesAuthorize);
+    const user = await m.findOneBy(User, { id: dto.userId });
+    if (!user || !user.active) throw fieldInvalid('userId');
+    const place = await m.findOneBy(Place, { id: dto.placeId });
+    if (!place || place.status === PlaceStatus.Archived) {
+      throw fieldInvalid('placeId');
     }
-    row = await this.auths.save(row);
-    await this.audit.log({
-      actorId: actor.id,
-      action: 'authorization.granted',
-      entity: 'place',
-      entityId: place.id,
-      meta: { userId: user.id, expiresAt: expiresAt?.toISOString() ?? null },
+    // Two first briefings at once would both see no допуск.
+    await m.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [
+      `authorization:${user.id}:${place.id}`,
+    ]);
+    const repo = m.getRepository(PlaceAuthorization);
+    let row = await repo.findOne({
+      where: { userId: user.id, placeId: place.id },
+      lock: { mode: 'pessimistic_write' },
     });
-    return {
-      id: row.id,
-      userId: row.userId,
-      placeId: row.placeId,
-      grantedById: row.grantedById,
-      grantedAt: row.grantedAt,
-      expiresAt: row.expiresAt,
-      note: row.note,
+    const term = {
+      grantedById: actor.id,
+      grantedAt: new Date(),
+      expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
+      note: dto.note?.trim() ?? '',
+      paperId,
     };
+    const renewed = !!row;
+    row = await repo.save(
+      row
+        ? Object.assign(row, term)
+        : repo.create({ userId: user.id, placeId: place.id, ...term }),
+    );
+    await this.audit.log(
+      {
+        actorId: actor.id,
+        action: 'authorization.granted',
+        entity: 'place',
+        entityId: place.id,
+        meta: {
+          userId: user.id,
+          expiresAt: term.expiresAt?.toISOString() ?? null,
+          paperId,
+          ...(renewed ? { renewed: true } : {}),
+        },
+      },
+      m,
+    );
+    return row;
   }
 
+  /**
+   * Revokes a допуск granted before documents; one with a document goes
+   * only by cancelling the document (409 AUTHORIZATION_HAS_PAPER).
+   */
   async revoke(id: string, actor: Actor): Promise<OkDto> {
-    const row = await this.auths.findOneBy({ id });
-    if (!row) throw new NotFoundException('Authorization not found');
-    await this.auths.delete({ id });
-    await this.audit.log({
-      actorId: actor.id,
-      action: 'authorization.revoked',
-      entity: 'place',
-      entityId: row.placeId,
-      meta: { userId: row.userId },
+    await this.ds.transaction(async (m) => {
+      const row = await this.locked(m, id);
+      if (await papersOf(m, 'place_authorization', id)) {
+        throw new ConflictException(PlaceErrors.AuthorizationHasPaper);
+      }
+      await this.take(m, row, actor, null);
     });
     return { ok: true };
+  }
+
+  /**
+   * Its document is cancelled: the допуск is revoked with the same reason —
+   * if that document granted its current term (an earlier briefing's
+   * document leaves the renewed допуск as it is).
+   */
+  async revokeByPaper(
+    m: EntityManager,
+    id: string,
+    paperId: string,
+    reason: string,
+    actor: Actor,
+  ): Promise<void> {
+    const row = await m.findOne(PlaceAuthorization, {
+      where: { id },
+      lock: { mode: 'pessimistic_write' },
+    });
+    if (row?.paperId !== paperId) return;
+    assertCan(actor, Action.PlacesAuthorize);
+    await this.take(m, row, actor, reason);
+  }
+
+  /**
+   * A допуск granted before documents gets its «Запис про інструктаж і
+   * допуск» (for-record): staff.
+   */
+  async adopt(
+    m: EntityManager,
+    id: string,
+    paperId: string,
+    actor: Actor,
+  ): Promise<void> {
+    assertCan(actor, Action.PlacesAuthorize);
+    // One that has a document already — PAPER_TARGET_TAKEN (for-record).
+    const row = await this.locked(m, id);
+    await m.update(PlaceAuthorization, row.id, { paperId });
+  }
+
+  private async locked(m: EntityManager, id: string) {
+    const row = await m.findOne(PlaceAuthorization, {
+      where: { id },
+      lock: { mode: 'pessimistic_write' },
+    });
+    if (!row) throw new NotFoundException('Authorization not found');
+    return row;
+  }
+
+  /** Deletes the допуск; `reason` — of its cancelled document. */
+  private async take(
+    m: EntityManager,
+    row: PlaceAuthorization,
+    actor: Actor,
+    reason: string | null,
+  ) {
+    await m.delete(PlaceAuthorization, { id: row.id });
+    await this.audit.log(
+      {
+        actorId: actor.id,
+        action: 'authorization.revoked',
+        entity: 'place',
+        entityId: row.placeId,
+        meta: {
+          userId: row.userId,
+          ...(reason === null ? {} : { reason, byPaper: true }),
+        },
+      },
+      m,
+    );
   }
 
   private async decorate(rows: Place[], actor: Actor): Promise<PlaceDto[]> {

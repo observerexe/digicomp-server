@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import type { Me, UserDetail } from '../../api/types';
+import type { Me, TemplateItem, UserDetail } from '../../api/types';
 import { json, member, mockApi, moderator, renderApp } from '../../test/render';
 
 const STAFF = ['users.manage', 'users.read_extended', 'users.create', 'users.block', 'users.promote', 'users.edit_role_info', 'places.authorize', 'places.manage'];
@@ -153,38 +153,72 @@ describe('Панель: керування учасником', () => {
     await waitFor(() => expect(calls.some((c) => c.path === '/api/users/m2/2fa/reset')).toBe(true));
   });
 
-  it('допуски учасника: видати з терміном до кінця дня, відкликати', async () => {
-    const auth = {
-      id: 'au1',
-      user: { id: 'u2', name: 'Андрій Шевчук' },
-      place: { id: 'p1', code: 'CNC-1', title: 'Фрезер' },
-      grantedById: 'm1',
-      grantedAt: '2026-10-01T10:00:00Z',
-      expiresAt: null,
-      expired: false,
-      note: '',
-    };
+  const briefing: TemplateItem = {
+    id: 'id1',
+    title: 'Запис про інструктаж і допуск',
+    kind: 'creates',
+    target: 'place_authorization',
+    numberPrefix: 'ІД',
+    autoFreeze: true,
+    creators: 'staff',
+    visibility: 'author',
+    archived: false,
+    currentVersion: 1,
+    draftVersion: null,
+    needsUpdate: false,
+    about: ['user', 'place'],
+    createdAt: '2026-11-16T10:00:00Z',
+    updatedAt: '2026-11-16T10:00:00Z',
+  };
+  const auth = {
+    id: 'au1',
+    user: { id: 'u2', name: 'Андрій Шевчук' },
+    place: { id: 'p1', code: 'CNC-1', title: 'Фрезер' },
+    grantedById: 'm1',
+    grantedAt: '2026-10-01T10:00:00Z',
+    expiresAt: null,
+    expired: false,
+    note: '',
+    paper: null,
+  };
+
+  it('допуски учасника: «Видати допуск» — запис про інструктаж про цього учасника, одразу в редакторі', async () => {
     const { calls } = usersApi(mod, person(), {
-      'GET /api/place-authorizations': () => json(200, [auth]),
-      'POST /api/place-authorizations': () => json(201, { id: 'au2' }),
-      'DELETE /api/place-authorizations/au1': () => json(200, { ok: true }),
+      'GET /api/place-authorizations': () => json(200, [{ ...auth, id: 'au2', paper: { id: 'pp1', number: 'ІД-2026-001' } }]),
+      'GET /api/papers/templates': () => json(200, [briefing]),
+      'POST /api/papers': () => json(201, { id: 'pp2' }),
     });
-    renderApp('/panel/users/u2');
+    const { router } = renderApp('/panel/users/u2');
     const list = await screen.findByRole('list', { name: 'Видані допуски' });
     expect(list).toHaveTextContent('безстроково');
+    // Granted by a document: revoked by cancelling it.
+    expect(within(list).getByRole('link', { name: 'Запис ІД-2026-001' })).toHaveAttribute('href', '/editor/pp1');
+    expect(within(list).queryByRole('button', { name: 'Відкликати' })).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Видати допуск' }));
-    await screen.findByRole('option', { name: 'Фрезер (CNC-1)' });
-    await userEvent.selectOptions(screen.getByLabelText('Обладнання'), 'p1');
-    await userEvent.type(screen.getByLabelText(/Діє до/), '2026-12-31');
-    await userEvent.click(screen.getByRole('button', { name: 'Видати' }));
-    await waitFor(() => expect(calls.some((c) => c.method === 'POST')).toBe(true));
-    // 31.12 23:59:59 Kyiv (UTC+2).
-    expect(JSON.parse(calls.find((c) => c.method === 'POST')!.body)).toEqual({ userId: 'u2', placeId: 'p1', expiresAt: '2026-12-31T21:59:59.000Z' });
+    await userEvent.click(await screen.findByRole('button', { name: 'Видати допуск' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/editor/pp2'));
+    expect(JSON.parse(calls.find((c) => c.path === '/api/papers' && c.method === 'POST')!.body)).toEqual({
+      templateId: 'id1',
+      about: { type: 'user', id: 'u2' },
+    });
+  });
 
+  it('допуск, виданий до документів: відкликати або «Створити документ»', async () => {
+    const { calls } = usersApi(mod, person(), {
+      'GET /api/place-authorizations': () => json(200, [auth]),
+      'GET /api/papers/templates': () => json(200, [briefing]),
+      'DELETE /api/place-authorizations/au1': () => json(200, { ok: true }),
+      'POST /api/papers/for-record': () => json(201, { id: 'pp3' }),
+    });
+    const { router } = renderApp('/panel/users/u2');
+    const list = await screen.findByRole('list', { name: 'Видані допуски' });
     await userEvent.click(within(list).getByRole('button', { name: 'Відкликати' }));
     await userEvent.click(within(list).getByRole('button', { name: 'Так' }));
     await waitFor(() => expect(calls.some((c) => c.method === 'DELETE' && c.path.endsWith('/au1'))).toBe(true));
+
+    await userEvent.click(within(list).getByRole('button', { name: 'Створити документ' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/editor/pp3'));
+    expect(JSON.parse(calls.find((c) => c.path === '/api/papers/for-record')!.body)).toEqual({ templateId: 'id1', targetId: 'au1' });
   });
 
   it('у публічному профілі staff бачить «Керувати»', async () => {

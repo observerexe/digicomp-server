@@ -6,8 +6,10 @@ import { AuditLog } from '../src/audit/audit-log.entity';
 import { Role } from '../src/users/user.entity';
 import {
   as,
+  authorizationTemplates,
   category,
   createTestApp,
+  grantByPaper,
   issueRecord,
   makeTask,
   makeUser,
@@ -770,19 +772,24 @@ describe('Матриця прав (e2e)', () => {
       });
       placeId = p.body.id;
     });
-    const grant = (who: TestUser) =>
-      as(app, who)
-        .post('/api/place-authorizations')
-        .send({ userId: member2.id, placeId });
+    // Only through «Запис про інструктаж і допуск» (editor 4.4).
+    const grant = async (who: TestUser) =>
+      grantByPaper(app, who, await authorizationTemplates(app), {
+        userId: member2.id,
+        placeId,
+      });
 
     it('admin так', async () => {
-      expect((await grant(admin)).status).toBe(201);
+      expect((await grant(admin)).status).toBe(200);
     });
     it('moderator так', async () => {
-      expect((await grant(mod)).status).toBe(201);
+      expect((await grant(mod)).status).toBe(200);
     });
     it('member ні', async () => {
-      denied(await grant(member));
+      // «Запис про інструктаж і допуск» — шаблон модераторів: учасник його не бачить.
+      const res = await grant(member);
+      expect(res.status).toBe(404);
+      expect(res.body.errorCode).toBe('TEMPLATE_NOT_FOUND');
     });
   });
 
@@ -982,10 +989,13 @@ describe('Матриця прав (e2e)', () => {
     });
     it('member лише з допуском', async () => {
       denied(await start(member), 'NOT_AUTHORIZED_FOR_PLACE');
-      await as(app, mod)
-        .post('/api/place-authorizations')
-        .send({ userId: member.id, placeId })
-        .expect(201);
+      const granted = await grantByPaper(
+        app,
+        mod,
+        await authorizationTemplates(app),
+        { userId: member.id, placeId },
+      );
+      expect(granted.status).toBe(200);
       expect((await start(member)).status).toBe(201);
     });
   });
