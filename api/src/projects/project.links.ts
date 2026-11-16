@@ -4,7 +4,7 @@ import { Action, check } from '../auth/policy';
 import type { LinkableType } from '../links/link-registry';
 import { Project, ProjectMember } from './project.entities';
 
-/** Projects: archived ones are hidden; staff and members of the project edit. */
+/** Projects: archived and deleted ones are hidden; staff and members of the project edit. */
 export const PROJECT_LINKS: LinkableType = {
   async checkEdit(actor, id, m) {
     const participant = await m.existsBy(ProjectMember, {
@@ -17,14 +17,22 @@ export const PROJECT_LINKS: LinkableType = {
       : 'PROJECT_EDIT_FORBIDDEN';
   },
   async find(ids, _actor, m) {
-    const rows = await m.findBy(Project, { id: In(ids), archivedAt: IsNull() });
+    const rows = await m.findBy(Project, {
+      id: In(ids),
+      archivedAt: IsNull(),
+      deletedAt: IsNull(),
+    });
     return new Map(
       rows.map((p) => [p.id, { title: p.title, archived: false }]),
     );
   },
   async search(q, limit, _actor, m) {
     const rows = await m.find(Project, {
-      where: { title: ILike(containsLike(q)), archivedAt: IsNull() },
+      where: {
+        title: ILike(containsLike(q)),
+        archivedAt: IsNull(),
+        deletedAt: IsNull(),
+      },
       order: { title: 'ASC', id: 'ASC' },
       take: limit,
     });

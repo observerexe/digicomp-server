@@ -314,7 +314,7 @@ describe('Архів (e2e)', () => {
     });
 
     it('архівні файли — лише модератору й без документів; учаснику прапорець нічого не змінює', async () => {
-      await as(app, mod).delete(`/api/documents/${fileOld}`).expect(200);
+      await as(app, mod).post(`/api/documents/${fileOld}/archive`).expect(200);
       const staff = await list(mod, '?archived=true');
       expect(staff.items).toMatchObject([
         { id: fileOld, file: { archived: true } },

@@ -8,6 +8,10 @@ import { LinkRegistry } from '../links/link-registry';
 import { LinksModule } from '../links/links.module';
 import { PaperAdapterRegistry } from '../paperwork/adapters';
 import { PaperworkModule } from '../paperwork/paperwork.module';
+import { TrashRegistry } from '../trash/trash-registry';
+import { TrashModule } from '../trash/trash.module';
+import { AuditService } from '../audit/audit.service';
+import { placeTrash } from './place.trash';
 import { PaperTableRegistry } from '../paperwork/tables';
 import { UsersModule } from '../users/users.module';
 import {
@@ -33,6 +37,7 @@ import { WorkSessionsService } from './work-sessions.service';
     DictionariesModule,
     LinksModule,
     PaperworkModule,
+    TrashModule,
   ],
   controllers: [
     PlacesController,
@@ -49,11 +54,14 @@ export class PlacesModule implements OnModuleInit {
     private papers: PaperAdapterRegistry,
     private tables: PaperTableRegistry,
     private places: PlacesService,
+    private trash: TrashRegistry,
+    private audit: AuditService,
   ) {}
 
   onModuleInit() {
     this.dictionaries.registerColumn(PLACE_CATEGORY, Place, 'category');
     this.links.register('place', PLACE_LINKS);
+    this.trash.register('place', placeTrash(this.audit));
     this.papers.registerReader('place', PLACE_READER);
     this.papers.register(
       'place_authorization',

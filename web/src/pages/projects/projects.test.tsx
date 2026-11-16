@@ -82,7 +82,7 @@ describe('Сторінка проєкту', () => {
         'GET /api/projects/p1/history': () =>
           json(200, [{ id: 'h1', action: 'project.updated', actor: { id: 'm1', name: 'Олег' }, meta: { fields: ['stage', 'progress'] }, createdAt: '2026-11-01T10:00:00Z' }]),
         'PATCH /api/projects/p1': () => json(200, detail({ canEdit: true, stage: 'review' })),
-        'DELETE /api/projects/p1': () => json(200, { ok: true }),
+        'POST /api/projects/p1/archive': () => json(200, { ok: true }),
       }),
     );
     const { router } = renderApp('/projects/p1');

@@ -86,7 +86,7 @@ function ProjectView({ p }: { p: ProjectDetail }) {
     onSettled: refresh,
   });
   const archive = useMutation({
-    mutationFn: () => unwrap(api.DELETE('/api/projects/{id}', { params: { path: { id: p.id } } })),
+    mutationFn: () => unwrap(api.POST('/api/projects/{id}/archive', { params: { path: { id: p.id } } })),
     onSuccess: () => {
       refresh();
       void navigate('/projects');

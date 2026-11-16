@@ -20,6 +20,7 @@ import { FaultsModule } from './faults/faults.module';
 import { FilesModule } from './files/files.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { LinksModule } from './links/links.module';
+import { TrashModule } from './trash/trash.module';
 import { OrgModule } from './org/org.module';
 import { PaperworkModule } from './paperwork/paperwork.module';
 import { ProjectsModule } from './projects/projects.module';
@@ -56,6 +57,7 @@ import { UsersModule } from './users/users.module';
     DictionariesModule,
     RecordsModule,
     LinksModule,
+    TrashModule,
     OrgModule,
     PaperworkModule,
     ArchiveModule,

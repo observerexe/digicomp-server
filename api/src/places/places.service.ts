@@ -50,17 +50,23 @@ export class PlacesService {
     private audit: AuditService,
   ) {}
 
+  /**
+   * By id or by the QR code. Deleted equipment (in the trash or for good)
+   * is not found: PLACE_DELETED, so its sticker tells why.
+   */
   async resolve(idOrCode: string, manager?: EntityManager) {
     const repo = (manager ?? this.ds.manager).getRepository(Place);
-    const place = isUUID(idOrCode, 'all')
-      ? await repo.findOneBy({ id: idOrCode })
-      : await repo.findOneBy({ code: idOrCode.toUpperCase() });
-    if (!place) throw new NotFoundException('Place not found');
-    return place;
+    const by = isUUID(idOrCode, 'all')
+      ? { id: idOrCode }
+      : { code: idOrCode.toUpperCase() };
+    const place = await repo.findOneBy({ ...by, deletedAt: IsNull() });
+    if (place) return place;
+    if (await repo.existsBy(by)) throw new NotFoundException('Place deleted');
+    throw new NotFoundException('Place not found');
   }
 
   async list(q: ListPlacesQuery, actor: Actor) {
-    const qb = this.places.createQueryBuilder('p');
+    const qb = this.places.createQueryBuilder('p').where('p.deletedAt IS NULL');
     if (!can(actor, Action.PlacesManage)) {
       qb.andWhere('p.status <> :arch', { arch: PlaceStatus.Archived });
     }
@@ -90,7 +96,7 @@ export class PlacesService {
 
   async create(dto: CreatePlaceDto, actor: Actor) {
     const code = dto.code.toUpperCase();
-    if (await this.places.findOneBy({ code })) {
+    if (await this.places.findOneBy({ code, purgedAt: IsNull() })) {
       throw new ConflictException('Place code already used');
     }
     await assertDictionaryItem(this.ds.manager, PLACE_CATEGORY, dto.category);
@@ -199,7 +205,10 @@ export class PlacesService {
     assertCan(actor, Action.PlacesAuthorize);
     const user = await m.findOneBy(User, { id: dto.userId });
     if (!user || !user.active) throw fieldInvalid('userId');
-    const place = await m.findOneBy(Place, { id: dto.placeId });
+    const place = await m.findOneBy(Place, {
+      id: dto.placeId,
+      deletedAt: IsNull(),
+    });
     if (!place || place.status === PlaceStatus.Archived) {
       throw fieldInvalid('placeId');
     }

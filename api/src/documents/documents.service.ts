@@ -13,7 +13,7 @@ import { StorageService } from '../files/storage.service';
 import { assertDictionaryItem } from '../dictionaries/dictionary-usage';
 import { AddVersionDto, CreateDocDto, UpdateDocDto } from './dto';
 import { AccessScope, Doc, DOCUMENT_CATEGORY, DocVersion } from './doc.entity';
-import type { OkDto, Plain } from '../common/responses.dto';
+import type { Plain } from '../common/responses.dto';
 import type { DocDto, DocVersionDto } from './responses.dto';
 
 type Actor = { id: string; role: string };
@@ -134,7 +134,7 @@ export class DocumentsService {
           where: { id },
           lock: { mode: 'pessimistic_write' },
         });
-        if (!doc || doc.archivedAt) {
+        if (!doc || doc.archivedAt || doc.deletedAt) {
           throw new NotFoundException('Document not found');
         }
         const ver = await this.insertVersion(
@@ -284,18 +284,30 @@ export class DocumentsService {
     return this.get(id, actor);
   }
 
-  async archive(id: string, actor: Actor): Promise<OkDto> {
+  /** «В архів»: out of the Archive's list, kept (staff see it there). */
+  async archive(id: string, actor: Actor): Promise<DocDto> {
+    return this.setArchived(id, true, actor);
+  }
+
+  /** «Повернути з архіву»: back to the Archive's list. */
+  async unarchive(id: string, actor: Actor): Promise<DocDto> {
+    return this.setArchived(id, false, actor);
+  }
+
+  private async setArchived(id: string, archived: boolean, actor: Actor) {
     const d = await this.accessible(id, actor);
-    d.archivedAt = new Date();
-    await this.docs.save(d);
-    await this.audit.log({
-      actorId: actor.id,
-      action: 'document.archived',
-      entity: 'document',
-      entityId: id,
-      meta: { title: d.title },
-    });
-    return { ok: true };
+    if (!!d.archivedAt !== archived) {
+      d.archivedAt = archived ? new Date() : null;
+      await this.docs.save(d);
+      await this.audit.log({
+        actorId: actor.id,
+        action: archived ? 'document.archived' : 'document.unarchived',
+        entity: 'document',
+        entityId: id,
+        meta: { title: d.title },
+      });
+    }
+    return this.get(id, actor);
   }
 
   async download(id: string, versionNo: string | undefined, actor: Actor) {
@@ -324,6 +336,7 @@ export class DocumentsService {
     const d = await this.docs.findOneBy({ id });
     if (
       !d ||
+      d.deletedAt ||
       (d.archivedAt && !can(actor, Action.DocumentsManage)) ||
       (!can(actor, Action.DocumentsManage) &&
         d.accessScope !== AccessScope.Members)

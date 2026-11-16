@@ -11,6 +11,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -30,6 +31,7 @@ import { Action } from '../auth/policy';
 import type { UploadedFileLike } from '../files/file-validation';
 import { CreateProjectDto, ListProjectsQuery, UpdateProjectDto } from './dto';
 import { ProjectsService } from './projects.service';
+import { TrashService } from '../trash/trash.service';
 import { contentDisposition } from '../files/content-disposition';
 
 type Req = { user: { id: string; role: string } };
@@ -37,7 +39,10 @@ type Req = { user: { id: string; role: string } };
 @Controller('projects')
 @UseGuards(JwtAuthGuard, PolicyGuard)
 export class ProjectsController {
-  constructor(private projects: ProjectsService) {}
+  constructor(
+    private projects: ProjectsService,
+    private trash: TrashService,
+  ) {}
 
   @Can(Action.ProjectsRead)
   @ApiOkResponse({ type: ProjectListDto })
@@ -78,11 +83,21 @@ export class ProjectsController {
     return this.projects.update(id, dto, req.user);
   }
 
+  /** «В архів»: off the list, kept. */
+  @ApiOkResponse({ type: OkDto })
+  @Can(Action.ProjectsManage)
+  @HttpCode(200)
+  @Post(':id/archive')
+  archive(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
+    return this.projects.archive(id, req.user);
+  }
+
+  /** «Видалити»: to the trash. */
   @ApiOkResponse({ type: OkDto })
   @Can(Action.ProjectsManage)
   @Delete(':id')
-  archive(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
-    return this.projects.archive(id, req.user);
+  remove(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
+    return this.trash.delete('project', id, req.user);
   }
 
   @ApiCreatedResponse({ type: ProjectFileDto })

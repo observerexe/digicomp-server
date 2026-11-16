@@ -918,7 +918,8 @@ export interface paths {
         get: operations["DocumentsController_get"];
         put?: never;
         post?: never;
-        delete: operations["DocumentsController_archive"];
+        /** «Видалити»: to the trash (not a signed scan of an editor document). */
+        delete: operations["DocumentsController_remove"];
         options?: never;
         head?: never;
         patch: operations["DocumentsController_update"];
@@ -983,6 +984,89 @@ export interface paths {
         put?: never;
         post: operations["DocumentsController_addVersion"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/documents/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** «В архів»: out of the Archive's list, kept. */
+        post: operations["DocumentsController_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/documents/{id}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** «Повернути з архіву». */
+        post: operations["DocumentsController_unarchive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["TrashController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trash/{type}/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["TrashController_restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/trash/{type}/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** «Видалити назавжди». */
+        delete: operations["TrashController_purge"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1437,7 +1521,8 @@ export interface paths {
         get: operations["PlacesController_get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** «Видалити»: to the trash (not while in use; bookings ahead cancelled). */
+        delete: operations["PlacesController_remove"];
         options?: never;
         head?: never;
         patch: operations["PlacesController_update"];
@@ -1780,7 +1865,8 @@ export interface paths {
         get: operations["InventoryController_get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** «Видалити»: to the trash; what is left is written off. */
+        delete: operations["InventoryController_remove"];
         options?: never;
         head?: never;
         patch: operations["InventoryController_update"];
@@ -1860,7 +1946,8 @@ export interface paths {
         get: operations["ProjectsController_get"];
         put?: never;
         post?: never;
-        delete: operations["ProjectsController_archive"];
+        /** «Видалити»: to the trash. */
+        delete: operations["ProjectsController_remove"];
         options?: never;
         head?: never;
         patch: operations["ProjectsController_update"];
@@ -1876,6 +1963,23 @@ export interface paths {
         get: operations["ProjectsController_history"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** «В архів»: off the list, kept. */
+        post: operations["ProjectsController_archive"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3052,6 +3156,34 @@ export interface components {
             description?: string;
             /** @enum {string} */
             accessScope?: "members" | "supervisors";
+        };
+        /** @enum {string} */
+        TrashType: "place" | "inventory_item" | "document" | "project";
+        TrashActorDto: {
+            id: string;
+            name: string;
+        };
+        TrashItemDto: {
+            type: components["schemas"]["TrashType"];
+            /** @description QR code: equipment, inventory items; null — the type has none. */
+            code: string | null;
+            /** @description Who deleted it; null — the account is gone. */
+            deletedBy: components["schemas"]["TrashActorDto"] | null;
+            id: string;
+            title: string;
+            /** Format: date-time */
+            deletedAt: string;
+            /**
+             * Format: date-time
+             * @description When the server deletes it for good.
+             */
+            purgeAt: string;
+        };
+        TrashListDto: {
+            items: components["schemas"]["TrashItemDto"][];
+            total: number;
+            page: number;
+            limit: number;
         };
         OrgSignerDto: {
             id: string;
@@ -5596,7 +5728,7 @@ export interface operations {
             };
         };
     };
-    DocumentsController_archive: {
+    DocumentsController_remove: {
         parameters: {
             query?: never;
             header?: never;
@@ -5730,6 +5862,117 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DocVersionDto"];
+                };
+            };
+        };
+    };
+    DocumentsController_archive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocDto"];
+                };
+            };
+        };
+    };
+    DocumentsController_unarchive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocDto"];
+                };
+            };
+        };
+    };
+    TrashController_list: {
+        parameters: {
+            query?: {
+                type?: components["schemas"]["TrashType"];
+                /** @description Part of the title (or code). */
+                search?: string;
+                page?: string;
+                limit?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrashListDto"];
+                };
+            };
+        };
+    };
+    TrashController_restore: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: components["schemas"]["TrashType"];
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    TrashController_purge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                type: components["schemas"]["TrashType"];
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
                 };
             };
         };
@@ -6440,6 +6683,27 @@ export interface operations {
             };
         };
     };
+    PlacesController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
     PlacesController_update: {
         parameters: {
             query?: never;
@@ -6987,6 +7251,27 @@ export interface operations {
             };
         };
     };
+    InventoryController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
     InventoryController_update: {
         parameters: {
             query?: never;
@@ -7148,7 +7433,7 @@ export interface operations {
             };
         };
     };
-    ProjectsController_archive: {
+    ProjectsController_remove: {
         parameters: {
             query?: never;
             header?: never;
@@ -7211,6 +7496,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectHistoryDto"][];
+                };
+            };
+        };
+    };
+    ProjectsController_archive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
                 };
             };
         };

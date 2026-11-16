@@ -113,11 +113,15 @@ function DocView({ doc }: { doc: Doc }) {
     },
   });
   const archive = useMutation({
-    mutationFn: () => unwrap(api.DELETE('/api/documents/{id}', { params: { path: { id: doc.id } } })),
+    mutationFn: () => unwrap(api.POST('/api/documents/{id}/archive', { params: { path: { id: doc.id } } })),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['documents'] });
       void navigate('/docs');
     },
+  });
+  const unarchive = useMutation({
+    mutationFn: () => unwrap(api.POST('/api/documents/{id}/unarchive', { params: { path: { id: doc.id } } })),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['documents'] }),
   });
 
   return (
@@ -205,6 +209,16 @@ function DocView({ doc }: { doc: Doc }) {
                 )}
               </div>
               <ErrorMessage text={archive.isError ? errorOf(archive.error) : null} />
+            </Card>
+          )}
+          {staff && doc.archived && (
+            <Card>
+              <div className={s.actions}>
+                <button type="button" className="btn" disabled={unarchive.isPending} onClick={() => unarchive.mutate()}>
+                  Повернути з архіву
+                </button>
+              </div>
+              <ErrorMessage text={unarchive.isError ? errorOf(unarchive.error) : null} />
             </Card>
           )}
         </div>

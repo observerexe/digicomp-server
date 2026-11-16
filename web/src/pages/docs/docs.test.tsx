@@ -90,6 +90,19 @@ describe('Архів', () => {
     expect(screen.queryByRole('group', { name: 'Стан' })).not.toBeInTheDocument();
   });
 
+  it('модератор: архівний файл — «Повернути з архіву»; «В архів» — не видалення', async () => {
+    const { calls } = mockApi(
+      base(staff, {
+        'GET /api/documents/d1': () => json(200, doc({ archived: true })),
+        'POST /api/documents/d1/unarchive': () => json(200, doc()),
+      }),
+    );
+    renderApp('/docs/d1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Повернути з архіву' }));
+    await waitFor(() => expect(calls.some((c) => c.method === 'POST' && c.path === '/api/documents/d1/unarchive')).toBe(true));
+    expect(screen.queryByRole('button', { name: 'В архів' })).not.toBeInTheDocument();
+  });
+
   it('порожньо: без фільтрів — «нічого немає», з пошуком — «нічого не знайдено»', async () => {
     mockApi(base(member, { 'GET /api/archive': () => json(200, archive([], { years: [], categories: [] })) }));
     renderApp('/docs');

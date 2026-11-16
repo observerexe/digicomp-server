@@ -97,7 +97,7 @@ export class ProjectsService {
     const limit = Math.min(100, Math.max(1, Number(q.limit ?? 50)));
     const qb = this.projects
       .createQueryBuilder('p')
-      .where('p.archivedAt IS NULL');
+      .where('p.archivedAt IS NULL AND p.deletedAt IS NULL');
     if (q.stage) qb.andWhere('p.stage = :st', { st: q.stage });
     if (q.memberId) {
       qb.andWhere(
@@ -204,7 +204,9 @@ export class ProjectsService {
         where: { id },
         lock: { mode: 'pessimistic_write' },
       });
-      if (!p || p.archivedAt) throw new NotFoundException('Project not found');
+      if (!p || p.archivedAt || p.deletedAt) {
+        throw new NotFoundException('Project not found');
+      }
       if (!(await this.canEdit(id, actor, m))) {
         throw new ForbiddenException('No rights to edit this project');
       }
@@ -373,7 +375,9 @@ export class ProjectsService {
 
   private async find(id: string) {
     const p = await this.projects.findOneBy({ id });
-    if (!p || p.archivedAt) throw new NotFoundException('Project not found');
+    if (!p || p.archivedAt || p.deletedAt) {
+      throw new NotFoundException('Project not found');
+    }
     return p;
   }
 

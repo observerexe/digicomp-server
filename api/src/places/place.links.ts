@@ -1,15 +1,15 @@
-import { ILike, In, Not, type FindOptionsWhere } from 'typeorm';
+import { ILike, In, IsNull, Not, type FindOptionsWhere } from 'typeorm';
 import { containsLike } from '../common/like';
 import { Action, can, check } from '../auth/policy';
 import type { LinkableType } from '../links/link-registry';
 import { Place, PlaceStatus } from './place.entity';
 
-/** Equipment: archived only for staff; staff edit. */
+/** Equipment: archived only for staff, deleted for nobody; staff edit. */
 export const PLACE_LINKS: LinkableType = {
   checkEdit: (actor) => Promise.resolve(check(actor, Action.PlacesManage)),
   async find(ids, actor, m) {
     const staff = can(actor, Action.PlacesManage);
-    const rows = await m.findBy(Place, { id: In(ids) });
+    const rows = await m.findBy(Place, { id: In(ids), deletedAt: IsNull() });
     return new Map(
       rows
         .filter((p) => staff || p.status !== PlaceStatus.Archived)
@@ -26,8 +26,8 @@ export const PLACE_LINKS: LinkableType = {
   async search(q, limit, actor, m) {
     const like = ILike(containsLike(q));
     const scope: FindOptionsWhere<Place> = can(actor, Action.PlacesManage)
-      ? {}
-      : { status: Not(PlaceStatus.Archived) };
+      ? { deletedAt: IsNull() }
+      : { deletedAt: IsNull(), status: Not(PlaceStatus.Archived) };
     const rows = await m.find(Place, {
       where: [
         { ...scope, title: like },

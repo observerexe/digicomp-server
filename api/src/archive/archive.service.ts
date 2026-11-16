@@ -90,6 +90,7 @@ export class ArchiveService {
       .getRepository(Doc)
       .createQueryBuilder('d')
       .where(archived ? 'd.archivedAt IS NOT NULL' : 'd.archivedAt IS NULL')
+      .andWhere('d.deletedAt IS NULL')
       .andWhere(NOT_A_SCAN);
     if (!can(actor, Action.DocumentsManage)) {
       qb.andWhere('d.accessScope = :scope', { scope: AccessScope.Members });

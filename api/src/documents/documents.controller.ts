@@ -6,6 +6,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -30,6 +31,7 @@ import {
   UpdateDocDto,
 } from './dto';
 import { DocumentsService } from './documents.service';
+import { TrashService } from '../trash/trash.service';
 import {
   contentDisposition,
   inlineDisposition,
@@ -45,7 +47,10 @@ const UPLOAD = FileInterceptor('file', {
 @Controller('documents')
 @UseGuards(JwtAuthGuard, PolicyGuard)
 export class DocumentsController {
-  constructor(private docs: DocumentsService) {}
+  constructor(
+    private docs: DocumentsService,
+    private trash: TrashService,
+  ) {}
 
   @Can(Action.DocumentsRead)
   @ApiOkResponse({ type: DocDto })
@@ -120,10 +125,29 @@ export class DocumentsController {
     return this.docs.update(id, dto, req.user);
   }
 
+  /** «В архів»: out of the Archive's list, kept. */
+  @Can(Action.DocumentsManage)
+  @ApiOkResponse({ type: DocDto })
+  @HttpCode(200)
+  @Post(':id/archive')
+  archive(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
+    return this.docs.archive(id, req.user);
+  }
+
+  /** «Повернути з архіву». */
+  @Can(Action.DocumentsManage)
+  @ApiOkResponse({ type: DocDto })
+  @HttpCode(200)
+  @Post(':id/unarchive')
+  unarchive(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
+    return this.docs.unarchive(id, req.user);
+  }
+
+  /** «Видалити»: to the trash (not a signed scan of an editor document). */
   @Can(Action.DocumentsManage)
   @ApiOkResponse({ type: OkDto })
   @Delete(':id')
-  archive(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
-    return this.docs.archive(id, req.user);
+  remove(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
+    return this.trash.delete('document', id, req.user);
   }
 }

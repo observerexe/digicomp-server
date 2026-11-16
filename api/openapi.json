@@ -2480,7 +2480,7 @@
         ]
       },
       "delete": {
-        "operationId": "DocumentsController_archive",
+        "operationId": "DocumentsController_remove",
         "parameters": [
           {
             "name": "id",
@@ -2503,6 +2503,7 @@
             }
           }
         },
+        "summary": "«Видалити»: to the trash (not a signed scan of an editor document).",
         "tags": [
           "Documents"
         ]
@@ -2653,6 +2654,205 @@
         },
         "tags": [
           "Documents"
+        ]
+      }
+    },
+    "/api/documents/{id}/archive": {
+      "post": {
+        "operationId": "DocumentsController_archive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "«В архів»: out of the Archive's list, kept.",
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
+    "/api/documents/{id}/unarchive": {
+      "post": {
+        "operationId": "DocumentsController_unarchive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "«Повернути з архіву».",
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
+    "/api/trash": {
+      "get": {
+        "operationId": "TrashController_list",
+        "parameters": [
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/TrashType"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Part of the title (or code).",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 6,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 3,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrashListDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Trash"
+        ]
+      }
+    },
+    "/api/trash/{type}/{id}/restore": {
+      "post": {
+        "operationId": "TrashController_restore",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/TrashType"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Trash"
+        ]
+      }
+    },
+    "/api/trash/{type}/{id}": {
+      "delete": {
+        "operationId": "TrashController_purge",
+        "parameters": [
+          {
+            "name": "type",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "$ref": "#/components/schemas/TrashType"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "«Видалити назавжди».",
+        "tags": [
+          "Trash"
         ]
       }
     },
@@ -3855,6 +4055,35 @@
         "tags": [
           "Places"
         ]
+      },
+      "delete": {
+        "operationId": "PlacesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "«Видалити»: to the trash (not while in use; bookings ahead cancelled).",
+        "tags": [
+          "Places"
+        ]
       }
     },
     "/api/places/{id}/sessions/recent": {
@@ -4825,6 +5054,35 @@
         "tags": [
           "Inventory"
         ]
+      },
+      "delete": {
+        "operationId": "InventoryController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "«Видалити»: to the trash; what is left is written off.",
+        "tags": [
+          "Inventory"
+        ]
       }
     },
     "/api/inventory/items/{id}/movements": {
@@ -5116,7 +5374,7 @@
         ]
       },
       "delete": {
-        "operationId": "ProjectsController_archive",
+        "operationId": "ProjectsController_remove",
         "parameters": [
           {
             "name": "id",
@@ -5139,6 +5397,7 @@
             }
           }
         },
+        "summary": "«Видалити»: to the trash.",
         "tags": [
           "Projects"
         ]
@@ -5172,6 +5431,37 @@
             }
           }
         },
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/projects/{id}/archive": {
+      "post": {
+        "operationId": "ProjectsController_archive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "«В архів»: off the list, kept.",
         "tags": [
           "Projects"
         ]
@@ -8838,6 +9128,107 @@
             ]
           }
         }
+      },
+      "TrashType": {
+        "type": "string",
+        "enum": [
+          "place",
+          "inventory_item",
+          "document",
+          "project"
+        ]
+      },
+      "TrashActorDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "TrashItemDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TrashType"
+              }
+            ]
+          },
+          "code": {
+            "type": "string",
+            "nullable": true,
+            "description": "QR code: equipment, inventory items; null — the type has none."
+          },
+          "deletedBy": {
+            "nullable": true,
+            "description": "Who deleted it; null — the account is gone.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TrashActorDto"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "deletedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "purgeAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "When the server deletes it for good."
+          }
+        },
+        "required": [
+          "type",
+          "code",
+          "deletedBy",
+          "id",
+          "title",
+          "deletedAt",
+          "purgeAt"
+        ]
+      },
+      "TrashListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrashItemDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit"
+        ]
       },
       "OrgSignerDto": {
         "type": "object",

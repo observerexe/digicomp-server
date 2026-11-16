@@ -8,6 +8,7 @@ import {
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -30,13 +31,18 @@ import {
   UpdateItemDto,
 } from './dto';
 import { InventoryService } from './inventory.service';
+import { OkDto } from '../common/responses.dto';
+import { TrashService } from '../trash/trash.service';
 
 type Req = { user: { id: string; role: string } };
 
 @Controller('inventory')
 @UseGuards(JwtAuthGuard, PolicyGuard)
 export class InventoryController {
-  constructor(private inv: InventoryService) {}
+  constructor(
+    private inv: InventoryService,
+    private trash: TrashService,
+  ) {}
 
   @Can(Action.InventoryRead)
   @ApiOkResponse({ type: InventoryItemListDto })
@@ -68,6 +74,14 @@ export class InventoryController {
     @Req() req: Req,
   ) {
     return this.inv.update(id, dto, req.user);
+  }
+
+  /** «Видалити»: to the trash; what is left is written off. */
+  @Can(Action.InventoryManage)
+  @ApiOkResponse({ type: OkDto })
+  @Delete('items/:id')
+  remove(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
+    return this.trash.delete('inventory_item', id, req.user);
   }
 
   @Can(Action.InventoryTake)

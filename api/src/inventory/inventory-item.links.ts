@@ -1,14 +1,17 @@
-import { ILike, In } from 'typeorm';
+import { ILike, In, IsNull } from 'typeorm';
 import { containsLike } from '../common/like';
 import { Action, check } from '../auth/policy';
 import type { LinkableType } from '../links/link-registry';
 import { InventoryItem } from './inventory.entities';
 
-/** Inventory items: everyone sees them; staff edit the catalog. */
+/** Inventory items: everyone sees them but deleted ones; staff edit the catalog. */
 export const INVENTORY_ITEM_LINKS: LinkableType = {
   checkEdit: (actor) => Promise.resolve(check(actor, Action.InventoryManage)),
   async find(ids, _actor, m) {
-    const rows = await m.findBy(InventoryItem, { id: In(ids) });
+    const rows = await m.findBy(InventoryItem, {
+      id: In(ids),
+      deletedAt: IsNull(),
+    });
     return new Map(
       rows.map((i) => [
         i.id,
@@ -19,7 +22,10 @@ export const INVENTORY_ITEM_LINKS: LinkableType = {
   async search(q, limit, _actor, m) {
     const like = ILike(containsLike(q));
     const rows = await m.find(InventoryItem, {
-      where: [{ title: like }, { code: like }],
+      where: [
+        { title: like, deletedAt: IsNull() },
+        { code: like, deletedAt: IsNull() },
+      ],
       order: { title: 'ASC', id: 'ASC' },
       take: limit,
     });

@@ -62,6 +62,26 @@ export class Project {
 
   @Column({ name: 'archived_at', type: 'timestamptz', nullable: true })
   archivedAt: Date | null;
+
+  /** In the trash since (trash/): hidden everywhere but the trash. */
+  @Index()
+  @Column({ name: 'deleted_at', type: 'timestamptz', nullable: true })
+  deletedAt: Date | null;
+
+  /** Who moved it to the trash. */
+  @Column({ name: 'deleted_by_id', type: 'uuid', nullable: true })
+  deletedById: string | null;
+
+  @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'deleted_by_id' })
+  deletedBy?: User | null;
+
+  /**
+   * Deleted for good but kept for its history (sessions, movements, documents):
+   * only the title is left; out of the trash too.
+   */
+  @Column({ name: 'purged_at', type: 'timestamptz', nullable: true })
+  purgedAt: Date | null;
 }
 
 @Entity('project_members')

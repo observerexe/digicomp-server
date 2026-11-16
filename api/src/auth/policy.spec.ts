@@ -350,6 +350,16 @@ const ROWS: Record<string, Case[]> = {
     ['moderator', mod, Action.TasksArchive, undefined, true],
     ['member', member, Action.TasksArchive, undefined, Deny.Forbidden],
   ],
+  'Кошик: бачити й відновлювати': [
+    ['admin', admin, Action.TrashManage, undefined, true],
+    ['moderator', mod, Action.TrashManage, undefined, true],
+    ['member', member, Action.TrashManage, undefined, Deny.Forbidden],
+  ],
+  'Кошик: видалити назавжди': [
+    ['admin', admin, Action.TrashPurge, undefined, true],
+    ['moderator', mod, Action.TrashPurge, undefined, Deny.Forbidden],
+    ['member', member, Action.TrashPurge, undefined, Deny.Forbidden],
+  ],
   'Прийняти ТЗ (нарахування балів)': [
     ['admin: своє', admin, Action.TasksAccept, { participant: true }, true],
     ['moderator: чуже', mod, Action.TasksAccept, { participant: false }, true],

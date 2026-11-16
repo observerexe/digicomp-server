@@ -11,6 +11,7 @@ import {
   DataSource,
   EntityManager,
   FindOptionsWhere,
+  IsNull,
   LessThanOrEqual,
   MoreThanOrEqual,
   Repository,
@@ -122,7 +123,7 @@ export class InventoryService {
   async list(q: ListItemsQuery): Promise<InventoryItemListDto> {
     const page = Math.max(1, Number(q.page ?? 1));
     const limit = Math.min(200, Math.max(1, Number(q.limit ?? 100)));
-    const qb = this.items.createQueryBuilder('i');
+    const qb = this.items.createQueryBuilder('i').where('i.deletedAt IS NULL');
     if (q.category) qb.andWhere('i.category = :cat', { cat: q.category });
     if (q.lowStock) {
       qb.andWhere('i.minQuantity > 0 AND i.quantity <= i.minQuantity');
@@ -146,15 +147,20 @@ export class InventoryService {
     };
   }
 
-  /** By id or by the QR code printed on the sticker. */
+  /**
+   * By id or by the QR code printed on the sticker. A deleted item (in the
+   * trash or for good) is not found: ITEM_DELETED, so its sticker tells why.
+   */
   async get(idOrCode: string): Promise<Plain<InventoryItemDto>> {
-    const i = await this.items.findOneBy(
-      isUUID(idOrCode, 'all')
-        ? { id: idOrCode }
-        : { code: idOrCode.toUpperCase() },
-    );
-    if (!i) throw new NotFoundException('Item not found');
-    return itemView(i);
+    const by = isUUID(idOrCode, 'all')
+      ? { id: idOrCode }
+      : { code: idOrCode.toUpperCase() };
+    const i = await this.items.findOneBy({ ...by, deletedAt: IsNull() });
+    if (i) return itemView(i);
+    if (await this.items.existsBy(by)) {
+      throw new NotFoundException('Item deleted');
+    }
+    throw new NotFoundException('Item not found');
   }
 
   async create(dto: CreateItemDto, actor: Actor) {
@@ -169,7 +175,7 @@ export class InventoryService {
         );
       }
     }
-    if (await this.items.findOneBy({ code })) {
+    if (await this.items.findOneBy({ code, purgedAt: IsNull() })) {
       throw new ConflictException('Item code already used');
     }
     return this.ds.transaction(async (m) => {
@@ -219,7 +225,7 @@ export class InventoryService {
   async update(id: string, dto: UpdateItemDto, actor: Actor) {
     return this.ds.transaction(async (m) => {
       const item = await m.findOne(InventoryItem, {
-        where: { id },
+        where: { id, deletedAt: IsNull() },
         lock: { mode: 'pessimistic_write' },
       });
       if (!item) throw new NotFoundException('Item not found');
@@ -282,7 +288,7 @@ export class InventoryService {
     return this.ds.transaction(async (m) => {
       // The item first: a repeat of the same key waits for the first one.
       const locked = await m.findOne(InventoryItem, {
-        where: { id },
+        where: { id, deletedAt: IsNull() },
         lock: { mode: 'pessimistic_write' },
       });
       if (!locked) throw new NotFoundException('Item not found');
@@ -344,11 +350,30 @@ export class InventoryService {
     }
     const w = await m.findOneBy(InventoryMovement, { id });
     if (!w || w.delta >= 0) return;
+    // A deleted item takes nothing back: its stock was written off with it.
+    const item = await m.findOneBy(InventoryItem, { id: w.itemId });
+    if (!item || item.deletedAt) return;
     await this.apply(m, w.itemId, actor, {
       delta: -w.delta,
       note: `Скасовано списання: ${reason}`.slice(0, 500),
       projectId: null,
       paperId: w.paperId,
+      idempotencyKey: null,
+    });
+  }
+
+  /**
+   * The item goes to the trash (its row locked by the caller, in `m`): what
+   * is left is written off by a movement.
+   */
+  async writeOffAll(m: EntityManager, id: string, actor: Actor) {
+    const item = await m.findOneByOrFail(InventoryItem, { id });
+    if (item.quantity <= 0) return;
+    await this.apply(m, id, actor, {
+      delta: -item.quantity,
+      note: 'Списано: позицію видалено',
+      projectId: null,
+      paperId: null,
       idempotencyKey: null,
     });
   }
@@ -366,7 +391,7 @@ export class InventoryService {
     const note = mv.note.trim();
     if (!note) throw new BadRequestException('Note is required');
     const item = await m.findOne(InventoryItem, {
-      where: { id },
+      where: { id, deletedAt: IsNull() },
       lock: { mode: 'pessimistic_write' },
     });
     if (!item) throw new NotFoundException('Item not found');
@@ -433,7 +458,10 @@ export class InventoryService {
 
   /** Categories as titles: the file is read by people and spreadsheets. */
   async exportCsv() {
-    const rows = await this.items.find({ order: { title: 'ASC' } });
+    const rows = await this.items.find({
+      where: { deletedAt: IsNull() },
+      order: { title: 'ASC' },
+    });
     const titles = await itemTitles(this.ds.manager, INVENTORY_CATEGORY);
     const head = [
       'code',

@@ -38,6 +38,7 @@ import {
 import { PlacesService } from './places.service';
 import { REPORT_CSP } from './session-log';
 import { WorkSessionsService } from './work-sessions.service';
+import { TrashService } from '../trash/trash.service';
 
 type Req = { user: { id: string; role: string } };
 
@@ -47,6 +48,7 @@ export class PlacesController {
   constructor(
     private places: PlacesService,
     private sessions: WorkSessionsService,
+    private trash: TrashService,
   ) {}
 
   @ApiOkResponse({ type: [PlaceDto] })
@@ -77,6 +79,14 @@ export class PlacesController {
     @Req() req: Req,
   ) {
     return this.places.update(id, dto, req.user);
+  }
+
+  /** «Видалити»: to the trash (not while in use; bookings ahead cancelled). */
+  @ApiOkResponse({ type: OkDto })
+  @Can(Action.PlacesManage)
+  @Delete(':id')
+  remove(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
+    return this.trash.delete('place', id, req.user);
   }
 
   /** Last 10 sessions for everyone (who, when, how long; no notes). */

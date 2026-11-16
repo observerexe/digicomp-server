@@ -95,6 +95,11 @@ export enum Action {
   InventoryTake = 'inventory.take',
   InventoryRestock = 'inventory.restock',
 
+  // Trash: equipment, inventory items, Archive files, projects (moving one
+  // there — the module's own manage right)
+  TrashManage = 'trash.manage',
+  TrashPurge = 'trash.purge',
+
   // Dictionaries (task types, categories…)
   DictionariesRead = 'dictionaries.read',
   DictionariesManage = 'dictionaries.manage',
@@ -214,6 +219,11 @@ export const ROLES: Record<Action, readonly Role[]> = {
   [Action.InventoryManage]: STAFF,
   [Action.InventoryTake]: ALL,
   [Action.InventoryRestock]: ALL,
+
+  // See the trash and restore from it.
+  [Action.TrashManage]: STAFF,
+  // «Видалити назавжди» (the server too, 90 days after deletion).
+  [Action.TrashPurge]: ADMIN,
 
   [Action.DictionariesRead]: ALL,
   [Action.DictionariesManage]: STAFF,

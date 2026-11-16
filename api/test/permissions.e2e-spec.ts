@@ -714,6 +714,7 @@ describe('Матриця прав (e2e)', () => {
     it('moderator так, включно з архівуванням', async () => {
       const d = await doc(mod);
       expect(d.status).toBe(201);
+      allowed(await as(app, mod).post(`/api/documents/${d.body.id}/archive`));
       allowed(await as(app, mod).delete(`/api/documents/${d.body.id}`));
       expect((await place(mod)).status).toBe(201);
       expect((await item(mod)).status).toBe(201);

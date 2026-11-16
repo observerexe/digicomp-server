@@ -149,6 +149,8 @@ export class WorkSessionsService implements OnModuleInit, OnModuleDestroy {
           lock: { mode: 'pessimistic_write' },
         });
         if (!place) throw new NotFoundException('Place not found');
+        // Deleted while the request waited for the lock.
+        if (place.deletedAt) throw new NotFoundException('Place deleted');
 
         if (dto.idempotencyKey) {
           const prev = await m.findOne(WorkSession, {
