@@ -382,8 +382,17 @@ export function walkNodes(n: PaperNode, visit: (n: PaperNode, insideZone: boolea
 
 // --- conditional blocks ---
 
-/** What a conditional block waits for: the `enum` field `field` holds the choice `value`. */
+/**
+ * What a conditional block waits for in the field `field`: a choice of a
+ * choice field (`enum` — it is chosen, `list<enum>` — it is among the chosen),
+ * `@yes` / `@no` — a checkbox is ticked or not, `@filled` — any other field
+ * a person fills holds a value.
+ */
 export type Condition = { field: string; value: string };
+
+export const IF_YES = '@yes';
+export const IF_NO = '@no';
+export const IF_FILLED = '@filled';
 
 /** The condition of a conditional block; null — not one (or without a valid condition). */
 export function conditionOf(n: PaperNode): Condition | null {
@@ -393,9 +402,46 @@ export function conditionOf(n: PaperNode): Condition | null {
   return typeof field === 'string' && FIELD_KEY.test(field) && typeof value === 'string' && value.length > 0 ? { field, value } : null;
 }
 
-/** The condition holds by these values. */
+/** The condition holds by these values (an empty field has no key in them). */
 export function conditionHolds(c: Condition, values: FieldValues): boolean {
-  return values[c.field] === c.value;
+  const v = values[c.field];
+  switch (c.value) {
+    case IF_YES:
+      return v === true;
+    case IF_NO:
+      return v !== true;
+    case IF_FILLED:
+      return v !== undefined && v !== null && v !== '' && !(Array.isArray(v) && v.length === 0);
+    default:
+      return choicesOf(v).includes(c.value);
+  }
+}
+
+/**
+ * What a conditional block may wait for in a field of this type: `choices`
+ * — a choice of the field, `yesNo` — `@yes` / `@no`, `filled` — `@filled`;
+ * null — a field of this type is no condition (a zone, rows). Whether the
+ * field itself may be one (not auto, not a column, not in a conditional
+ * block) — the template's check.
+ */
+export function conditionKind(type: string): 'choices' | 'yesNo' | 'filled' | null {
+  if (type === 'enum' || type === 'list<enum>') return 'choices';
+  if (type === 'bool') return 'yesNo';
+  return type === ROWS || !isFillable(type) ? null : 'filled';
+}
+
+/** The value fits a field of this type (see conditionKind); choices — the field's option keys. */
+export function conditionFits(type: string, value: string, choices: readonly string[]): boolean {
+  switch (conditionKind(type)) {
+    case 'choices':
+      return choices.includes(value);
+    case 'yesNo':
+      return value === IF_YES || value === IF_NO;
+    case 'filled':
+      return value === IF_FILLED;
+    default:
+      return false;
+  }
 }
 
 /**

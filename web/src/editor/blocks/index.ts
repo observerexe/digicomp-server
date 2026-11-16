@@ -3,6 +3,7 @@ import type { IconName } from '../../components/Icon';
 import { autoAuthor, autoDate, autoNumber, autoRowNumber } from './auto';
 import { checkbox } from './checkbox';
 import { choice } from './choice';
+import { conditional } from './conditional';
 import { date } from './date';
 import { heading } from './heading';
 import { line } from './line';
@@ -27,7 +28,7 @@ import { zone } from './zone';
  * Groups of the palette; the colour of a group is the colour of its labels on
  * the sheet. `schema` — fields of the template's record (blocks/schema.ts);
  * `auto` — what the document gets by itself (number, day, author, tables of a section);
- * `structure` — the header, «Затверджую», signatures, rows, the footer.
+ * `structure` — the header, «Затверджую», signatures, rows, a conditional block, the footer.
  */
 export type BlockGroup = 'text' | 'field' | 'data' | 'auto' | 'structure' | 'schema';
 
@@ -81,7 +82,10 @@ export type AutoBlock = BlockBase & { kind: 'auto'; node: string };
  */
 export type TableBlock = BlockBase & { kind: 'table'; source: string; input: string; columns: string[] };
 
-export type Block = TextBlock | FieldBlock | AutoBlock | TableBlock;
+/** «Умовний блок»: what it waits for is set when it is put (editor/conditional.ts). */
+export type ConditionBlock = BlockBase & { kind: 'condition' };
+
+export type Block = TextBlock | FieldBlock | AutoBlock | TableBlock | ConditionBlock;
 
 /** A source of auto tables, as `GET /papers/templates/targets` gives it. */
 export type TableSourceInfo = { key: string; label: string; input: string; columns: string[] };
@@ -122,6 +126,7 @@ export const BLOCKS: Block[] = [
   approval,
   signatures,
   rows,
+  conditional,
   pageFooter,
 ];
 

@@ -15,9 +15,11 @@ import {
   renameField,
   selectionOf,
   setBuilderLook,
+  unwrapBlock,
   type BlockMenuState,
   type BuilderLook,
 } from './builder';
+import { conditionWords } from './conditional';
 import { paperExtensions } from './extensions';
 import { fieldPosition } from './fields';
 
@@ -160,12 +162,36 @@ describe('Конструктор: блоки на аркуші', () => {
 
   it('умовний блок: жовта мітка з умовою словами (без підписів — ключі)', () => {
     const { editor } = open(doc());
-    const cond = editor.schema.nodeFromJSON({ type: 'conditional', attrs: { field: 'type', value: 'fine' }, content: [p(f('points'))] });
-    expect(blockTag(cond, { ...LOOK, condition: (_field, value) => `«Вид» = «${value === 'fine' ? 'Штраф' : value}»` })).toEqual({
-      label: 'Умовний блок · якщо «Вид» = «Штраф»',
-      group: 'structure',
-    });
-    expect(blockTag(cond, LOOK).label).toBe('Умовний блок · якщо type = fine');
+    const cond = (value: string) => editor.schema.nodeFromJSON({ type: 'conditional', attrs: { field: 'type', value }, content: [p(f('points'))] });
+    const words: BuilderLook['condition'] = (field, value) => conditionWords({ field, value }, 'Вид', [{ key: 'fine', label: 'Штраф' }]);
+    expect(blockTag(cond('fine'), { ...LOOK, condition: words })).toEqual({ label: 'Умовний блок · якщо у «Вид» обрано «Штраф»', group: 'structure' });
+    expect(blockTag(cond('@yes'), { ...LOOK, condition: words }).label).toBe('Умовний блок · якщо позначено «Вид»');
+    expect(blockTag(cond('@no'), { ...LOOK, condition: words }).label).toBe('Умовний блок · якщо не позначено «Вид»');
+    expect(blockTag(cond('@filled'), { ...LOOK, condition: words }).label).toBe('Умовний блок · якщо заповнено «Вид»');
+    expect(blockTag(cond('fine'), LOOK).label).toBe('Умовний блок · якщо «type» = «fine»');
+  });
+
+  it('умовний блок: стає з умовою замість порожнього абзацу, курсор у ньому; «Прибрати умову» лишає вміст', () => {
+    const { editor } = open(doc(p(f('points')), p()));
+    expect(placeBlock(editor, block('conditional'), null, { from: 4, to: 4 }, { field: 'points', value: '@filled' })).toBe(true);
+    expect(editor.getJSON().content![1]).toEqual({ type: 'conditional', attrs: { field: 'points', value: '@filled' }, content: [{ type: 'paragraph', attrs: expect.anything() }] });
+    expect(selectionOf(editor.state)).toMatchObject({ kind: 'block', index: 1, node: 'conditional' });
+    editor.commands.insertContent('Текст ');
+    editor.commands.insertContent(f('member'));
+    unwrapBlock(editor, 1);
+    expect(shape(editor)).toEqual([['paragraph', '{points}'], ['paragraph', 'Текст ', '{member}'], ['paragraph']]);
+    unwrapBlock(editor, 0);
+    expect(shape(editor)).toEqual([['paragraph', '{points}'], ['paragraph', 'Текст ', '{member}'], ['paragraph']]);
+  });
+
+  it('умовний блок: перейменування поля умови — і в умові; видалення поля умови знімає рамку, вміст лишається', () => {
+    const when = (field: string, ...content: JSONContent[]): JSONContent => ({ type: 'conditional', attrs: { field, value: '@yes' }, content });
+    const { editor } = open(doc(p(f('points')), when('points', p(t('Так '), f('member'))), when('member', p(t('Ні')))));
+    renameField(editor, 'points', 'urgent');
+    expect(editor.getJSON().content![1]!.attrs).toEqual({ field: 'urgent', value: '@yes' });
+    removeField(editor, 'urgent');
+    expect(shape(editor)).toEqual([['paragraph', 'Так ', '{member}'], ['conditional', 'paragraph'], ['paragraph']]);
+    expect(editor.getJSON().content![1]!.attrs).toEqual({ field: 'member', value: '@yes' });
   });
 
   it('на аркуші — рамки з мітками, активний блок, поля як {Підпис}; опублікована версія — рамки без підказки внизу й без «/»', () => {

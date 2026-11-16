@@ -1,5 +1,7 @@
 import type { FieldSchema, FieldType } from '../records/field-types';
 import {
+  conditionFits,
+  conditionKind,
   conditionOf,
   isPlainZone,
   refType,
@@ -455,10 +457,11 @@ function keysIn(n: PaperNode): Set<string> {
 }
 
 /**
- * Conditional blocks: each waits for a single `enum` field that stands
- * outside every conditional block; a field of a conditional block is in
- * that block only (it is off or on with it). The choice itself — see
- * conditionProblem (it needs the field's choices).
+ * Conditional blocks: each waits for a single field that may be a condition
+ * (conditionKind: not a zone, not rows) and stands outside every conditional
+ * block; a field of a conditional block is in that block only (it is off or
+ * on with it). What it waits for — see conditionProblem (it needs the
+ * field's choices).
  */
 function conditionalProblem(
   body: PaperContent,
@@ -472,7 +475,8 @@ function conditionalProblem(
     const n = top[i]!;
     const c = conditionOf(n);
     if (n.type === 'conditional') {
-      if (!c || byKey.get(c.field)?.type !== 'enum') {
+      const f = c ? byKey.get(c.field) : undefined;
+      if (!c || !f || conditionKind(f.type) === null) {
         return { field: c?.field ?? String(n.attrs?.field) };
       }
       conditions.push(c.field);
@@ -495,14 +499,16 @@ function conditionalProblem(
 
 /**
  * What a conditional block waits for, against the fields as documents fill
- * them: a choice of its field (archived ones too: it may be set already),
- * a field people fill (not auto); a field of the block is not bound to
- * what the record cannot be made without (it is empty while the block is off).
+ * them: a value that fits the field's type (conditionFits; a choice —
+ * archived ones too: it may be set already), a field people fill (not
+ * auto); a field of the block is not bound to what the record cannot be
+ * made without (it is empty while the block is off).
  */
 export function conditionProblem(
   body: PaperContent,
   fields: {
     key: string;
+    type: string;
     auto: boolean;
     binding: string | null;
     options: { key: string }[] | null;
@@ -517,7 +523,15 @@ export function conditionProblem(
     const c = conditionOf(n);
     if (!c) continue;
     const f = byKey.get(c.field);
-    if (!f || f.auto || !f.options?.some((o) => o.key === c.value)) {
+    if (
+      !f ||
+      f.auto ||
+      !conditionFits(
+        f.type,
+        c.value,
+        (f.options ?? []).map((o) => o.key),
+      )
+    ) {
       return { field: c.field };
     }
     for (const key of keysIn(n)) {

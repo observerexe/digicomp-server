@@ -34,7 +34,7 @@ function panel(selected: string, fields: FieldDef[], onChange = vi.fn(), kind: '
         tabs={['blocks', 'props', 'template']}
         onTab={() => {}}
         palette={{ groups: BLOCK_GROUPS, blocks: BLOCKS }}
-        used={new Set()}
+        unavailable={() => null}
         settings={null}
         selected={{ kind: 'field', key: selected, picked: true }}
         defs={new Map(fields.map((f) => [f.key, f]))}
@@ -47,6 +47,9 @@ function panel(selected: string, fields: FieldDef[], onChange = vi.fn(), kind: '
         onRename={() => {}}
         onRemoveField={() => {}}
         onRemoveBlock={() => {}}
+        onUnwrap={() => {}}
+        conditionFields={[]}
+        choicesOf={() => []}
         onBlockAttrs={() => {}}
         onSelectField={() => {}}
       />
@@ -107,5 +110,116 @@ describe('Конструктор: звіт', () => {
     panel('code', [{ ...place, required: true }, code], vi.fn(), 'report', PLACE);
     expect(screen.getByText('Підставиться з поля «Код» запису, про який звіт; ніхто не заповнює.')).toBeInTheDocument();
     expect(screen.queryByRole('switch', { name: 'Обов’язкове' })).not.toBeInTheDocument();
+  });
+});
+
+describe('Конструктор: умовний блок', () => {
+  const kind = field('enum', { key: 'kind', label: 'Вид', dictionary: 'kinds' });
+  const urgent = field('bool', { key: 'urgent', label: 'Терміново' });
+  const due = field('date', { key: 'due', label: 'Термін' });
+  const amount = field('int', { key: 'amount', label: 'Сума' });
+  const fields = [kind, urgent, due, amount];
+  const choices = [
+    { key: 'fine', label: 'Штраф' },
+    { key: 'old', label: 'Старе', archived: true },
+    { key: 'warning', label: 'Попередження' },
+  ];
+
+  function block(attrs: Record<string, unknown>, more: Partial<Parameters<typeof BuilderPanel>[0]> = {}) {
+    const calls = { attrs: vi.fn(), unwrap: vi.fn(), remove: vi.fn() };
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <BuilderPanel
+          tab="props"
+          tabs={['blocks', 'props', 'template']}
+          onTab={() => {}}
+          palette={{ groups: BLOCK_GROUPS, blocks: BLOCKS }}
+          unavailable={() => null}
+          settings={null}
+          selected={{ kind: 'block', index: 2, node: 'conditional', keys: ['amount'], attrs }}
+          defs={new Map(fields.map((f) => [f.key, f]))}
+          fields={fields}
+          columns={new Map()}
+          kind="free"
+          schema={null}
+          onPick={() => {}}
+          onChange={() => {}}
+          onRename={() => {}}
+          onRemoveField={() => {}}
+          onRemoveBlock={calls.remove}
+          onUnwrap={calls.unwrap}
+          conditionFields={[kind, urgent, due]}
+          choicesOf={(f) => (f.key === 'kind' ? choices : [])}
+          onBlockAttrs={calls.attrs}
+          onSelectField={() => {}}
+          {...more}
+        />
+      </QueryClientProvider>,
+    );
+    return calls;
+  }
+
+  it('вибір: варіанти без архівних; зміна варіанта', async () => {
+    const calls = block({ field: 'kind', value: 'fine' });
+    const value = screen.getByLabelText('Має значення');
+    expect(
+      within(value)
+        .getAllByRole('option')
+        .map((o) => o.textContent),
+    ).toEqual(['обрано «Штраф»', 'обрано «Попередження»']);
+    await userEvent.selectOptions(value, 'warning');
+    expect(calls.attrs).toHaveBeenCalledWith(2, { value: 'warning' });
+  });
+
+  it('інше поле — одразу з першим значенням свого виду', async () => {
+    const calls = block({ field: 'kind', value: 'fine' });
+    const field = screen.getByLabelText('Показувати, якщо поле');
+    expect(
+      within(field)
+        .getAllByRole('option')
+        .map((o) => o.textContent),
+    ).toEqual(['Вид', 'Терміново', 'Термін']);
+    await userEvent.selectOptions(field, 'urgent');
+    expect(calls.attrs).toHaveBeenLastCalledWith(2, { field: 'urgent', value: '@yes' });
+    await userEvent.selectOptions(field, 'due');
+    expect(calls.attrs).toHaveBeenLastCalledWith(2, { field: 'due', value: '@filled' });
+  });
+
+  it('прапорець — позначено чи ні; заповнено — без списку', () => {
+    block({ field: 'urgent', value: '@no' });
+    expect(
+      within(screen.getByLabelText('Має значення'))
+        .getAllByRole('option')
+        .map((o) => o.textContent),
+    ).toEqual(['позначено', 'не позначено']);
+  });
+
+  it('заповнено — пояснення замість списку', () => {
+    block({ field: 'due', value: '@filled' });
+    expect(screen.queryByLabelText('Має значення')).not.toBeInTheDocument();
+    expect(screen.getByText('Блок з’являється, щойно поле заповнено.')).toBeInTheDocument();
+  });
+
+  it('поле, яке не може бути умовою, і значення не з варіантів — показані як помилка', () => {
+    block({ field: 'amount', value: 'gone' });
+    expect(screen.getByLabelText('Показувати, якщо поле')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('option', { name: '«Сума» — не може бути умовою' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: '«gone» — немає серед варіантів' })).toBeInTheDocument();
+  });
+
+  it('«Прибрати умову» й «Видалити блок»', async () => {
+    const calls = block({ field: 'kind', value: 'fine' });
+    await userEvent.click(screen.getByRole('button', { name: 'Прибрати умову' }));
+    expect(calls.unwrap).toHaveBeenCalledWith(2);
+    await userEvent.click(screen.getByRole('button', { name: 'Видалити блок' }));
+    expect(calls.remove).toHaveBeenCalledWith(2);
+  });
+
+  it('у палітрі блок недоступний з поясненням, коли умові нема на що чекати', () => {
+    const why = 'Спершу додайте поле, від якого залежить блок';
+    block({ field: 'kind', value: 'fine' }, { tab: 'blocks', unavailable: (b) => (b.kind === 'condition' ? why : null) });
+    const button = screen.getByRole('button', { name: 'Умовний блок' });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('title', why);
   });
 });

@@ -9,7 +9,10 @@ import { Icon } from '../../components/Icon';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { ConfirmButton, ErrorMessage } from '../../components/ui';
 import { BlockMenu } from '../../editor/BlockMenu';
-import { fieldBlockOf, type Palette } from '../../editor/blocks';
+import { fieldBlockOf, type Block, type Palette } from '../../editor/blocks';
+import { conditionOptions, conditionsIn, conditionWords } from '../../editor/conditional';
+import { useDictionaries } from '../../lib/dictionaries';
+import type { Condition } from '../../../../shared/editor-schema/fields';
 import { useTemplateTargets } from '../../lib/paperTemplates';
 import { isAutoBinding, paletteOf } from '../../editor/blocks/schema';
 import {
@@ -23,6 +26,7 @@ import {
   selectionRange,
   setBlockAttrs,
   setBuilderLook,
+  unwrapBlock,
   type BlockMenuState,
   type BuilderLook,
 } from '../../editor/builder';
@@ -33,7 +37,7 @@ import { fieldPosition } from '../../editor/fields';
 import { Ribbon } from '../../editor/Ribbon';
 import { Ruler } from '../../editor/Ruler';
 import { StatusBar, useZoom } from '../../editor/StatusBar';
-import { columnsOf, defsOf, fieldsOf, fieldTag, keysOf, newField, tableField, type FieldDef } from '../../editor/template';
+import { columnsOf, conditionFields, defsOf, fieldChoices, fieldsOf, fieldTag, keysOf, newField, tableField, type FieldDef } from '../../editor/template';
 import { useAutosave, type SaveState } from '../../editor/useAutosave';
 import { usePageStats } from '../../editor/usePageStats';
 import { errorOf } from '../../errors/messages';
@@ -196,7 +200,6 @@ function TemplateBuilder({ template, version, schema, onReload, onTemplate, onPu
   const sources = useTemplateTargets().data?.tables;
   const palette = useMemo(() => paletteOf(template.kind, schema, sources), [template.kind, schema, sources]);
   const used = useMemo(() => new Set(fields.flatMap((f) => (f.binding ? [f.binding] : []))), [fields]);
-  const menuPalette: Palette = useMemo(() => ({ ...palette, blocks: palette.blocks.filter((b) => !isUsed(b, used)) }), [palette, used]);
 
   const changeDefs = (next: Map<string, FieldDef>) => {
     defsRef.current = next;
@@ -219,10 +222,14 @@ function TemplateBuilder({ template, version, schema, onReload, onTemplate, onPu
   );
   // Columns of «Повторювані рядки»: their «Властивості» follow the block.
   const [columns, setColumns] = useState<ReadonlyMap<string, string>>(new Map());
+  // Fields of conditional blocks: a conditional block does not wait for them.
+  const [inBlocks, setInBlocks] = useState<ReadonlySet<string>>(new Set());
   const syncKeys = (k: string[], doc: Parameters<typeof keysOf>[0]) => {
     setKeys((prev) => (prev.join() === k.join() ? prev : k));
     const c = columnsOf(doc);
     setColumns((prev) => (JSON.stringify([...prev]) === JSON.stringify([...c]) ? prev : c));
+    const b = Object.keys(conditionsIn(doc)).sort();
+    setInBlocks((prev) => ([...prev].join() === b.join() ? prev : new Set(b)));
   };
   const editor = useEditor({
     extensions,
@@ -241,10 +248,32 @@ function TemplateBuilder({ template, version, schema, onReload, onTemplate, onPu
   });
   const selected = useEditorState({ editor, selector: ({ editor: e }) => selectionOf(e.state) });
 
+  // Conditional blocks: the fields they may wait for, the choices of each; a new block waits for the first.
+  const dictionaries = useDictionaries().data;
+  const choicesOf = (f: FieldDef) => fieldChoices(f, schema, dictionaries);
+  const waitFor = conditionFields(fields, template.kind, schema, columns, inBlocks);
+  const firstCondition = (): Condition | null => {
+    for (const f of waitFor) {
+      const first = conditionOptions(f.type, choicesOf(f))[0];
+      if (first) return { field: f.key, value: first.value };
+    }
+    return null;
+  };
+  const noCondition = firstCondition() === null;
+  // Why a block of the palette is not offered now; null — it is.
+  const unavailable = (b: Block): string | null =>
+    isUsed(b, used) ? 'Уже на аркуші' : b.kind === 'condition' && noCondition ? 'Спершу додайте поле, від якого залежить блок: вибір, прапорець, число, дату…' : null;
+  const menuPalette: Palette = { ...palette, blocks: palette.blocks.filter((b) => unavailable(b) === null) };
+
   actions.current = {
     place: (key, range) => {
       const block = palette.blocks.find((b) => b.key === key);
-      if (!block || isUsed(block, used)) return;
+      if (!block || unavailable(block) !== null) return;
+      if (block.kind === 'condition') {
+        // «Властивості» show what it waits for.
+        if (placeBlock(editor, block, null, range, firstCondition())) setTab('props');
+        return;
+      }
       let fieldKey: string | null = null;
       if (block.kind === 'field') {
         const f = newField(block, new Set(defsRef.current.keys()));
@@ -281,11 +310,10 @@ function TemplateBuilder({ template, version, schema, onReload, onTemplate, onPu
       const group = auto ? 'auto' : fieldBlockOf(f.type)?.group === 'data' ? 'data' : 'field';
       look.fields[f.key] = { text: showKeys ? `{${f.key}}` : `{${f.label}}`, state: group, tag: fieldTag(f, schema), group };
     }
-    // A conditional block: its field and the choice by their names (a choice of the record's field — its label).
+    // A conditional block: its condition in words, the field and its choice by their names.
     look.condition = (field, value) => {
       const f = defs.get(field);
-      const choice = schema?.fields.find((x) => x.key === f?.binding)?.options?.find((o) => o.key === value)?.label ?? value;
-      return `«${f ? (showKeys ? f.key : f.label) : field}» = «${choice}»`;
+      return conditionWords({ field, value }, f && (showKeys ? f.key : f.label), f ? fieldChoices(f, schema, dictionaries) : []);
     };
     // An auto table: its source and the field it takes.
     look.table = (source, field) => {
@@ -294,7 +322,7 @@ function TemplateBuilder({ template, version, schema, onReload, onTemplate, onPu
       return `Авто: ${label.toLowerCase()} · ${f ? (showKeys ? f.key : f.label) : field}`;
     };
     setBuilderLook(editor, look);
-  }, [editor, defs, showKeys, schema, readOnly, template.kind, sources]);
+  }, [editor, defs, showKeys, schema, readOnly, template.kind, sources, dictionaries]);
 
   // The header and «Затверджую» from «Реквізити»; auto values and who signs — by their names.
   useSheet(editor, {
@@ -455,7 +483,7 @@ function TemplateBuilder({ template, version, schema, onReload, onTemplate, onPu
             tabs={tabs}
             onTab={setTab}
             palette={palette}
-            used={used}
+            unavailable={unavailable}
             settings={<TemplateSettings template={template} schema={schema} onChange={onTemplate} stopSaving={autosave.cancel} onDiscarded={onDiscarded} onDeleted={onDeleted} />}
             selected={selected}
             defs={defs}
@@ -468,6 +496,9 @@ function TemplateBuilder({ template, version, schema, onReload, onTemplate, onPu
             onRename={rename}
             onRemoveField={(key) => removeField(editor, key)}
             onRemoveBlock={(index) => removeBlock(editor, index)}
+            onUnwrap={(index) => unwrapBlock(editor, index)}
+            conditionFields={waitFor}
+            choicesOf={choicesOf}
             onBlockAttrs={(index, attrs) => setBlockAttrs(editor, index, attrs)}
             onSelectField={selectField}
           />

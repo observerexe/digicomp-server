@@ -120,7 +120,7 @@ describe('Умовний блок', () => {
       </PaperRecordsContext>,
     );
     expect(screen.getByText('Розмір штрафу, балів')).toBeInTheDocument();
-    expect(screen.getByText("Поле з'явилось, бо обрано «Штраф»")).toBeInTheDocument();
+    expect(screen.getByText("Поле з'явилось, бо у «Вид стягнення» обрано «Штраф»")).toBeInTheDocument();
     expect(fillProgress(template, { type: 'fine' }, {}, conditions).required).toBe(3);
   });
 });

@@ -1,7 +1,7 @@
 import type { Node as PMNode } from '@tiptap/pm/model';
-import type { RecordField, RecordSchema, TemplateField, TemplateKind } from '../api/types';
+import type { Dictionary, RecordField, RecordSchema, TemplateField, TemplateKind } from '../api/types';
 import { FIELD_KEY, signerField } from '../../../shared/editor-schema';
-import { itemType, rowsOf, walkNodes } from '../../../shared/editor-schema/fields';
+import { conditionKind, itemType, rowsOf, walkNodes, type FieldOption } from '../../../shared/editor-schema/fields';
 import type { PaperNode } from '../../../shared/editor-schema';
 import { plural } from '../lib/format';
 import { fieldBlockOf, type FieldBlock } from './blocks';
@@ -216,4 +216,39 @@ export function tableField(input: string, fields: readonly FieldDef[], columns: 
   const block = fieldBlockOf(input);
   if (!block) return null;
   return { ...newField({ ...block, type: input }, taken), required: true };
+}
+
+/**
+ * Choices of a choice field: the items of its dictionary (its own or its
+ * record field's), or the record field's fixed options; archived ones too.
+ */
+export function fieldChoices(f: FieldDef, schema: RecordSchema | null | undefined, dictionaries: readonly Dictionary[] | undefined): FieldOption[] {
+  const bound = f.binding ? schema?.fields.find((x) => x.key === f.binding) : undefined;
+  const dictionary = f.dictionary ?? bound?.dictionary ?? null;
+  if (dictionary) return (dictionaries?.find((d) => d.key === dictionary)?.items ?? []).map((i) => ({ key: i.key, label: i.title, ...(i.archived ? { archived: true } : {}) }));
+  return (bound?.options ?? []).map((o) => ({ key: o.key, label: o.label }));
+}
+
+/**
+ * Fields a conditional block may wait for: on the sheet, of a type that may be
+ * a condition (not a zone, not rows), filled by people (not auto), not a column
+ * of rows, not in a conditional block (`inBlocks`).
+ */
+export function conditionFields(
+  fields: readonly FieldDef[],
+  kind: TemplateKind,
+  schema: RecordSchema | null | undefined,
+  columns: ReadonlyMap<string, string>,
+  inBlocks: ReadonlySet<string>,
+): FieldDef[] {
+  return fields.filter(
+    (f) =>
+      conditionKind(f.type) !== null &&
+      !isAutoBinding(
+        kind,
+        schema?.fields.find((x) => x.key === f.binding),
+      ) &&
+      !columns.has(f.key) &&
+      !inBlocks.has(f.key),
+  );
 }

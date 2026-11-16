@@ -8,6 +8,7 @@ import { plural } from '../lib/format';
 import { autoBlockOf, textBlockOf, type Block, type BlockGroup } from './blocks';
 import { rowsContent } from './blocks/rows';
 import { zoneAtSelection, type FieldLook } from './fields';
+import type { Condition } from '../../../shared/editor-schema/fields';
 
 /**
  * The template constructor on the sheet: every block (a node of the body's
@@ -28,7 +29,7 @@ export type BuilderField = {
 
 export type BuilderLook = {
   fields: Record<string, BuilderField>;
-  /** A conditional block's condition in words: ««Вид стягнення» = «Штраф»». */
+  /** A conditional block's condition in words: «у «Вид стягнення» обрано «Штраф»» (conditional.ts conditionWords). */
   condition?: (field: string, value: string) => string;
   /** An auto table's label: «Авто: журнал сеансів · Обладнання». */
   table?: (source: string, field: string) => string;
@@ -85,7 +86,7 @@ export function blockTag(node: PMNode, look: BuilderLook): { label: string; grou
   if (node.type.name === 'conditional') {
     const field = node.attrs.field as string;
     const value = node.attrs.value as string;
-    return { label: `Умовний блок · якщо ${look.condition?.(field, value) ?? `${field} = ${value}`}`, group: 'structure' };
+    return { label: `Умовний блок · якщо ${look.condition?.(field, value) ?? `«${field}» = «${value}»`}`, group: 'structure' };
   }
   const keys = keysIn(node);
   const one = keys.length === 1 && (node.type.name === 'fieldZone' || node.isTextblock) ? look.fields[keys[0]!] : undefined;
@@ -178,9 +179,10 @@ function zoneKeys(doc: PMNode): Set<string> {
   return out;
 }
 
-/** What a block puts on the sheet; `key` — of the new field (field blocks). */
-export function blockContent(block: Block, key: string | null): { content: JSONContent; inline: boolean } {
+/** What a block puts on the sheet; `key` — of the new field (field blocks), `condition` — what a conditional block waits for. */
+export function blockContent(block: Block, key: string | null, condition: Condition | null = null): { content: JSONContent; inline: boolean } {
   if (block.kind === 'text') return { content: block.content(), inline: false };
+  if (block.kind === 'condition') return { content: { type: 'conditional', attrs: condition ?? undefined, content: [{ type: 'paragraph' }] }, inline: false };
   if (block.kind === 'auto') return { content: { type: block.node }, inline: true };
   if (block.kind === 'table') return { content: { type: 'autoTable', attrs: { source: block.source, field: key } }, inline: false };
   if (block.type === 'richtext') return { content: { type: 'fieldZone', attrs: { key }, content: [{ type: 'paragraph' }] }, inline: false };
@@ -194,9 +196,9 @@ export function blockContent(block: Block, key: string | null): { content: JSONC
  * zone; in a zone — after it); a block — in place of an empty paragraph or
  * after the paragraph. Then a field (an auto table) is selected, a block gets the cursor.
  */
-export function placeBlock(editor: Editor, block: Block, key: string | null, range: { from: number; to: number }): boolean {
+export function placeBlock(editor: Editor, block: Block, key: string | null, range: { from: number; to: number }, condition: Condition | null = null): boolean {
   const { state, view } = editor;
-  const { content, inline } = blockContent(block, key);
+  const { content, inline } = blockContent(block, key, condition);
   const node = state.schema.nodeFromJSON(content);
   const tr = state.tr.delete(range.from, range.to);
   const $pos = tr.doc.resolve(range.from);
@@ -246,13 +248,13 @@ function resign(tr: Transaction, from: string, to: string | null) {
   });
 }
 
-/** Every field and zone of `from` gets the key `to`, signatures too (not in the history: the key lives in the panel). */
+/** Every field and zone of `from` gets the key `to`, signatures, auto tables and conditions too (not in the history: the key lives in the panel). */
 export function renameField(editor: Editor, from: string, to: string) {
   const tr = editor.state.tr;
   editor.state.doc.descendants((n, pos) => {
     // An attribute step: the node stays (and stays selected).
     if (['field', 'fieldZone', 'repeat'].includes(n.type.name) && n.attrs.key === from) tr.setNodeAttribute(pos, 'key', to);
-    if (n.type.name === 'autoTable' && n.attrs.field === from) tr.setNodeAttribute(pos, 'field', to);
+    if ((n.type.name === 'autoTable' || n.type.name === 'conditional') && n.attrs.field === from) tr.setNodeAttribute(pos, 'field', to);
     return true;
   });
   resign(tr, from, to);
@@ -272,11 +274,16 @@ export function setBlockAttrs(editor: Editor, index: number, attrs: Record<strin
 /**
  * Takes a field off the sheet: a paragraph holding only it — with the paragraph;
  * rows — the whole block; auto tables of it — too (they show nothing without
- * it); signatures by it — a line to sign by hand.
+ * it); signatures by it — a line to sign by hand; conditional blocks waiting
+ * for it give way to what they hold.
  */
 export function removeField(editor: Editor, key: string) {
   const { state } = editor;
   const ranges: [number, number][] = [];
+  const unwrap: number[] = [];
+  state.doc.forEach((n, pos) => {
+    if (n.type.name === 'conditional' && n.attrs.field === key) unwrap.push(pos);
+  });
   state.doc.descendants((n, pos) => {
     if (n.type.name === 'autoTable' && n.attrs.field === key) {
       ranges.push([pos, pos + n.nodeSize]);
@@ -290,8 +297,26 @@ export function removeField(editor: Editor, key: string) {
   });
   const tr = state.tr;
   for (const [from, to] of ranges.reverse()) tr.delete(from, to);
+  for (const pos of unwrap.reverse()) {
+    const at = tr.mapping.map(pos);
+    const n = tr.doc.nodeAt(at);
+    if (n?.type.name === 'conditional') tr.replaceWith(at, at + n.nodeSize, n.content.size ? n.content : state.schema.nodes.paragraph!.create());
+  }
   resign(tr, key, null);
   if (tr.docChanged) editor.view.dispatch(tr);
+}
+
+/** «Прибрати умову»: the conditional block at `index` gives way to what it holds. */
+export function unwrapBlock(editor: Editor, index: number) {
+  const { doc } = editor.state;
+  if (index < 0 || index >= doc.childCount || doc.child(index).type.name !== 'conditional') return;
+  let from = 0;
+  for (let i = 0; i < index; i++) from += doc.child(i).nodeSize;
+  const node = doc.child(index);
+  const tr = editor.state.tr.replaceWith(from, from + node.nodeSize, node.content);
+  tr.setSelection(TextSelection.near(tr.doc.resolve(from + 1)));
+  editor.view.dispatch(tr);
+  editor.commands.focus();
 }
 
 /** Removes the block of the top level at `index`; the sheet is never left without a paragraph. */

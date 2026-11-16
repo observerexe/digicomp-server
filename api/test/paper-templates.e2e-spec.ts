@@ -294,6 +294,57 @@ describe('Шаблони документів (e2e)', () => {
   });
 
   describe('публікація', () => {
+    it('умовний блок чекає на будь-яке поле, яке заповнюють: значення — за видом поля', async () => {
+      const fields = [
+        field('urgent', { type: 'bool' }),
+        field('due', { type: 'date' }),
+        field('why', { type: 'richtext' }),
+        field('note'),
+      ];
+      const when = (key: string, value: string) => ({
+        type: 'doc',
+        content: [
+          ...form('x', fields.slice(0, 3)).content,
+          {
+            type: 'conditional',
+            attrs: { field: key, value },
+            content: [
+              {
+                type: 'paragraph',
+                content: [{ type: 'field', attrs: { key: 'note' } }],
+              },
+            ],
+          },
+        ],
+      });
+      const cases: [string, string, string | null][] = [
+        ['urgent', '@yes', null],
+        ['urgent', '@no', null],
+        ['due', '@filled', null],
+        ['urgent', '@filled', 'urgent'],
+        ['due', '@yes', 'due'],
+        ['why', '@filled', 'why'],
+      ];
+      for (const [key, value, refused] of cases) {
+        const t = await create(mod, { title: `${key} ${value}`, kind: 'free' });
+        await save(mod, t.id, 1, {
+          revision: 1,
+          fields,
+          body: when(key, value),
+        }).expect(200);
+        const res = await publish(mod, t.id, 1);
+        if (refused === null) {
+          expect(res.status).toBe(201);
+        } else {
+          expect(res.status).toBe(400);
+          expect(res.body).toMatchObject({
+            errorCode: 'TEMPLATE_FIELD_INVALID',
+            field: refused,
+          });
+        }
+      }
+    });
+
     it('версія стає поточною й незмінною; запам’ятовує схему; аудит', async () => {
       const t = await taskTemplate();
       const got = (await as(app, mod).get(`${T}/${t.id}`).expect(200))

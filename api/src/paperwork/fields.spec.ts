@@ -4,6 +4,10 @@ import {
   type PaperNode,
 } from '../../../shared/editor-schema';
 import {
+  conditionHolds,
+  IF_FILLED,
+  IF_NO,
+  IF_YES,
   matchesBody,
   offFields,
   mentionsOf,
@@ -15,6 +19,7 @@ import {
   withZoneText,
   zoneText,
   type FieldSpec,
+  type FieldValues,
 } from '../../../shared/editor-schema/fields';
 import { renderContent } from '../../../shared/editor-schema/render';
 import {
@@ -502,11 +507,38 @@ describe('Умовний блок', () => {
     expect([...offFields(body, { kind: 'fine' })]).toEqual([]);
   });
 
-  it('тіло шаблону: умова — поле enum поза блоками; поле блоку — лише в ньому', () => {
+  it('умова виконується: вибір, серед обраних, прапорець, заповнено', () => {
+    const holds = (value: string, v: FieldValues) =>
+      conditionHolds({ field: 'x', value }, v);
+    expect(holds('fine', { x: 'fine' })).toBe(true);
+    expect(holds('fine', { x: 'warning' })).toBe(false);
+    expect(holds('fine', { x: ['warning', 'fine'] })).toBe(true);
+    expect(holds('fine', { x: ['warning'] })).toBe(false);
+    expect(holds(IF_YES, { x: true })).toBe(true);
+    expect(holds(IF_YES, { x: false })).toBe(false);
+    expect(holds(IF_YES, {})).toBe(false);
+    expect(holds(IF_NO, { x: false })).toBe(true);
+    expect(holds(IF_NO, {})).toBe(true);
+    expect(holds(IF_NO, { x: true })).toBe(false);
+    expect(holds(IF_FILLED, { x: 'a' })).toBe(true);
+    expect(holds(IF_FILLED, { x: 0 })).toBe(true);
+    expect(holds(IF_FILLED, { x: false })).toBe(true);
+    expect(holds(IF_FILLED, {})).toBe(false);
+    expect(holds(IF_FILLED, { x: [] })).toBe(false);
+  });
+
+  it('тіло шаблону: умова — поле поза блоками (не зона, не рядки); поле блоку — лише в ньому', () => {
     expect(bodyProblem(body, fields)).toBeNull();
-    expect(
-      bodyProblem(body, [f('kind', 'list<enum>'), ...fields.slice(1)]),
-    ).toEqual({ field: 'kind' });
+    for (const type of ['list<enum>', 'bool', 'text', 'date', 'ref:user']) {
+      expect(bodyProblem(body, [f('kind', type), ...fields.slice(1)])).toBe(
+        null,
+      );
+    }
+    for (const type of ['richtext', 'rows']) {
+      expect(bodyProblem(body, [f('kind', type), ...fields.slice(1)])).toEqual({
+        field: 'kind',
+      });
+    }
     expect(
       bodyProblem(
         doc(
@@ -556,13 +588,26 @@ describe('Умовний блок', () => {
     const resolved = (over: object = {}) => [
       {
         key: 'kind',
+        type: 'enum',
         binding: 'type',
         auto: false,
         options: [{ key: 'fine' }],
         ...over,
       },
-      { key: 'amount', binding: 'amount', auto: false, options: null },
-      { key: 'why', binding: 'reason', auto: false, options: null },
+      {
+        key: 'amount',
+        type: 'int',
+        binding: 'amount',
+        auto: false,
+        options: null,
+      },
+      {
+        key: 'why',
+        type: 'richtext',
+        binding: 'reason',
+        auto: false,
+        options: null,
+      },
     ];
     const schema = {
       fields: [
@@ -589,6 +634,27 @@ describe('Умовний блок', () => {
     expect(conditionProblem(required, resolved(), schema)).toEqual({
       field: 'why',
     });
+  });
+
+  it('значення умови — за типом поля: варіант, @yes / @no, @filled', () => {
+    const on = (type: string, value: string, options = null as never) =>
+      conditionProblem(
+        doc(p(fieldNode('kind')), when('kind', value, p())),
+        [{ key: 'kind', type, binding: null, auto: false, options }],
+        null,
+      );
+    const choices = [{ key: 'fine' }] as never;
+    expect(on('list<enum>', 'fine', choices)).toBeNull();
+    expect(on('list<enum>', IF_FILLED, choices)).toEqual({ field: 'kind' });
+    expect(on('enum', IF_YES, choices)).toEqual({ field: 'kind' });
+    expect(on('bool', IF_YES)).toBeNull();
+    expect(on('bool', IF_NO)).toBeNull();
+    expect(on('bool', IF_FILLED)).toEqual({ field: 'kind' });
+    expect(on('bool', 'fine')).toEqual({ field: 'kind' });
+    for (const type of ['text', 'int', 'date', 'ref:user', 'list<ref:user>']) {
+      expect(on(type, IF_FILLED)).toBeNull();
+      expect(on(type, IF_YES)).toEqual({ field: 'kind' });
+    }
   });
 
   it('рендер: у редакторі — блок з умовою; у друці — вміст, лише коли умова виконується', () => {

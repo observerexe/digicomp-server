@@ -1,6 +1,6 @@
 import type { PaperField, PaperTemplateRef } from '../api/types';
 import { isEmptyRow, ROWS, rowsIn, valueText, type Condition, type FieldValue, type FieldValues } from '../../../shared/editor-schema/fields';
-import { isOff } from './conditional';
+import { conditionWords, isOff } from './conditional';
 import { fieldType } from './fieldTypes';
 import { usePaperRecords } from './records';
 import s from './FieldsPanel.module.css';
@@ -197,8 +197,8 @@ export function MissingNote({ fields }: { fields: readonly PaperField[] }) {
   return <p className={s.missing}>Не заповнено: {fields.map((f) => f.label).join(', ')}</p>;
 }
 
-/** Why a field of a conditional block is shown: «Поле з'явилось, бо обрано «Штраф»». */
+/** Why a field of a conditional block is shown: «Поле з'явилось, бо у «Вид стягнення» обрано «Штраф»». */
 export function conditionNote(template: PaperTemplateRef, c: Condition): string {
-  const choice = template.fields.find((f) => f.key === c.field)?.options?.find((o) => o.key === c.value)?.label ?? c.value;
-  return `Поле з'явилось, бо обрано «${choice}»`;
+  const f = template.fields.find((x) => x.key === c.field);
+  return `Поле з'явилось, бо ${conditionWords(c, f?.label, f?.options ?? [])}`;
 }

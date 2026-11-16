@@ -135,7 +135,7 @@ export function signerField(v: unknown): string | null {
   return typeof v === 'string' && FIELD_KEY.test(v) ? v : null;
 }
 
-/** The choice a conditional block waits for: a key of an `enum` option (up to 40 characters, one line). */
+/** What a conditional block waits for: a key of an `enum` option or `@yes` / `@no` / `@filled` (up to 40 characters, one line; see fields.ts). */
 export const CONDITION_VALUE_MAX = 40;
 const conditionValue: AttrRule = { default: null, valid: (v) => typeof v === 'string' && v.length > 0 && lineOf(CONDITION_VALUE_MAX)(v) };
 
@@ -202,8 +202,8 @@ export const NODES: Record<string, NodeRule> = {
   /** «Колонтитул»: a line at the foot of every printed page. */
   pageFooter: { attrs: { text: { default: '', valid: lineOf(FOOTER_MAX) } } },
   /**
-   * «Умовний блок»: its blocks are in the document only while the `enum` field
-   * `field` of the template holds `value` (see offFields in fields.ts).
+   * «Умовний блок»: its blocks are in the document only while the field
+   * `field` of the template holds `value` (see conditionHolds in fields.ts).
    */
   conditional: { attrs: { field: fieldKey, value: conditionValue }, children: BLOCKS },
   /**

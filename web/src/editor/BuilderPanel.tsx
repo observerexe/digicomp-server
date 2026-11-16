@@ -4,7 +4,9 @@ import { Icon } from '../components/Icon';
 import { useDictionaries } from '../lib/dictionaries';
 import { fieldBlockOf, textBlockOf, type Block, type Palette, type TableBlock } from './blocks';
 import { FOOTER_MAX, SIGN_LABEL_MAX, SIGNER_AUTHOR, SIGNER_ORG } from '../../../shared/editor-schema';
-import { FIELD_LIMITS } from '../../../shared/editor-schema/fields';
+import { conditionKind, FIELD_LIMITS, IF_FILLED, type FieldOption } from '../../../shared/editor-schema/fields';
+import { conditional } from './blocks/conditional';
+import { conditionOptions } from './conditional';
 import { BLOCK_MIME, type BuilderSelection } from './builder';
 import s from './BuilderPanel.module.css';
 import { isAutoBinding } from './blocks/schema';
@@ -18,8 +20,8 @@ type Props = {
   tabs: readonly BuilderTab[];
   onTab: (tab: BuilderTab) => void;
   palette: Palette;
-  /** Fields of the record already bound on the sheet: their blocks are not offered again. */
-  used: ReadonlySet<string>;
+  /** Why a block is not offered now (a field of the record already on the sheet…); null — it is. */
+  unavailable: (b: Block) => string | null;
   /** «Шаблон»: settings of the template and its versions. */
   settings: ReactNode;
   selected: BuilderSelection;
@@ -36,6 +38,12 @@ type Props = {
   onRename: (from: string, to: string) => void;
   onRemoveField: (key: string) => void;
   onRemoveBlock: (index: number) => void;
+  /** «Прибрати умову»: the conditional block gives way to what it holds. */
+  onUnwrap: (index: number) => void;
+  /** Fields a conditional block may wait for (template.ts conditionFields). */
+  conditionFields: readonly FieldDef[];
+  /** Choices of a choice field. */
+  choicesOf: (f: FieldDef) => FieldOption[];
   /** Settings of a block of the top level (signatures, the footer). */
   onBlockAttrs: (index: number, attrs: Record<string, unknown>) => void;
   onSelectField: (key: string) => void;
@@ -74,7 +82,7 @@ export function BuilderPanel(props: Props) {
       </div>
       <div id={`${id}-panel`} role="tabpanel" aria-labelledby={`${id}-${props.tab}`} className={s.body}>
         {props.tab === 'blocks' ? (
-          <PaletteTab palette={props.palette} used={props.used} onPick={props.onPick} />
+          <PaletteTab palette={props.palette} unavailable={props.unavailable} onPick={props.onPick} />
         ) : props.tab === 'props' ? (
           <Properties {...props} />
         ) : (
@@ -91,7 +99,7 @@ const keepFocus = (e: { preventDefault: () => void }) => e.preventDefault();
 /** A block of the record's field already bound on the sheet. */
 export const isUsed = (b: Block, used: ReadonlySet<string>) => b.kind === 'field' && b.binding !== undefined && used.has(b.binding);
 
-function PaletteTab({ palette, used, onPick }: { palette: Palette; used: ReadonlySet<string>; onPick: (block: string) => void }) {
+function PaletteTab({ palette, unavailable, onPick }: { palette: Palette; unavailable: (b: Block) => string | null; onPick: (block: string) => void }) {
   const drag = (b: Block) => (e: DragEvent) => {
     e.dataTransfer.setData(BLOCK_MIME, b.key);
     e.dataTransfer.effectAllowed = 'copy';
@@ -107,15 +115,15 @@ function PaletteTab({ palette, used, onPick }: { palette: Palette; used: Readonl
             {palette.blocks
               .filter((b) => b.group === g.key)
               .map((b) => {
-                const taken = isUsed(b, used);
+                const why = unavailable(b);
                 return (
                   <button
                     key={b.key}
                     type="button"
                     className={s.block}
-                    draggable={!taken}
-                    disabled={taken}
-                    title={taken ? 'Уже на аркуші' : undefined}
+                    draggable={why === null}
+                    disabled={why !== null}
+                    title={why ?? undefined}
                     onDragStart={drag(b)}
                     onMouseDown={keepFocus}
                     onClick={() => onPick(b.key)}
@@ -140,6 +148,9 @@ function Properties(props: Props) {
   if (selected.kind === 'block' && selected.node === 'autoTable') {
     return <AutoTableForm {...props} index={selected.index} attrs={selected.attrs} />;
   }
+  if (selected.kind === 'block' && selected.node === 'conditional') {
+    return <ConditionForm {...props} index={selected.index} attrs={selected.attrs} keys={selected.keys} />;
+  }
   if (selected.kind === 'block') {
     const block = textBlockOf(selected.node);
     const setAttrs = (attrs: Record<string, unknown>) => props.onBlockAttrs(selected.index, attrs);
@@ -147,8 +158,8 @@ function Properties(props: Props) {
       <>
         <Heading
           block={block}
-          label={selected.node === 'conditional' ? 'Умовний блок' : (block?.label ?? selected.node)}
-          hint={selected.node === 'conditional' ? conditionHint(selected.attrs, props) : (BLOCK_HINT[selected.node] ?? 'Текст шаблону: у документі він не змінюється.')}
+          label={block?.label ?? selected.node}
+          hint={BLOCK_HINT[selected.node] ?? 'Текст шаблону: у документі він не змінюється.'}
         />
         {selected.node === 'signatures' && <SignaturesForm attrs={selected.attrs} fields={props.fields} onChange={setAttrs} />}
         {selected.node === 'pageFooter' && (
@@ -183,12 +194,74 @@ function Properties(props: Props) {
   return <FieldForm key={f.key} f={f} {...props} />;
 }
 
-/** A conditional block: when it is in the document. Its condition comes with the template; the constructor does not set it. */
-function conditionHint(attrs: Record<string, unknown>, { defs, schema }: Props): string {
-  const f = defs.get(attrs.field as string);
+/**
+ * «Умовний блок»: the field it waits for and the value («обрано «Штраф»»,
+ * «позначено», «заповнено»); «Прибрати умову» keeps what it holds on the sheet.
+ */
+function ConditionForm(props: Props & { index: number; attrs: Record<string, unknown>; keys: readonly string[] }) {
+  const { conditionFields, choicesOf, defs, index, attrs, keys } = props;
+  const id = useId();
+  const field = attrs.field as string;
   const value = attrs.value as string;
-  const choice = schema?.fields.find((x) => x.key === f?.binding)?.options?.find((o) => o.key === value)?.label ?? value;
-  return `Є в документі, лише коли в полі «${f?.label ?? String(attrs.field)}» обрано «${choice}». Умову тут не змінюють.`;
+  const f = defs.get(field);
+  const options = f ? conditionOptions(f.type, choicesOf(f)) : [];
+  const set = (next: Record<string, unknown>) => props.onBlockAttrs(index, next);
+  const pickField = (key: string) => {
+    const g = conditionFields.find((x) => x.key === key);
+    const first = g ? conditionOptions(g.type, choicesOf(g))[0] : undefined;
+    if (g && first) set({ field: g.key, value: first.value });
+  };
+  return (
+    <>
+      <Heading block={conditional} label={conditional.label} hint="Є в документі й у друці, лише коли умова виконується. Доки ні — його поля не обов’язкові." />
+      <div className="field">
+        <label htmlFor={`${id}-field`}>Показувати, якщо поле</label>
+        <select id={`${id}-field`} value={field} aria-invalid={!conditionFields.some((x) => x.key === field)} onChange={(e) => pickField(e.target.value)}>
+          {!conditionFields.some((x) => x.key === field) && <option value={field}>{f ? `«${f.label}» — не може бути умовою` : `${field} — немає на аркуші`}</option>}
+          {conditionFields.map((x) => (
+            <option key={x.key} value={x.key} disabled={!conditionOptions(x.type, choicesOf(x)).length}>
+              {x.label}
+            </option>
+          ))}
+        </select>
+        <span className="hint">Вибір, прапорець або поле, яке заповнюють люди, поза умовними блоками.</span>
+      </div>
+      {!f || conditionKind(f.type) !== 'filled' || value !== IF_FILLED ? (
+        <div className="field">
+          <label htmlFor={`${id}-value`}>Має значення</label>
+          <select id={`${id}-value`} value={value} aria-invalid={!options.some((o) => o.value === value)} onChange={(e) => set({ value: e.target.value })}>
+            {!options.some((o) => o.value === value) && <option value={value}>«{value}» — немає серед варіантів</option>}
+            {options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        <p className="hint">Блок з’являється, щойно поле заповнено.</p>
+      )}
+      {keys.length > 0 && (
+        <div className={s.prop}>
+          <span className={s.propLabel}>Поля в блоці</span>
+          <div className={s.chips}>
+            {keys.map((k) => (
+              <button key={k} type="button" className={s.chip} onClick={() => props.onSelectField(k)}>
+                {defs.get(k)?.label ?? k}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <button type="button" className="btn" onClick={() => props.onUnwrap(index)}>
+        Прибрати умову
+      </button>
+      <button type="button" className={`btn btn-danger ${s.remove}`} onClick={() => props.onRemoveBlock(index)}>
+        <Icon name="trash" size={18} />
+        Видалити блок
+      </button>
+    </>
+  );
 }
 
 /** What a structure block shows, under its name. */

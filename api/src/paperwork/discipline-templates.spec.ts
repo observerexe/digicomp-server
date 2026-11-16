@@ -54,6 +54,7 @@ describe('шаблони дисципліни (міграція DisciplineTempla
         const s = f.binding ? bound.get(f.binding) : undefined;
         return {
           key: f.key,
+          type: f.type,
           binding: f.binding,
           auto: !!s && isAutoBinding(kind, s),
           options: f.type === 'enum' ? (s?.options ?? []) : null,
