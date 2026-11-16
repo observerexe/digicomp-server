@@ -13,6 +13,7 @@ export const RECORD_TYPES = [
   'project',
   'place',
   'inventory_item',
+  'inventory_writeoff',
   'discipline_record',
   'points_entry',
   'session',
@@ -34,6 +35,7 @@ export const RECORD_LABEL: Partial<Record<RecordType, string>> = {
   project: 'Проєкт',
   place: 'Обладнання',
   inventory_item: 'Склад',
+  inventory_writeoff: 'Списання зі складу',
   fault: 'Несправність',
 };
 

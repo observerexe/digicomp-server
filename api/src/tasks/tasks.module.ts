@@ -6,9 +6,11 @@ import { LinkRegistry } from '../links/link-registry';
 import { LinksModule } from '../links/links.module';
 import { PaperAdapterRegistry } from '../paperwork/adapters';
 import { PaperworkModule } from '../paperwork/paperwork.module';
+import { PaperTableRegistry } from '../paperwork/tables';
 import { RecordsModule } from '../records/records.module';
 import { taskAdapter } from './task.adapter';
 import { TASK_LINKS } from './task.links';
+import { PROJECT_TASKS } from './task.tables';
 import { Task, TaskAssignee, TaskComment, TaskFile } from './task.entities';
 import { TasksController } from './tasks.controller';
 import { TasksService } from './tasks.service';
@@ -30,10 +32,12 @@ export class TasksModule implements OnModuleInit {
     private links: LinkRegistry,
     private papers: PaperAdapterRegistry,
     private tasks: TasksService,
+    private tables: PaperTableRegistry,
   ) {}
 
   onModuleInit() {
     this.links.register('task', TASK_LINKS);
     this.papers.register('task', taskAdapter(this.tasks));
+    this.tables.register('project_tasks', PROJECT_TASKS);
   }
 }

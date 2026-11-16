@@ -5,6 +5,7 @@ import { DOCUMENT_SCHEMA } from '../documents/document.schema';
 import { FAULT_SCHEMA } from '../faults/fault.schema';
 import { PAPER_SCHEMA } from '../paperwork/paper.schema';
 import { INVENTORY_ITEM_SCHEMA } from '../inventory/inventory-item.schema';
+import { INVENTORY_WRITEOFF_SCHEMA } from '../inventory/inventory-writeoff.schema';
 import { PLACE_AUTHORIZATION_SCHEMA } from '../places/place-authorization.schema';
 import { PLACE_SCHEMA } from '../places/place.schema';
 import { SESSION_SCHEMA } from '../places/session.schema';
@@ -21,6 +22,7 @@ export const SCHEMA_DEFS: readonly RecordSchemaDef[] = [
   PROJECT_SCHEMA,
   PLACE_SCHEMA,
   INVENTORY_ITEM_SCHEMA,
+  INVENTORY_WRITEOFF_SCHEMA,
   DISCIPLINE_RECORD_SCHEMA,
   POINTS_ENTRY_SCHEMA,
   SESSION_SCHEMA,

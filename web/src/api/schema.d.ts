@@ -2191,7 +2191,7 @@ export interface components {
             createdAt: string;
         };
         /** @enum {string} */
-        RecordType: "user" | "task" | "project" | "place" | "inventory_item" | "discipline_record" | "points_entry" | "session" | "fault" | "place_authorization" | "document" | "paper";
+        RecordType: "user" | "task" | "project" | "place" | "inventory_item" | "inventory_writeoff" | "discipline_record" | "points_entry" | "session" | "fault" | "place_authorization" | "document" | "paper";
         /**
          * @description `out` — this record is the source, `in` — the other record is.
          * @enum {string}
@@ -2476,7 +2476,7 @@ export interface components {
              *     or `rows` («Повторювані рядки»: its columns — fields of its repeated row).
              * @enum {string}
              */
-            type: "text" | "richtext" | "int" | "decimal" | "date" | "datetime" | "bool" | "enum" | "color" | "ref:user" | "ref:task" | "ref:project" | "ref:place" | "ref:inventory_item" | "ref:discipline_record" | "ref:points_entry" | "ref:session" | "ref:fault" | "ref:place_authorization" | "ref:document" | "ref:paper" | "list<text>" | "list<richtext>" | "list<int>" | "list<decimal>" | "list<date>" | "list<datetime>" | "list<bool>" | "list<enum>" | "list<color>" | "list<ref:user>" | "list<ref:task>" | "list<ref:project>" | "list<ref:place>" | "list<ref:inventory_item>" | "list<ref:discipline_record>" | "list<ref:points_entry>" | "list<ref:session>" | "list<ref:fault>" | "list<ref:place_authorization>" | "list<ref:document>" | "list<ref:paper>" | "rows";
+            type: "text" | "richtext" | "int" | "decimal" | "date" | "datetime" | "bool" | "enum" | "color" | "ref:user" | "ref:task" | "ref:project" | "ref:place" | "ref:inventory_item" | "ref:inventory_writeoff" | "ref:discipline_record" | "ref:points_entry" | "ref:session" | "ref:fault" | "ref:place_authorization" | "ref:document" | "ref:paper" | "list<text>" | "list<richtext>" | "list<int>" | "list<decimal>" | "list<date>" | "list<datetime>" | "list<bool>" | "list<enum>" | "list<color>" | "list<ref:user>" | "list<ref:task>" | "list<ref:project>" | "list<ref:place>" | "list<ref:inventory_item>" | "list<ref:inventory_writeoff>" | "list<ref:discipline_record>" | "list<ref:points_entry>" | "list<ref:session>" | "list<ref:fault>" | "list<ref:place_authorization>" | "list<ref:document>" | "list<ref:paper>" | "rows";
             /** @description `author` — the author of the document; `staff` — a moderator or the admin. */
             fill: components["schemas"]["TemplateFieldFiller"];
             /** @description Key of a field of the target's schema (`/records/:type/schema`); null — not bound. */
@@ -3510,6 +3510,8 @@ export interface components {
         InventoryMovementDto: {
             item?: components["schemas"]["MovementItemDto"];
             projectId: string | null;
+            /** @description «Акт списання» that wrote it off (or returned it); null — taken or restocked here. */
+            paper: components["schemas"]["RecordPaperDto"] | null;
             id: string;
             itemId: string;
             /** @description Negative — taken, positive — restocked. */

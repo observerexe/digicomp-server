@@ -9,6 +9,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Paper } from '../paperwork/paper.entity';
 import { User } from '../users/user.entity';
 
 const numeric = {
@@ -114,6 +115,18 @@ export class InventoryMovement {
 
   @Column({ name: 'project_id', type: 'uuid', nullable: true })
   projectId: string | null;
+
+  /**
+   * «Акт списання» that wrote the stock off (or, cancelled, returned it);
+   * null — taken or restocked on the item's page.
+   */
+  @Index()
+  @Column({ name: 'paper_id', type: 'uuid', nullable: true })
+  paperId: string | null;
+
+  @ManyToOne(() => Paper, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'paper_id' })
+  paper?: Paper;
 
   @Column({ name: 'actor_id', type: 'uuid' })
   actorId: string;

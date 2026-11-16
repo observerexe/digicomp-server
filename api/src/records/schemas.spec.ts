@@ -158,8 +158,9 @@ function checkField(ctx: string, f: FieldSchema) {
   if (f.required) expect([ctx, f.create]).toEqual([ctx, true]);
   if (!list) expect([ctx, f.maxItems]).toEqual([ctx, undefined]);
   if (item !== 'decimal') expect([ctx, f.scale]).toEqual([ctx, undefined]);
+  // Given on create at most: the module keeps it in its own form.
   if (f.source === 'computed') {
-    expect([ctx, !!(f.create || f.update)]).toEqual([ctx, false]);
+    expect([ctx, !!f.update]).toEqual([ctx, false]);
   }
 }
 

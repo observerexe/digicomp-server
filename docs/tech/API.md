@@ -237,7 +237,9 @@
 ### Склад, документи, проєкти
 
 - Залишок змінюється лише рухами (`POST /api/inventory/items/:id/movements { delta, note, projectId?, idempotencyKey }`).
-  Брати й поповнювати можуть усі; `?lowStock=true` — позиції з низьким залишком.
+  Брати й поповнювати можуть усі; `?lowStock=true` — позиції з низьким залишком. Списують зі складу «Актом списання» (документ
+  редактора, тип запису `inventory_writeoff`: рядок — рух з мінусом); скасування акта повертає списане новим рухом з плюсом.
+  Рух у `GET /api/inventory/movements` несе `paper` — акт, що його зробив, `{ id, number }` (`null` — узято чи поповнено на сторінці позиції).
 - Документ: нова версія не змінює попередні; `DELETE` лише архівує. `download?inline=1` показує PDF у застосунку
   (вбудувати можуть лише його сторінки); інші типи лише завантажуються. Доступ `members` або `supervisors`.
   Списку в `/api/documents` немає — його дає `GET /api/archive`.
@@ -270,7 +272,8 @@
 
 - `GET /api/records/:type/schema` — поля типу записів: ключ (той самий, що в API запису), назва, тип, межі. Даних записів немає;
   читають усі ролі. Невідомий тип — 404 `RECORD_TYPE_NOT_FOUND`.
-- Типи: `user`, `task`, `project`, `place`, `inventory_item`, `discipline_record`, `points_entry`, `place_authorization`;
+- Типи: `user`, `task`, `project`, `place`, `inventory_item`, `inventory_writeoff` (списання зі складу: лише створюється, полів `update` немає),
+  `discipline_record`, `points_entry`, `place_authorization`;
   `session`, `fault`, `document`, `paper` — лише для читання (жодне поле не має `create` чи `update`).
 - Тип поля: `text`, `richtext`, `int`, `decimal` (`scale` — знаків після коми), `date` (`YYYY-MM-DD`), `datetime`, `bool`,
   `enum`, `color`, `ref:<тип запису>` (UUID) або `list<…>` з одного з них. `enum` має або `options` (фіксовані значення з назвами),
@@ -377,7 +380,9 @@
     Джерела: `place_authorizations` («Допуски» обладнання `ref:place`: учасник, видано, діє до, примітка; учасник бачить лише свої),
     `place_faults` («Несправності» обладнання: дата, опис, стан, що зроблено, закрито; бачать усі), `place_sessions` («Журнал сеансів»
     обладнання: учасник, початок, кінець, тривалість, примітка; учасник бачить лише свої), `points_month` («Рейтинг за місяць» для `date` —
-    місяць цієї дати за київським часом: місце, учасник, бали; як сторінка «Рейтинг»).
+    місяць цієї дати за київським часом: місце, учасник, бали; як сторінка «Рейтинг»), `project_tasks` («ТЗ проєкту» для `ref:project`:
+    назва, номер документа, стан, виконавці, бали, дата виконання; ТЗ, пов'язані з проєктом; бачать усі), `project_materials`
+    («Матеріали проєкту» для `ref:project`: дата, позиція, кількість зі знаком, хто, для чого — рухи складу з цим проєктом; бачать усі).
 - `status`: `draft` (Чернетка), `published` (Опубліковано), `frozen` (Зафіксовано), `signed` (Підписано), `cancelled` (Скасовано).
   Документ створюється чернеткою; `publish` робить його опублікованим, `freeze` (чи автофіксація) — зафіксованим, `signed` (скан) — підписаним,
   `cancel` — скасованим.
@@ -584,7 +589,8 @@
   і лише їхню поточну версію. Інше — 404 `TEMPLATE_NOT_FOUND` / `TEMPLATE_VERSION_NOT_FOUND`. Змінюють лише admin і moderator.
 - `GET /api/papers/templates` — за назвою. `GET /api/papers/templates/:id` — з версіями.
 - `GET /api/papers/templates/targets` — `{ creates, report, tables }`: типи записів, які може створювати шаблон `creates`, типи, про які може
-  бути звіт `report` (модуль уміє прочитати свій запис: зараз — `discipline_record`, `fault`, `place`, `points_entry`, `task`), і джерела
+  бути звіт `report` (модуль уміє прочитати свій запис: зараз — `discipline_record`, `fault`, `inventory_writeoff`, `place`,
+  `place_authorization`, `points_entry`, `project`, `task`), і джерела
   авто-таблиць `{ key, label, input, columns }` за ключем (`input` — тип поля, для якого джерело дає рядки). Лише admin і moderator.
 - `POST /api/papers/templates { title, kind, target?, numberPrefix?, autoFreeze?, creators?, visibility? }` — разом із порожньою чернеткою версії 1.
   Неправильне поєднання виду, типу запису й автофіксації — 400 `TEMPLATE_KIND_INVALID`. За замовчуванням `creators: staff`, `visibility: author`.

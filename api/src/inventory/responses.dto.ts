@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { RecordPaperDto } from '../paperwork/responses.dto';
 
 export class InventoryItemDto {
   id: string;
@@ -64,6 +65,10 @@ export class InventoryMovementDto {
 
   @ApiProperty({ type: String, nullable: true })
   projectId: string | null;
+
+  /** «Акт списання» that wrote it off (or returned it); null — taken or restocked here. */
+  @ApiProperty({ type: RecordPaperDto, nullable: true })
+  paper: RecordPaperDto | null;
 
   actor: MovementActorDto;
   createdAt: Date;

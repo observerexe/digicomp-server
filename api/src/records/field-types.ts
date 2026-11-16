@@ -10,6 +10,7 @@ export const RECORD_TYPES = [
   'project',
   'place',
   'inventory_item',
+  'inventory_writeoff',
   'discipline_record',
   'points_entry',
   'session',
@@ -52,8 +53,10 @@ export type EnumOption = { key: string; label: string };
 
 /**
  * Where the value lives: a column of the record's table, a related table
- * (task assignees, project members), computed by the module, or the record's
- * `extra` jsonb (fields that staff add in «Налаштування полів»).
+ * (task assignees, project members), computed by the module (one given on
+ * create the module keeps in its own form: a write-off — as a negative
+ * movement), or the record's `extra` jsonb (fields that staff add in
+ * «Налаштування полів»).
  */
 export type FieldSource = 'column' | 'relation' | 'computed' | 'extra';
 

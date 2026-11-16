@@ -134,6 +134,8 @@ describe('Авто-таблиці (e2e)', () => {
       ['place_faults', 'ref:place'],
       ['place_sessions', 'ref:place'],
       ['points_month', 'date'],
+      ['project_materials', 'ref:project'],
+      ['project_tasks', 'ref:project'],
     ]);
   });
 

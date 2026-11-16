@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import type { InventoryItem, Me } from '../../api/types';
+import type { InventoryItem, Me, TemplateItem } from '../../api/types';
 import { dictionary, json, member, mockApi, moderator, renderApp } from '../../test/render';
 
 const staff: Me = { ...moderator, permissions: [...moderator.permissions, 'inventory.manage', 'places.manage'] };
@@ -86,6 +86,36 @@ describe('Склад', () => {
     await userEvent.click(screen.getAllByRole('button', { name: 'Поповнити' }).at(-1)!);
     await waitFor(() => expect(calls.some((c) => c.method === 'POST')).toBe(true));
     expect(JSON.parse(calls.find((c) => c.method === 'POST')!.body)).toMatchObject({ delta: 10 });
+  });
+
+  it('модератор списує за актом: позиція — в першому рядку; рух за актом веде на акт', async () => {
+    const act: TemplateItem = {
+      id: 'as', title: 'Акт списання', kind: 'creates', target: 'inventory_writeoff', numberPrefix: 'АС', autoFreeze: true, creators: 'staff', visibility: 'members',
+      archived: false, currentVersion: 1, draftVersion: null, needsUpdate: false, about: ['inventory_item'], createdAt: '', updatedAt: '',
+    };
+    const { calls } = mockApi(
+      base(staff, {
+        'GET /api/papers/templates': () => json(200, [act]),
+        'GET /api/inventory/movements': () =>
+          json(200, {
+            items: [{ id: 'm1', itemId: 'i1', delta: -2, quantityAfter: 3, note: 'Тріснула', projectId: null, paper: { id: 'p9', number: 'АС-2026-001' }, actor: { id: staff.id, name: staff.name }, createdAt: '2026-11-16T10:00:00Z' }],
+            total: 1, page: 1, limit: 20,
+          }),
+        'POST /api/papers': () => json(201, { id: 'p1' }),
+      }),
+    );
+    const { router } = renderApp('/inventory/PLY-3');
+    expect(await screen.findByRole('link', { name: 'Акт АС-2026-001' })).toHaveAttribute('href', '/editor/p9');
+    await userEvent.click(await screen.findByRole('button', { name: 'Списати за актом' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/editor/p1'));
+    expect(JSON.parse(calls.find((c) => c.path === '/api/papers' && c.method === 'POST')!.body)).toEqual({ templateId: 'as', about: { type: 'inventory_item', id: 'i1' } });
+  });
+
+  it('учасник не бачить «Списати за актом»', async () => {
+    mockApi(base(member));
+    renderApp('/inventory/PLY-3');
+    await screen.findByLabelText('Для чого');
+    expect(screen.queryByRole('button', { name: 'Списати за актом' })).not.toBeInTheDocument();
   });
 
   it('нова позиція: лише модератор; код перевіряється', async () => {

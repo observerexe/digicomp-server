@@ -6070,6 +6070,7 @@
           "project",
           "place",
           "inventory_item",
+          "inventory_writeoff",
           "discipline_record",
           "points_entry",
           "session",
@@ -7085,6 +7086,7 @@
               "ref:project",
               "ref:place",
               "ref:inventory_item",
+              "ref:inventory_writeoff",
               "ref:discipline_record",
               "ref:points_entry",
               "ref:session",
@@ -7106,6 +7108,7 @@
               "list<ref:project>",
               "list<ref:place>",
               "list<ref:inventory_item>",
+              "list<ref:inventory_writeoff>",
               "list<ref:discipline_record>",
               "list<ref:points_entry>",
               "list<ref:session>",
@@ -10535,6 +10538,16 @@
             "type": "string",
             "nullable": true
           },
+          "paper": {
+            "nullable": true,
+            "description": "«Акт списання» that wrote it off (or returned it); null — taken or restocked here.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordPaperDto"
+              }
+            ]
+          },
           "id": {
             "type": "string"
           },
@@ -10561,6 +10574,7 @@
         },
         "required": [
           "projectId",
+          "paper",
           "id",
           "itemId",
           "delta",

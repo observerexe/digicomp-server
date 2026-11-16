@@ -9,6 +9,7 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import {
   Between,
   DataSource,
+  EntityManager,
   FindOptionsWhere,
   LessThanOrEqual,
   MoreThanOrEqual,
@@ -27,6 +28,7 @@ import {
   ListMovementsQuery,
   MovementDto,
   UpdateItemDto,
+  WriteOffDto,
 } from './dto';
 import {
   INVENTORY_CATEGORY,
@@ -45,6 +47,17 @@ import type {
 import { escapeLike } from '../common/like';
 
 type Actor = { id: string; role: string };
+
+/** One movement of an item, made in the caller's transaction. */
+type Move = {
+  delta: number;
+  note: string;
+  projectId: string | null;
+  paperId: string | null;
+  idempotencyKey: string | null;
+};
+
+const RELATIONS = { item: true, actor: true, paper: true } as const;
 
 const INTEGER_UNITS = ['шт', 'pcs', 'уп'];
 
@@ -90,6 +103,7 @@ function movementView(m: InventoryMovement): InventoryMovementDto {
     quantityAfter: m.quantityAfter,
     note: m.note,
     projectId: m.projectId,
+    paper: m.paper ? { id: m.paper.id, number: m.paper.number } : null,
     actor: m.actor ? { id: m.actor.id, name: m.actor.name } : { id: m.actorId },
     createdAt: m.createdAt,
   };
@@ -265,56 +279,132 @@ export class InventoryService {
     if (dto.delta > 0 && !can(actor, Action.InventoryRestock)) {
       throw new ForbiddenException('Not allowed to receive stock');
     }
-    const note = dto.note.trim();
-    if (!note) throw new BadRequestException('Note is required');
     return this.ds.transaction(async (m) => {
-      const item = await m.findOne(InventoryItem, {
+      // The item first: a repeat of the same key waits for the first one.
+      const locked = await m.findOne(InventoryItem, {
         where: { id },
         lock: { mode: 'pessimistic_write' },
       });
-      if (!item) throw new NotFoundException('Item not found');
+      if (!locked) throw new NotFoundException('Item not found');
       if (dto.idempotencyKey) {
         const prev = await m.findOne(InventoryMovement, {
           where: { actorId: actor.id, idempotencyKey: dto.idempotencyKey },
-          relations: { item: true, actor: true },
+          relations: RELATIONS,
         });
         if (prev) return movementView(prev);
       }
-      if (isIntegerUnit(item.unit) && !Number.isInteger(dto.delta)) {
-        throw new BadRequestException('Delta must be an integer for this unit');
-      }
-      const next = round3(item.quantity + dto.delta);
-      if (next < 0) throw new ConflictException('Insufficient stock');
-      item.quantity = next;
-      await m.save(InventoryItem, item);
-      const saved = await m.save(
-        InventoryMovement,
-        m.create(InventoryMovement, {
-          itemId: id,
-          delta: dto.delta,
-          quantityAfter: next,
-          note,
-          projectId: dto.projectId ?? null,
-          actorId: actor.id,
-          idempotencyKey: dto.idempotencyKey ?? null,
+      const saved = await this.apply(m, id, actor, {
+        delta: dto.delta,
+        note: dto.note,
+        projectId: dto.projectId ?? null,
+        paperId: null,
+        idempotencyKey: dto.idempotencyKey ?? null,
+      });
+      return movementView(
+        await m.findOneOrFail(InventoryMovement, {
+          where: { id: saved.id },
+          relations: RELATIONS,
         }),
       );
-      await this.audit.log(
-        {
-          actorId: actor.id,
-          action: 'inventory.movement',
-          entity: 'inventory_item',
-          entityId: id,
-          meta: { delta: dto.delta, after: next },
-        },
-        m,
-      );
-      const full = await m.findOneOrFail(InventoryMovement, {
-        where: { id: saved.id },
-        relations: { item: true, actor: true },
-      });
-      return movementView(full);
     });
+  }
+
+  /**
+   * A row of «Акт списання» (`paperId`), in the document's transaction:
+   * the stock goes down as if taken. Returns the movement's id.
+   */
+  async writeOff(
+    m: EntityManager,
+    dto: WriteOffDto,
+    actor: Actor,
+    paperId: string,
+  ) {
+    const saved = await this.apply(m, dto.itemId, actor, {
+      delta: -dto.quantity,
+      note: dto.note,
+      projectId: null,
+      paperId,
+      idempotencyKey: null,
+    });
+    return saved.id;
+  }
+
+  /**
+   * Its act is cancelled: what it wrote off comes back by a new movement
+   * (the journal is never changed). Staff only.
+   */
+  async returnWriteOff(
+    m: EntityManager,
+    id: string,
+    reason: string,
+    actor: Actor,
+  ) {
+    if (!can(actor, Action.InventoryManage)) {
+      throw new ForbiddenException('Not allowed to return a write-off');
+    }
+    const w = await m.findOneBy(InventoryMovement, { id });
+    if (!w || w.delta >= 0) return;
+    await this.apply(m, w.itemId, actor, {
+      delta: -w.delta,
+      note: `Скасовано списання: ${reason}`.slice(0, 500),
+      projectId: null,
+      paperId: w.paperId,
+      idempotencyKey: null,
+    });
+  }
+
+  /** Changes the balance of an item and writes the movement and audit. */
+  private async apply(
+    m: EntityManager,
+    id: string,
+    actor: Actor,
+    mv: Move,
+  ): Promise<InventoryMovement> {
+    if (mv.delta === 0) {
+      throw new BadRequestException('Delta must not be zero');
+    }
+    const note = mv.note.trim();
+    if (!note) throw new BadRequestException('Note is required');
+    const item = await m.findOne(InventoryItem, {
+      where: { id },
+      lock: { mode: 'pessimistic_write' },
+    });
+    if (!item) throw new NotFoundException('Item not found');
+    if (isIntegerUnit(item.unit) && !Number.isInteger(mv.delta)) {
+      throw new BadRequestException('Delta must be an integer for this unit');
+    }
+    const next = round3(item.quantity + mv.delta);
+    if (next < 0) throw new ConflictException('Insufficient stock');
+    item.quantity = next;
+    await m.save(InventoryItem, item);
+    const saved = await m.save(
+      InventoryMovement,
+      m.create(InventoryMovement, {
+        itemId: id,
+        delta: mv.delta,
+        quantityAfter: next,
+        note,
+        projectId: mv.projectId,
+        paperId: mv.paperId,
+        actorId: actor.id,
+        idempotencyKey: mv.idempotencyKey,
+      }),
+    );
+    await this.audit.log(
+      {
+        actorId: actor.id,
+        action: 'inventory.movement',
+        entity: 'inventory_item',
+        entityId: id,
+        meta: {
+          delta: mv.delta,
+          after: next,
+          ...(mv.paperId ? { paperId: mv.paperId } : {}),
+        },
+      },
+      m,
+    );
+    return saved;
   }
 
   async listMovements(
@@ -333,7 +423,7 @@ export class InventoryService {
     }
     const [rows, total] = await this.moves.findAndCount({
       where,
-      relations: { item: true, actor: true },
+      relations: RELATIONS,
       order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,

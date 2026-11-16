@@ -143,6 +143,22 @@ export class MovementDto {
   idempotencyKey?: string;
 }
 
+/** A row of «Акт списання»: how much of an item is written off and why. */
+export class WriteOffDto {
+  @IsUUID()
+  itemId: string;
+
+  @IsNumber({ maxDecimalPlaces: 3 })
+  @Min(0.001)
+  @Max(1000000)
+  quantity: number;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(500)
+  note: string;
+}
+
 export class ListMovementsQuery {
   @IsOptional()
   @IsUUID()

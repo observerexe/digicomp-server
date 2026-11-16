@@ -534,6 +534,7 @@ describe('Публікація документів (e2e)', () => {
       expect(targets.body).toMatchObject({
         creates: [
           'discipline_record',
+          'inventory_writeoff',
           'place_authorization',
           'points_entry',
           'task',
@@ -541,9 +542,11 @@ describe('Публікація документів (e2e)', () => {
         report: [
           'discipline_record',
           'fault',
+          'inventory_writeoff',
           'place',
           'place_authorization',
           'points_entry',
+          'project',
           'task',
         ],
       });

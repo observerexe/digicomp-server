@@ -174,15 +174,17 @@ describe('Звіти (e2e)', () => {
       expect(res.body.report).toEqual([
         'discipline_record',
         'fault',
+        'inventory_writeoff',
         'place',
         'place_authorization',
         'points_entry',
+        'project',
         'task',
       ]);
       code(
         await as(app, mod)
           .post(T)
-          .send({ title: 'Звіт', kind: 'report', target: 'project' }),
+          .send({ title: 'Звіт', kind: 'report', target: 'inventory_item' }),
         400,
         'TEMPLATE_KIND_INVALID',
       );

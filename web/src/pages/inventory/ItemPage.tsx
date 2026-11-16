@@ -4,12 +4,15 @@ import { Link, useParams } from 'react-router';
 import { api, ApiError, unwrap } from '../../api/client';
 import type { InventoryItem } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
+import { ChoiceButton } from '../../components/ChoiceButton';
 import { Icon } from '../../components/Icon';
+import { RecordPapers } from '../../components/RecordPapers';
 import { Related } from '../../components/Related';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { CATEGORY, itemTitle, useDictionary } from '../../lib/dictionaries';
 import { formatDateTime } from '../../lib/format';
+import { templateChoices, useNewPaper, useTemplates } from '../../lib/paperTemplates';
 import { newActionKey } from '../lab/queries';
 import { qty } from './InventoryPage';
 import s from './inventory.module.css';
@@ -18,7 +21,7 @@ const INTEGER_UNITS = ['шт', 'pcs', 'уп'];
 export const isIntegerUnit = (unit: string) => INTEGER_UNITS.includes(unit.trim().toLowerCase());
 export const itemKey = (code: string) => ['inventory', 'item', code.toUpperCase()] as const;
 
-/** Inventory item (by QR code): take or restock with a note, movement history. */
+/** Inventory item (by QR code): take or restock with a note, movement history; staff write it off by «Акт списання». */
 export function ItemPage() {
   const { code = '' } = useParams();
   const q = useQuery({
@@ -67,6 +70,9 @@ function ItemView({ item }: { item: InventoryItem }) {
   const [note, setNote] = useState('');
   const [projectId, setProjectId] = useState('');
   const [done, setDone] = useState<string | null>(null);
+  const templates = useTemplates();
+  const newPaper = useNewPaper();
+  const writeOffChoices = templateChoices(templates.data, { creates: 'inventory_writeoff' });
 
   const projects = useQuery({
     queryKey: ['projects', 'board', null],
@@ -205,6 +211,7 @@ function ItemView({ item }: { item: InventoryItem }) {
                       <span className={s.sub}>
                         {m.actor.name ?? 'Учасник'} · {formatDateTime(m.createdAt)}
                       </span>
+                      <RecordPapers label="Акт" paper={m.paper} papers={[]} />
                     </span>
                     <span className={m.delta < 0 ? s.minus : s.plus}>
                       {m.delta > 0 ? '+' : '−'}
@@ -217,9 +224,21 @@ function ItemView({ item }: { item: InventoryItem }) {
           </Card>
           <Related type="inventory_item" id={item.id} />
           {can('inventory.manage') && (
-            <Link to={`/inventory/${encodeURIComponent(item.code)}/edit`} className="btn">
-              Редагувати позицію
-            </Link>
+            <>
+              {/* A new act with this item in its first row. */}
+              <ChoiceButton
+                label="Списати за актом"
+                className="btn"
+                choices={writeOffChoices}
+                disabled={templates.isPending || newPaper.isPending}
+                emptyNote="Немає шаблону, що списує зі складу: його додають у «Редактор» → «Шаблони»."
+                onPick={(templateId) => templateId && newPaper.mutate({ templateId, about: { type: 'inventory_item', id: item.id } })}
+              />
+              <ErrorMessage text={newPaper.isError ? errorOf(newPaper.error) : templates.isError ? errorOf(templates.error) : null} />
+              <Link to={`/inventory/${encodeURIComponent(item.code)}/edit`} className="btn">
+                Редагувати позицію
+              </Link>
+            </>
           )}
         </div>
       </div>
