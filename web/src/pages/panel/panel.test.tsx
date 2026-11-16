@@ -17,7 +17,7 @@ describe('Панель керування', () => {
     mockApi(api(staff));
     renderApp('/panel');
     const hot = await screen.findByRole('list', { name: 'Потребує уваги' });
-    await waitFor(() => expect(within(hot).getByRole('link', { name: /ТЗ на перевірці/ })).toHaveTextContent('2'));
+    await waitFor(() => expect(within(hot).getByRole('link', { name: /Технічні завдання на перевірці/ })).toHaveTextContent('2'));
     expect(within(hot).getByRole('link', { name: /несправності/ })).toHaveTextContent('1');
     const sections = screen.getByRole('list', { name: 'Розділи' });
     expect(within(sections).getByRole('link', { name: /Бали/ })).toBeInTheDocument();
@@ -25,7 +25,7 @@ describe('Панель керування', () => {
     expect(within(sections).getByRole('link', { name: /Реквізити/ })).toHaveAttribute('href', '/panel/org');
     expect(within(sections).queryByRole('link', { name: /Журнал/ })).not.toBeInTheDocument();
     expect(within(sections).queryByRole('link', { name: /Налаштування полів/ })).not.toBeInTheDocument();
-    expect(await screen.findByLabelText('2 ТЗ на перевірці')).toBeInTheDocument();
+    expect(await screen.findByLabelText('2 технічні завдання на перевірці')).toBeInTheDocument();
   });
 
   it('учаснику закрито', async () => {

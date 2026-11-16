@@ -185,7 +185,7 @@ describe('Мій профіль', () => {
     expect(await screen.findByText(`4 місце за ${MONTH} · 9 за весь час`)).toBeInTheDocument();
 
     const history = screen.getByRole('list', { name: 'Історія балів' });
-    expect(within(history).getByText('ТЗ «Монтаж ролика»')).toBeInTheDocument();
+    expect(within(history).getByText('Технічне завдання «Монтаж ролика»')).toBeInTheDocument();
     expect(within(history).getByText(/Система/)).toBeInTheDocument();
     // The revoked entry and its reversal are one crossed-out row with the reason.
     expect(within(history).getByText(/Олег Петренко · знято: Нараховано двічі/)).toBeInTheDocument();

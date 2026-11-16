@@ -31,7 +31,7 @@ export function TaskPage() {
   const back = (
     <Link to="/tasks" className="btn btn-ghost">
       <Icon name="back" size={20} />
-      ТЗ
+      Технічні завдання
     </Link>
   );
   if (q.isPending) {
@@ -47,7 +47,7 @@ export function TaskPage() {
     return (
       <>
         {back}
-        <PageHeader title={gone ? 'ТЗ не знайдено' : 'Не вдалося відкрити ТЗ'} />
+        <PageHeader title={gone ? 'Технічне завдання не знайдено' : 'Не вдалося відкрити технічне завдання'} />
         <ErrorMessage text={gone ? 'Можливо, його видалили.' : errorOf(q.error)} />
       </>
     );
@@ -226,7 +226,7 @@ function TaskPaper({ task: t }: { task: TaskDetail }) {
         </>
       ) : (
         <>
-          <p className="hint">ТЗ створено до документів.{editable ? ' «Редагувати» створить його документ з поточних значень.' : ''}</p>
+          <p className="hint">Технічне завдання створено до документів.{editable ? ' «Редагувати» створить його документ з поточних значень.' : ''}</p>
           {editable && (
             <div className={s.cardActions}>
               <ChoiceButton
@@ -234,7 +234,7 @@ function TaskPaper({ task: t }: { task: TaskDetail }) {
                 className="btn"
                 choices={templateChoices(templates.data, { creates: 'task' })}
                 disabled={templates.isPending || edit.isPending}
-                emptyNote="Немає шаблону, що створює ТЗ: його додають у «Редактор» → «Шаблони»."
+                emptyNote="Немає шаблону, що створює технічні завдання: його додають у «Редактор» → «Шаблони»."
                 onPick={(templateId) => templateId && edit.mutate({ templateId, taskId: t.id })}
               />
             </div>
@@ -245,7 +245,7 @@ function TaskPaper({ task: t }: { task: TaskDetail }) {
       {cancellable && reason === null && (
         <div className={s.cardActions}>
           <button type="button" className="btn btn-ghost" onClick={() => setReason('')}>
-            Скасувати ТЗ
+            Скасувати технічне завдання
           </button>
         </div>
       )}
@@ -261,11 +261,13 @@ function TaskPaper({ task: t }: { task: TaskDetail }) {
             <label htmlFor="task-cancel-reason">Причина скасування</label>
             <input id="task-cancel-reason" maxLength={1000} autoFocus value={reason} onChange={(e) => setReason(e.target.value)} />
           </div>
-          <p className="hint">{t.paper ? 'ТЗ зникне з дошки, а документ стане «Скасовано» з цією причиною.' : 'ТЗ зникне з дошки; причина лишиться в журналі.'}</p>
+          <p className="hint">
+            {t.paper ? 'Технічне завдання зникне з дошки, а документ стане «Скасовано» з цією причиною.' : 'Технічне завдання зникне з дошки; причина лишиться в журналі.'}
+          </p>
           <ErrorMessage text={cancel.isError ? errorOf(cancel.error) : null} />
           <div className={s.cardActions}>
             <button type="submit" className="btn btn-danger" disabled={!reason.trim() || cancel.isPending}>
-              Скасувати ТЗ
+              Скасувати технічне завдання
             </button>
             <button type="button" className="btn btn-ghost" onClick={() => setReason(null)}>
               Ні

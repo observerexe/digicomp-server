@@ -4,7 +4,7 @@ import { Task, TaskStatus } from './task.entities';
 
 export const TASK_SCHEMA: RecordSchemaDef = {
   type: 'task',
-  label: 'ТЗ',
+  label: 'Технічне завдання',
   extensible: true,
   entity: Task,
   dto: { create: CreateTaskDto, update: UpdateTaskDto },

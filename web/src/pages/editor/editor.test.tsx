@@ -257,7 +257,7 @@ describe('Редактор: документ', () => {
     renderApp('/editor/p1');
     await userEvent.click(await screen.findByRole('button', { name: 'Зафіксувати для підпису' }));
     await userEvent.click(screen.getByRole('button', { name: 'Зафіксувати' }));
-    expect(await screen.findByText('Зафіксувати можна, коли запис завершено: наприклад, ТЗ прийнято.')).toBeInTheDocument();
+    expect(await screen.findByText('Зафіксувати можна, коли запис завершено: наприклад, технічне завдання прийнято.')).toBeInTheDocument();
   });
 
   it('підписаний скан: форма з файлом, «Підписано» і посилання на скан; далі — «Інший скан»', async () => {
@@ -643,7 +643,7 @@ describe('Редактор: документ із шаблону', () => {
       renderApp('/editor/p1');
       await waitFor(() => expect(document.querySelector('.ProseMirror .paper-field.is-auto')).toHaveTextContent('з’явиться після публікації'));
       await userEvent.click(screen.getByRole('button', { name: 'Опублікувати' }));
-      expect(screen.getByText('Опублікувати документ? Буде створено запис «ТЗ». Після публікації текст не змінюється.')).toBeInTheDocument();
+      expect(screen.getByText('Опублікувати документ? Буде створено запис «Технічне завдання». Після публікації текст не змінюється.')).toBeInTheDocument();
       await userEvent.click(screen.getByRole('button', { name: 'Опублікувати' }));
       expect(await screen.findByText('№ ТЗ-2026-014')).toBeInTheDocument();
       expect(calls.filter((c) => c.method === 'POST' && c.path === '/api/papers/p1/publish')).toHaveLength(1);
@@ -673,7 +673,7 @@ describe('Редактор: документ із шаблону', () => {
       const { calls } = mockApi(base(writer, { 'GET /api/papers/p1': () => json(200, published), 'POST /api/papers/p1/cancel': () => json(200, cancelled) }));
       renderApp('/editor/p1');
       await userEvent.click(await screen.findByRole('button', { name: 'Скасувати документ' }));
-      expect(screen.getByText('Разом із документом буде знято запис «ТЗ».')).toBeInTheDocument();
+      expect(screen.getByText('Разом із документом буде знято запис «Технічне завдання».')).toBeInTheDocument();
       const submit = screen.getByRole('button', { name: 'Скасувати документ' });
       expect(submit).toBeDisabled();
       await userEvent.type(screen.getByLabelText('Причина скасування'), 'Замовник відмовився');

@@ -95,7 +95,7 @@ function PointsCard({ userId }: { userId: string }) {
       <p className={s.balance}>{points.data.balance}</p>
       {ranks.length > 0 && <p className={s.meta}>{ranks.join(' · ')}</p>}
       {history.length === 0 ? (
-        <p className="hint">Балів ще немає. Беріть ТЗ на дошці — бали нараховуються, коли модератор приймає роботу.</p>
+        <p className="hint">Балів ще немає. Беріть технічні завдання на дошці — бали нараховуються, коли модератор приймає роботу.</p>
       ) : (
         <ul className={s.rows} aria-label="Історія балів">
           {history.map((e) => (
@@ -232,13 +232,13 @@ function MineCard({ user }: { user: Me }) {
       <h2 className={s.caption}>Моє</h2>
       <div className={s.mine}>
         <Mine
-          title="Мої ТЗ"
+          title="Мої технічні завдання"
           value={
             tasks.data &&
             (activeTasks.length ? `${activeTasks.length} ${plural(activeTasks.length, ['активне', 'активні', 'активних'])}` : 'немає')
           }
           error={tasks.error}
-          empty="Активних ТЗ немає. Вільні ТЗ — на дошці."
+          empty="Активних технічних завдань немає. Вільні — на дошці."
           items={activeTasks.map((t) => ({
             key: t.id,
             to: `/tasks/${t.id}`,

@@ -60,7 +60,7 @@ describe('Дошка ТЗ', () => {
     await screen.findByRole('region', { name: 'Вільне' });
     const card = await within(column('Вільне')).findByText('Зняти репортаж');
     await userEvent.click(within(card.closest('article')!).getByRole('button', { name: 'Взяти' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Усі місця в цьому ТЗ уже зайняті.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Усі місця в цьому технічному завданні вже зайняті.');
     expect(within(column('Вільне')).getByText('Зняти репортаж')).toBeInTheDocument();
   });
 
@@ -200,7 +200,7 @@ describe('Дошка ТЗ', () => {
     mockApi(boardApi(member, []));
     renderApp('/tasks');
     await screen.findByRole('tab', { name: /Вільне/ });
-    expect(screen.queryByRole('button', { name: 'Нове ТЗ' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Нове технічне завдання' })).not.toBeInTheDocument();
   });
 
   it('картка показує номер документа ТЗ', async () => {
@@ -269,9 +269,9 @@ describe('Сторінка ТЗ', () => {
     expect(await screen.findByText('ТЗ-2026-014')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Відкрити документ' })).toHaveAttribute('href', '/editor/p1');
     expect(screen.queryByRole('button', { name: 'Редагувати' })).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Скасувати ТЗ' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Скасувати технічне завдання' }));
     expect(screen.getByText(/документ стане «Скасовано»/)).toBeInTheDocument();
-    const confirm = screen.getByRole('button', { name: 'Скасувати ТЗ' });
+    const confirm = screen.getByRole('button', { name: 'Скасувати технічне завдання' });
     expect(confirm).toBeDisabled();
     await userEvent.type(screen.getByLabelText('Причина скасування'), 'Не потрібно');
     await userEvent.click(confirm);
@@ -283,7 +283,7 @@ describe('Сторінка ТЗ', () => {
     mockApi({ ...boardApi(member, []), 'GET /api/tasks/t1': () => json(200, detail({ id: 't1', paper: { id: 'p1', number: null } })) });
     renderApp('/tasks/t1');
     expect(await screen.findByRole('link', { name: 'Відкрити документ' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Скасувати ТЗ' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Скасувати технічне завдання' })).not.toBeInTheDocument();
   });
 
   it('старе ТЗ без документа: скасування з причиною — саме ТЗ', async () => {
@@ -294,9 +294,9 @@ describe('Сторінка ТЗ', () => {
       'POST /api/tasks/t1/cancel': () => json(200, { ok: true }),
     });
     const { router } = renderApp('/tasks/t1');
-    await userEvent.click(await screen.findByRole('button', { name: 'Скасувати ТЗ' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Скасувати технічне завдання' }));
     await userEvent.type(screen.getByLabelText('Причина скасування'), 'Дубль');
-    await userEvent.click(screen.getByRole('button', { name: 'Скасувати ТЗ' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Скасувати технічне завдання' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/tasks'));
     expect(JSON.parse(calls.find((c) => c.path === '/api/tasks/t1/cancel')!.body)).toEqual({ reason: 'Дубль' });
   });
@@ -329,7 +329,7 @@ describe('ТЗ через документ', () => {
       'POST /api/papers': () => json(201, { id: 'n1' }),
     });
     const { router } = renderApp('/tasks');
-    const button = await screen.findByRole('button', { name: 'Нове ТЗ' });
+    const button = await screen.findByRole('button', { name: 'Нове технічне завдання' });
     await waitFor(() => expect(button).toBeEnabled());
     expect(button).not.toHaveAttribute('aria-haspopup');
     await userEvent.click(button);
@@ -344,9 +344,9 @@ describe('ТЗ через документ', () => {
       'POST /api/papers': () => json(201, { id: 'n1' }),
     });
     const { router } = renderApp('/tasks');
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Нове ТЗ' })).toHaveAttribute('aria-haspopup', 'true'));
-    await userEvent.click(screen.getByRole('button', { name: 'Нове ТЗ' }));
-    await userEvent.click(within(screen.getByRole('list', { name: 'Нове ТЗ' })).getByRole('button', { name: 'Коротке ТЗ' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Нове технічне завдання' })).toHaveAttribute('aria-haspopup', 'true'));
+    await userEvent.click(screen.getByRole('button', { name: 'Нове технічне завдання' }));
+    await userEvent.click(within(screen.getByRole('list', { name: 'Нове технічне завдання' })).getByRole('button', { name: 'Коротке ТЗ' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/editor/n1'));
     expect(JSON.parse(calls.find((c) => c.method === 'POST')!.body)).toEqual({ templateId: 'short' });
   });
@@ -354,7 +354,7 @@ describe('ТЗ через документ', () => {
   it('без шаблону, що створює ТЗ, «Нове ТЗ» неактивне з підказкою', async () => {
     mockApi({ ...boardApi(staff, []), 'GET /api/papers/templates': () => json(200, [template({ archived: true })]) });
     renderApp('/tasks');
-    const button = await screen.findByRole('button', { name: 'Нове ТЗ' });
+    const button = await screen.findByRole('button', { name: 'Нове технічне завдання' });
     await waitFor(() => expect(button).toHaveAttribute('title', expect.stringContaining('Немає шаблону')));
     expect(button).toBeDisabled();
   });

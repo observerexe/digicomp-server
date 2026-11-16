@@ -88,7 +88,7 @@
     display: block;
   }
   .board {
-    /* 5 × 160 + gaps fits a 1366 px laptop next to the sidebar. */
+    /* 5 × 160 + gaps fits a 1366 px laptop next to the sidebar; wider screens widen the columns. */
     grid-template-columns: repeat(5, minmax(160px, 1fr));
     gap: 10px;
     overflow-x: auto;

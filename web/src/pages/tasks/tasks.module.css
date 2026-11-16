@@ -311,12 +311,6 @@
   gap: 12px;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
-@media (min-width: 1300px) {
-  .board {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    overflow: visible;
-  }
-}
 
 .paperNumber {
   margin: 0 0 8px;

@@ -49,9 +49,9 @@ export function TasksPage() {
 
   return (
     <>
-      <PageHeader title="ТЗ">
+      <PageHeader title="Технічні завдання">
         <div className={s.headerTools}>
-          <div className={s.segmented} role="group" aria-label="Які ТЗ показати">
+          <div className={s.segmented} role="group" aria-label="Які завдання показати">
             <button type="button" aria-pressed={!mine} onClick={() => setMine(false)}>
               Усі
             </button>
@@ -61,10 +61,10 @@ export function TasksPage() {
           </div>
           {staff && (
             <ChoiceButton
-              label="Нове ТЗ"
+              label="Нове технічне завдання"
               choices={templateChoices(templates.data, { creates: 'task' })}
               disabled={templates.isPending || newTask.isPending}
-              emptyNote="Немає шаблону, що створює ТЗ: його додають у «Редактор» → «Шаблони»."
+              emptyNote="Немає шаблону, що створює технічні завдання: його додають у «Редактор» → «Шаблони»."
               onPick={(templateId) => templateId && newTask.mutate({ templateId })}
             />
           )}
@@ -89,12 +89,12 @@ export function TasksPage() {
           else if (kind) run(t, kind);
         }}
         hint={{
-          phone: 'Беріть ТЗ самі. Поки ніхто не почав роботу, до нього можна приєднатися.',
+          phone: 'Беріть технічні завдання самі. Поки ніхто не почав роботу, до завдання можна приєднатися.',
           desk:
             'Перетягніть картку, щоб змінити статус.' +
-            (can('tasks.accept') ? ' Прийняти чи повернути можна лише чуже ТЗ; бали діляться порівну між виконавцями.' : ''),
+            (can('tasks.accept') ? ' Прийняти чи повернути можна лише чуже технічне завдання; бали діляться порівну між виконавцями.' : ''),
         }}
-        empty={(k) => (Object.values(active).some(Boolean) ? 'Нічого не знайдено.' : k === 'todo' ? 'Вільних ТЗ немає.' : 'Порожньо.')}
+        empty={(k) => (Object.values(active).some(Boolean) ? 'Нічого не знайдено.' : k === 'todo' ? 'Вільних технічних завдань немає.' : 'Порожньо.')}
         footer={(k) =>
           k === 'done' && board.data?.moreDone ? (
             <button type="button" className="btn btn-ghost" onClick={() => setDoneLimit((n) => n + DONE_PAGE)}>

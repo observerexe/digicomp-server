@@ -115,21 +115,21 @@ function TasksCard() {
   const tasks = q.data ? homeTasks(q.data) : [];
   return (
     <Card>
-      <h2 className={s.caption}>Мої ТЗ</h2>
+      <h2 className={s.caption}>Мої технічні завдання</h2>
       {q.isPending ? (
         <Skeleton height={120} />
       ) : q.isError ? (
         <ErrorMessage text={errorOf(q.error)} />
       ) : tasks.length === 0 ? (
         <>
-          <p className="hint">Активних ТЗ немає. Вільні ТЗ — на дошці.</p>
+          <p className="hint">Активних технічних завдань немає. Вільні — на дошці.</p>
           <Link to="/tasks" className="btn">
-            До дошки ТЗ
+            До дошки завдань
           </Link>
         </>
       ) : (
         <>
-          <ul className={s.rows} aria-label="Мої ТЗ">
+          <ul className={s.rows} aria-label="Мої технічні завдання">
             {tasks.slice(0, HOME_LIMIT).map((t) => {
               const due = dueState(t);
               return (
@@ -148,7 +148,7 @@ function TasksCard() {
             })}
           </ul>
           <Link to="/tasks" className={`btn btn-ghost ${s.more}`}>
-            {tasks.length > HOME_LIMIT ? `Усі мої ТЗ (${tasks.length})` : 'До дошки ТЗ'}
+            {tasks.length > HOME_LIMIT ? `Усі мої технічні завдання (${tasks.length})` : 'До дошки завдань'}
           </Link>
         </>
       )}
@@ -303,7 +303,7 @@ function PointsCard({ userId }: { userId: string }) {
       ) : (
         <>
           <p className={s.balance}>{points.data.balance}</p>
-          <p className={s.meta}>{rank ? `${rank} місце за ${currentMonthName()}` : 'Бали нараховуються, коли модератор приймає ТЗ.'}</p>
+          <p className={s.meta}>{rank ? `${rank} місце за ${currentMonthName()}` : 'Бали нараховуються, коли модератор приймає технічне завдання.'}</p>
           <Link to="/rating" className={`btn btn-ghost ${s.more}`}>
             Рейтинг
           </Link>

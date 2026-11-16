@@ -44,7 +44,8 @@ export function Board<T extends { id: string }, K extends string>(props: {
           </button>
         ))}
       </div>
-      <div className={s.board}>
+      {/* data-wide: the page takes the full width (AppShell .main). */}
+      <div className={s.board} data-wide>
         {props.columns.map((c) => {
           const droppable = !!dragging && props.canDrop(dragging, c.key);
           return (

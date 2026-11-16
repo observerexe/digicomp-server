@@ -10,11 +10,11 @@ const STATUS = new Map(
 );
 
 /**
- * «ТЗ проєкту»: tasks linked with a project (either way), as the board
+ * «Технічні завдання проєкту»: tasks linked with a project (either way), as the board
  * shows them — everyone sees tasks. Oldest first.
  */
 export const PROJECT_TASKS: TableSource = {
-  label: 'ТЗ проєкту',
+  label: 'Технічні завдання проєкту',
   input: 'ref:project',
   columns: ['Назва', 'Документ', 'Стан', 'Виконавці', 'Бали', 'Виконано'],
   async rows(projectId, _reader, m) {

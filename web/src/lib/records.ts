@@ -31,7 +31,7 @@ export const RECORD_LABEL: Record<RecordType, string> = {
   user: 'Учасник',
   document: 'Документ',
   paper: 'Документ редактора',
-  task: 'ТЗ',
+  task: 'Технічне завдання',
   project: 'Проєкт',
   place: 'Обладнання',
   inventory_item: 'Склад',

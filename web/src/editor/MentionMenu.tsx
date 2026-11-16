@@ -13,7 +13,7 @@ const PER_TYPE = 5;
 /** Group titles of the list. */
 const GROUP: Partial<Record<RecordType, string>> = {
   user: 'Учасники',
-  task: 'ТЗ',
+  task: 'Технічні завдання',
   project: 'Проєкти',
   place: 'Обладнання',
   inventory_item: 'Склад',

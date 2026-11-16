@@ -8,7 +8,7 @@ export function AboutPage() {
       <div style={{ display: 'grid', gap: 12, maxWidth: 720 }}>
         <Card>
           <p style={{ margin: 0 }}>
-            DigiComp HUB — застосунок творчої групи DigiComp: команда, обладнання, ТЗ, бали, проєкти, склад і архів.
+            DigiComp HUB — застосунок творчої групи DigiComp: команда, обладнання, технічні завдання, бали, проєкти, склад і архів.
           </p>
           <p className="hint">
             Вихідний код:{' '}

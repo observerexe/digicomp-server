@@ -30,7 +30,7 @@ export function PanelPage() {
     queryFn: async () => (await unwrap(api.GET('/api/inventory/items', { params: { query: { lowStock: 'true', limit: '1' } } }))).total,
   });
   const attention: Tile[] = [
-    { to: '/tasks', title: 'ТЗ на перевірці', note: 'Прийняти або повернути з коментарем', count: review.data },
+    { to: '/tasks', title: 'Технічні завдання на перевірці', note: 'Прийняти або повернути з коментарем', count: review.data },
     { to: '/panel/faults', title: 'Відкриті несправності', note: 'Взяти в роботу або закрити', count: faults.data },
     { to: '/inventory', title: 'Мало на складі', note: 'Позиції на мінімумі', count: low.data },
   ];
@@ -44,7 +44,7 @@ export function PanelPage() {
     { to: '/lab/stickers', title: 'Наліпки QR', note: 'Обладнання й склад', permission: 'places.manage' },
     { to: '/docs', title: 'Документи', note: 'Архів і версії', permission: 'documents.manage' },
     { to: '/panel/dictionaries', title: 'Довідники', note: 'Типи, категорії, кольори', permission: 'dictionaries.manage' },
-    { to: '/panel/fields/task', title: 'Налаштування полів', note: 'Додаткові поля ТЗ', permission: 'records.fields_manage' },
+    { to: '/panel/fields/task', title: 'Налаштування полів', note: 'Додаткові поля технічних завдань', permission: 'records.fields_manage' },
     { to: '/panel/org', title: 'Реквізити', note: 'Заклад, група, підписант', permission: 'org.manage' },
     { to: '/team', title: 'Команда', note: 'Учасники й профілі' },
     { to: '/admin', title: 'Розширена панель', note: 'Сервер, логи, бекап, перезапуск', permission: 'admin.panel' },

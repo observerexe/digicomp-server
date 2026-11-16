@@ -3,6 +3,7 @@ import { useAuth } from '../auth/AuthProvider';
 import type { Role } from '../api/types';
 import { Avatar } from '../components/Avatar';
 import { Icon } from '../components/Icon';
+import { plural } from '../lib/format';
 import { ROLE_LABEL } from '../lib/labels';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { ActiveSessionBar } from '../pages/lab/ActiveSessionBar';
@@ -42,7 +43,7 @@ export function AppShell() {
                 <Icon name={i.icon} size={20} />
                 {i.label}
                 {i.to === '/panel' && !!review.data && (
-                  <span className={s.badge} aria-label={`${review.data} ТЗ на перевірці`}>
+                  <span className={s.badge} aria-label={`${review.data} ${plural(review.data, ['технічне завдання', 'технічні завдання', 'технічних завдань'])} на перевірці`}>
                     {review.data}
                   </span>
                 )}
@@ -82,7 +83,7 @@ export function AppShell() {
         {TABS.slice(0, 2).map((i) => (
           <NavLink key={i.to} to={i.to} end={i.to === '/'} className={s.tab}>
             <Icon name={i.icon} />
-            {i.label}
+            {i.short ?? i.label}
           </NavLink>
         ))}
         <NavLink to="/scan" className={s.scan} aria-label="Сканувати QR">
@@ -91,7 +92,7 @@ export function AppShell() {
         {TABS.slice(2).map((i) => (
           <NavLink key={i.to} to={i.to} className={s.tab}>
             <Icon name={i.icon} />
-            {i.label}
+            {i.short ?? i.label}
           </NavLink>
         ))}
       </nav>

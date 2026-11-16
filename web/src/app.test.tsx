@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { safeNext } from './pages/LoginPage';
@@ -30,7 +30,7 @@ describe('Вхід', () => {
     await userEvent.type(screen.getByLabelText('Пароль'), 'secret-pass');
     await userEvent.click(screen.getByRole('button', { name: 'Увійти' }));
 
-    await screen.findByRole('heading', { name: 'ТЗ' });
+    await screen.findByRole('heading', { name: 'Технічні завдання' });
     expect(router.state.location.pathname).toBe('/tasks');
   });
 
@@ -112,7 +112,20 @@ describe('Навігація за правами', () => {
     const bars = screen.getAllByRole('navigation', { name: 'Основна навігація' });
     const tabbar = bars[bars.length - 1]!;
     const names = [...tabbar.querySelectorAll('a')].map((a) => a.getAttribute('aria-label') ?? a.textContent);
-    expect(names).toEqual(['Головна', 'ТЗ', 'Сканувати QR', 'Лабораторія', 'Профіль']);
+    expect(names).toEqual(['Головна', 'Завдання', 'Сканувати QR', 'Лабораторія', 'Профіль']);
+    const [sidebar] = bars;
+    expect(within(sidebar!).getByRole('link', { name: 'Технічні завдання' })).toHaveAttribute('href', '/tasks');
+  });
+
+  it('дошка займає всю ширину, інші сторінки — ні', async () => {
+    mockApi({ 'GET /api/auth/me': () => json(200, member) });
+    renderApp('/tasks');
+    await screen.findByRole('heading', { name: 'Технічні завдання' });
+    expect(document.querySelector('main [data-wide]')).not.toBeNull();
+    cleanup();
+    renderApp('/team');
+    await screen.findByRole('heading', { name: 'Команда' });
+    expect(document.querySelector('main [data-wide]')).toBeNull();
   });
 
   it('невідома сторінка — «Сторінку не знайдено»', async () => {

@@ -14,7 +14,7 @@ import s from './Related.module.css';
 /** Groups of the «Пов'язане» block, in order: documents first. */
 const GROUPS: { title: string; types: RecordType[] }[] = [
   { title: 'Документи', types: ['document', 'paper'] },
-  { title: 'ТЗ', types: ['task'] },
+  { title: 'Технічні завдання', types: ['task'] },
   { title: 'Проєкти', types: ['project'] },
   { title: 'Обладнання', types: ['place'] },
   { title: 'Склад', types: ['inventory_item'] },

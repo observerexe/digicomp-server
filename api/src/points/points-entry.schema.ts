@@ -39,13 +39,13 @@ export const POINTS_ENTRY_SCHEMA: RecordSchemaDef = {
       label: 'Вид',
       type: 'enum',
       options: enumOptions<PointsKind>({
-        task: 'За ТЗ',
+        task: 'За технічне завдання',
         manual: 'Нарахування',
         fine: 'Штраф',
         reversal: 'Скасування нарахування',
       }),
     },
-    { key: 'taskId', label: 'ТЗ', type: 'ref:task', nullable: true },
+    { key: 'taskId', label: 'Технічне завдання', type: 'ref:task', nullable: true },
     {
       key: 'createdById',
       label: 'Нарахував',

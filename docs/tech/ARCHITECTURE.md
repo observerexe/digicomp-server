@@ -388,7 +388,7 @@ API (NestJS, контейнер) ──▶ PostgreSQL 17 (контейнер, т
   **Авто-таблиця** (вузол `autoTable { source, field }` у `shared/editor-schema`, лише верхній рівень) — рядки, які модуль дає для значення
   поля шаблону. Джерело (`TableSource` у `paperwork/tables.ts`: назва, тип поля `input`, стовпці, `rows(value, reader, m)`) модуль реєструє
   в `PaperTableRegistry` у `onModuleInit`: допуски, журнал сеансів (`places/place.tables.ts`), несправності (`faults/fault.tables.ts`) —
-  для `ref:place`, рейтинг за місяць (`points/points.tables.ts`, `PointsService.ranking`) — для `date`, «ТЗ проєкту» (`tasks/task.tables.ts`:
+  для `ref:place`, рейтинг за місяць (`points/points.tables.ts`, `PointsService.ranking`) — для `date`, «Технічні завдання проєкту» (`tasks/task.tables.ts`:
   ТЗ, пов'язані з проєктом зв'язком у будь-який бік, з номером документа) і «Матеріали проєкту» (`inventory/inventory.tables.ts`: рухи
   складу з цим проєктом) — для `ref:project`. Клітинки — готовий текст, рядки — від
   найдавнішого, не більше `TABLE_MAX_ROWS` (200) останніх, решта — «… і ще N». Хто що бачить, вирішує джерело тим самим правилом, що й

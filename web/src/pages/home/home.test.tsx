@@ -127,7 +127,7 @@ describe('Головна', () => {
   it('мої ТЗ за дедлайном, бали, зайняте обладнання, бронювання', async () => {
     mockApi(homeApi());
     renderApp('/');
-    const tasks = await screen.findByRole('list', { name: 'Мої ТЗ' });
+    const tasks = await screen.findByRole('list', { name: 'Мої технічні завдання' });
     const titles = within(tasks)
       .getAllByRole('link')
       .map((a) => a.querySelector('span span')?.textContent);
@@ -231,7 +231,7 @@ describe('Головна', () => {
     });
     renderApp('/');
     expect(await screen.findByText('Документів на підпис, чернеток і нових про вас немає.')).toBeInTheDocument();
-    expect(await screen.findByText('Активних ТЗ немає. Вільні ТЗ — на дошці.')).toBeInTheDocument();
+    expect(await screen.findByText('Активних технічних завдань немає. Вільні — на дошці.')).toBeInTheDocument();
     expect(await screen.findByText('Усе обладнання вільне.')).toBeInTheDocument();
     expect(await screen.findByText(/Бронювань немає/)).toBeInTheDocument();
   });
@@ -239,7 +239,7 @@ describe('Головна', () => {
   it('помилка одного блоку не ховає інші', async () => {
     mockApi({ ...homeApi(), 'GET /api/points/me': () => json(500, { errorCode: 'INTERNAL_ERROR' }) });
     renderApp('/');
-    expect(await screen.findByRole('list', { name: 'Мої ТЗ' })).toBeInTheDocument();
+    expect(await screen.findByRole('list', { name: 'Мої технічні завдання' })).toBeInTheDocument();
     expect(await screen.findAllByRole('alert')).not.toHaveLength(0);
   });
 });

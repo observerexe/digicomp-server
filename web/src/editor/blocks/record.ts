@@ -29,5 +29,5 @@ export const RECORD_BLOCKS: FieldBlock[] = [
   recordBlock('place', 'Обладнання', 'lab', 'place'),
   recordBlock('inventory_item', 'Позиція складу', 'box', 'item'),
   recordBlock('project', 'Проєкт', 'folder', 'project'),
-  recordBlock('task', 'ТЗ', 'board', 'task'),
+  recordBlock('task', 'Технічне завдання', 'board', 'task'),
 ];

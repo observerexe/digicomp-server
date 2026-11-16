@@ -36,7 +36,7 @@ export function DictionariesPage() {
           ) : list.isError ? (
             <ErrorMessage text={errorOf(list.error)} />
           ) : list.data.length === 0 ? (
-            <p className="hint">Довідників ще немає. Довідник — це список значень із кольорами: типи ТЗ, категорії, пріоритети.</p>
+            <p className="hint">Довідників ще немає. Довідник — це список значень із кольорами: типи технічних завдань, категорії, пріоритети.</p>
           ) : (
             <ul className={s.rows} aria-label="Довідники">
               {list.data.map((d) => {
@@ -87,7 +87,7 @@ function NewDictionary({ onCancel }: { onCancel: () => void }) {
         id="dict-title"
         label="Назва довідника"
         initial=""
-        placeholder="Тип ТЗ"
+        placeholder="Тип технічного завдання"
         submitText="Створити"
         busy={create.isPending}
         onCancel={onCancel}

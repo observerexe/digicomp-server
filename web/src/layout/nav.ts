@@ -3,6 +3,8 @@ import type { IconName } from '../components/Icon';
 export type NavItem = {
   to: string;
   label: string;
+  /** Shorter label for the phone's bottom bar, when `label` does not fit. */
+  short?: string;
   icon: IconName;
   /** Action from /auth/me permissions needed to see the item. */
   permission?: string;
@@ -11,7 +13,7 @@ export type NavItem = {
 /** Bottom bar on a phone (the QR button sits in the middle). */
 export const TABS: NavItem[] = [
   { to: '/', label: 'Головна', icon: 'home' },
-  { to: '/tasks', label: 'ТЗ', icon: 'board' },
+  { to: '/tasks', label: 'Технічні завдання', short: 'Завдання', icon: 'board' },
   { to: '/lab', label: 'Лабораторія', icon: 'lab' },
   { to: '/profile', label: 'Профіль', icon: 'user' },
 ];

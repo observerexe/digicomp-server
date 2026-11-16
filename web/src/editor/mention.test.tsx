@@ -102,7 +102,7 @@ describe('Список після «@»', () => {
     const list = screen.getByRole('listbox', { name: 'Посилання на запис' });
     await waitFor(() => expect(within(list).getAllByRole('option')).toHaveLength(3));
     expect(within(list).getByRole('group', { name: 'Учасники' })).toBeInTheDocument();
-    expect(within(list).getByRole('group', { name: 'ТЗ' })).toBeInTheDocument();
+    expect(within(list).getByRole('group', { name: 'Технічні завдання' })).toBeInTheDocument();
     expect(keys.current(new KeyboardEvent('keydown', { key: 'ArrowDown' }))).toBe(true);
     await waitFor(() => expect(within(list).getByRole('option', { name: 'Ольга Бойко' })).toHaveAttribute('aria-selected', 'true'));
     expect(keys.current(new KeyboardEvent('keydown', { key: 'Enter' }))).toBe(true);

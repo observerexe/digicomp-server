@@ -37,6 +37,6 @@ export function disciplineTitle(r: Pick<DisciplineRecord, 'type' | 'amount'>): s
 
 /** "За що" in the points history. */
 export function pointsReason(e: PointsHistoryEntry): string {
-  if (e.kind === 'task' && e.taskTitle) return `ТЗ «${e.taskTitle}»`;
+  if (e.kind === 'task' && e.taskTitle) return `Технічне завдання «${e.taskTitle}»`;
   return e.reason || (e.kind === 'reversal' ? 'Скасування нарахування' : '—');
 }
