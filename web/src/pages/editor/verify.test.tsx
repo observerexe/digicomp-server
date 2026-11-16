@@ -15,6 +15,7 @@ const checked = (over: Partial<PaperVerify> = {}): PaperVerify => ({
   status: 'frozen',
   cancelReason: null,
   paperId: 'p1',
+  signatures: [],
   ...over,
 });
 const api = (res: () => Response) => ({

@@ -40,6 +40,7 @@ import {
   PaperForRecordDto,
   PaperScanQuery,
   PrintPaperQuery,
+  SignPaperDto,
   UpdatePaperDto,
 } from './dto';
 import { PaperworkService } from './paperwork.service';
@@ -150,6 +151,22 @@ export class PaperworkController {
     @Req() req: Req,
   ) {
     return this.papers.sign(id, file, req.user);
+  }
+
+  /**
+   * A drawn signature on the latest snapshot: every line awaiting the reader
+   * not signed yet. All lines naming someone signed — «Підписано».
+   */
+  @Can(Action.PapersSignDrawn)
+  @ApiOkResponse({ type: PaperDto })
+  @Post(':id/signatures')
+  @HttpCode(200)
+  signDrawn(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SignPaperDto,
+    @Req() req: Req,
+  ) {
+    return this.papers.signDrawn(id, dto, req.user);
   }
 
   /**

@@ -36,6 +36,7 @@ import type { OkDto, Plain } from '../common/responses.dto';
 import {
   dayText,
   EMPTY_CONTENT,
+  momentText,
   isFillable,
   signName,
   SIGNER_AUTHOR,
@@ -62,9 +63,11 @@ import type {
   ListPapersQuery,
   PaperForRecordDto,
   PrintPaperQuery,
+  SignPaperDto,
   UpdatePaperDto,
 } from './dto';
-import { PaperSnapshot } from './paper-snapshot.entity';
+import { PaperSignature } from './paper-signature.entity';
+import { PaperSnapshot, type SnapshotSigner } from './paper-snapshot.entity';
 import { Paper, PaperStatus, PaperVisibility } from './paper.entity';
 import { seenThroughTarget, whereSeen } from './paper.links';
 import {
@@ -90,8 +93,10 @@ import { docxFileName, paperDocx } from './docx';
 import { paperPrintHtml, sheetHash, sheetHtml, type Seal } from './print';
 import {
   footerText,
+  signLines,
   type FieldFill,
 } from '../../../shared/editor-schema/render';
+import { SIGNED_IN, signedSheet, type SheetSignature } from './signatures';
 import type {
   PaperDto,
   PaperFieldDto,
@@ -99,6 +104,7 @@ import type {
   PaperListDto,
   PaperRefDto,
   PaperSignedDto,
+  PaperSignLineDto,
   PaperVerifyDto,
 } from './responses.dto';
 import {
@@ -123,6 +129,7 @@ export const PaperErrors = {
   SnapshotNotFound: 'Paper snapshot not found',
   NotFrozen: 'Paper is not frozen',
   ScanNotFound: 'Paper scan not found',
+  SignedByYou: 'Paper is signed by you',
 } as const;
 
 /** Published, not cancelled: it shows its record as it is now. */
@@ -181,24 +188,17 @@ function sealOf(snap: PaperSnapshot): Seal {
 }
 
 /**
- * The reader (`:me`) signs the document: a column of a «Блок підписів» is
- * theirs (its author, a `ref:user` field holding them, or the signer from
- * «Реквізити» — `:orgSigner`), or it has «Затверджую» and they are that
- * signer. Structure blocks stand on the top level only. A right column
- * without a label is not printed; a left one without `leftSigner` takes its
- * default, the author (a key holding JSON null — a line only — is not SQL NULL).
+ * The reader (`:me`) is awaited on a line of the document's latest snapshot
+ * and has not signed it yet (paper_snapshots.signers; rows from 0).
  */
-const signedBySql = `EXISTS (
-  SELECT 1 FROM jsonb_array_elements(p.content -> 'content') b
-   CROSS JOIN LATERAL (VALUES
-     (CASE WHEN b -> 'attrs' -> 'leftSigner' IS NOT NULL THEN b -> 'attrs' ->> 'leftSigner' ELSE '${SIGNER_AUTHOR}' END),
-     (CASE WHEN COALESCE(b -> 'attrs' ->> 'rightLabel', '') <> '' THEN b -> 'attrs' ->> 'rightSigner' END)
-   ) s(who)
-   WHERE (b ->> 'type' = 'signatures' AND (
-           (s.who = '${SIGNER_AUTHOR}' AND p.author_id = CAST(:me AS uuid))
-        OR (s.who = '${SIGNER_ORG}' AND :orgSigner)
-        OR p.values ->> s.who = CAST(:me AS text)))
-      OR (b ->> 'type' = 'approval' AND :orgSigner))`;
+const awaitsMeSql = `EXISTS (
+  SELECT 1 FROM paper_snapshots s
+   CROSS JOIN LATERAL jsonb_array_elements(s.signers) WITH ORDINALITY AS l(line, i)
+   WHERE s.paper_id = p.id
+     AND s.n = (SELECT MAX(x.n) FROM paper_snapshots x WHERE x.paper_id = p.id)
+     AND l.line ->> 'userId' = CAST(:me AS text)
+     AND NOT EXISTS (SELECT 1 FROM paper_signatures g
+                      WHERE g.snapshot_id = s.id AND g.row = l.i - 1))`;
 
 /** Text and values as the document shows them (bound fields — from the record). */
 type Shown = { content: PaperContent; values: FieldValues };
@@ -739,12 +739,14 @@ export class PaperworkService {
         n: true,
         sha256: true,
         archiveDocId: true,
+        signers: true,
         createdAt: true,
       },
       where: { paperId: p.id },
       order: { n: 'ASC' },
     });
     const snap = snaps.at(-1);
+    const lines = snap ? await this.signLinesOf(m, snap) : [];
     return {
       ...itemView(p),
       content,
@@ -785,12 +787,17 @@ export class PaperworkService {
         (await this.ready(m, p)),
       canSign:
         SIGNABLE.has(p.status) && can(actor, Action.PapersSign, freezeOwner(p)),
+      canSignDrawn:
+        SIGNABLE.has(p.status) &&
+        lines.some((l) => l.person?.id === actor.id && !l.signedAt) &&
+        can(actor, Action.PapersSignDrawn, { signer: true }),
       snapshot: snap
         ? {
             n: snap.n,
             sha256: snap.sha256,
             createdAt: snap.createdAt,
             signed: await this.signedOf(m, snap),
+            signatures: lines,
           }
         : null,
       snapshots: snaps.map((x) => ({ n: x.n, createdAt: x.createdAt })),
@@ -875,13 +882,7 @@ export class PaperworkService {
         me: actor.id,
       });
     }
-    if (q.due === 'sign') {
-      const org = await this.org.get();
-      qb.andWhere(signedBySql, {
-        me: actor.id,
-        orgSigner: org.signer?.id === actor.id,
-      });
-    }
+    if (q.due === 'sign') qb.andWhere(awaitsMeSql, { me: actor.id });
     if (q.search) {
       qb.andWhere('(p.title ILIKE :s OR p.number ILIKE :s)', {
         s: `%${escapeLike(q.search)}%`,
@@ -1024,6 +1025,7 @@ export class PaperworkService {
         paper: p,
         snapshot: snap.n,
         sheet: snap.html,
+        signatures: await this.drawnOf(m, snap),
         footer: footerText(p.content),
         seal: sealOf(snap),
         mark:
@@ -1046,6 +1048,7 @@ export class PaperworkService {
       paper: p,
       snapshot: null,
       sheet: sheetHtml(shown.content, fill),
+      signatures: [],
       footer: footerText(shown.content),
       seal: null,
       mark: WATERMARK[p.status],
@@ -1061,7 +1064,13 @@ export class PaperworkService {
     const s = await this.sheetOf(id, q, actor);
     return paperPrintHtml({
       title: s.paper.title,
-      sheet: s.sheet,
+      sheet: signedSheet(
+        s.sheet,
+        s.signatures.map((x): SheetSignature => ({
+          ...x,
+          note: `${SIGNED_IN} ${momentText(x.signedAt)}`,
+        })),
+      ),
       footer: s.footer,
       seal: s.seal,
       watermark: s.mark,
@@ -1079,7 +1088,13 @@ export class PaperworkService {
     const s = await this.sheetOf(id, q, actor);
     const file = await paperDocx({
       title: s.paper.title,
-      sheet: s.sheet,
+      sheet: signedSheet(
+        s.sheet,
+        s.signatures.map((x): SheetSignature => ({
+          ...x,
+          note: `${SIGNED_IN}: ${x.name}, ${momentText(x.signedAt)}`,
+        })),
+      ),
       footer: s.footer,
       seal: s.seal,
       mark: s.mark,
@@ -1187,6 +1202,7 @@ export class PaperworkService {
       html,
       sha256,
       resolvedValues: shown.values,
+      signers: await this.signersOf(p, shown, fill),
       createdById: actor.id,
     });
     const fresh = new Set(
@@ -1257,7 +1273,157 @@ export class PaperworkService {
       status: p.status,
       cancelReason: p.cancelReason,
       paperId: (await this.sees(m, p, actor)) ? p.id : null,
+      signatures: (await this.signLinesOf(m, snap)).flatMap((l) =>
+        l.person
+          ? [{ label: l.label, name: l.person.name, signedAt: l.signedAt }]
+          : [],
+      ),
     };
+  }
+
+  /**
+   * Who each line to sign on of the sheet awaits, as `fill` names them: the
+   * author, the signer from «Реквізити» or the member a `ref:user` field
+   * holds; a line naming nobody — none (a scan only).
+   */
+  private async signersOf(
+    p: Paper,
+    shown: Shown,
+    fill: FieldFill,
+  ): Promise<SnapshotSigner[]> {
+    const org = await this.org.get();
+    return signLines(shown.content).map(({ label, signer }) => {
+      if (signer === null || fill.info.person(signer) === null) {
+        return { label, userId: null };
+      }
+      const v =
+        signer === SIGNER_AUTHOR
+          ? p.authorId
+          : signer === SIGNER_ORG
+            ? org.signer?.id
+            : shown.values[signer];
+      return { label, userId: typeof v === 'string' ? v : null };
+    });
+  }
+
+  /** The lines to sign on of a snapshot: who each awaits, signed when; none — frozen before drawn signatures. */
+  private async signLinesOf(
+    m: EntityManager,
+    snap: PaperSnapshot,
+  ): Promise<Plain<PaperSignLineDto>[]> {
+    const signers = snap.signers ?? [];
+    const ids = [
+      ...new Set(signers.flatMap((s) => (s.userId ? [s.userId] : []))),
+    ];
+    const users = new Map(
+      (ids.length
+        ? await m.find(User, {
+            select: { id: true, name: true },
+            where: ids.map((id) => ({ id })),
+          })
+        : []
+      ).map((u) => [u.id, u]),
+    );
+    const signed = new Map(
+      (
+        await m.find(PaperSignature, {
+          select: { row: true, signedAt: true },
+          where: { snapshotId: snap.id },
+        })
+      ).map((g) => [g.row, g.signedAt]),
+    );
+    return signers.map((s, row) => {
+      const u = s.userId ? users.get(s.userId) : undefined;
+      return {
+        row,
+        label: s.label,
+        person: u ? { id: u.id, name: u.name } : null,
+        signedAt: signed.get(row) ?? null,
+      };
+    });
+  }
+
+  /** The drawn signatures of a snapshot, for the print and the DOCX. */
+  private async drawnOf(m: EntityManager, snap: PaperSnapshot) {
+    const list = await m.find(PaperSignature, {
+      where: { snapshotId: snap.id },
+      relations: { user: true },
+      order: { row: 'ASC' },
+    });
+    return list.map((g) => ({
+      row: g.row,
+      strokes: g.strokes,
+      name: g.user?.name ?? '',
+      signedAt: g.signedAt,
+    }));
+  }
+
+  /**
+   * A drawn signature on the latest snapshot: on every line awaiting the
+   * actor they have not signed yet, the same drawing — only the person a
+   * line names (an admin too). Frozen, or signed with a scan already;
+   * every line naming someone signed — «Підписано».
+   */
+  async signDrawn(
+    id: string,
+    dto: SignPaperDto,
+    actor: Actor,
+  ): Promise<PaperDto> {
+    return this.ds.transaction(async (m) => {
+      const p = await this.accessible(m, id, actor, true);
+      if (!SIGNABLE.has(p.status)) {
+        throw new ConflictException(PaperErrors.NotFrozen);
+      }
+      const snap = (await this.snapshotOf(m, p.id))!;
+      const signers = snap.signers ?? [];
+      const mine = signers.flatMap((s, row) =>
+        s.userId === actor.id ? [row] : [],
+      );
+      assertCan(actor, Action.PapersSignDrawn, { signer: mine.length > 0 });
+      const done = new Set(
+        (
+          await m.find(PaperSignature, {
+            select: { row: true },
+            where: { snapshotId: snap.id },
+          })
+        ).map((g) => g.row),
+      );
+      const rows = mine.filter((row) => !done.has(row));
+      if (!rows.length) throw new ConflictException(PaperErrors.SignedByYou);
+      await m.getRepository(PaperSignature).insert(
+        rows.map((row) => ({
+          snapshotId: snap.id,
+          row,
+          userId: actor.id,
+          strokes: dto.strokes,
+        })),
+      );
+      rows.forEach((row) => done.add(row));
+      const complete = signers.every(
+        (s, row) => s.userId === null || done.has(row),
+      );
+      if (complete) p.status = PaperStatus.Signed;
+      p.revision += 1;
+      await m.getRepository(Paper).save(p);
+      await this.audit.log(
+        {
+          actorId: actor.id,
+          action: 'paper.signature_added',
+          entity: 'paper',
+          entityId: p.id,
+          meta: {
+            title: p.title,
+            authorId: p.authorId,
+            number: p.number,
+            n: snap.n,
+            lines: rows.map((row) => signers[row]!.label),
+            complete,
+          },
+        },
+        m,
+      );
+      return this.view(m, p, actor);
+    });
   }
 
   /** The latest signed scan of a snapshot; null — none. */

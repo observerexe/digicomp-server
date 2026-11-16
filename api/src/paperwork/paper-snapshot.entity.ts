@@ -12,6 +12,9 @@ import { User } from '../users/user.entity';
 import type { FieldValues } from './content';
 import { Paper } from './paper.entity';
 
+/** A line to sign on of a snapshot: its label and who it awaits. */
+export type SnapshotSigner = { label: string; userId: string | null };
+
 /**
  * A frozen document: the sheet as printed (HTML of the server's render),
  * its SHA-256 and the values it showed. Only ever added: print and PDF come
@@ -58,6 +61,15 @@ export class PaperSnapshot {
   @ManyToOne(() => Doc, { onDelete: 'RESTRICT', nullable: true })
   @JoinColumn({ name: 'archive_doc_id' })
   archiveDoc?: Doc | null;
+
+  /**
+   * The lines to sign on of the sheet, in its order (see signLines), and
+   * who each one awaits — as the sheet named them when frozen; `userId`
+   * null — nobody named (a scan only). Null — frozen before drawn
+   * signatures: a scan only.
+   */
+  @Column({ type: 'jsonb', nullable: true })
+  signers: SnapshotSigner[] | null;
 
   @Column({ name: 'created_by_id', type: 'uuid' })
   createdById: string;

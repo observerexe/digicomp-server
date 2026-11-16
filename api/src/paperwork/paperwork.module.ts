@@ -10,6 +10,7 @@ import { OrgModule } from '../org/org.module';
 import { RecordsModule } from '../records/records.module';
 import { PaperAdapterRegistry } from './adapters';
 import { PaperCounter } from './paper-counter.entity';
+import { PaperSignature } from './paper-signature.entity';
 import { PaperSnapshot } from './paper-snapshot.entity';
 import { Paper } from './paper.entity';
 import { paperLinks } from './paper.links';
@@ -27,6 +28,7 @@ import { TemplatesService } from './templates.service';
       Paper,
       PaperCounter,
       PaperSnapshot,
+      PaperSignature,
       PaperTemplate,
       PaperTemplateVersion,
     ]),

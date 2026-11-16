@@ -175,6 +175,26 @@ export class PaperSnapshotItemDto {
   createdAt: Date;
 }
 
+/** Who a line to sign on awaits. */
+export class PaperSignPersonDto {
+  id: string;
+  name: string;
+}
+
+/** A line to sign on of a snapshot, in the sheet's order. */
+export class PaperSignLineDto {
+  /** Index of the line on the sheet, from 0. */
+  row: number;
+  /** «Затверджую», or the label of a «Блок підписів» column. */
+  label: string;
+  /** Who it awaits; null — nobody named: a scan only. */
+  @ApiProperty({ type: PaperSignPersonDto, nullable: true })
+  person: PaperSignPersonDto | null;
+  /** When it was signed by drawing; null — not yet. */
+  @ApiProperty({ type: Date, nullable: true })
+  signedAt: Date | null;
+}
+
 /** A snapshot of a frozen document. */
 export class PaperSnapshotDto {
   /** 1, 2, … within the document (`print?snapshot=`). */
@@ -185,6 +205,9 @@ export class PaperSnapshotDto {
   /** The signed scan; null — none uploaded. */
   @ApiProperty({ type: PaperSignedDto, nullable: true })
   signed: PaperSignedDto | null;
+  /** Its lines to sign on; empty — frozen before drawn signatures (a scan only) or none. */
+  @ApiProperty({ type: [PaperSignLineDto] })
+  signatures: PaperSignLineDto[];
 }
 
 /** What a «Авто-таблиця» shows (see shared/editor-schema AutoTableData). */
@@ -281,6 +304,12 @@ export class PaperDto extends PaperItemDto {
    */
   canSign: boolean;
 
+  /**
+   * The reader may sign by drawing: frozen (or signed with a scan) and a
+   * line of the latest snapshot awaits them, not signed yet.
+   */
+  canSignDrawn: boolean;
+
   /** The latest snapshot (frozen, signed; cancelled after freezing); null — none. */
   @ApiProperty({ type: PaperSnapshotDto, nullable: true })
   snapshot: PaperSnapshotDto | null;
@@ -294,6 +323,15 @@ export class PaperDto extends PaperItemDto {
 export class PaperVerifyPersonDto {
   id: string;
   name: string;
+}
+
+/** A line of a checked snapshot that names someone. */
+export class PaperVerifySignatureDto {
+  label: string;
+  name: string;
+  /** Signed by drawing; null — not yet (or on paper only). */
+  @ApiProperty({ type: Date, nullable: true })
+  signedAt: Date | null;
 }
 
 /**
@@ -326,6 +364,10 @@ export class PaperVerifyDto {
   /** The document, if the reader sees it (open, print this snapshot); else null. */
   @ApiProperty({ type: String, nullable: true })
   paperId: string | null;
+
+  /** Lines to sign on that name someone: who, and when they signed by drawing. */
+  @ApiProperty({ type: [PaperVerifySignatureDto] })
+  signatures: PaperVerifySignatureDto[];
 }
 
 export class PaperListDto {

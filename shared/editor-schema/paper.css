@@ -184,6 +184,24 @@
   flex: 0 0 35mm;
   border-bottom: 1px solid var(--sheet-ink);
 }
+/* A drawn signature: over its line, as a pen would cross it; its note under the line. */
+.paper .paper-sign-line {
+  position: relative;
+}
+.paper .paper-signature {
+  position: absolute;
+  left: 0;
+  bottom: -3mm;
+  width: 35mm;
+  height: 11.67mm;
+  color: var(--sheet-ink);
+}
+.paper .paper-signed-note {
+  margin: 1pt 0 0;
+  color: var(--sheet-gray);
+  font-size: 8pt;
+  line-height: 1.2;
+}
 .paper .paper-sign-day,
 .paper .paper-sign-month {
   display: inline-block;

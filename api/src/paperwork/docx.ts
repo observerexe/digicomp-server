@@ -426,6 +426,14 @@ class Writer {
         children: runs,
       });
     }
+    if (c.has('paper-signed-note')) {
+      // Under a line signed by drawing (the drawing itself is not copied).
+      return this.paragraph(
+        el.children,
+        { ...ctx, run: { size: 8, color: GRAY }, firstLine: false },
+        { spacing: { before: pt(1), line: LINE_TIGHT }, keepLines: true },
+      );
+    }
     const bold =
       c.has('paper-org-institution') ||
       c.has('paper-approval-title') ||

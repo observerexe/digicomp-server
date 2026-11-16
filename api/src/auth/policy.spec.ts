@@ -639,6 +639,46 @@ const ROWS: Record<string, Case[]> = {
     ],
     ['member: що створює запис', member, Action.PapersSign, {}, Deny.NotOwner],
   ],
+  // Лише та людина, яку чекає рядок останнього знімка; за іншого не підписує
+  // ніхто, і адмін теж. Стан документа й рядки — test/paper-signatures.e2e-spec.ts.
+  'Документ редактора: підписати графічно': [
+    [
+      'admin: свій рядок',
+      admin,
+      Action.PapersSignDrawn,
+      { signer: true },
+      true,
+    ],
+    [
+      'moderator: свій рядок',
+      mod,
+      Action.PapersSignDrawn,
+      { signer: true },
+      true,
+    ],
+    [
+      'member: свій рядок',
+      member,
+      Action.PapersSignDrawn,
+      { signer: true },
+      true,
+    ],
+    [
+      'admin: не його',
+      admin,
+      Action.PapersSignDrawn,
+      { signer: false },
+      Deny.NotSigner,
+    ],
+    ['moderator: не його', mod, Action.PapersSignDrawn, {}, Deny.NotSigner],
+    [
+      'member: не його',
+      member,
+      Action.PapersSignDrawn,
+      { signer: false },
+      Deny.NotSigner,
+    ],
+  ],
   // Учасник бачить лише опубліковані шаблони, відкриті для всіх, —
   // test/paper-templates.e2e-spec.ts.
   'Шаблон документа: створити, змінити, опублікувати версію (перегляд — усі)': [

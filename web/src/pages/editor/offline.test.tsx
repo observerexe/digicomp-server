@@ -56,6 +56,7 @@ describe('Чернетка на пристрої: відкриття докум�
     canChange: false,
     canFreeze: false,
     canSign: false,
+    canSignDrawn: false,
     snapshot: null,
     snapshots: [],
     tables: {},

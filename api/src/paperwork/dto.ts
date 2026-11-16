@@ -18,6 +18,7 @@ import { RECORD_TYPES, type RecordType } from '../records/field-types';
 import { NOT_BLANK } from '../points/dto';
 import { IsPaperContent, type PaperContent } from './content';
 import { PaperStatus, PaperVisibility } from './paper.entity';
+import { IsStrokes, type Strokes } from './signatures';
 
 /** Field key → value (null or left out — empty). */
 const VALUES = {
@@ -196,4 +197,15 @@ export class CancelPaperDto {
   @Matches(NOT_BLANK)
   @MaxLength(1000)
   reason: string;
+}
+
+/** A drawn signature: strokes of whole points on a 1500 × 500 field (see signatures.ts). */
+export class SignPaperDto {
+  /** Strokes, each `[x0, y0, x1, y1, …]`; 1–100 strokes, up to 1000 points each, 6000 in all. */
+  @ApiProperty({
+    type: 'array',
+    items: { type: 'array', items: { type: 'integer' } },
+  })
+  @IsStrokes()
+  strokes: Strokes;
 }

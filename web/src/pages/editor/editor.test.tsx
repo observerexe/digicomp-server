@@ -32,6 +32,7 @@ const paper = (over: Partial<Paper> = {}): Paper => ({
   canChange: false,
   canFreeze: false,
   canSign: false,
+  canSignDrawn: false,
   snapshot: null,
   snapshots: [],
   tables: {},
@@ -225,7 +226,7 @@ describe('Редактор: документ', () => {
       status: 'frozen' as const,
       canFreeze: false,
       revision: 2,
-      snapshot: { n: 1, sha256: 'a'.repeat(64), createdAt: '2026-11-15T11:00:00Z', signed: null },
+      snapshot: { n: 1, sha256: 'a'.repeat(64), createdAt: '2026-11-15T11:00:00Z', signed: null, signatures: [] },
     };
     const { calls } = mockApi(base(writer, { 'GET /api/papers/p1': () => json(200, published), 'POST /api/papers/p1/freeze': () => json(200, frozen) }));
     renderApp('/editor/p1');
@@ -261,7 +262,7 @@ describe('Редактор: документ', () => {
   });
 
   it('підписаний скан: форма з файлом, «Підписано» і посилання на скан; далі — «Інший скан»', async () => {
-    const snapshot = { n: 1, sha256: 'a'.repeat(64), createdAt: '2026-11-15T11:00:00Z', signed: null };
+    const snapshot = { n: 1, sha256: 'a'.repeat(64), createdAt: '2026-11-15T11:00:00Z', signed: null, signatures: [] };
     const frozen = paper({ status: 'frozen', canEdit: false, canSign: true, publishedAt: '2026-11-15T10:00:00Z', snapshot });
     const signed = {
       ...frozen,
@@ -297,6 +298,7 @@ describe('Редактор: документ', () => {
       sha256: 'a'.repeat(64),
       createdAt: '2026-11-15T11:00:00Z',
       signed: { version: 2, fileName: 'фото.png', mimeType: 'image/png', size: 9, uploadedAt: '2026-11-15T12:00:00Z' },
+      signatures: [],
     };
     mockApi(base(writer, { 'GET /api/papers/p1': () => json(200, paper({ status: 'signed', canEdit: false, snapshot })) }));
     renderApp('/editor/p1');
@@ -828,7 +830,7 @@ describe('Редактор: документ із шаблону', () => {
       });
 
       it('зафіксований звіт: «Зафіксувати нову версію» з підтвердженням; «Версії» ведуть на друк знімків', async () => {
-        const snapshot = { n: 1, sha256: 'a'.repeat(64), createdAt: '2026-11-15T11:00:00Z', signed: null };
+        const snapshot = { n: 1, sha256: 'a'.repeat(64), createdAt: '2026-11-15T11:00:00Z', signed: null, signatures: [] };
         const frozen = report({ status: 'frozen', canEdit: false, canFreeze: true, values: { place: 'pl1', code: 'CNC-1' }, refs: [lathe], snapshot, snapshots: [snapshot] });
         const again = { ...frozen, revision: 2, snapshot: { ...snapshot, n: 2 }, snapshots: [snapshot, { n: 2, createdAt: '2026-11-16T11:00:00Z' }] };
         const { calls } = mockApi(base(writer, { 'GET /api/papers/p1': () => json(200, frozen), 'POST /api/papers/p1/freeze': () => json(200, again) }));

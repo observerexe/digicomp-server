@@ -734,6 +734,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/papers/{id}/signatures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * A drawn signature on the latest snapshot: every line awaiting the reader
+         *     not signed yet. All lines naming someone signed — «Підписано».
+         */
+        post: operations["PaperworkController_signDrawn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/papers/{id}/docx": {
         parameters: {
             query?: never;
@@ -2740,9 +2760,28 @@ export interface components {
             /** Format: date-time */
             uploadedAt: string;
         };
+        PaperSignPersonDto: {
+            id: string;
+            name: string;
+        };
+        PaperSignLineDto: {
+            /** @description Who it awaits; null — nobody named: a scan only. */
+            person: components["schemas"]["PaperSignPersonDto"] | null;
+            /**
+             * Format: date-time
+             * @description When it was signed by drawing; null — not yet.
+             */
+            signedAt: string | null;
+            /** @description Index of the line on the sheet, from 0. */
+            row: number;
+            /** @description «Затверджую», or the label of a «Блок підписів» column. */
+            label: string;
+        };
         PaperSnapshotDto: {
             /** @description The signed scan; null — none uploaded. */
             signed: components["schemas"]["PaperSignedDto"] | null;
+            /** @description Its lines to sign on; empty — frozen before drawn signatures (a scan only) or none. */
+            signatures: components["schemas"]["PaperSignLineDto"][];
             /** @description 1, 2, … within the document (`print?snapshot=`). */
             n: number;
             /** @description Hex SHA-256 of the sheet: the check page `/papers/verify/:sha`. */
@@ -2819,6 +2858,11 @@ export interface components {
              *     free document or report; staff — any).
              */
             canSign: boolean;
+            /**
+             * @description The reader may sign by drawing: frozen (or signed with a scan) and a
+             *     line of the latest snapshot awaits them, not signed yet.
+             */
+            canSignDrawn: boolean;
             id: string;
             title: string;
             author: components["schemas"]["UserRefDto"];
@@ -2852,8 +2896,21 @@ export interface components {
             /** @description Why: kept on the document and in the audit. */
             reason: string;
         };
+        SignPaperDto: {
+            /** @description Strokes, each `[x0, y0, x1, y1, …]`; 1–100 strokes, up to 1000 points each, 6000 in all. */
+            strokes: number[][];
+        };
         PaperVerifyPersonDto: {
             id: string;
+            name: string;
+        };
+        PaperVerifySignatureDto: {
+            /**
+             * Format: date-time
+             * @description Signed by drawing; null — not yet (or on paper only).
+             */
+            signedAt: string | null;
+            label: string;
             name: string;
         };
         PaperVerifyDto: {
@@ -2863,6 +2920,8 @@ export interface components {
             cancelReason: string | null;
             /** @description The document, if the reader sees it (open, print this snapshot); else null. */
             paperId: string | null;
+            /** @description Lines to sign on that name someone: who, and when they signed by drawing. */
+            signatures: components["schemas"]["PaperVerifySignatureDto"][];
             sha256: string;
             /** @description The snapshot's number within its document. */
             n: number;
@@ -5133,6 +5192,31 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperDto"];
+                };
+            };
+        };
+    };
+    PaperworkController_signDrawn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignPaperDto"];
+            };
+        };
         responses: {
             200: {
                 headers: {

@@ -25,6 +25,8 @@ export type PolicyContext = {
   authorized?: boolean;
   /** An editor document is published and visible to all members. */
   shared?: boolean;
+  /** A line to sign on of the document's latest snapshot awaits the actor. */
+  signer?: boolean;
 };
 
 export enum Action {
@@ -121,6 +123,7 @@ export enum Action {
   PapersChange = 'papers.change',
   PapersFreeze = 'papers.freeze',
   PapersSign = 'papers.sign',
+  PapersSignDrawn = 'papers.sign_drawn',
   PaperTemplatesRead = 'paper_templates.read',
   PaperTemplatesManage = 'paper_templates.manage',
 
@@ -245,6 +248,8 @@ export const ROLES: Record<Action, readonly Role[]> = {
   [Action.PapersFreeze]: ALL,
   // Upload the signed scan of a frozen document: as freezing.
   [Action.PapersSign]: ALL,
+  // Sign a frozen document by drawing: only the person its line awaits.
+  [Action.PapersSignDrawn]: ALL,
   // Members see only published templates open to all (service).
   [Action.PaperTemplatesRead]: ALL,
   [Action.PaperTemplatesManage]: STAFF,
@@ -275,6 +280,7 @@ export const Deny = {
   NotOwner: 'NOT_OWNER',
   NotParticipant: 'NOT_PARTICIPANT',
   NotAuthorizedForPlace: 'NOT_AUTHORIZED_FOR_PLACE',
+  NotSigner: 'NOT_SIGNER',
 } as const;
 export type DenyCode = (typeof Deny)[keyof typeof Deny];
 
@@ -362,6 +368,9 @@ const REFINE: Partial<Record<Action, Refine>> = {
   [Action.PapersChange]: ownRecordForMember,
   [Action.PapersFreeze]: ownRecordForMember,
   [Action.PapersSign]: ownRecordForMember,
+  // One's own signature: nobody signs for another, an admin neither.
+  [Action.PapersSignDrawn]: (_actor, { signer }) =>
+    signer ? true : Deny.NotSigner,
 };
 
 export function roleAllowed(role: string, action: Action): boolean {

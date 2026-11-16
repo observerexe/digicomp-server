@@ -1847,6 +1847,47 @@
         ]
       }
     },
+    "/api/papers/{id}/signatures": {
+      "post": {
+        "operationId": "PaperworkController_signDrawn",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignPaperDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "A drawn signature on the latest snapshot: every line awaiting the reader\nnot signed yet. All lines naming someone signed — «Підписано».",
+        "tags": [
+          "Paperwork"
+        ]
+      }
+    },
     "/api/papers/{id}/docx": {
       "get": {
         "operationId": "PaperworkController_docx",
@@ -7911,6 +7952,56 @@
           "uploadedAt"
         ]
       },
+      "PaperSignPersonDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "PaperSignLineDto": {
+        "type": "object",
+        "properties": {
+          "person": {
+            "nullable": true,
+            "description": "Who it awaits; null — nobody named: a scan only.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperSignPersonDto"
+              }
+            ]
+          },
+          "signedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "When it was signed by drawing; null — not yet."
+          },
+          "row": {
+            "type": "number",
+            "description": "Index of the line on the sheet, from 0."
+          },
+          "label": {
+            "type": "string",
+            "description": "«Затверджую», or the label of a «Блок підписів» column."
+          }
+        },
+        "required": [
+          "person",
+          "signedAt",
+          "row",
+          "label"
+        ]
+      },
       "PaperSnapshotDto": {
         "type": "object",
         "properties": {
@@ -7923,6 +8014,13 @@
                 "$ref": "#/components/schemas/PaperSignedDto"
               }
             ]
+          },
+          "signatures": {
+            "description": "Its lines to sign on; empty — frozen before drawn signatures (a scan only) or none.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaperSignLineDto"
+            }
           },
           "n": {
             "type": "number",
@@ -7939,6 +8037,7 @@
         },
         "required": [
           "signed",
+          "signatures",
           "n",
           "sha256",
           "createdAt"
@@ -8081,6 +8180,10 @@
             "type": "boolean",
             "description": "Frozen (or signed): the actor may upload the signed scan (a member — own\nfree document or report; staff — any)."
           },
+          "canSignDrawn": {
+            "type": "boolean",
+            "description": "The reader may sign by drawing: frozen (or signed with a scan) and a\nline of the latest snapshot awaits them, not signed yet."
+          },
           "id": {
             "type": "string"
           },
@@ -8124,6 +8227,7 @@
           "canChange",
           "canFreeze",
           "canSign",
+          "canSignDrawn",
           "id",
           "title",
           "author",
@@ -8184,6 +8288,24 @@
           "reason"
         ]
       },
+      "SignPaperDto": {
+        "type": "object",
+        "properties": {
+          "strokes": {
+            "type": "array",
+            "description": "Strokes, each `[x0, y0, x1, y1, …]`; 1–100 strokes, up to 1000 points each, 6000 in all.",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "required": [
+          "strokes"
+        ]
+      },
       "PaperVerifyPersonDto": {
         "type": "object",
         "properties": {
@@ -8196,6 +8318,28 @@
         },
         "required": [
           "id",
+          "name"
+        ]
+      },
+      "PaperVerifySignatureDto": {
+        "type": "object",
+        "properties": {
+          "signedAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "description": "Signed by drawing; null — not yet (or on paper only)."
+          },
+          "label": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "signedAt",
+          "label",
           "name"
         ]
       },
@@ -8231,6 +8375,13 @@
             "nullable": true,
             "description": "The document, if the reader sees it (open, print this snapshot); else null."
           },
+          "signatures": {
+            "description": "Lines to sign on that name someone: who, and when they signed by drawing.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaperVerifySignatureDto"
+            }
+          },
           "sha256": {
             "type": "string"
           },
@@ -8256,6 +8407,7 @@
           "status",
           "cancelReason",
           "paperId",
+          "signatures",
           "sha256",
           "n",
           "latest",

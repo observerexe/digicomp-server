@@ -201,6 +201,11 @@ export function dayText(at: Date | string): string {
   return DAY_TEXT.format(new Date(at));
 }
 
+/** A moment in Kyiv: «16.11.2026, 14:32». */
+export function momentText(at: Date | string): string {
+  return DATETIME_TEXT.format(new Date(at));
+}
+
 /** The year of a moment in Kyiv: «2026». */
 export function yearText(at: Date | string): string {
   return YEAR_TEXT.format(new Date(at)).replace(/\D/g, '');
@@ -242,7 +247,7 @@ function scalarText(type: string, v: FieldScalar, options: readonly FieldOption[
       return `${d}.${m}.${y}`;
     }
     case 'datetime':
-      return DATETIME_TEXT.format(new Date(String(v)));
+      return momentText(String(v));
     case 'bool':
       return v ? 'так' : 'ні';
     case 'enum':

@@ -126,6 +126,26 @@ export function structureInner(n: PaperNode, info: PaperInfo): string | null {
   }
 }
 
+/** A line to sign on: its label and who signs it (SIGNER_AUTHOR, SIGNER_ORG or a field's key; null — nobody named). */
+export type SignLine = { label: string; signer: string | null };
+
+/**
+ * The lines to sign on of a printed sheet, in the order the sheet shows them
+ * (structureInner: one a «Затверджую», one or two a «Блок підписів»).
+ * Structure stands on the top level only.
+ */
+export function signLines(doc: PaperNode): SignLine[] {
+  return (doc.content ?? []).flatMap((n): SignLine[] => {
+    if (n.type === 'approval') return [{ label: 'Затверджую', signer: SIGNER_ORG }];
+    if (n.type !== 'signatures') return [];
+    const column = (side: 'left' | 'right'): SignLine => ({
+      label: nodeAttr(n, `${side}Label`) as string,
+      signer: nodeAttr(n, `${side}Signer`) as string | null,
+    });
+    return (nodeAttr(n, 'rightLabel') as string) ? [column('left'), column('right')] : [column('left')];
+  });
+}
+
 /** The text of the page footer (the first «Колонтитул»); '' — none. */
 export function footerText(doc: PaperNode): string {
   const f = (doc.content ?? []).find((n) => n.type === 'pageFooter');
