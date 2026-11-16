@@ -31,15 +31,6 @@ export class DocDto {
   versionsCount: number;
 }
 
-export class DocListDto {
-  @ApiProperty({ type: [DocDto] })
-  items: DocDto[];
-
-  total: number;
-  page: number;
-  limit: number;
-}
-
 export class DocVersionDto {
   id: string;
   version: number;

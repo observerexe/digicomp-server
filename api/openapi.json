@@ -2329,123 +2329,6 @@
         ]
       }
     },
-    "/api/documents": {
-      "get": {
-        "operationId": "DocumentsController_list",
-        "parameters": [
-          {
-            "name": "linkedType",
-            "required": false,
-            "in": "query",
-            "description": "With `linkedId`: only documents linked with this record (`/links`).",
-            "schema": {
-              "$ref": "#/components/schemas/RecordType"
-            }
-          },
-          {
-            "name": "search",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "maxLength": 100,
-              "type": "string"
-            }
-          },
-          {
-            "name": "category",
-            "required": false,
-            "in": "query",
-            "description": "Item key of the «document_category» dictionary.",
-            "schema": {
-              "maxLength": 40,
-              "type": "string"
-            }
-          },
-          {
-            "name": "linkedId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          },
-          {
-            "name": "archived",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "true"
-              ]
-            }
-          },
-          {
-            "name": "page",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "maxLength": 6,
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "maxLength": 3,
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocListDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Documents"
-        ]
-      },
-      "post": {
-        "operationId": "DocumentsController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateDocDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Documents"
-        ]
-      }
-    },
     "/api/documents/{id}": {
       "get": {
         "operationId": "DocumentsController_get",
@@ -2612,6 +2495,37 @@
         "responses": {
           "200": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
+    "/api/documents": {
+      "post": {
+        "operationId": "DocumentsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDocDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -5388,6 +5302,123 @@
         },
         "tags": [
           "Smart"
+        ]
+      }
+    },
+    "/api/archive": {
+      "get": {
+        "operationId": "ArchiveController_list",
+        "parameters": [
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ArchiveKind"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Only editor documents in this state (files have none).",
+            "schema": {
+              "$ref": "#/components/schemas/ArchivePaperStatus"
+            }
+          },
+          {
+            "name": "linkedType",
+            "required": false,
+            "in": "query",
+            "description": "With `linkedId`: only rows linked with this record (`/links`).",
+            "schema": {
+              "$ref": "#/components/schemas/RecordType"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Files: title, description, category; documents: title, number.",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "year",
+            "required": false,
+            "in": "query",
+            "description": "Documents — the year of publication, files — of upload (Kyiv time).",
+            "schema": {
+              "pattern": "^\\d{4}$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "description": "Only files of this item of «document_category».",
+            "schema": {
+              "maxLength": 40,
+              "type": "string"
+            }
+          },
+          {
+            "name": "linkedId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "archived",
+            "required": false,
+            "in": "query",
+            "description": "Staff: only files taken out of the Archive (no documents).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 6,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 3,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchiveListDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Archive"
         ]
       }
     },
@@ -8224,32 +8255,6 @@
           "updatedAt",
           "archived",
           "versionsCount"
-        ]
-      },
-      "DocListDto": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DocDto"
-            }
-          },
-          "total": {
-            "type": "number"
-          },
-          "page": {
-            "type": "number"
-          },
-          "limit": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "items",
-          "total",
-          "page",
-          "limit"
         ]
       },
       "DocVersionDto": {
@@ -11219,6 +11224,181 @@
             "type": "boolean"
           }
         }
+      },
+      "ArchiveKind": {
+        "type": "string",
+        "enum": [
+          "file",
+          "paper"
+        ]
+      },
+      "ArchivePaperStatus": {
+        "type": "string",
+        "enum": [
+          "frozen",
+          "signed",
+          "cancelled"
+        ]
+      },
+      "ArchiveFileDto": {
+        "type": "object",
+        "properties": {
+          "accessScope": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AccessScope"
+              }
+            ]
+          },
+          "version": {
+            "type": "number",
+            "nullable": true,
+            "description": "Latest version; null for a document without files."
+          },
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "size": {
+            "type": "number",
+            "nullable": true
+          },
+          "category": {
+            "type": "string",
+            "description": "Item key of the «document_category» dictionary."
+          },
+          "archived": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "accessScope",
+          "version",
+          "fileName",
+          "size",
+          "category",
+          "archived"
+        ]
+      },
+      "ArchivePaperDto": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaperStatus"
+              }
+            ]
+          },
+          "template": {
+            "type": "string",
+            "nullable": true,
+            "description": "Title of its template; null — a free document."
+          },
+          "author": {
+            "$ref": "#/components/schemas/UserRefDto"
+          }
+        },
+        "required": [
+          "number",
+          "status",
+          "template",
+          "author"
+        ]
+      },
+      "ArchiveItemDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ArchiveKind"
+              }
+            ]
+          },
+          "file": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ArchiveFileDto"
+              }
+            ]
+          },
+          "paper": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ArchivePaperDto"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "file",
+          "paper",
+          "id",
+          "title",
+          "updatedAt"
+        ]
+      },
+      "ArchiveListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArchiveItemDto"
+            }
+          },
+          "years": {
+            "description": "Years of all the reader sees in the Archive (filters aside), newest first.",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "categories": {
+            "description": "Categories of all the files the reader sees (filters aside).",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "years",
+          "categories",
+          "total",
+          "page",
+          "limit"
+        ]
       },
       "ContainerDto": {
         "type": "object",

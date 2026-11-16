@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { createHash, randomUUID } from 'crypto';
-import { DataSource, EntityManager, In, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { Action, can } from '../auth/policy';
 import {
@@ -10,21 +10,11 @@ import {
   validateUpload,
 } from '../files/file-validation';
 import { StorageService } from '../files/storage.service';
-import {
-  assertDictionaryItem,
-  itemTitleLike,
-} from '../dictionaries/dictionary-usage';
-import { linkedWithSql } from '../links/links.sql';
-import {
-  AddVersionDto,
-  CreateDocDto,
-  ListDocsQuery,
-  UpdateDocDto,
-} from './dto';
+import { assertDictionaryItem } from '../dictionaries/dictionary-usage';
+import { AddVersionDto, CreateDocDto, UpdateDocDto } from './dto';
 import { AccessScope, Doc, DOCUMENT_CATEGORY, DocVersion } from './doc.entity';
 import type { OkDto, Plain } from '../common/responses.dto';
-import type { DocDto, DocListDto, DocVersionDto } from './responses.dto';
-import { escapeLike } from '../common/like';
+import type { DocDto, DocVersionDto } from './responses.dto';
 
 type Actor = { id: string; role: string };
 
@@ -80,49 +70,6 @@ export class DocumentsService {
     private storage: StorageService,
     private audit: AuditService,
   ) {}
-
-  async list(q: ListDocsQuery, actor: Actor): Promise<DocListDto> {
-    const page = Math.max(1, Number(q.page ?? 1));
-    const limit = Math.min(100, Math.max(1, Number(q.limit ?? 50)));
-    const qb = this.docs.createQueryBuilder('d');
-    if (!can(actor, Action.DocumentsManage)) {
-      qb.andWhere('d.accessScope = :scope', { scope: AccessScope.Members });
-    }
-    if (can(actor, Action.DocumentsManage) && q.archived === 'true') {
-      qb.andWhere('d.archivedAt IS NOT NULL');
-    } else {
-      qb.andWhere('d.archivedAt IS NULL');
-    }
-    if (q.category) qb.andWhere('d.category = :cat', { cat: q.category });
-    if (q.linkedType && q.linkedId) {
-      qb.andWhere(linkedWithSql('document', 'd.id'), {
-        linkedType: q.linkedType,
-        linkedId: q.linkedId,
-      });
-    }
-    if (q.search) {
-      qb.andWhere(
-        `(d.title ILIKE :s OR d.description ILIKE :s OR ${itemTitleLike('d.category', 'dict', 's')})`,
-        { s: `%${escapeLike(q.search)}%`, dict: DOCUMENT_CATEGORY },
-      );
-    }
-    qb.orderBy('d.updatedAt', 'DESC')
-      .addOrderBy('d.id', 'ASC')
-      .skip((page - 1) * limit)
-      .take(limit);
-    const [rows, total] = await qb.getManyAndCount();
-    const vers = rows.length
-      ? await this.versions.find({
-          where: { docId: In(rows.map((d) => d.id)) },
-          order: { version: 'DESC' },
-        })
-      : [];
-    const items = rows.map((d) => {
-      const own = vers.filter((v) => v.docId === d.id);
-      return docView(d, own[0], own.length);
-    });
-    return { items, total, page, limit };
-  }
 
   async get(id: string, actor: Actor): Promise<DocDto> {
     const d = await this.accessible(id, actor);

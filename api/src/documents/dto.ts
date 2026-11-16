@@ -1,16 +1,12 @@
-import { ApiProperty } from '@nestjs/swagger';
 import {
   IsEnum,
   IsIn,
   IsNumberString,
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
   MinLength,
-  ValidateIf,
 } from 'class-validator';
-import { RECORD_TYPES, type RecordType } from '../records/field-types';
 import { AccessScope } from './doc.entity';
 
 export class CreateDocDto {
@@ -64,43 +60,6 @@ export class AddVersionDto {
   @IsString()
   @MaxLength(500)
   changeNote?: string;
-}
-
-export class ListDocsQuery {
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  search?: string;
-
-  /** Item key of the «document_category» dictionary. */
-  @IsOptional()
-  @IsString()
-  @MaxLength(40)
-  category?: string;
-
-  /** With `linkedId`: only documents linked with this record (`/links`). */
-  @ApiProperty({ enum: RECORD_TYPES, enumName: 'RecordType', required: false })
-  @ValidateIf((q: ListDocsQuery) => q.linkedId !== undefined)
-  @IsIn(RECORD_TYPES)
-  linkedType?: RecordType;
-
-  @ValidateIf((q: ListDocsQuery) => q.linkedType !== undefined)
-  @IsUUID()
-  linkedId?: string;
-
-  @IsOptional()
-  @IsIn(['true'])
-  archived?: string;
-
-  @IsOptional()
-  @IsNumberString({ no_symbols: true })
-  @MaxLength(6)
-  page?: string;
-
-  @IsOptional()
-  @IsNumberString({ no_symbols: true })
-  @MaxLength(3)
-  limit?: string;
 }
 
 export class DownloadQuery {

@@ -8,6 +8,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { HealthController } from './health/health.controller';
 import { AdminPanelModule } from './admin-panel/admin-panel.module';
+import { ArchiveModule } from './archive/archive.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { DictionariesModule } from './dictionaries/dictionaries.module';
@@ -57,6 +58,7 @@ import { UsersModule } from './users/users.module';
     LinksModule,
     OrgModule,
     PaperworkModule,
+    ArchiveModule,
     DocsModule,
     AdminPanelModule,
   ],

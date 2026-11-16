@@ -74,6 +74,7 @@ Home Assistant і агент для локальної роботи не пот�
   Початкові шаблони з міграції `StarterTemplates` перевіряє `api/src/paperwork/starter-templates.spec.ts`, шаблони ТЗ (`TaskTemplates`) —
   `api/src/paperwork/task-templates.spec.ts`; ТЗ через документ (шаблони з міграції, `for-record`, номер у ТЗ) — `api/test/task-papers.e2e-spec.ts`;
   документ для старого стягнення й нарахування (`for-record`) і фільтри списку `status`, `about=me` — `api/test/old-record-papers.e2e-spec.ts`.
+  Пошук Архіву (файли й документи зі знімком, фільтри, сторінки після злиття) — `api/test/archive.e2e-spec.ts`.
   E2e, яким потрібне ТЗ, а не його створення, роблять його помічником `makeTask` (`api/test/helpers.ts`, сервіс ТЗ, як адаптер документа).
 - Новий вузол чи атрибут додається в опис, у розширення `web/src/editor/extensions.ts`, у `render.ts` і, якщо це клас, — правилом у `paper.css`;
   тести підкажуть, якщо щось пропущено. Змінили кольори палітри в `tokens.json` — оновіть `SHEET_COLORS`.

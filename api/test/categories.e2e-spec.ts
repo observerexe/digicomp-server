@@ -145,8 +145,8 @@ describe('Категорії з довідників (e2e)', () => {
     };
     expect(await count('/api/places?search=верстат')).toBe(1);
     expect(await count('/api/places?search=verstaty')).toBe(0);
-    expect(await count('/api/documents?search=паспорт')).toBe(1);
-    expect(await count('/api/documents?search=pasporty')).toBe(0);
+    expect(await count('/api/archive?search=паспорт')).toBe(1);
+    expect(await count('/api/archive?search=pasporty')).toBe(0);
     expect(await count('/api/inventory/items?search=матеріал')).toBe(1);
     expect(await count('/api/inventory/items?search=materialy')).toBe(0);
     // Фільтр — за ключем.

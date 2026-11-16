@@ -112,7 +112,7 @@ describe('OpenAPI і /docs (лише admin)', () => {
       ['/api/faults/{id}/in-progress', 'post', '200'],
       ['/api/faults/{id}/maintenance', 'post', '200'],
       ['/api/faults/{id}/close', 'post', '200'],
-      ['/api/documents', 'get', '200'],
+      ['/api/archive', 'get', '200'],
       ['/api/documents', 'post', '201'],
       ['/api/documents/{id}', 'get', '200'],
       ['/api/documents/{id}', 'patch', '200'],

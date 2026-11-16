@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import type { Doc, Me } from '../../api/types';
+import type { ArchiveItem, Doc, Me } from '../../api/types';
 import { dictionary, json, member, mockApi, moderator, renderApp } from '../../test/render';
 
 const staff: Me = { ...moderator, permissions: [...moderator.permissions, 'documents.manage'] };
@@ -10,6 +10,18 @@ const doc = (over: Partial<Doc> = {}): Doc => ({
   authorId: 'm1', createdAt: '', updatedAt: '2026-11-01T10:00:00Z', archived: false, version: 2, fileName: 'pass.pdf', mimeType: 'application/pdf',
   size: 4_400_000, versionsCount: 2, ...over,
 });
+const fileItem = (over: Partial<ArchiveItem> = {}, file: Partial<NonNullable<ArchiveItem['file']>> = {}): ArchiveItem => ({
+  kind: 'file', id: 'd1', title: 'Паспорт фрезера', updatedAt: '2026-11-01T10:00:00Z', paper: null,
+  file: { category: 'pasporty', accessScope: 'members', archived: false, version: 2, fileName: 'pass.pdf', size: 4_400_000, ...file },
+  ...over,
+});
+const paperItem = (paper: Partial<NonNullable<ArchiveItem['paper']>> = {}): ArchiveItem => ({
+  kind: 'paper', id: 'p1', title: 'Створення сайту', updatedAt: '2026-11-02T10:00:00Z', file: null,
+  paper: { number: 'ТЗ-2026-014', status: 'signed', template: 'Технічне завдання', author: { id: 'm1', name: 'Олена Коваль', avatarUrl: null }, ...paper },
+});
+const archive = (items: ArchiveItem[], over: { years?: number[]; categories?: string[]; total?: number } = {}) => ({
+  items, total: over.total ?? items.length, page: 1, limit: 100, years: over.years ?? [2026, 2025], categories: over.categories ?? ['pasporty', 'instruktsii'],
+});
 const base = (me: Me, extra: Record<string, (r: Request) => Response | Promise<Response>> = {}) => ({
   'GET /api/auth/me': () => json(200, me),
   ...dictionary('document_category', [
@@ -17,25 +29,73 @@ const base = (me: Me, extra: Record<string, (r: Request) => Response | Promise<R
     { key: 'pasporty', title: 'Паспорти' },
   ]),
   'GET /api/work-sessions': () => json(200, { items: [], total: 0, page: 1, limit: 1 }),
-  'GET /api/documents': () => json(200, { items: [doc(), doc({ id: 'd2', title: 'Порядок дій', category: 'instruktsii', accessScope: 'supervisors', fileName: 'a.docx', mimeType: 'x' })], total: 2, page: 1, limit: 100 }),
+  'GET /api/archive': () => json(200, archive([fileItem(), fileItem({ id: 'd2', title: 'Порядок дій' }, { category: 'instruktsii', accessScope: 'supervisors', fileName: 'a.docx' }), paperItem()])),
   'GET /api/links': () => json(200, { canLink: false, items: [] }),
   'GET /api/documents/d1/versions': () => json(200, [{ id: 'v2', version: 2, fileName: 'pass.pdf', mimeType: 'application/pdf', size: 10, sha256: '', changeNote: 'Нова схема', uploadedById: 'm1', createdAt: '' }]),
   ...extra,
 });
 
 describe('Архів', () => {
-  it('список: тип файлу, «лише модератори», категорії', async () => {
+  it('список: файли й документи редактора разом; тип файлу, «лише модератори», стан документа', async () => {
     mockApi(base(member));
     renderApp('/docs');
-    const list = await screen.findByRole('list', { name: 'Документи' });
+    const list = await screen.findByRole('list', { name: 'Архів' });
     expect(within(list).getByText('PDF')).toBeInTheDocument();
     expect(within(list).getByText('лише модератори')).toBeInTheDocument();
     // Category by its title from the dictionary.
     expect(await within(list).findByText(/^Паспорти · версія 2/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Інструкції' }));
-    expect(within(list).getAllByRole('link')).toHaveLength(1);
+    const paper = within(list).getByRole('link', { name: /ТЗ-2026-014 Створення сайту/ });
+    expect(paper).toHaveAttribute('href', '/editor/p1');
+    expect(within(paper).getByText('Підписано')).toBeInTheDocument();
+    expect(within(paper).getByText(/^Технічне завдання · Олена Коваль · оновлено/)).toBeInTheDocument();
+    expect(within(list).getByRole('link', { name: /Паспорт фрезера/ })).toHaveAttribute('href', '/docs/d1');
     expect(screen.queryByRole('link', { name: 'Новий документ' })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Показати архівні')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Показати архівні файли')).not.toBeInTheDocument();
+  });
+
+  it('фільтри йдуть на сервер; стан — лише для документів, категорія — лише для файлів', async () => {
+    const { calls } = mockApi(base(member));
+    renderApp('/docs');
+    await screen.findByRole('list', { name: 'Архів' });
+    const last = () => new URL(calls.filter((c) => c.path === '/api/archive').at(-1)!.url).searchParams;
+
+    await userEvent.click(within(screen.getByRole('group', { name: 'Рік' })).getByRole('button', { name: '2025' }));
+    await waitFor(() => expect(last().get('year')).toBe('2025'));
+    await userEvent.click(within(screen.getByRole('group', { name: 'Категорія' })).getByRole('button', { name: 'Інструкції' }));
+    await waitFor(() => expect(last().get('category')).toBe('instruktsii'));
+
+    // «Документи» hides the categories and drops the chosen one.
+    await userEvent.click(within(screen.getByRole('group', { name: 'Вид' })).getByRole('button', { name: 'Документи' }));
+    await waitFor(() => expect(last().get('kind')).toBe('paper'));
+    expect(last().get('category')).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Категорія' })).not.toBeInTheDocument();
+    await userEvent.click(within(screen.getByRole('group', { name: 'Стан' })).getByRole('button', { name: 'Зафіксовано' }));
+    await waitFor(() => expect(last().get('status')).toBe('frozen'));
+
+    // «Файли» hides the states and drops the chosen one.
+    await userEvent.click(within(screen.getByRole('group', { name: 'Вид' })).getByRole('button', { name: 'Файли' }));
+    await waitFor(() => expect(last().get('kind')).toBe('file'));
+    expect(last().get('status')).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Стан' })).not.toBeInTheDocument();
+    expect(last().get('year')).toBe('2025');
+  });
+
+  it('модератор: архівні файли — без виду й стану', async () => {
+    const { calls } = mockApi(base(staff));
+    renderApp('/docs');
+    await screen.findByRole('list', { name: 'Архів' });
+    await userEvent.click(screen.getByLabelText('Показати архівні файли'));
+    await waitFor(() => expect(calls.some((c) => c.path === '/api/archive' && new URL(c.url).searchParams.get('archived') === 'true')).toBe(true));
+    expect(screen.queryByRole('group', { name: 'Вид' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Стан' })).not.toBeInTheDocument();
+  });
+
+  it('порожньо: без фільтрів — «нічого немає», з пошуком — «нічого не знайдено»', async () => {
+    mockApi(base(member, { 'GET /api/archive': () => json(200, archive([], { years: [], categories: [] })) }));
+    renderApp('/docs');
+    expect(await screen.findByText('В Архіві ще нічого немає.')).toBeInTheDocument();
+    await userEvent.type(screen.getByRole('searchbox'), 'наказ');
+    expect(await screen.findByText('Нічого не знайдено.')).toBeInTheDocument();
   });
 
   it('PDF показується у вбудованому вікні через ?inline=1; учасник без керування', async () => {

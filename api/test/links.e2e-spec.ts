@@ -268,17 +268,17 @@ describe("Зв'язки між записами (e2e)", () => {
     await link(mod, 'task', taskId, 'document', other).expect(201);
 
     const byPlace = await as(app, member)
-      .get(`/api/documents?linkedType=place&linkedId=${placeId}`)
+      .get(`/api/archive?linkedType=place&linkedId=${placeId}`)
       .expect(200);
     expect(byPlace.body.items.map((d: { id: string }) => d.id)).toEqual([
       docId,
     ]);
     const byTask = await as(app, member)
-      .get(`/api/documents?linkedType=task&linkedId=${taskId}`)
+      .get(`/api/archive?linkedType=task&linkedId=${taskId}`)
       .expect(200);
     expect(byTask.body.items.map((d: { id: string }) => d.id)).toEqual([other]);
     // Одне без другого — помилка перевірки.
-    await as(app, member).get(`/api/documents?linkedType=place`).expect(400);
+    await as(app, member).get(`/api/archive?linkedType=place`).expect(400);
   });
 
   it('обладнання й склад приходять із кодом — за ним відкривається сторінка', async () => {

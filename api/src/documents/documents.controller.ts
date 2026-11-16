@@ -1,6 +1,6 @@
 import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
 import { OkDto } from '../common/responses.dto';
-import { DocDto, DocListDto, DocVersionDto } from './responses.dto';
+import { DocDto, DocVersionDto } from './responses.dto';
 import {
   Body,
   Controller,
@@ -27,7 +27,6 @@ import {
   AddVersionDto,
   CreateDocDto,
   DownloadQuery,
-  ListDocsQuery,
   UpdateDocDto,
 } from './dto';
 import { DocumentsService } from './documents.service';
@@ -47,13 +46,6 @@ const UPLOAD = FileInterceptor('file', {
 @UseGuards(JwtAuthGuard, PolicyGuard)
 export class DocumentsController {
   constructor(private docs: DocumentsService) {}
-
-  @Can(Action.DocumentsRead)
-  @ApiOkResponse({ type: DocListDto })
-  @Get()
-  list(@Query() q: ListDocsQuery, @Req() req: Req) {
-    return this.docs.list(q, req.user);
-  }
 
   @Can(Action.DocumentsRead)
   @ApiOkResponse({ type: DocDto })

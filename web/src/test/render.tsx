@@ -29,11 +29,11 @@ export const json = (status: number, body: unknown) =>
 
 /** Routes fetch calls to handlers by "METHOD /path"; records every call. */
 export function mockApi(handlers: Record<string, Handler>) {
-  const calls: { method: string; path: string; headers: Headers; body: string }[] = [];
+  const calls: { method: string; path: string; url: string; headers: Headers; body: string }[] = [];
   const fn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const req = input instanceof Request ? input : new Request(new URL(String(input), location.origin), init);
     const path = new URL(req.url).pathname;
-    calls.push({ method: req.method, path, headers: req.headers, body: await req.clone().text() });
+    calls.push({ method: req.method, path, url: req.url, headers: req.headers, body: await req.clone().text() });
     const h = handlers[`${req.method} ${path}`];
     return h ? h(req) : json(404, { errorCode: 'NOT_FOUND' });
   });

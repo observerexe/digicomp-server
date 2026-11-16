@@ -868,22 +868,6 @@ export interface paths {
         patch: operations["DictionariesController_updateItem"];
         trace?: never;
     };
-    "/api/documents": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["DocumentsController_list"];
-        put?: never;
-        post: operations["DocumentsController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/documents/{id}": {
         parameters: {
             query?: never;
@@ -926,6 +910,22 @@ export interface paths {
         get: operations["DocumentsController_download"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["DocumentsController_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1935,6 +1935,22 @@ export interface paths {
         patch: operations["SmartController_update"];
         trace?: never;
     };
+    "/api/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ArchiveController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin-panel/overview": {
         parameters: {
             query?: never;
@@ -2816,12 +2832,6 @@ export interface components {
             archived: boolean;
             versionsCount: number;
         };
-        DocListDto: {
-            items: components["schemas"]["DocDto"][];
-            total: number;
-            page: number;
-            limit: number;
-        };
         DocVersionDto: {
             id: string;
             version: number;
@@ -3663,6 +3673,46 @@ export interface components {
             label?: string;
             room?: string;
             enabled?: boolean;
+        };
+        /** @enum {string} */
+        ArchiveKind: "file" | "paper";
+        /** @enum {string} */
+        ArchivePaperStatus: "frozen" | "signed" | "cancelled";
+        ArchiveFileDto: {
+            accessScope: components["schemas"]["AccessScope"];
+            /** @description Latest version; null for a document without files. */
+            version: number | null;
+            fileName: string | null;
+            size: number | null;
+            /** @description Item key of the «document_category» dictionary. */
+            category: string;
+            archived: boolean;
+        };
+        ArchivePaperDto: {
+            number: string | null;
+            status: components["schemas"]["PaperStatus"];
+            /** @description Title of its template; null — a free document. */
+            template: string | null;
+            author: components["schemas"]["UserRefDto"];
+        };
+        ArchiveItemDto: {
+            kind: components["schemas"]["ArchiveKind"];
+            file: components["schemas"]["ArchiveFileDto"] | null;
+            paper: components["schemas"]["ArchivePaperDto"] | null;
+            id: string;
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ArchiveListDto: {
+            items: components["schemas"]["ArchiveItemDto"][];
+            /** @description Years of all the reader sees in the Archive (filters aside), newest first. */
+            years: number[];
+            /** @description Categories of all the files the reader sees (filters aside). */
+            categories: string[];
+            total: number;
+            page: number;
+            limit: number;
         };
         ContainerDto: {
             /** @description healthy, unhealthy, starting or null (no healthcheck). */
@@ -5271,58 +5321,6 @@ export interface operations {
             };
         };
     };
-    DocumentsController_list: {
-        parameters: {
-            query?: {
-                /** @description With `linkedId`: only documents linked with this record (`/links`). */
-                linkedType?: components["schemas"]["RecordType"];
-                search?: string;
-                /** @description Item key of the «document_category» dictionary. */
-                category?: string;
-                linkedId?: string;
-                archived?: "true";
-                page?: string;
-                limit?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocListDto"];
-                };
-            };
-        };
-    };
-    DocumentsController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateDocDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocDto"];
-                };
-            };
-        };
-    };
     DocumentsController_get: {
         parameters: {
             query?: never;
@@ -5431,6 +5429,29 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    DocumentsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDocDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocDto"];
+                };
             };
         };
     };
@@ -7115,6 +7136,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SmartAllowedDto"];
+                };
+            };
+        };
+    };
+    ArchiveController_list: {
+        parameters: {
+            query?: {
+                kind?: components["schemas"]["ArchiveKind"];
+                /** @description Only editor documents in this state (files have none). */
+                status?: components["schemas"]["ArchivePaperStatus"];
+                /** @description With `linkedId`: only rows linked with this record (`/links`). */
+                linkedType?: components["schemas"]["RecordType"];
+                /** @description Files: title, description, category; documents: title, number. */
+                search?: string;
+                /** @description Documents — the year of publication, files — of upload (Kyiv time). */
+                year?: string;
+                /** @description Only files of this item of «document_category». */
+                category?: string;
+                linkedId?: string;
+                /** @description Staff: only files taken out of the Archive (no documents). */
+                archived?: "true";
+                page?: string;
+                limit?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArchiveListDto"];
                 };
             };
         };

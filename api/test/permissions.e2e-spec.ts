@@ -753,7 +753,7 @@ describe('Матриця прав (e2e)', () => {
       denied(await doc(member));
       denied(await place(member));
       denied(await item(member));
-      allowed(await as(app, member).get('/api/documents'));
+      allowed(await as(app, member).get('/api/archive'));
       allowed(await as(app, member).get('/api/places'));
       allowed(await as(app, member).get('/api/inventory/items'));
     });
