@@ -141,7 +141,7 @@ describe('Сторінка обладнання: сеанс', () => {
     });
     renderApp('/lab/CNC-1');
     const startBtn = await screen.findByRole('button', { name: 'Почати роботу' });
-    expect(screen.getByText('Ваш допуск діє до 31 груд..')).toBeInTheDocument();
+    expect(screen.getByText('Ваш допуск діє до 31 груд.')).toBeInTheDocument();
     expect(startBtn).toBeDisabled();
     await userEvent.click(screen.getByLabelText(/інструкцією з безпеки/));
     await userEvent.click(startBtn);

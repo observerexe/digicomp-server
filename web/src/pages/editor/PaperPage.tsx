@@ -28,7 +28,7 @@ import { useLocalDraft } from '../../editor/useLocalDraft';
 import { peopleOf, useSheet } from '../../editor/useSheet';
 import { usePageStats } from '../../editor/usePageStats';
 import { errorOf } from '../../errors/messages';
-import { formatDate, formatDateTime, formatTime } from '../../lib/format';
+import { formatDate, formatDateTime, formatTime, sentence } from '../../lib/format';
 import { sameJson, type LocalDraft } from '../../lib/localDrafts';
 import { PAPER_STATUS_LABEL } from '../../lib/labels';
 import { recordHref, recordLabel, type RecordView } from '../../lib/records';
@@ -612,7 +612,7 @@ function PaperEditor({ paper, restored, changing, onChanging, onReload }: Editor
         )}
         {paper.snapshot?.signed && <SignedScan paper={paper} signed={paper.snapshot.signed} />}
         {paper.snapshots.length > 1 && <Versions paper={paper} />}
-        {paper.status === 'cancelled' && <p className="hint">Документ скасовано{paper.cancelReason ? `: ${paper.cancelReason}` : ''}.</p>}
+        {paper.status === 'cancelled' && <p className="hint">{sentence(`Документ скасовано${paper.cancelReason ? `: ${paper.cancelReason}` : ''}`)}</p>}
         {paper.status !== 'cancelled' && paper.targetType && paper.targetId && <CreatedRecord type={paper.targetType} id={paper.targetId} />}
         {autosave.state === 'conflict' && (
           <div className={s.conflict} role="alert">
@@ -726,7 +726,7 @@ function SignedScan({ paper, signed }: { paper: Paper; signed: NonNullable<NonNu
   const href = `/api/papers/${paper.id}/signed`;
   return (
     <p className="hint">
-      Підписаний скан завантажено {formatDate(signed.uploadedAt)}.{' '}
+      {sentence(`Підписаний скан завантажено ${formatDate(signed.uploadedAt)}`)}{' '}
       {signed.mimeType === 'application/pdf' ? (
         <a href={`${href}?inline=1`} target="_blank" rel="noopener noreferrer">
           Відкрити скан

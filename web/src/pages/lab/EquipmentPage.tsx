@@ -11,7 +11,7 @@ import { Related } from '../../components/Related';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { CATEGORY, itemTitle, useDictionary } from '../../lib/dictionaries';
-import { formatDate, formatDateTime, formatDuration, formatTime } from '../../lib/format';
+import { formatDate, formatDateTime, formatDuration, formatTime, sentence } from '../../lib/format';
 import { kyivDay, kyivParts, addDays } from '../../lib/kyiv';
 import { placeUrl } from '../../lib/scan';
 import { AuthorizationsSection } from './AuthorizationsSection';
@@ -216,7 +216,7 @@ function SessionPanel({ place, bookings, me }: { place: Place; bookings: Booking
       <div className={s.form}>
         {place.myAuthorization ? (
           <p className={s.okLine}>
-            {place.myAuthorization.expiresAt ? `Ваш допуск діє до ${formatDate(place.myAuthorization.expiresAt)}.` : 'Ваш допуск безстроковий.'}
+            {place.myAuthorization.expiresAt ? sentence(`Ваш допуск діє до ${formatDate(place.myAuthorization.expiresAt)}`) : 'Ваш допуск безстроковий.'}
           </p>
         ) : (
           needAuth && <p className={s.warn}>Для роботи потрібен допуск. Його видає модератор після інструктажу.</p>

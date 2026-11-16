@@ -229,7 +229,7 @@ describe('Сторінка ТЗ', () => {
     });
     renderApp('/tasks/t1');
     expect(await screen.findByText('Повернуто на допрацювання')).toBeInTheDocument();
-    expect(screen.getByText(/кожному 20 · 20/)).toBeInTheDocument();
+    expect(screen.getByText(/кожному 20$/)).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText('Новий коментар'), 'Виправила');
     await userEvent.click(screen.getByRole('button', { name: 'Надіслати' }));
     await waitFor(() => expect(calls.some((c) => c.path === '/api/tasks/t1/comments')).toBe(true));

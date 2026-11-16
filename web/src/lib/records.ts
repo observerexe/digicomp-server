@@ -26,8 +26,8 @@ export const RECORD_TYPES = [
 const allTypes: Exclude<RecordType, (typeof RECORD_TYPES)[number]> extends never ? true : false = true;
 void allTypes;
 
-/** What a record of each type is called (one), for chips, groups and hints. */
-export const RECORD_LABEL: Partial<Record<RecordType, string>> = {
+/** What a record of each type is called (one), for chips, groups and hints; a new type without a name — a type error. */
+export const RECORD_LABEL: Record<RecordType, string> = {
   user: 'Учасник',
   document: 'Документ',
   paper: 'Документ редактора',
@@ -36,10 +36,14 @@ export const RECORD_LABEL: Partial<Record<RecordType, string>> = {
   place: 'Обладнання',
   inventory_item: 'Склад',
   inventory_writeoff: 'Списання зі складу',
+  discipline_record: 'Стягнення',
+  points_entry: 'Нарахування балів',
+  session: 'Сеанс роботи',
   fault: 'Несправність',
+  place_authorization: 'Допуск до обладнання',
 };
 
-export const recordLabel = (type: RecordType) => RECORD_LABEL[type] ?? type;
+export const recordLabel = (type: RecordType) => RECORD_LABEL[type];
 
 /** Page of a record; equipment and inventory open by their QR code, a fault — on its equipment's page. */
 export function recordHref(type: RecordType, id: string, code?: string) {

@@ -15,7 +15,7 @@ import { useFieldDefs } from '../../lib/fields';
 import { formatDate, formatDateTime, formatSize, plural } from '../../lib/format';
 import { templateChoices, useTemplates } from '../../lib/paperTemplates';
 import { TASK_STATUS_LABEL } from '../../lib/labels';
-import { ACTION_LABEL, actionsFor, dueState, isAssignee, splitPoints, type ActionKind } from './logic';
+import { ACTION_LABEL, actionsFor, dueState, isAssignee, shareLabel, splitPoints, type ActionKind } from './logic';
 import { taskKey, useTaskAction, useTaskPaper } from './queries';
 import s from './tasks.module.css';
 
@@ -86,7 +86,7 @@ function TaskView({ task: t, me }: { task: TaskDetail; me: Me }) {
                 <dt>Бали</dt>
                 <dd>
                   {t.points} {plural(t.points, ['бал', 'бали', 'балів'])}
-                  {split.length > 1 && <span className={s.sub}> · кожному {split.join(' · ')}</span>}
+                  {split.length > 1 && <span className={s.sub}> · {shareLabel(split)}</span>}
                 </dd>
               </div>
               <div>

@@ -99,6 +99,11 @@ export function splitPoints(total: number, n: number): number[] {
   return Array.from({ length: n }, (_, i) => base + (i < rest ? 1 : 0)).filter((x) => x > 0);
 }
 
+/** Each assignee's share: «кожному 10» when equal, «кожному 14 · 13 · 13» otherwise. */
+export function shareLabel(split: number[]): string {
+  return `кожному ${new Set(split).size === 1 ? split[0] : split.join(' · ')}`;
+}
+
 export type DueTone = 'late' | 'soon' | 'normal' | 'done';
 
 /** Deadline label and colour: «прострочено», «сьогодні», «завтра», a date. */

@@ -24,6 +24,11 @@ export function formatDateTime(value: string | Date, now = new Date()): string {
   return `${weekday.format(d)}, ${formatDate(d, now)}, ${time.format(d)}`;
 }
 
+/** One full stop at the end: a date like "2 жовт." or a reason may end with one already. */
+export function sentence(text: string): string {
+  return /[.!?…]$/.test(text) ? text : `${text}.`;
+}
+
 export function formatTime(value: string | Date | number): string {
   const d = new Date(value);
   return valid(d) ? time.format(d) : '—';

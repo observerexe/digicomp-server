@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDate, formatDateTime, formatPoints, initials, plural } from './format';
+import { formatDate, formatDateTime, formatPoints, initials, plural, sentence } from './format';
 
 describe('Формат', () => {
   it('множина українською', () => {
@@ -15,6 +15,12 @@ describe('Формат', () => {
     const now = new Date('2026-11-09T12:00:00Z');
     expect(formatDate('2026-10-01T22:30:00Z', now)).toBe('2 жовт.');
     expect(formatDate('2025-10-02T10:00:00Z', now)).toMatch(/2 жовт\. 2025/);
+  });
+  it('речення закінчується однією крапкою, навіть після «лист.» чи причини з крапкою', () => {
+    expect(sentence('Скан завантажено 16 лист.')).toBe('Скан завантажено 16 лист.');
+    expect(sentence('Документ скасовано: помилка.')).toBe('Документ скасовано: помилка.');
+    expect(sentence('Документ скасовано: чому?')).toBe('Документ скасовано: чому?');
+    expect(sentence('Документ скасовано')).toBe('Документ скасовано.');
   });
   it('погана дата не ламає сторінку', () => {
     expect(formatDate('')).toBe('—');

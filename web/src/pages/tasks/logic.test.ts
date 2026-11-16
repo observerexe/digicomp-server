@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Me, Task } from '../../api/types';
 import { member, moderator } from '../../test/render';
-import { actionsFor, dropAction, dueState, predict, splitPoints } from './logic';
+import { actionsFor, dropAction, dueState, predict, shareLabel, splitPoints } from './logic';
 
 export const task = (over: Partial<Task> = {}): Task => ({
   id: 't1',
@@ -70,6 +70,10 @@ describe('Бали й дедлайн', () => {
     expect(splitPoints(10, 3)).toEqual([4, 3, 3]);
     expect(splitPoints(2, 3)).toEqual([1, 1]);
     expect(splitPoints(0, 2)).toEqual([]);
+  });
+  it('частка: рівні — одним числом, нерівні — кожна', () => {
+    expect(shareLabel(splitPoints(20, 2))).toBe('кожному 10');
+    expect(shareLabel(splitPoints(40, 3))).toBe('кожному 14 · 13 · 13');
   });
   it('дедлайн: прострочено, сьогодні, завтра, дата', () => {
     const now = new Date('2026-11-10T10:00:00Z');
