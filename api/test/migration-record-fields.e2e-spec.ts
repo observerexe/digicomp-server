@@ -60,7 +60,8 @@ describe('Міграція додаткових полів (e2e)', () => {
       `SELECT title, extra FROM tasks WHERE id = $1`,
       [t.id],
     );
-    expect(row).toEqual({ title: 'ТЗ', extra: {} });
+    // Порожнє extra; «Тип» — «Інше» від пізнішої міграції TaskTypes (6.3).
+    expect(row).toEqual({ title: 'ТЗ', extra: { type: 'inshe' } });
     expect(await exists('record_field_defs')).toBe(true);
   });
 });

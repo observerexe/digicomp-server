@@ -7389,6 +7389,11 @@
               "$ref": "#/components/schemas/PaperFieldOptionDto"
             }
           },
+          "dictionary": {
+            "type": "string",
+            "nullable": true,
+            "description": "enum, list<enum>: key of the dictionary the choices come from (staff manage it in «Довідники»); null — fixed choices or another type."
+          },
           "binding": {
             "type": "string",
             "nullable": true,
@@ -7444,6 +7449,7 @@
           "maxItems",
           "scale",
           "options",
+          "dictionary",
           "binding",
           "columns",
           "key",

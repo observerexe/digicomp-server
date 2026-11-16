@@ -60,6 +60,8 @@ export type PaperField = Omit<FieldSpec, 'columns'> & {
   print: boolean;
   /** enum, list<enum>: the choices, archived ones included. */
   options: FieldOption[] | null;
+  /** enum, list<enum>: key of the dictionary the choices come from; null — fixed choices or another type. */
+  dictionary: string | null;
   /** richtext bound to a text field of the record: paragraphs without formatting. */
   plain: boolean;
   /** Key of the record's field it is bound to; null — not bound. */
@@ -141,6 +143,7 @@ export async function resolveFields(
           ? (items.get(dictionary) ?? [])
           : (s?.options ?? [])
         : null,
+      dictionary: isEnum ? dictionary : null,
       plain: f.type === 'richtext' && f.binding !== null,
       binding: f.binding,
       auto: !!s && isAutoBinding(kind, s),

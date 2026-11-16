@@ -2,11 +2,12 @@ import { useRef, useState } from 'react';
 import { FIELD_LIMITS, itemType, type FieldValue } from '../../../../shared/editor-schema/fields';
 import { PALETTE } from '../../lib/palette';
 import { itemFieldType, type FieldType, type WidgetProps } from '.';
+import { ManageList } from './ManageList';
 import s from './widgets.module.css';
 
 type Item = string | number | boolean;
 
-/** Several choices: a box for each option. */
+/** Several choices: a box for each option; staff — a link to the dictionary. */
 function Choices({ id, field, value, disabled, onChange }: WidgetProps) {
   const chosen = Array.isArray(value) ? (value as Item[]) : [];
   const options = field.type === 'list<color>' ? PALETTE.map((c) => ({ key: c.name as string, label: c.label, archived: false })) : (field.options ?? []);
@@ -28,6 +29,7 @@ function Choices({ id, field, value, disabled, onChange }: WidgetProps) {
             </label>
           );
         })}
+      <ManageList field={field} disabled={disabled} />
     </span>
   );
 }

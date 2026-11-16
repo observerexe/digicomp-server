@@ -6,6 +6,7 @@ import { PointsTemplates1815000000000 } from '../migrations/1815000000000-Points
 import { ReportTemplates1819000000000 } from '../migrations/1819000000000-ReportTemplates';
 import { AuthorizationTemplates1821000000000 } from '../migrations/1821000000000-AuthorizationTemplates';
 import { ProjectInventoryTemplates1823000000000 } from '../migrations/1823000000000-ProjectInventoryTemplates';
+import { TaskTypeTemplates1826000000000 } from '../migrations/1826000000000-TaskTypeTemplates';
 
 /**
  * The migrations that publish the templates every installation starts with.
@@ -22,6 +23,7 @@ export const TEMPLATE_MIGRATIONS = [
   ReportTemplates1819000000000,
   AuthorizationTemplates1821000000000,
   ProjectInventoryTemplates1823000000000,
+  TaskTypeTemplates1826000000000,
 ];
 
 export async function seedTemplates(q: QueryRunner) {

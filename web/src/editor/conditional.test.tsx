@@ -52,6 +52,7 @@ const field = (over: Partial<PaperField>): PaperField => ({
   maxItems: null,
   scale: null,
   options: null,
+  dictionary: null,
   plain: false,
   binding: null,
   auto: false,

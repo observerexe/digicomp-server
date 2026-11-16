@@ -5,7 +5,10 @@ import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { PaperField } from '../../api/types';
 import type { RecordView } from '../../lib/records';
-import { json, mockApi } from '../../test/render';
+import { json, member, mockApi, moderator } from '../../test/render';
+import type { Me } from '../../api/types';
+import { AuthProvider, ME_KEY } from '../../auth/AuthProvider';
+import { MemoryRouter } from 'react-router';
 import type { FieldValue } from '../../../../shared/editor-schema/fields';
 import { PaperRecordsContext, type PaperRecords } from '../records';
 import { fieldType } from '.';
@@ -24,6 +27,7 @@ const f = (type: string, over: Partial<PaperField> = {}): PaperField => ({
   maxItems: null,
   scale: null,
   options: null,
+  dictionary: null,
   plain: false,
   binding: null,
   canFill: true,
@@ -33,7 +37,7 @@ const f = (type: string, over: Partial<PaperField> = {}): PaperField => ({
 });
 
 /** The widget with its value kept (as the page does) and a label pointing at its control. */
-function widget(field: PaperField, initial?: FieldValue, opts: { disabled?: boolean; known?: RecordView[] } = {}) {
+function widget(field: PaperField, initial?: FieldValue, opts: { disabled?: boolean; known?: RecordView[]; me?: Me } = {}) {
   const onChange = vi.fn();
   const onJump = vi.fn();
   const { Widget, group } = fieldType(field.type);
@@ -58,14 +62,25 @@ function widget(field: PaperField, initial?: FieldValue, opts: { disabled?: bool
       </>
     );
   }
+  const harness = (
+    <PaperRecordsContext value={records}>
+      <Harness />
+    </PaperRecordsContext>
+  );
+  if (opts.me) mockApi({ 'GET /api/auth/me': () => json(200, opts.me) });
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-      <PaperRecordsContext value={records}>
-        <Harness />
-      </PaperRecordsContext>
+    <QueryClientProvider client={qc}>
+      {opts.me ? (
+        <AuthProvider>
+          <MemoryRouter>{harness}</MemoryRouter>
+        </AuthProvider>
+      ) : (
+        harness
+      )}
     </QueryClientProvider>,
   );
-  return { onChange, onJump };
+  return { onChange, onJump, qc };
 }
 
 describe('Реєстр типів полів', () => {
@@ -134,6 +149,30 @@ describe('Реєстр типів полів', () => {
     expect(screen.getByRole('checkbox', { name: 'Б' })).toBeDisabled();
     await userEvent.click(screen.getByRole('checkbox', { name: 'А' }));
     expect(onChange).toHaveBeenLastCalledWith(null);
+  });
+
+  describe('вибір із довідника: «Керувати списком»', () => {
+    const staff: Me = { ...moderator, permissions: [...moderator.permissions, 'dictionaries.manage'] };
+    const options = [{ key: 'video', label: 'Відео' }];
+
+    it.each(['enum', 'list<enum>'])('%s: staff — посилання на довідник', async (type) => {
+      widget(f(type, { options, dictionary: 'task_type' }), undefined, { me: staff });
+      expect(await screen.findByRole('link', { name: 'Керувати списком' })).toHaveAttribute('href', '/panel/dictionaries/task_type');
+    });
+
+    it('учасник посилання не бачить', async () => {
+      const { qc } = widget(f('enum', { options, dictionary: 'task_type' }), undefined, { me: member });
+      await waitFor(() => expect(qc.getQueryData(ME_KEY)).toEqual(member));
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    });
+
+    it('поле не змінюється або вибір без довідника — без посилання', () => {
+      widget(f('enum', { options, dictionary: 'task_type' }), 'video', { disabled: true });
+      widget(f('enum', { options }));
+      expect(screen.getAllByRole('combobox')).toHaveLength(2);
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    });
   });
 
   it('list<text>: рядок на значення, «Додати» й «Прибрати»', async () => {

@@ -19,6 +19,15 @@
   width: 18px;
   height: 18px;
 }
+/* enum: the list, and under it the link to the dictionary (staff) */
+.choice {
+  display: grid;
+  gap: 4px;
+}
+.manage {
+  justify-self: start;
+  font-size: 14px;
+}
 .items {
   display: grid;
   gap: 8px;

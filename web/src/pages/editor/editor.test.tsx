@@ -387,6 +387,7 @@ describe('Редактор: документ із шаблону', () => {
     maxItems: null,
     scale: null,
     options: null,
+    dictionary: null,
     plain: false,
     binding: null,
     canFill: true,

@@ -103,6 +103,10 @@ export class PaperFieldDto {
   @ApiProperty({ type: [PaperFieldOptionDto], nullable: true })
   options: PaperFieldOptionDto[] | null;
 
+  /** enum, list<enum>: key of the dictionary the choices come from (staff manage it in «Довідники»); null — fixed choices or another type. */
+  @ApiProperty({ type: String, nullable: true })
+  dictionary: string | null;
+
   /** A zone of plain paragraphs (bound to a text field of the record). */
   plain: boolean;
 

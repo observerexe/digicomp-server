@@ -2559,6 +2559,8 @@ export interface components {
             scale: number | null;
             /** @description enum, list<enum>: the choices in order; null for other types. */
             options: components["schemas"]["PaperFieldOptionDto"][] | null;
+            /** @description enum, list<enum>: key of the dictionary the choices come from (staff manage it in «Довідники»); null — fixed choices or another type. */
+            dictionary: string | null;
             /** @description Key of the record's field it is bound to; once published it shows the record as it is now. */
             binding: string | null;
             /** @description rows: fields of its columns (filled, changed and printed as the rows); null for other types. */

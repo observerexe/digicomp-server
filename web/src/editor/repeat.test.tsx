@@ -35,6 +35,7 @@ const pf = (over: Partial<PaperField> & Pick<PaperField, 'key' | 'label'>): Pape
   maxItems: null,
   scale: null,
   options: null,
+  dictionary: null,
   plain: false,
   binding: null,
   auto: false,

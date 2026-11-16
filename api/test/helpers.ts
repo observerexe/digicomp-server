@@ -17,6 +17,8 @@ import {
   TASK_TEMPLATES,
   TaskTemplates1812000000000,
 } from '../src/migrations/1812000000000-TaskTemplates';
+import { TaskTypes1825000000000 } from '../src/migrations/1825000000000-TaskTypes';
+import { TaskTypeTemplates1826000000000 } from '../src/migrations/1826000000000-TaskTypeTemplates';
 import {
   POINTS_TEMPLATES,
   PointsTemplates1815000000000,
@@ -180,6 +182,22 @@ export async function taskTemplates(app: INestApplication) {
   }
   const [full, short] = TASK_TEMPLATES.map((t) => t.id);
   return { full, short };
+}
+
+/**
+ * Task types as the migrations make them: the dictionary «Тип технічного
+ * завдання», the required task field «Тип» (existing tasks get «Інше») and
+ * version 2 of the task templates with it (after taskTemplates). Tables are
+ * emptied before each test, so tests about anything else have no types.
+ */
+export async function taskTypes(app: INestApplication) {
+  const q = app.get(DataSource).createQueryRunner();
+  try {
+    await new TaskTypes1825000000000().up(q);
+    await new TaskTypeTemplates1826000000000().up(q);
+  } finally {
+    await q.release();
+  }
 }
 
 /**
