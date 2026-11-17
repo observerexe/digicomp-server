@@ -60,18 +60,14 @@
 .card[aria-busy='true'] {
   opacity: 0.7;
 }
-/* Colour of the first «Вибір з довідника» field (the task's type): the whole card in its shade, a stripe on the left;
-   a label on the card says the same in words (its chip — the full shade, so it stands out on the card). */
-.stripe {
-  --card-bg: color-mix(in srgb, var(--pal-soft) 55%, var(--c-surface));
-  border-color: color-mix(in srgb, var(--pal-solid) 30%, var(--c-border));
-  border-left: 4px solid var(--pal-solid);
+/* Colour of the first «Вибір з довідника» field (the task's type): the whole card in its shade; a label on the card
+   says the same in words (its chip — the lighter shade, so it stands out on the card). */
+.typed {
+  --card-bg: color-mix(in srgb, var(--pal-solid) 18%, var(--pal-soft));
+  border-color: color-mix(in srgb, var(--pal-solid) 55%, var(--c-border));
 }
 .cardReview {
   border-color: var(--c-warning);
-}
-.stripe.cardReview {
-  border-left-color: var(--pal-solid);
 }
 .cardNumber {
   color: var(--c-text2);
