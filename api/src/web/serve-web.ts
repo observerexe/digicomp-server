@@ -23,7 +23,6 @@ export function webDir(): string | null {
 const NO_CACHE = new Set([
   '/index.html',
   '/sw.js',
-  '/registerSW.js',
   '/manifest.webmanifest',
 ]);
 

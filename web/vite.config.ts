@@ -9,7 +9,8 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      injectRegister: 'script',
+      // Registered by src/lib/appUpdate.ts: it also checks for new builds and reloads the page when that bothers no one.
+      injectRegister: false,
       includeAssets: ['fonts/*.woff2', 'icons/*.png', 'icons/icon.svg'],
       manifest: {
         name: 'DigiComp HUB',
@@ -35,6 +36,10 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api\//, /^\/health/],
         runtimeCaching: [],
         cleanupOutdatedCaches: true,
+        // A new build takes over at once (without these it waits until every tab of the app is closed, which on a phone
+        // is almost never); the open page then reloads when that bothers no one (src/lib/appUpdate.ts).
+        skipWaiting: true,
+        clientsClaim: true,
       },
     }),
   ],

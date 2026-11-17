@@ -4,12 +4,14 @@ import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router';
 import { ApiError } from './api/client';
 import { AuthProvider } from './auth/AuthProvider';
+import { appNavigated, startAppUpdates } from './lib/appUpdate';
 import { routes } from './routes';
 import './styles/tokens.css';
 import './styles/global.css';
 import { applyTheme, storedTheme } from './theme/theme';
 
 applyTheme(storedTheme());
+startAppUpdates();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,6 +24,13 @@ const queryClient = new QueryClient({
 });
 
 const router = createBrowserRouter(routes);
+// A new build waits for the next page: going elsewhere reloads into it (lib/appUpdate.ts).
+let path = router.state.location.pathname;
+router.subscribe((state) => {
+  if (state.location.pathname === path) return;
+  path = state.location.pathname;
+  appNavigated();
+});
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
