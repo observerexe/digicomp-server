@@ -9,7 +9,7 @@
   border-top: 1px solid var(--c-border);
   background: var(--c-surface);
   color: var(--c-text2);
-  font-size: 13px;
+  font-size: var(--fs-13);
 }
 .zoom {
   display: inline-flex;
@@ -28,7 +28,7 @@
   border-radius: var(--radius-control);
   background: transparent;
   color: var(--c-text);
-  font-size: 18px;
+  font-size: var(--fs-18);
   line-height: 1;
   cursor: pointer;
 }

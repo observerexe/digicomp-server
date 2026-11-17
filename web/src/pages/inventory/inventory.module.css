@@ -56,8 +56,8 @@
 .sub {
   margin: 0;
   color: var(--c-text2);
-  font-size: 13px;
-  line-height: 18px;
+  font-size: var(--fs-13);
+  line-height: 1.385;
 }
 .qty,
 .qtyBig {
@@ -70,7 +70,7 @@
 }
 .qtyBig {
   font-family: var(--font-heading);
-  font-size: 24px;
+  font-size: var(--fs-24);
 }
 .low {
   color: var(--c-warning);
@@ -79,14 +79,14 @@
   padding: 2px 8px;
   border-radius: var(--radius-pill);
   background: var(--c-warning-soft);
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 .warn,
 .ok {
   margin: 12px 0 0;
   padding: 10px 14px;
   border-radius: var(--radius-control);
-  font-size: 14px;
+  font-size: var(--fs-14);
 }
 .warn {
   background: var(--c-warning-soft);
@@ -152,7 +152,7 @@
 }
 .caption {
   margin: 0 0 8px;
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;

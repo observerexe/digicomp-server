@@ -42,8 +42,8 @@ body {
   background: var(--c-bg);
   color: var(--c-text);
   font-family: var(--font-body);
-  font-size: 16px;
-  line-height: 24px;
+  font-size: var(--fs-16);
+  line-height: calc(var(--fs-16) * 1.5);
   -webkit-font-smoothing: antialiased;
 }
 a {
@@ -55,6 +55,14 @@ select,
 textarea {
   font: inherit;
   color: inherit;
+}
+/* On a phone the interface type is smaller, but a field stays 16 px: with less iOS zooms the page in on focus. */
+@media (max-width: 899px) {
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
 }
 :focus-visible {
   outline: 3px solid var(--c-primary);
@@ -108,7 +116,7 @@ textarea {
   gap: 6px;
 }
 .field label {
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 500;
 }
 .field input,
@@ -123,8 +131,8 @@ textarea {
   border: 2px solid var(--c-danger);
 }
 .hint {
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--fs-14);
+  line-height: 1.429;
   color: var(--c-text2);
 }
 .visually-hidden {

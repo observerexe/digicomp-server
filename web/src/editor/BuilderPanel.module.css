@@ -19,7 +19,7 @@
   border-bottom: 2px solid transparent;
   background: transparent;
   color: var(--c-text2);
-  font-size: 15px;
+  font-size: var(--fs-15);
   font-weight: 600;
   cursor: pointer;
 }
@@ -49,7 +49,7 @@
 }
 .group h3 {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -88,7 +88,7 @@
   border-radius: var(--radius-control);
   background: var(--c-surface);
   color: var(--c-text);
-  font-size: 14px;
+  font-size: var(--fs-14);
   text-align: left;
   cursor: grab;
 }
@@ -160,7 +160,7 @@
   border: 0;
 }
 .propLabel {
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 500;
 }
 .mono {
@@ -169,8 +169,8 @@
 .error {
   margin: 0;
   color: var(--c-danger);
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--fs-14);
+  line-height: 1.429;
 }
 .pair {
   display: grid;

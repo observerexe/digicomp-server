@@ -4,8 +4,8 @@
 }
 .roomTitle {
   margin: 0 0 10px;
-  font-size: 13px;
-  line-height: 18px;
+  font-size: var(--fs-13);
+  line-height: 1.385;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -48,12 +48,12 @@
   border-radius: var(--radius-pill);
   background: var(--c-surface2);
   color: var(--c-text2);
-  font-size: 13px;
-  line-height: 18px;
+  font-size: var(--fs-13);
+  line-height: 1.385;
 }
 .value {
   color: var(--c-text2);
-  font-size: 15px;
+  font-size: var(--fs-15);
   font-variant-numeric: tabular-nums;
 }
 .alarm {
@@ -126,7 +126,7 @@
 .percent {
   min-width: 40px;
   text-align: right;
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-variant-numeric: tabular-nums;
 }
 /* Device list (admin). */
@@ -136,8 +136,8 @@
 }
 .caption {
   margin: 0 0 8px;
-  font-size: 13px;
-  line-height: 18px;
+  font-size: var(--fs-13);
+  line-height: 1.385;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -172,8 +172,8 @@
 }
 .rowSub {
   color: var(--c-text2);
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--fs-14);
+  line-height: 1.429;
   overflow-wrap: anywhere;
 }
 .actions {

@@ -1,5 +1,5 @@
 // Generates src/styles/tokens.css from docs/design/tokens.json (approved
-// design, stage 6). Run: npm run tokens (also part of npm run build).
+// design). Run: npm run tokens (also part of npm run build).
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -42,6 +42,10 @@ const px = (n) => `${n}px`;
 const radius = Object.fromEntries(Object.entries(tokens.radius).map(([k, v]) => [k, px(v)]));
 const size = Object.fromEntries(Object.entries(tokens.size).map(([k, v]) => [k, px(v)]));
 const space = Object.fromEntries(tokens.space.map((v, i) => [String(i + 1), px(v)]));
+// --fs-<desktop px>: the interface font size; on a phone (narrower than 900 px) a smaller one.
+const fontPhone = Object.entries(tokens.fontPhone).filter(([k]) => !k.startsWith('$'));
+const fontDesktop = Object.fromEntries(fontPhone.map(([k]) => [k, px(k)]));
+const fontSmall = Object.fromEntries(fontPhone.map(([k, v]) => [k, px(v)]));
 const motion = Object.fromEntries(
   Object.entries(tokens.motion).filter(([, v]) => typeof v === 'string'),
 );
@@ -56,6 +60,7 @@ ${vars(radius, 'radius')}
 ${vars(size, 'size')}
 ${vars(space, 'space')}
 ${vars(motion, 'motion')}
+${vars(fontDesktop, 'fs')}
   --font-body: '${tokens.font.body}', ${tokens.font.fallback};
   --font-heading: '${tokens.font.heading}', ${tokens.font.fallback};
 }
@@ -71,6 +76,12 @@ ${vars(pal('dark'), 'pal')}
     color-scheme: dark;
 ${vars(dark, 'c').replace(/^/gm, '  ')}
 ${vars(pal('dark'), 'pal').replace(/^/gm, '  ')}
+  }
+}
+
+@media (max-width: 899px) {
+  :root {
+${vars(fontSmall, 'fs').replace(/^/gm, '  ')}
   }
 }
 

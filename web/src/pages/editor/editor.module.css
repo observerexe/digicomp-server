@@ -73,7 +73,7 @@
 }
 .number {
   color: var(--c-text2);
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -82,14 +82,14 @@
   border-radius: var(--radius-pill);
   background: var(--c-surface2);
   color: var(--c-text2);
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 500;
   white-space: nowrap;
 }
 .sub {
   color: var(--c-text2);
-  font-size: 13px;
-  line-height: 18px;
+  font-size: var(--fs-13);
+  line-height: 1.385;
 }
 
 /* An error of «Новий документ» under the header's buttons */
@@ -110,7 +110,7 @@
 }
 .newTemplate h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--fs-18);
   font-weight: 600;
 }
 .formActions {
@@ -174,7 +174,7 @@
 }
 .path {
   color: var(--c-text2);
-  font-size: 13px;
+  font-size: var(--fs-13);
 }
 .path a {
   color: inherit;
@@ -197,9 +197,9 @@
   max-width: 640px;
   margin: 0;
   font-family: var(--font-heading);
-  font-size: 20px;
+  font-size: var(--fs-20);
   font-weight: 500;
-  line-height: 28px;
+  line-height: 1.4;
 }
 .titleText {
   overflow: hidden;
@@ -224,8 +224,8 @@
 .saved {
   min-height: 18px;
   color: var(--c-text2);
-  font-size: 13px;
-  line-height: 18px;
+  font-size: var(--fs-13);
+  line-height: 1.385;
 }
 .topActions {
   display: flex;

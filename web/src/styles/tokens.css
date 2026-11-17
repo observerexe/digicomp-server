@@ -74,6 +74,20 @@
   --motion-fast: 150ms;
   --motion-base: 200ms;
   --motion-slow: 250ms;
+  --fs-11: 11px;
+  --fs-12: 12px;
+  --fs-13: 13px;
+  --fs-14: 14px;
+  --fs-15: 15px;
+  --fs-16: 16px;
+  --fs-17: 17px;
+  --fs-18: 18px;
+  --fs-20: 20px;
+  --fs-22: 22px;
+  --fs-24: 24px;
+  --fs-26: 26px;
+  --fs-32: 32px;
+  --fs-40: 40px;
   --font-body: 'e-Ukraine', system-ui, sans-serif;
   --font-heading: 'e-Ukraine Head', system-ui, sans-serif;
 }
@@ -169,6 +183,25 @@
     --pal-purple-solid: #A47CF0;
     --pal-purple-soft: #2A1C4A;
     --pal-purple-text: #C3A6FF;
+  }
+}
+
+@media (max-width: 899px) {
+  :root {
+    --fs-11: 11px;
+    --fs-12: 11px;
+    --fs-13: 12px;
+    --fs-14: 13px;
+    --fs-15: 14px;
+    --fs-16: 15px;
+    --fs-17: 16px;
+    --fs-18: 16px;
+    --fs-20: 18px;
+    --fs-22: 19px;
+    --fs-24: 21px;
+    --fs-26: 22px;
+    --fs-32: 26px;
+    --fs-40: 32px;
   }
 }
 

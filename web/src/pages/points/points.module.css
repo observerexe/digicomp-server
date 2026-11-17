@@ -68,7 +68,7 @@
   justify-content: center;
   background: var(--c-surface2);
   font-weight: 700;
-  font-size: 14px;
+  font-size: var(--fs-14);
 }
 .place1 .medal {
   background: var(--c-warning);
@@ -81,7 +81,7 @@
 }
 .placePoints {
   color: var(--c-text2);
-  font-size: 14px;
+  font-size: var(--fs-14);
 }
 .table,
 .list {
@@ -129,8 +129,8 @@
 }
 .sub {
   color: var(--c-text2);
-  font-size: 13px;
-  line-height: 18px;
+  font-size: var(--fs-13);
+  line-height: 1.385;
 }
 .total {
   font-weight: 700;
@@ -154,7 +154,7 @@
 .balance {
   margin: 8px 0;
   font-family: var(--font-heading);
-  font-size: 32px;
+  font-size: var(--fs-32);
   font-weight: 700;
 }
 .entry,

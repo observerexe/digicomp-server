@@ -45,7 +45,7 @@
   flex-basis: 100%;
   margin: 0 0 2px;
   color: var(--c-text2);
-  font-size: 13px;
+  font-size: var(--fs-13);
 }
 .group {
   display: flex;
@@ -79,7 +79,7 @@
 }
 .wide {
   padding: 0 10px;
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -110,7 +110,7 @@
 /* Ж К П З — in the sheet's font, the way they change the text */
 .letter {
   font-family: 'Times New Roman', 'Liberation Serif', serif;
-  font-size: 18px;
+  font-size: var(--fs-18);
 }
 .bold {
   font-weight: 700;
@@ -133,7 +133,7 @@
   background: var(--c-surface);
   color: var(--c-text);
   font: inherit;
-  font-size: 14px;
+  font-size: var(--fs-14);
 }
 .style {
   width: 150px;
@@ -157,7 +157,7 @@
   background: var(--c-surface);
   color: var(--c-text);
   font: inherit;
-  font-size: 14px;
+  font-size: var(--fs-14);
 }
 .alt:focus-visible {
   outline: 2px solid var(--c-primary);
@@ -257,7 +257,7 @@
 .gridSize {
   margin: 8px 0 0;
   color: var(--c-text2);
-  font-size: 13px;
+  font-size: var(--fs-13);
   text-align: center;
 }
 
@@ -297,5 +297,5 @@
   margin: 0;
   padding: 0 12px 6px;
   color: var(--c-text2);
-  font-size: 13px;
+  font-size: var(--fs-13);
 }

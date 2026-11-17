@@ -33,7 +33,7 @@
   margin-bottom: 8px;
   font-family: var(--font-heading);
   font-weight: 500;
-  font-size: 18px;
+  font-size: var(--fs-18);
 }
 .themeOption {
   min-height: var(--size-touch-min);

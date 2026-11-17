@@ -26,7 +26,7 @@
 }
 .manage {
   justify-self: start;
-  font-size: 14px;
+  font-size: var(--fs-14);
 }
 .items {
   display: grid;
@@ -69,7 +69,7 @@
 .rowCard legend {
   padding: 0 4px;
   color: var(--c-text2);
-  font-size: 13px;
+  font-size: var(--fs-13);
 }
 .rowRemove {
   position: absolute;
@@ -125,7 +125,7 @@
 }
 .sub {
   color: var(--c-text2);
-  font-size: 13px;
+  font-size: var(--fs-13);
 }
 .chosen {
   display: flex;

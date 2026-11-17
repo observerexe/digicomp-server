@@ -1,6 +1,6 @@
 .caption {
   margin: 16px 0 8px;
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -35,16 +35,16 @@
 }
 .count {
   font-family: var(--font-heading);
-  font-size: 32px;
+  font-size: var(--fs-32);
   font-weight: 700;
-  line-height: 40px;
+  line-height: 1.25;
 }
 .title {
   font-weight: 700;
 }
 .note {
   color: var(--c-text2);
-  font-size: 14px;
+  font-size: var(--fs-14);
 }
 .tools {
   display: grid;
@@ -97,8 +97,8 @@ li:first-child > .rowLink {
 }
 .rowSub {
   color: var(--c-text2);
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--fs-14);
+  line-height: 1.429;
   overflow-wrap: anywhere;
 }
 .badge {
@@ -107,8 +107,8 @@ li:first-child > .rowLink {
   border-radius: var(--radius-pill);
   background: var(--c-surface2);
   color: var(--c-text2);
-  font-size: 12px;
-  line-height: 18px;
+  font-size: var(--fs-12);
+  line-height: 1.5;
   font-weight: 500;
 }
 .badgeOff {
@@ -147,8 +147,8 @@ li:first-child > .rowLink {
 }
 .sectionTitle {
   margin: 0 0 12px;
-  font-size: 13px;
-  line-height: 18px;
+  font-size: var(--fs-13);
+  line-height: 1.385;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -163,8 +163,8 @@ li:first-child > .rowLink {
 .personName {
   margin: 0;
   font-family: var(--font-heading);
-  font-size: 22px;
-  line-height: 28px;
+  font-size: var(--fs-22);
+  line-height: 1.273;
 }
 .secret {
   display: grid;
@@ -175,7 +175,7 @@ li:first-child > .rowLink {
 }
 .secretValue {
   font-family: ui-monospace, monospace;
-  font-size: 20px;
+  font-size: var(--fs-20);
   letter-spacing: 0.04em;
   user-select: all;
   overflow-wrap: anywhere;

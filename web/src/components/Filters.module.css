@@ -39,7 +39,7 @@
   border: 1px solid var(--c-border);
   background: var(--c-surface);
   color: var(--c-text2);
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 500;
   cursor: pointer;
   transition: background var(--motion-fast);

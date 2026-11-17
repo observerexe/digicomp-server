@@ -6,8 +6,8 @@
 }
 .caption {
   margin: 0;
-  font-size: 13px;
-  line-height: 18px;
+  font-size: var(--fs-13);
+  line-height: 1.385;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;

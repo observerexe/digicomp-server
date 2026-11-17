@@ -54,6 +54,8 @@ export function ChoiceButton(props: {
         {props.label}
         <Icon name="down" size={18} />
       </button>
+      {/* On a phone the menu is a sheet at the bottom of the screen over a dimmed page; a tap on it closes the menu. */}
+      {d.open && <div className={s.backdrop} aria-hidden="true" onClick={() => d.setOpen(false)} />}
       {d.open && (
         <ul id={id} ref={menu} className={s.menu} role="menu" aria-label={props.label} onKeyDown={moveFocus}>
           {choices.map((c) => (

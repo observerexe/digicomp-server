@@ -1,7 +1,7 @@
 .verdict {
   margin: 0 0 8px;
-  font-size: 20px;
-  line-height: 28px;
+  font-size: var(--fs-20);
+  line-height: 1.4;
   font-weight: 700;
 }
 .good {
@@ -18,7 +18,7 @@
 }
 .facts dt {
   color: var(--c-text3);
-  font-size: 13px;
+  font-size: var(--fs-13);
 }
 .facts dd {
   margin: 0;
@@ -29,7 +29,7 @@
 }
 .code {
   font-family: monospace;
-  font-size: 13px;
+  font-size: var(--fs-13);
   word-break: break-all;
 }
 .actions {

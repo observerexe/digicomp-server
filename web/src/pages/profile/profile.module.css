@@ -25,14 +25,14 @@
 .name {
   margin: 0;
   font-family: var(--font-heading);
-  font-size: 24px;
-  line-height: 32px;
+  font-size: var(--fs-24);
+  line-height: 1.333;
 }
 .meta {
   margin: 0;
   color: var(--c-text2);
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--fs-14);
+  line-height: 1.429;
 }
 .bio {
   margin: 0 0 16px;
@@ -49,8 +49,8 @@
 }
 .caption {
   margin: 0 0 8px;
-  font-size: 13px;
-  line-height: 18px;
+  font-size: var(--fs-13);
+  line-height: 1.385;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -69,8 +69,8 @@
   margin: 0;
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 40px;
-  line-height: 48px;
+  font-size: var(--fs-40);
+  line-height: 1.2;
 }
 .rows {
   list-style: none;
@@ -97,8 +97,8 @@
 }
 .rowSub {
   color: var(--c-text2);
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--fs-14);
+  line-height: 1.429;
   font-weight: 400;
 }
 .amount {
@@ -188,8 +188,8 @@
   border-radius: var(--radius-control);
   background: var(--c-warning-soft);
   color: var(--c-warning);
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--fs-14);
+  line-height: 1.429;
 }
 .logout {
   justify-self: start;
@@ -220,7 +220,7 @@
 .counter {
   align-self: flex-end;
   color: var(--c-text3);
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 .ok {
   margin: 0;
@@ -228,8 +228,8 @@
   border-radius: var(--radius-control);
   background: var(--c-success-soft);
   color: var(--c-success);
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--fs-14);
+  line-height: 1.429;
 }
 .qr {
   display: flex;
@@ -241,7 +241,7 @@
 }
 .secret {
   font-family: ui-monospace, monospace;
-  font-size: 16px;
+  font-size: var(--fs-16);
   letter-spacing: 0.08em;
   word-break: break-all;
   user-select: all;
@@ -256,7 +256,7 @@
   border-radius: var(--radius-control);
   background: var(--c-surface2);
   font-family: ui-monospace, monospace;
-  font-size: 16px;
+  font-size: var(--fs-16);
 }
 .steps {
   margin: 0;

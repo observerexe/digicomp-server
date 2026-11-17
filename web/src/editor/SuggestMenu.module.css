@@ -11,14 +11,14 @@
   background: var(--c-surface);
   color: var(--c-text);
   font-family: var(--font-body);
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--fs-14);
+  line-height: 1.429;
   text-indent: 0;
 }
 .group {
   margin: 6px 8px 2px;
   color: var(--c-text2);
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
 }
 .option {
@@ -37,7 +37,7 @@
 }
 .sub {
   color: var(--c-text2);
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 .note {
   margin: 0;

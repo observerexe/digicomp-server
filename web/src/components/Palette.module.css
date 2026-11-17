@@ -7,8 +7,8 @@
   border-radius: var(--radius-pill);
   background: var(--pal-soft);
   color: var(--pal-text);
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--fs-14);
+  line-height: 1.429;
   font-weight: 500;
 }
 .chip::before {
@@ -28,7 +28,7 @@
 .picker legend {
   padding: 0;
   margin-bottom: 6px;
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 500;
 }
 .swatches {
