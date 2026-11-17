@@ -1,5 +1,6 @@
 // Shared response shapes for the OpenAPI document (front types are generated
 // from it). Services return these types, so the compiler keeps them in sync.
+import { PALETTE, type PaletteColor } from '../dictionaries/palette';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class OkDto {
@@ -17,6 +18,10 @@ export class UserRefDto {
 
   @ApiProperty({ type: String, nullable: true })
   avatarUrl: string | null;
+
+  /** The account's colour (gray — the user no longer exists). */
+  @ApiProperty({ enum: PALETTE, enumName: 'PaletteColor' })
+  color: PaletteColor;
 }
 
 export class PlaceRefDto {

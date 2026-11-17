@@ -21,7 +21,7 @@ import { PlacesService } from '../places/places.service';
 import { User } from '../users/user.entity';
 import { CloseFaultDto, CreateFaultDto, ListFaultsQuery } from './dto';
 import { FaultPhoto, FaultReport, FaultStatus } from './fault.entities';
-import type { Plain } from '../common/responses.dto';
+import type { Plain, UserRefDto } from '../common/responses.dto';
 import type { FaultDetailDto, FaultDto, FaultListDto } from './responses.dto';
 
 export const FAULT_MAX_PHOTOS = 3;
@@ -33,7 +33,7 @@ export const FaultErrors = {
   PhotoLimit: 'Too many photos',
 } as const;
 
-type Ref = { id: string; name: string | null; avatarUrl: string | null };
+type Ref = Plain<UserRefDto>;
 
 @Injectable()
 export class FaultsService {
@@ -249,7 +249,14 @@ export class FaultsService {
 
   private view(f: FaultReport, users: Map<string, Ref>): Plain<FaultDto> {
     const ref = (uid: string | null) =>
-      uid ? (users.get(uid) ?? { id: uid, name: null, avatarUrl: null }) : null;
+      uid
+        ? (users.get(uid) ?? {
+            id: uid,
+            name: null,
+            avatarUrl: null,
+            color: 'gray' as const,
+          })
+        : null;
     return {
       id: f.id,
       description: f.description,
@@ -280,7 +287,12 @@ export class FaultsService {
     const map = new Map<string, Ref>();
     if (ids.size) {
       for (const u of await this.users.findBy({ id: In([...ids]) })) {
-        map.set(u.id, { id: u.id, name: u.name, avatarUrl: u.avatarUrl });
+        map.set(u.id, {
+          id: u.id,
+          name: u.name,
+          avatarUrl: u.avatarUrl,
+          color: u.color,
+        });
       }
     }
     return map;

@@ -1,3 +1,4 @@
+import { PALETTE, type PaletteColor } from '../dictionaries/palette';
 import { ApiProperty } from '@nestjs/swagger';
 import { Role } from './user.entity';
 
@@ -15,6 +16,9 @@ export class UserPublicDto {
 
   @ApiProperty({ type: String, nullable: true })
   avatarUrl: string | null;
+
+  @ApiProperty({ enum: PALETTE, enumName: 'PaletteColor' })
+  color: PaletteColor;
 }
 
 /** Staff view: public card plus account fields. */

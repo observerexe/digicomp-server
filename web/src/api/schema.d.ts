@@ -2316,9 +2316,12 @@ export interface components {
     schemas: {
         /** @enum {string} */
         Role: "admin" | "moderator" | "member";
+        /** @enum {string} */
+        PaletteColor: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
         UserListItemDto: {
             role: components["schemas"]["Role"];
             avatarUrl: string | null;
+            color: components["schemas"]["PaletteColor"];
             email?: string;
             active?: boolean;
             twoFactorEnabled?: boolean;
@@ -2337,6 +2340,8 @@ export interface components {
             limit: number;
         };
         UpdateProfileDto: {
+            /** @description The account's colour: a name from the palette. */
+            color?: components["schemas"]["PaletteColor"];
             name?: string;
             position?: string;
             specialty?: string;
@@ -2345,6 +2350,7 @@ export interface components {
         MeDto: {
             role: components["schemas"]["Role"];
             avatarUrl: string | null;
+            color: components["schemas"]["PaletteColor"];
             email: string;
             active: boolean;
             twoFactorEnabled: boolean;
@@ -2367,6 +2373,7 @@ export interface components {
         UserDetailDto: {
             role: components["schemas"]["Role"];
             avatarUrl: string | null;
+            color: components["schemas"]["PaletteColor"];
             email?: string;
             active?: boolean;
             twoFactorEnabled?: boolean;
@@ -2384,6 +2391,8 @@ export interface components {
             avatarUrl: string | null;
         };
         UpdateUserDto: {
+            /** @description The account's colour: a name from the palette. */
+            color?: components["schemas"]["PaletteColor"];
             name?: string;
             position?: string;
             specialty?: string;
@@ -2397,6 +2406,7 @@ export interface components {
         UserExtendedDto: {
             role: components["schemas"]["Role"];
             avatarUrl: string | null;
+            color: components["schemas"]["PaletteColor"];
             email: string;
             active: boolean;
             twoFactorEnabled: boolean;
@@ -2559,6 +2569,7 @@ export interface components {
         };
         LeaderboardRowDto: {
             avatarUrl: string | null;
+            color: components["schemas"]["PaletteColor"];
             id: string;
             name: string;
             position: string;
@@ -2653,6 +2664,8 @@ export interface components {
             /** @description null when the user no longer exists. */
             name: string | null;
             avatarUrl: string | null;
+            /** @description The account's colour (gray — the user no longer exists). */
+            color: components["schemas"]["PaletteColor"];
             id: string;
         };
         TemplateVersionRowDto: {
@@ -3116,8 +3129,6 @@ export interface components {
             width: number;
             height: number;
         };
-        /** @enum {string} */
-        PaletteColor: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
         DictionaryItemDto: {
             color: components["schemas"]["PaletteColor"];
             id: string;
@@ -3384,6 +3395,8 @@ export interface components {
             /** @description null when the user no longer exists. */
             name: string | null;
             avatarUrl: string | null;
+            /** @description The account's colour (gray — the user no longer exists). */
+            color: components["schemas"]["PaletteColor"];
             id: string;
             /**
              * Format: date-time
@@ -3701,6 +3714,7 @@ export interface components {
         };
         BookingUserDto: {
             avatarUrl?: string | null;
+            color?: components["schemas"]["PaletteColor"];
             id: string;
             name?: string;
         };
@@ -3885,6 +3899,7 @@ export interface components {
         ProjectStage: "idea" | "planning" | "execution" | "review" | "done";
         ProjectMemberDto: {
             avatarUrl: string | null;
+            color: components["schemas"]["PaletteColor"];
             id: string;
             name: string;
             position: string;

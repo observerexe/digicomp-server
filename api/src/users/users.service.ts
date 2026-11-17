@@ -33,7 +33,14 @@ import { escapeLike } from '../common/like';
 
 export type Actor = { id: string; role: string };
 
-type ProfileField = 'name' | 'position' | 'specialty' | 'bio';
+type ProfileField = 'name' | 'position' | 'specialty' | 'bio' | 'color';
+const PROFILE_FIELDS: readonly ProfileField[] = [
+  'name',
+  'position',
+  'specialty',
+  'bio',
+  'color',
+];
 
 /** Which action allows changing a field of your own profile. */
 const OWN_FIELD_ACTION: Record<ProfileField, Action> = {
@@ -41,6 +48,7 @@ const OWN_FIELD_ACTION: Record<ProfileField, Action> = {
   position: Action.ProfileEditOwnRoleInfo,
   specialty: Action.ProfileEditOwnRoleInfo,
   bio: Action.ProfileEditOwnBio,
+  color: Action.ProfileEditOwnColor,
 };
 
 /** Which action allows changing a field of another user. */
@@ -50,6 +58,7 @@ const OTHER_FIELD_ACTION: Record<ProfileField | 'email', Action> = {
   position: Action.UsersEditRoleInfo,
   specialty: Action.UsersEditRoleInfo,
   bio: Action.UsersModerateContent,
+  color: Action.UsersEditColor,
 };
 
 function fieldForbidden(field: string) {
@@ -169,7 +178,7 @@ export class UsersService {
       if (!u) throw new NotFoundException('User not found');
       const target = { id: u.id, role: u.role };
 
-      for (const k of ['name', 'position', 'specialty', 'bio'] as const) {
+      for (const k of PROFILE_FIELDS) {
         const v = dto[k];
         if (v !== undefined && v !== u[k]) {
           assertCan(actor, OTHER_FIELD_ACTION[k], { target });
@@ -322,10 +331,10 @@ export class UsersService {
 
   private applyProfileFields(u: User, dto: UpdateProfileDto) {
     const changed: string[] = [];
-    for (const k of ['name', 'position', 'specialty', 'bio'] as const) {
+    for (const k of PROFILE_FIELDS) {
       const v = dto[k];
       if (v !== undefined && v !== u[k]) {
-        u[k] = v;
+        (u as Record<ProfileField, string>)[k] = v;
         changed.push(k);
       }
     }

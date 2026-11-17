@@ -17,6 +17,7 @@ import type { MeDto } from '../users/responses.dto';
 import type { Plain } from '../common/responses.dto';
 import { CreateUserDto, LoginDto, TwoFactorVerifyDto } from './dto';
 import { TwoFactorService } from './two-factor.service';
+import { accountColor } from '../dictionaries/palette';
 
 @Injectable()
 export class AuthService {
@@ -45,6 +46,7 @@ export class AuthService {
       where: { email: dto.email.toLowerCase() },
     });
     if (exists) throw new ConflictException('Email already used');
+    const made = await this.users.count();
     const user = await this.users.save(
       this.users.create({
         email: dto.email.toLowerCase(),
@@ -53,6 +55,7 @@ export class AuthService {
         specialty: dto.specialty ?? '',
         passwordHash: await argon2.hash(dto.password),
         role,
+        color: accountColor(made),
       }),
     );
     await this.audit.log({

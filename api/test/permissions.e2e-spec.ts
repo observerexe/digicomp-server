@@ -1196,6 +1196,7 @@ describe('Матриця прав (e2e)', () => {
         [
           'avatarUrl',
           'bio',
+          'color',
           'id',
           'name',
           'pointsTotal',

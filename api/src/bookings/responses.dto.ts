@@ -1,3 +1,4 @@
+import { PALETTE, type PaletteColor } from '../dictionaries/palette';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class BookingUserDto {
@@ -6,6 +7,9 @@ export class BookingUserDto {
 
   @ApiProperty({ type: String, nullable: true, required: false })
   avatarUrl?: string | null;
+
+  @ApiProperty({ enum: PALETTE, enumName: 'PaletteColor', required: false })
+  color?: PaletteColor;
 }
 
 export class BookingPlaceDto {

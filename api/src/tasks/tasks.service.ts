@@ -83,7 +83,12 @@ const ARCHIVE_PAGE = 30;
 const STORAGE_DIR = 'tasks';
 
 function userRef(u: User | null | undefined, id: string) {
-  return { id, name: u?.name ?? null, avatarUrl: u?.avatarUrl ?? null };
+  return {
+    id,
+    name: u?.name ?? null,
+    avatarUrl: u?.avatarUrl ?? null,
+    color: u?.color ?? 'gray',
+  };
 }
 
 function sortAssignees(list: TaskAssignee[]) {

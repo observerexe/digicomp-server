@@ -43,6 +43,7 @@ export enum Action {
   UsersResetPassword = 'users.reset_password',
   UsersResetTwoFactor = 'users.reset_two_factor',
   UsersEditName = 'users.edit_name',
+  UsersEditColor = 'users.edit_color',
   UsersEditEmail = 'users.edit_email',
   UsersModerateContent = 'users.moderate_content',
   UsersManageModerator = 'users.manage_moderator',
@@ -56,6 +57,7 @@ export enum Action {
   ProfileEditOwnAvatar = 'profile.edit_own_avatar',
   ProfileEditOwnRoleInfo = 'profile.edit_own_role_info',
   ProfileEditOwnName = 'profile.edit_own_name',
+  ProfileEditOwnColor = 'profile.edit_own_color',
   ProfileChangePassword = 'profile.change_password',
   ProfileTwoFactor = 'profile.two_factor',
 
@@ -174,6 +176,8 @@ export const ROLES: Record<Action, readonly Role[]> = {
   [Action.UsersResetPassword]: ADMIN,
   [Action.UsersResetTwoFactor]: ADMIN,
   [Action.UsersEditName]: ADMIN,
+  // The colour of another account: the admin only (written to the audit).
+  [Action.UsersEditColor]: ADMIN,
   [Action.UsersEditEmail]: ADMIN,
   [Action.UsersModerateContent]: ADMIN,
   [Action.UsersManageModerator]: ADMIN,
@@ -186,6 +190,7 @@ export const ROLES: Record<Action, readonly Role[]> = {
   [Action.ProfileEditOwnAvatar]: ALL,
   [Action.ProfileEditOwnRoleInfo]: STAFF,
   [Action.ProfileEditOwnName]: ADMIN,
+  [Action.ProfileEditOwnColor]: ALL,
   [Action.ProfileChangePassword]: ALL,
   [Action.ProfileTwoFactor]: ALL,
 

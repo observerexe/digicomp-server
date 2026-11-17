@@ -6201,6 +6201,19 @@
           "member"
         ]
       },
+      "PaletteColor": {
+        "type": "string",
+        "enum": [
+          "gray",
+          "red",
+          "orange",
+          "yellow",
+          "green",
+          "teal",
+          "blue",
+          "purple"
+        ]
+      },
       "UserListItemDto": {
         "type": "object",
         "properties": {
@@ -6214,6 +6227,13 @@
           "avatarUrl": {
             "type": "string",
             "nullable": true
+          },
+          "color": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaletteColor"
+              }
+            ]
           },
           "email": {
             "type": "string"
@@ -6247,6 +6267,7 @@
         "required": [
           "role",
           "avatarUrl",
+          "color",
           "id",
           "name",
           "position",
@@ -6283,6 +6304,14 @@
       "UpdateProfileDto": {
         "type": "object",
         "properties": {
+          "color": {
+            "description": "The account's colour: a name from the palette.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaletteColor"
+              }
+            ]
+          },
           "name": {
             "type": "string",
             "minLength": 1,
@@ -6315,6 +6344,13 @@
           "avatarUrl": {
             "type": "string",
             "nullable": true
+          },
+          "color": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaletteColor"
+              }
+            ]
           },
           "email": {
             "type": "string"
@@ -6351,6 +6387,7 @@
         "required": [
           "role",
           "avatarUrl",
+          "color",
           "email",
           "active",
           "twoFactorEnabled",
@@ -6408,6 +6445,13 @@
             "type": "string",
             "nullable": true
           },
+          "color": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaletteColor"
+              }
+            ]
+          },
           "email": {
             "type": "string"
           },
@@ -6444,6 +6488,7 @@
         "required": [
           "role",
           "avatarUrl",
+          "color",
           "id",
           "name",
           "position",
@@ -6467,6 +6512,14 @@
       "UpdateUserDto": {
         "type": "object",
         "properties": {
+          "color": {
+            "description": "The account's colour: a name from the palette.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaletteColor"
+              }
+            ]
+          },
           "name": {
             "type": "string",
             "minLength": 1,
@@ -6515,6 +6568,13 @@
             "type": "string",
             "nullable": true
           },
+          "color": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaletteColor"
+              }
+            ]
+          },
           "email": {
             "type": "string"
           },
@@ -6547,6 +6607,7 @@
         "required": [
           "role",
           "avatarUrl",
+          "color",
           "email",
           "active",
           "twoFactorEnabled",
@@ -7203,6 +7264,13 @@
             "type": "string",
             "nullable": true
           },
+          "color": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaletteColor"
+              }
+            ]
+          },
           "id": {
             "type": "string"
           },
@@ -7222,6 +7290,7 @@
         },
         "required": [
           "avatarUrl",
+          "color",
           "id",
           "name",
           "position",
@@ -7544,6 +7613,14 @@
             "type": "string",
             "nullable": true
           },
+          "color": {
+            "description": "The account's colour (gray — the user no longer exists).",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaletteColor"
+              }
+            ]
+          },
           "id": {
             "type": "string"
           }
@@ -7551,6 +7628,7 @@
         "required": [
           "name",
           "avatarUrl",
+          "color",
           "id"
         ]
       },
@@ -8977,19 +9055,6 @@
           "height"
         ]
       },
-      "PaletteColor": {
-        "type": "string",
-        "enum": [
-          "gray",
-          "red",
-          "orange",
-          "yellow",
-          "green",
-          "teal",
-          "blue",
-          "purple"
-        ]
-      },
       "DictionaryItemDto": {
         "type": "object",
         "properties": {
@@ -9890,6 +9955,14 @@
             "type": "string",
             "nullable": true
           },
+          "color": {
+            "description": "The account's colour (gray — the user no longer exists).",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaletteColor"
+              }
+            ]
+          },
           "id": {
             "type": "string"
           },
@@ -9902,6 +9975,7 @@
         "required": [
           "name",
           "avatarUrl",
+          "color",
           "id",
           "takenAt"
         ]
@@ -10962,6 +11036,13 @@
             "type": "string",
             "nullable": true
           },
+          "color": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaletteColor"
+              }
+            ]
+          },
           "id": {
             "type": "string"
           },
@@ -11661,6 +11742,13 @@
             "type": "string",
             "nullable": true
           },
+          "color": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaletteColor"
+              }
+            ]
+          },
           "id": {
             "type": "string"
           },
@@ -11673,6 +11761,7 @@
         },
         "required": [
           "avatarUrl",
+          "color",
           "id",
           "name",
           "position"

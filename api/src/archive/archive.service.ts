@@ -204,6 +204,7 @@ export class ArchiveService {
         'author.id',
         'author.name',
         'author.avatarUrl',
+        'author.color',
         'v.id',
         't.id',
         't.title',
@@ -242,6 +243,7 @@ export class ArchiveService {
           id: p.authorId,
           name: p.author?.name ?? null,
           avatarUrl: p.author?.avatarUrl ?? null,
+          color: p.author?.color ?? 'gray',
         },
       },
     }));

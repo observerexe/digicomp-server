@@ -51,7 +51,12 @@ function view(b: Booking): BookingDto {
     cancelledById: b.cancelledById,
     cancelReason: b.cancelReason,
     user: b.user
-      ? { id: b.user.id, name: b.user.name, avatarUrl: b.user.avatarUrl }
+      ? {
+          id: b.user.id,
+          name: b.user.name,
+          avatarUrl: b.user.avatarUrl,
+          color: b.user.color,
+        }
       : { id: b.userId },
     place: b.place
       ? { id: b.place.id, code: b.place.code, title: b.place.title }

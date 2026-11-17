@@ -222,6 +222,7 @@ function itemView(p: Paper): Plain<PaperItemDto> {
       id: p.authorId,
       name: p.author?.name ?? null,
       avatarUrl: p.author?.avatarUrl ?? null,
+      color: p.author?.color ?? 'gray',
     },
     revision: p.revision,
     publishedAt: p.publishedAt,
@@ -884,6 +885,7 @@ export class PaperworkService {
         'author.id',
         'author.name',
         'author.avatarUrl',
+        'author.color',
       ]);
     whereSeen(qb, actor, this.adapters);
     if (q.mine === 'true') qb.andWhere('p.authorId = :me', { me: actor.id });

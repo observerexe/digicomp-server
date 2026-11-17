@@ -48,6 +48,7 @@ function memberView(u: User) {
     name: u.name,
     position: u.position,
     avatarUrl: u.avatarUrl,
+    color: u.color,
   };
 }
 

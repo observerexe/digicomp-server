@@ -1,4 +1,5 @@
 import { CreateUserDto } from '../auth/dto';
+import type { PaletteColor } from '../dictionaries/palette';
 import { enumOptions, RecordSchemaDef } from '../records/field-types';
 import { UpdateUserDto } from './dto';
 import { Role, User } from './user.entity';
@@ -60,6 +61,22 @@ export const USER_SCHEMA: RecordSchemaDef = {
       type: 'text',
       update: true,
       maxLength: 2000,
+    },
+    {
+      key: 'color',
+      label: 'Колір акаунта',
+      type: 'enum',
+      update: true,
+      options: enumOptions<PaletteColor>({
+        gray: 'Сірий',
+        red: 'Червоний',
+        orange: 'Помаранчевий',
+        yellow: 'Жовтий',
+        green: 'Зелений',
+        teal: 'Бірюзовий',
+        blue: 'Синій',
+        purple: 'Фіолетовий',
+      }),
     },
     { key: 'active', label: 'Активний', type: 'bool', update: true },
     { key: 'createdAt', label: 'У групі з', type: 'datetime' },

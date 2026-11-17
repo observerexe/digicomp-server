@@ -1,3 +1,4 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsBoolean,
   IsEmail,
@@ -9,6 +10,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { PALETTE, type PaletteColor } from '../dictionaries/palette';
 import { Role } from './user.entity';
 
 export class ListUsersQuery {
@@ -57,6 +59,12 @@ export class UpdateProfileDto {
   @IsString()
   @MaxLength(2000)
   bio?: string;
+
+  /** The account's colour: a name from the palette. */
+  @ApiPropertyOptional({ enum: PALETTE, enumName: 'PaletteColor' })
+  @IsOptional()
+  @IsIn(PALETTE)
+  color?: PaletteColor;
 }
 
 export class UpdateUserDto extends UpdateProfileDto {

@@ -103,6 +103,7 @@ function versionItem(v: PaperTemplateVersion): Plain<TemplateVersionItemDto> {
           id: v.publishedById,
           name: v.publishedBy?.name ?? null,
           avatarUrl: v.publishedBy?.avatarUrl ?? null,
+          color: v.publishedBy?.color ?? 'gray',
         }
       : null,
     updatedAt: v.updatedAt,

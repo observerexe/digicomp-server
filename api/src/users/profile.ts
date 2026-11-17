@@ -13,6 +13,7 @@ export function toProfile(u: User): Plain<MeDto> {
     specialty: u.specialty,
     bio: u.bio,
     avatarUrl: u.avatarUrl,
+    color: u.color,
     active: u.active,
     twoFactorEnabled: !!u.totpEnabledAt,
     permissions: permissionsFor(u.role),
@@ -39,5 +40,6 @@ export function toBasicView(u: User): Plain<UserPublicDto> {
     specialty: u.specialty,
     bio: u.bio,
     avatarUrl: u.avatarUrl,
+    color: u.color,
   };
 }

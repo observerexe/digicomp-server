@@ -185,11 +185,16 @@
 
 ### Учасники
 
-- `PATCH /api/users/me`: `bio` — усі; `position`, `specialty` — admin і moderator; `name` — лише admin. Надіслане без змін поле помилки не дає.
-- `PATCH /api/users/:id`: ім'я, email, біо — admin; посада, спеціальність, `active` — admin і moderator (moderator лише для `member`);
+- `PATCH /api/users/me`: `bio`, `color` — усі; `position`, `specialty` — admin і moderator; `name` — лише admin. Надіслане без змін поле помилки не дає.
+- `PATCH /api/users/:id`: ім'я, email, біо, `color` — admin (і модератору); посада, спеціальність, `active` — admin і moderator (moderator лише для `member`);
   `member → moderator` — admin і moderator, `moderator → member` і будь-що з `admin` — лише admin.
 - Списки показують усім публічну картку; admin і moderator бачать ще `email`, `active`, `twoFactorEnabled`, `createdAt`.
 - Нова адреса аватара містить `?v=<час>`, тож браузер не показує старий з кешу.
+- **Колір акаунта** `color` — назва з палітри (`PaletteColor`, як у пунктів довідників; інша — 400 `VALIDATION_ERROR`). Новий акаунт
+  отримує наступний по черзі з `blue, green, orange, purple, teal, red, yellow` (за кількістю акаунтів; `gray` — лише за вибором).
+  Колір іде разом з іменем і аватаром у публічній картці, `GET /api/auth/me` і в кожному посиланні на людину (`UserRefDto`: автор,
+  виконавці, коментарі, сеанси, бронювання, учасники проєкту, рейтинг); людини, якої вже немає, — `gray`. Зміна — в аудиті
+  (`user.profile_updated` / `user.updated`, `fields`).
 
 ### ТЗ
 

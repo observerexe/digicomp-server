@@ -8,7 +8,7 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, In, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { Action, Actor, assertCan } from '../auth/policy';
-import type { Plain } from '../common/responses.dto';
+import type { Plain, UserRefDto } from '../common/responses.dto';
 import { PaperAdapterRegistry } from '../paperwork/adapters';
 import {
   paperOfRecords,
@@ -35,7 +35,7 @@ export const DisciplineErrors = {
 const amountError = (message: string) =>
   new BadRequestException({ message, field: 'amount' });
 
-type Ref = { id: string; name: string | null; avatarUrl: string | null };
+type Ref = Plain<UserRefDto>;
 
 function view(
   r: DisciplineRecord,
@@ -46,7 +46,12 @@ function view(
   const ref = (id: string | null): Ref | null => {
     if (!id) return null;
     const u = users.get(id);
-    return { id, name: u?.name ?? null, avatarUrl: u?.avatarUrl ?? null };
+    return {
+      id,
+      name: u?.name ?? null,
+      avatarUrl: u?.avatarUrl ?? null,
+      color: u?.color ?? 'gray',
+    };
   };
   return {
     id: r.id,

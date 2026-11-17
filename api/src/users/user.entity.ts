@@ -4,6 +4,7 @@ import {
   Entity,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import type { PaletteColor } from '../dictionaries/palette';
 
 export enum Role {
   Admin = 'admin',
@@ -39,6 +40,10 @@ export class User {
 
   @Column({ name: 'avatar_url', type: 'varchar', nullable: true })
   avatarUrl: string | null;
+
+  /** The account's colour (palette name): its shade wherever the person is shown. */
+  @Column({ type: 'varchar', length: 16, default: 'blue' })
+  color: PaletteColor;
 
   @Column({ type: 'boolean', default: true })
   active: boolean;

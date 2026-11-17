@@ -1,3 +1,4 @@
+import { PALETTE, type PaletteColor } from '../dictionaries/palette';
 import { ApiProperty } from '@nestjs/swagger';
 import { RecordPaperDto } from '../paperwork/responses.dto';
 import { PointsKind } from './points-entry.entity';
@@ -58,6 +59,9 @@ export class LeaderboardRowDto {
 
   @ApiProperty({ type: String, nullable: true })
   avatarUrl: string | null;
+
+  @ApiProperty({ enum: PALETTE, enumName: 'PaletteColor' })
+  color: PaletteColor;
 
   position: string;
   total: number;

@@ -258,6 +258,7 @@ export class WorkSessionsService implements OnModuleInit, OnModuleDestroy {
         id: s.userId,
         name: s.user?.name ?? null,
         avatarUrl: s.user?.avatarUrl ?? null,
+        color: s.user?.color ?? 'gray',
       },
     }));
   }

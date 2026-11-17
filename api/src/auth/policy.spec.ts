@@ -77,6 +77,17 @@ const ROWS: Record<string, Case[]> = {
     ['moderator', mod, Action.UsersEditName, tMember, Deny.Forbidden],
     ['member', member, Action.UsersEditName, tMember, Deny.Forbidden],
   ],
+  'Змінити колір акаунта іншого': [
+    ['admin', admin, Action.UsersEditColor, tMember, true],
+    ['admin: модератору', admin, Action.UsersEditColor, tModerator, true],
+    ['moderator', mod, Action.UsersEditColor, tMember, Deny.Forbidden],
+    ['member', member, Action.UsersEditColor, tMember, Deny.Forbidden],
+  ],
+  'Змінити свій колір акаунта': [
+    ['admin', admin, Action.ProfileEditOwnColor, undefined, true],
+    ['moderator', mod, Action.ProfileEditOwnColor, undefined, true],
+    ['member', member, Action.ProfileEditOwnColor, undefined, true],
+  ],
   'Видалити недоречний аватар чи біо іншого': [
     ['admin', admin, Action.UsersModerateContent, tMember, true],
     ['moderator', mod, Action.UsersModerateContent, tMember, Deny.Forbidden],

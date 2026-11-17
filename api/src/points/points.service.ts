@@ -282,7 +282,7 @@ export class PointsService {
                 OR (p.created_at >= month.f AT TIME ZONE $2
                     AND p.created_at < (month.f + interval '1 month') AT TIME ZONE $2))
        )
-       SELECT u.id, u.name, u.avatar_url AS "avatarUrl", u.position,
+       SELECT u.id, u.name, u.avatar_url AS "avatarUrl", u.color, u.position,
               COALESCE(SUM(e.amount), 0)::int AS total,
               RANK() OVER (ORDER BY COALESCE(SUM(e.amount), 0) DESC)::int AS rank
        FROM users u
