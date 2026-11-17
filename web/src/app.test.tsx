@@ -117,15 +117,15 @@ describe('Навігація за правами', () => {
     expect(within(sidebar!).getByRole('link', { name: 'Технічні завдання' })).toHaveAttribute('href', '/tasks');
   });
 
-  it('дошка займає всю ширину, інші сторінки — ні', async () => {
+  it('дошка тягнеться до низу екрана, інші сторінки — ні', async () => {
     mockApi({ 'GET /api/auth/me': () => json(200, member) });
     renderApp('/tasks');
     await screen.findByRole('heading', { name: 'Технічні завдання' });
-    expect(document.querySelector('main [data-wide]')).not.toBeNull();
+    expect(document.querySelector('main [data-fill]')).not.toBeNull();
     cleanup();
     renderApp('/team');
     await screen.findByRole('heading', { name: 'Команда' });
-    expect(document.querySelector('main [data-wide]')).toBeNull();
+    expect(document.querySelector('main [data-fill]')).toBeNull();
   });
 
   it('невідома сторінка — «Сторінку не знайдено»', async () => {

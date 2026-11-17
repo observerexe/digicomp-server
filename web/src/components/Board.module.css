@@ -91,6 +91,8 @@
     /* One track per column, as many as the board has, sharing the width; at least 160 px — then it scrolls. */
     grid-auto-flow: column;
     grid-auto-columns: minmax(160px, 1fr);
+    /* Columns stretch to the bottom of the screen: more room to drop a card. */
+    flex: 1 0 auto;
     gap: 10px;
     overflow-x: auto;
     padding-bottom: 8px;

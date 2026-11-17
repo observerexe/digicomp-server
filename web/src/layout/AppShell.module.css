@@ -138,13 +138,8 @@
   flex: 1;
   box-sizing: border-box;
   width: 100%;
-  max-width: 1200px;
   padding: 8px 16px calc(var(--size-bottom-nav) + 24px + env(safe-area-inset-bottom));
   outline: none;
-}
-/* Boards (tasks, projects) use the whole width: wider columns. */
-.main:has([data-wide]) {
-  max-width: none;
 }
 
 /* Phone: bottom bar */
@@ -206,11 +201,15 @@
   .main {
     padding: 32px 40px 48px;
   }
+  /* Boards (tasks, projects) reach the bottom of the screen: the board takes the height left under the header. */
+  .main:has([data-fill]) {
+    display: flex;
+    flex-direction: column;
+  }
 }
 @media print {
   .main {
     padding: 0;
-    max-width: none;
   }
 }
 .badge {
