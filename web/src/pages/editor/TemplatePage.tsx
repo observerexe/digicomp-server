@@ -34,6 +34,7 @@ import { BuilderPanel, isUsed, type BuilderTab } from '../../editor/BuilderPanel
 import { paperExtensions } from '../../editor/extensions';
 import { useSheet } from '../../editor/useSheet';
 import { fieldPosition } from '../../editor/fields';
+import { useImages } from '../../editor/images';
 import { Ribbon } from '../../editor/Ribbon';
 import { Ruler } from '../../editor/Ruler';
 import { StatusBar, useZoom } from '../../editor/StatusBar';
@@ -308,6 +309,7 @@ function TemplateBuilder({ template, version, restored, schema, onReload, onTemp
     },
   });
   const selected = useEditorState({ editor, selector: ({ editor: e }) => selectionOf(e.state) });
+  const images = useImages(readOnly ? null : editor);
 
   // Conditional blocks: the fields they may wait for, the choices of each; a new block waits for the first.
   const dictionaries = useDictionaries().data;
@@ -333,6 +335,16 @@ function TemplateBuilder({ template, version, restored, schema, onReload, onTemp
       if (block.kind === 'condition') {
         // «Властивості» show what it waits for.
         if (placeBlock(editor, block, null, range, firstCondition())) setTab('props');
+        return;
+      }
+      if (block.kind === 'image') {
+        // The typed «/…» goes now; the image — where the cursor is once its file is uploaded.
+        if (range.from !== range.to) editor.chain().focus().deleteRange(range).run();
+        // Several files — one after another: each goes after the image put before it.
+        images.pick((id) => {
+          const { to } = editor.state.selection;
+          placeBlock(editor, block, id, { from: to, to });
+        });
         return;
       }
       let fieldKey: string | null = null;
@@ -501,6 +513,7 @@ function TemplateBuilder({ template, version, restored, schema, onReload, onTemp
         {!readOnly && (
           <Ribbon
             editor={editor}
+            images={{ pick: () => images.pick(), busy: images.busy }}
             extra={
               <button type="button" className={s.ribbonToggle} aria-pressed={showKeys} onClick={() => setShowKeys(!showKeys)}>
                 Показати ключі полів
@@ -509,7 +522,7 @@ function TemplateBuilder({ template, version, restored, schema, onReload, onTemp
           />
         )}
         <div className={s.notices}>
-          <ErrorMessage text={publishError ?? (tryIt.isError ? errorOf(tryIt.error) : autosave.state === 'rejected' ? errorOf(autosave.rejection) : null)} />
+          <ErrorMessage text={publishError ?? (tryIt.isError ? errorOf(tryIt.error) : autosave.state === 'rejected' ? errorOf(autosave.rejection) : images.error)} />
           {autosave.state === 'conflict' && (
             <div className={s.conflict} role="alert">
               <p>Шаблон змінили в іншому вікні чи іншою людиною, тому ваші останні зміни не збережено. Відкрийте останню версію чернетки: ваші зміни зникнуть.</p>
@@ -577,7 +590,8 @@ function TemplateBuilder({ template, version, restored, schema, onReload, onTemp
           />
         </div>
         {menu && <BlockMenu menu={menu} keys={menuKeys} palette={menuPalette} />}
-        <StatusBar stats={stats} zoom={zoom} onZoom={setZoom} hints={readOnly ? [] : ['/ — вставити блок']} />
+        <StatusBar stats={stats} zoom={zoom} onZoom={setZoom} hints={readOnly ? [] : ['/ — вставити блок']} busy={images.busy ? 'Завантаження зображення…' : null} />
+        {images.picker}
       </div>
     </div>
   );

@@ -25,12 +25,32 @@ export function useZoom() {
 
 const FORMAT = `A4 · поля ${PAGE.left}/${PAGE.right}/${PAGE.top}/${PAGE.bottom} мм`;
 
-/** `hints` — keys that help here («Tab — наступне поле»); `lead` — first in the row (on the phone — whether it is saved). */
-export function StatusBar({ stats, zoom, onZoom, hints = [], lead }: { stats: PageStats; zoom: Zoom; onZoom: (z: Zoom) => void; hints?: string[]; lead?: ReactNode }) {
+/**
+ * `hints` — keys that help here («Tab — наступне поле»); `lead` — first in the row (on the phone — whether it is saved);
+ * `busy` — what goes on now («Завантаження зображення…»), read out by screen readers.
+ */
+export function StatusBar({
+  stats,
+  zoom,
+  onZoom,
+  hints = [],
+  lead,
+  busy = null,
+}: {
+  stats: PageStats;
+  zoom: Zoom;
+  onZoom: (z: Zoom) => void;
+  hints?: string[];
+  lead?: ReactNode;
+  busy?: string | null;
+}) {
   const i = ZOOMS.indexOf(zoom);
   return (
     <footer className={s.bar}>
       {lead}
+      <span role="status" className={busy ? s.busy : s.idle}>
+        {busy}
+      </span>
       <span className={s.wide}>
         Сторінка {stats.page} з {stats.pages}
       </span>

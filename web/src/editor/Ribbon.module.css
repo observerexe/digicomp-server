@@ -144,6 +144,25 @@
 .size {
   width: 70px;
 }
+.imageWidth {
+  width: 84px;
+}
+/* The selected image's description: one line */
+.alt {
+  width: 190px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-control);
+  background: var(--c-surface);
+  color: var(--c-text);
+  font: inherit;
+  font-size: 14px;
+}
+.alt:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 1px;
+}
 
 /* Drop-downs: colour and table size */
 .dropdown {
@@ -251,6 +270,8 @@
   display: flex;
   align-items: center;
   gap: 2px;
+  /* A fieldset is never narrower than its content by default: the row scrolls itself, not the page */
+  min-width: 0;
   margin: 0;
   padding: 4px 8px;
   border: 0;

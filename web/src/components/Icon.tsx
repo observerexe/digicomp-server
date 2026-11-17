@@ -33,6 +33,7 @@ const PATHS: Record<string, string> = {
   outdent: 'M4 6h16M11 10h9M11 14h9M4 18h16M7 9.5 4 12l3 2.5',
   table: 'M4 5h16v14H4zM4 10h16M4 15h16M10 5v14',
   pageBreak: 'M6 3v5h12V3M6 21v-5h12v5M3 12h2M8 12h2M14 12h2M19 12h2',
+  image: 'M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15.5 8.5h.01',
   heading: 'M6 4v16M18 4v16M6 12h12',
   paragraph: 'M4 6h16M4 10h16M4 14h16M4 18h10',
   textField: 'M3 7h18v10H3zM7 10v4',

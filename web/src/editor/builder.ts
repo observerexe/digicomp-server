@@ -5,7 +5,7 @@ import { insertPoint } from '@tiptap/pm/transform';
 import { Decoration, DecorationSet, type EditorView } from '@tiptap/pm/view';
 import Suggestion from '@tiptap/suggestion';
 import { plural } from '../lib/format';
-import { autoBlockOf, textBlockOf, type Block, type BlockGroup } from './blocks';
+import { autoBlockOf, IMAGE_BLOCK, textBlockOf, type Block, type BlockGroup } from './blocks';
 import { rowsContent } from './blocks/rows';
 import { zoneAtSelection, type FieldLook } from './fields';
 import type { Condition } from '../../../shared/editor-schema/fields';
@@ -83,6 +83,7 @@ export function blockTag(node: PMNode, look: BuilderLook): { label: string; grou
     const field = node.attrs.field as string;
     return { label: look.table?.(source, field) ?? `Авто-таблиця · ${source} · ${field}`, group: 'auto' };
   }
+  if (node.type.name === 'image') return { label: IMAGE_BLOCK.label, group: IMAGE_BLOCK.group };
   if (node.type.name === 'conditional') {
     const field = node.attrs.field as string;
     const value = node.attrs.value as string;
@@ -179,9 +180,13 @@ function zoneKeys(doc: PMNode): Set<string> {
   return out;
 }
 
-/** What a block puts on the sheet; `key` — of the new field (field blocks), `condition` — what a conditional block waits for. */
+/**
+ * What a block puts on the sheet; `key` — of the new field (field blocks) or the id of the uploaded image
+ * (the image block), `condition` — what a conditional block waits for.
+ */
 export function blockContent(block: Block, key: string | null, condition: Condition | null = null): { content: JSONContent; inline: boolean } {
   if (block.kind === 'text') return { content: block.content(), inline: false };
+  if (block.kind === 'image') return { content: { type: 'image', attrs: { id: key } }, inline: false };
   if (block.kind === 'condition') return { content: { type: 'conditional', attrs: condition ?? undefined, content: [{ type: 'paragraph' }] }, inline: false };
   if (block.kind === 'auto') return { content: { type: block.node }, inline: true };
   if (block.kind === 'table') return { content: { type: 'autoTable', attrs: { source: block.source, field: key } }, inline: false };
@@ -226,8 +231,8 @@ export function placeBlock(editor: Editor, block: Block, key: string | null, ran
   if (isField && inline) {
     const fieldAt = placed === node ? at : at + 1;
     tr.setSelection(NodeSelection.create(tr.doc, fieldAt));
-  } else if (block.kind === 'table') {
-    // An auto table is selected: «Властивості» show where it takes its rows from.
+  } else if (block.kind === 'table' || block.kind === 'image') {
+    // An auto table is selected: «Властивості» show where it takes its rows from; an image — the ribbon its width and side.
     tr.setSelection(NodeSelection.create(tr.doc, at));
   } else {
     tr.setSelection(TextSelection.near(tr.doc.resolve(at + 1)));

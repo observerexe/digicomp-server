@@ -6,6 +6,7 @@ import { choice } from './choice';
 import { conditional } from './conditional';
 import { date } from './date';
 import { heading } from './heading';
+import { image } from './image';
 import { line } from './line';
 import { list } from './list';
 import { number } from './number';
@@ -85,7 +86,10 @@ export type TableBlock = BlockBase & { kind: 'table'; source: string; input: str
 /** «Умовний блок»: what it waits for is set when it is put (editor/conditional.ts). */
 export type ConditionBlock = BlockBase & { kind: 'condition' };
 
-export type Block = TextBlock | FieldBlock | AutoBlock | TableBlock | ConditionBlock;
+/** «Зображення»: the file is picked and uploaded when it is put (editor/images.ts), the block takes its id. */
+export type ImageBlock = BlockBase & { kind: 'image' };
+
+export type Block = TextBlock | FieldBlock | AutoBlock | TableBlock | ConditionBlock | ImageBlock;
 
 /** A source of auto tables, as `GET /papers/templates/targets` gives it. */
 export type TableSourceInfo = { key: string; label: string; input: string; columns: string[] };
@@ -110,6 +114,7 @@ export const BLOCKS: Block[] = [
   paragraph,
   list,
   table,
+  image,
   pageBreak,
   line,
   zone,
@@ -137,6 +142,9 @@ export function autoBlockOf(node: string): AutoBlock | null {
 
 /** What the palette and «/» offer in a template: groups in order and their blocks. */
 export type Palette = { groups: GroupDef[]; blocks: Block[] };
+
+/** The block of images: its label names an image on the sheet. */
+export const IMAGE_BLOCK = image;
 
 /** The block a node on the sheet is (a text node); null — not a text block. */
 export function textBlockOf(node: string): TextBlock | null {

@@ -25,6 +25,7 @@ import '../../editor/format.css';
 import { MiniRibbon, Ribbon } from '../../editor/Ribbon';
 import { Ruler } from '../../editor/Ruler';
 import { StatusBar, useZoom } from '../../editor/StatusBar';
+import { useImages } from '../../editor/images';
 import { useAutosave, type SaveState } from '../../editor/useAutosave';
 import { useLocalDraft } from '../../editor/useLocalDraft';
 import { peopleOf, useSheet } from '../../editor/useSheet';
@@ -295,6 +296,7 @@ function PaperEditor({ paper, restored, changing, onChanging, onReload }: Editor
       keep({ content: e.getJSON() });
     },
   });
+  const images = useImages(editable ? editor : null);
   /** The page shows what the server answered (the editor starts again with it). */
   const replace = (p: Paper) => {
     qc.setQueryData(['papers', 'one', paper.id], p);
@@ -558,7 +560,13 @@ function PaperEditor({ paper, restored, changing, onChanging, onReload }: Editor
         </div>
       )}
       <OfflineBanner />
-      {editable && (wide ? <Ribbon editor={editor} lock={sheet.ribbonLock} /> : !formShown && <MiniRibbon editor={editor} lock={sheet.ribbonLock} />)}
+      {editable &&
+        (wide ? (
+          <Ribbon editor={editor} lock={sheet.ribbonLock} images={{ pick: () => images.pick(), busy: images.busy }} />
+        ) : (
+          !formShown && <MiniRibbon editor={editor} lock={sheet.ribbonLock} images={{ pick: () => images.pick(), busy: images.busy }} />
+        ))}
+      {images.picker}
       <div className={s.notices}>
         <ErrorMessage
           text={
@@ -574,7 +582,7 @@ function PaperEditor({ paper, restored, changing, onChanging, onReload }: Editor
                       ? errorOf(autosave.rejection)
                       : publishError
                         ? errorOf(publishError)
-                        : null
+                        : images.error
           }
         />
         {reason !== null && (
@@ -707,6 +715,7 @@ function PaperEditor({ paper, restored, changing, onChanging, onReload }: Editor
           onZoom={setZoom}
           hints={editable ? [...(template?.fields.some((f) => f.canFill) ? ['Tab — наступне поле'] : []), '@ — посилання на запис'] : []}
           lead={wide ? undefined : saved}
+          busy={images.busy ? 'Завантаження зображення…' : null}
         />
       )}
     </div>

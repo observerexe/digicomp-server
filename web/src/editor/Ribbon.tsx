@@ -1,15 +1,16 @@
 import type { Editor } from '@tiptap/core';
 import { useEditorState } from '@tiptap/react';
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { COLORS, DEFAULT_FONT_SIZE, FONT_SIZES, HEADING_LEVELS, type Align, type FontName, type FontSize, type TextColor } from '../../../shared/editor-schema';
+import { COLORS, DEFAULT_FONT_SIZE, FONT_SIZES, HEADING_LEVELS, IMAGE_ALT_MAX, IMAGE_WIDTHS, type Align, type FontName, type FontSize, type TextColor } from '../../../shared/editor-schema';
 import { Icon, type IconName } from '../components/Icon';
 import { PALETTE } from '../lib/palette';
 import { useDropdown } from '../lib/useDropdown';
 import s from './Ribbon.module.css';
 
 /**
- * The ribbon: «Головна» (text formatting) and «Вставка» (table, page break,
- * the header and «Затверджую» from «Реквізити»).
+ * The ribbon: «Головна» (text formatting) and «Вставка» (table, image, page
+ * break, the header and «Затверджую» from «Реквізити»). A selected image
+ * adds its own group (width, side, description) to either tab.
  * Each button calls a command from extensions.ts and returns the focus to the sheet.
  */
 
@@ -60,10 +61,22 @@ function useFormatState(editor: Editor) {
         canSplit: e.can().splitCell(),
         // The header and «Затверджую» stand only on the sheet's top level (not in a list, a table or a zone).
         canStructure: e.can().insertContent({ type: 'orgHeader' }),
+        image: e.isActive('image') ? (e.getAttributes('image') as ImageAttrs) : null,
       };
     },
   });
 }
+
+type ImageAttrs = { width: number; align: 'left' | 'right' | null; alt: string };
+
+const IMAGE_ALIGN_BUTTONS: { value: ImageAttrs['align']; label: string; icon: IconName }[] = [
+  { value: 'left', label: 'Ліворуч', icon: 'alignLeft' },
+  { value: null, label: 'По центру', icon: 'alignCenter' },
+  { value: 'right', label: 'Праворуч', icon: 'alignRight' },
+];
+
+/** «Вставка → Зображення»: `pick` opens the file dialog (images.ts), `busy` — one is uploading. */
+export type RibbonImages = { pick: () => void; busy: boolean };
 
 /** Why formatting does not apply where the cursor is (a document from a template): its text, or a plain zone. */
 export type RibbonLock = 'template' | 'plain';
@@ -80,9 +93,10 @@ const MINI_LOCK_TEXT: Record<RibbonLock, string> = {
 
 /**
  * `lock` — why formatting does not apply where the cursor is; null — it does.
+ * `images` — images may be inserted (none — no button).
  * `extra` — the page's own controls at the end (the constructor: «Показати ключі полів»).
  */
-export function Ribbon({ editor, lock = null, extra }: { editor: Editor; lock?: RibbonLock | null; extra?: ReactNode }) {
+export function Ribbon({ editor, lock = null, images, extra }: { editor: Editor; lock?: RibbonLock | null; images?: RibbonImages; extra?: ReactNode }) {
   const [tab, setTab] = useState<Tab>('home');
   const id = useId();
   const f = useFormatState(editor);
@@ -200,11 +214,18 @@ export function Ribbon({ editor, lock = null, extra }: { editor: Editor; lock?: 
                 <IconButton icon="outdent" label="Зменшити відступ" onClick={() => run().outdent().run()} />
                 <IconButton icon="indent" label="Збільшити відступ" onClick={() => run().indent().run()} />
               </Group>
+              {f.image && <ImageGroup editor={editor} image={f.image} />}
             </>
           ) : (
             <>
               <Group label="Вставити">
                 <TablePicker onPick={(rows, cols) => run().insertTable({ rows, cols, withHeaderRow: false }).run()} />
+                {images && (
+                  <button type="button" className={s.wide} disabled={images.busy} title="PNG, JPG чи WebP; можна й вставити з буфера чи перетягнути на аркуш" onMouseDown={keepFocus} onClick={images.pick}>
+                    <Icon name="image" size={20} />
+                    {images.busy ? 'Завантаження…' : 'Зображення'}
+                  </button>
+                )}
                 <button type="button" className={s.wide} onMouseDown={keepFocus} onClick={() => run().setPageBreak().run()}>
                   <Icon name="pageBreak" size={20} />
                   Розрив сторінки
@@ -247,6 +268,7 @@ export function Ribbon({ editor, lock = null, extra }: { editor: Editor; lock?: 
                   <TextButton onClick={() => run().deleteTable().run()}>Видалити таблицю</TextButton>
                 </Group>
               )}
+              {f.image && <ImageGroup editor={editor} image={f.image} />}
             </>
           )}
         </fieldset>
@@ -260,7 +282,7 @@ export function Ribbon({ editor, lock = null, extra }: { editor: Editor; lock?: 
  * The phone's panel instead of the ribbon (narrower than 900 px): one row —
  * undo, redo, bold, italic, underline, lists. `lock` as in the ribbon.
  */
-export function MiniRibbon({ editor, lock = null }: { editor: Editor; lock?: RibbonLock | null }) {
+export function MiniRibbon({ editor, lock = null, images }: { editor: Editor; lock?: RibbonLock | null; images?: RibbonImages }) {
   const f = useFormatState(editor);
   const run = () => editor.chain().focus();
   return (
@@ -275,6 +297,12 @@ export function MiniRibbon({ editor, lock = null }: { editor: Editor; lock?: Rib
         <span className={s.miniGap} aria-hidden="true" />
         <IconButton icon="listBullet" label="Маркований список" active={f.bulletList} onClick={() => run().toggleBulletList().run()} />
         <IconButton icon="listOrdered" label="Нумерований список" active={f.orderedList} onClick={() => run().toggleOrderedList().run()} />
+        {images && (
+          <>
+            <span className={s.miniGap} aria-hidden="true" />
+            <IconButton icon="image" label={images.busy ? 'Завантаження зображення…' : 'Зображення'} disabled={images.busy} onClick={images.pick} />
+          </>
+        )}
       </fieldset>
       {lock && (
         <p className={s.miniLock} role="status">
@@ -326,6 +354,51 @@ function LetterButton(props: { letter: string; label: string; active: boolean; c
     >
       {props.letter}
     </button>
+  );
+}
+
+/**
+ * The selected image: width of the text's, side, description for those who
+ * do not see it, «Видалити». The selection stays on the image (no focus back
+ * to the sheet while the description is typed).
+ */
+function ImageGroup({ editor, image }: { editor: Editor; image: ImageAttrs }) {
+  const set = (attrs: Partial<ImageAttrs>) => editor.chain().updateAttributes('image', attrs).run();
+  const [alt, setAlt] = useState(image.alt);
+  useEffect(() => setAlt(image.alt), [image.alt]);
+  const commit = () => {
+    const v = alt.replace(/\s+/g, ' ').trim();
+    if (v !== image.alt) set({ alt: v });
+  };
+  return (
+    <Group label="Зображення">
+      <select className={`${s.select} ${s.imageWidth}`} aria-label="Ширина зображення" value={image.width} onChange={(e) => set({ width: Number(e.target.value) })}>
+        {IMAGE_WIDTHS.map((w) => (
+          <option key={w} value={w}>
+            {w} %
+          </option>
+        ))}
+      </select>
+      {IMAGE_ALIGN_BUTTONS.map((a) => (
+        <IconButton key={a.label} icon={a.icon} label={`Зображення ${a.label.toLowerCase()}`} active={image.align === a.value} onClick={() => set({ align: a.value })} />
+      ))}
+      <input
+        className={s.alt}
+        aria-label="Опис зображення"
+        title="Що на зображенні — для тих, хто його не бачить"
+        placeholder="Опис зображення"
+        maxLength={IMAGE_ALT_MAX}
+        value={alt}
+        onChange={(e) => setAlt(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+          commit();
+        }}
+      />
+      <TextButton onClick={() => editor.chain().focus().deleteSelection().run()}>Видалити</TextButton>
+    </Group>
   );
 }
 

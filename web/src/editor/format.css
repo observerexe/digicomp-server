@@ -55,6 +55,14 @@ img.ProseMirror-separator {
 .ProseMirror-selectednode {
   outline: 2px solid var(--c-primary);
 }
+/* A selected image: the frame around the picture, not the whole line */
+.paper .paper-image.ProseMirror-selectednode {
+  outline: none;
+}
+.paper .paper-image.ProseMirror-selectednode img {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 2px;
+}
 .paper .selectedCell {
   background: var(--c-primary-soft);
 }

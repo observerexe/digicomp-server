@@ -84,3 +84,11 @@
 .hints {
   white-space: nowrap;
 }
+/* What goes on now: in the row while it lasts; the empty live region takes no gap */
+.busy {
+  color: var(--c-primary-text);
+  font-weight: 500;
+}
+.idle {
+  display: contents;
+}
