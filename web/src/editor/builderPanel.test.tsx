@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { RecordSchema } from '../api/types';
@@ -52,6 +52,8 @@ function panel(selected: string, fields: FieldDef[], onChange = vi.fn(), kind: '
         choicesOf={() => []}
         onBlockAttrs={() => {}}
         onSelectField={() => {}}
+        place={null}
+        onMove={() => {}}
       />
     </QueryClientProvider>,
   );
@@ -126,7 +128,7 @@ describe('Конструктор: умовний блок', () => {
   ];
 
   function block(attrs: Record<string, unknown>, more: Partial<Parameters<typeof BuilderPanel>[0]> = {}) {
-    const calls = { attrs: vi.fn(), unwrap: vi.fn(), remove: vi.fn() };
+    const calls = { attrs: vi.fn(), unwrap: vi.fn(), remove: vi.fn(), move: vi.fn() };
     render(
       <QueryClientProvider client={new QueryClient()}>
         <BuilderPanel
@@ -152,12 +154,29 @@ describe('Конструктор: умовний блок', () => {
           choicesOf={(f) => (f.key === 'kind' ? choices : [])}
           onBlockAttrs={calls.attrs}
           onSelectField={() => {}}
+          place={{ index: 2, count: 4 }}
+          onMove={calls.move}
           {...more}
         />
       </QueryClientProvider>,
     );
     return calls;
   }
+
+  it('«Перемістити блок»: «Вгору» — у проміжок перед попереднім, «Вниз» — після наступного; крайні — вимкнено', async () => {
+    const calls = block({ field: 'kind', value: 'fine' });
+    const group = screen.getByRole('group', { name: 'Перемістити блок' });
+    await userEvent.click(within(group).getByRole('button', { name: 'Вгору' }));
+    await userEvent.click(within(group).getByRole('button', { name: 'Вниз' }));
+    expect(calls.move.mock.calls).toEqual([
+      [2, 1],
+      [2, 4],
+    ]);
+    cleanup();
+    block({ field: 'kind', value: 'fine' }, { place: { index: 0, count: 1 } });
+    expect(screen.getByRole('button', { name: 'Вгору' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Вниз' })).toBeDisabled();
+  });
 
   it('вибір: варіанти без архівних; зміна варіанта', async () => {
     const calls = block({ field: 'kind', value: 'fine' });

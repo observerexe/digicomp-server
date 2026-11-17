@@ -1,8 +1,10 @@
 import type { Editor, JSONContent } from '@tiptap/core';
 import { Fragment } from '@tiptap/pm/model';
 import { NodeSelection, TextSelection } from '@tiptap/pm/state';
+import { fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { testEditor } from '../test/editor';
+import { stubPointerEvents } from '../test/signature';
 import { BLOCKS } from './blocks';
 import {
   badFields,
@@ -10,6 +12,8 @@ import {
   builderExtension,
   cleanPasted,
   cursorAtEnd,
+  gapAt,
+  moveBlock,
   placeBlock,
   removeBlock,
   removeField,
@@ -234,5 +238,123 @@ describe('Конструктор: блоки на аркуші', () => {
     cursorAtEnd(editor);
     expect(shape(editor).at(-1)).toEqual(['paragraph']);
     expect(editor.state.selection.$from.parent.content.size).toBe(0);
+  });
+});
+
+describe('Конструктор: переміщення блоків', () => {
+  // The sheet always ends with a paragraph (one is added after any other block).
+  const sheet = () => doc({ type: 'heading', attrs: { level: 2 }, content: [t('Мета')] }, zone('goal'), p(t('Бали '), f('points')), { type: 'approval' }, p(t('Кінець')));
+  const order = (e: Editor) => shape(e).map((b) => b[0]);
+
+  it('блок — у проміжок перед іншим чи в кінець, з полями й зонами; курсор у ньому їде разом; на своє місце — нічого', () => {
+    const { editor } = open(sheet());
+    setBuilderLook(editor, LOOK);
+    editor.view.dispatch(editor.state.tr.setSelection(TextSelection.create(editor.state.doc, fieldPosition(editor, 'goal')! + 2)));
+    moveBlock(editor, 1, 4);
+    expect(shape(editor)).toEqual([['heading', 'Мета'], ['paragraph', 'Бали ', '{points}'], ['approval'], ['fieldZone', 'goal', 'paragraph'], ['paragraph', 'Кінець']]);
+    expect(selectionOf(editor.state)).toEqual({ kind: 'field', key: 'goal', picked: false });
+
+    // From elsewhere: the moved block is selected («Затверджую» — as a whole).
+    moveBlock(editor, 2, 0);
+    expect(shape(editor)[0]).toEqual(['approval']);
+    expect(editor.state.selection).toBeInstanceOf(NodeSelection);
+    expect(selectionOf(editor.state)).toMatchObject({ kind: 'block', index: 0, node: 'approval' });
+
+    const before = editor.getJSON();
+    moveBlock(editor, 0, 0);
+    moveBlock(editor, 0, 1);
+    moveBlock(editor, 9, 0);
+    expect(editor.getJSON()).toEqual(before);
+  });
+
+  it('Alt+↑ / Alt+↓ — блок з курсором на одне місце; на опублікованій версії — ні', () => {
+    const { editor } = open(sheet());
+    setBuilderLook(editor, LOOK);
+    editor.view.dispatch(editor.state.tr.setSelection(TextSelection.create(editor.state.doc, fieldPosition(editor, 'points')!)));
+    fireEvent.keyDown(editor.view.dom, { key: 'ArrowUp', altKey: true });
+    expect(order(editor)).toEqual(['heading', 'paragraph', 'fieldZone', 'approval', 'paragraph']);
+    fireEvent.keyDown(editor.view.dom, { key: 'ArrowUp', altKey: true });
+    fireEvent.keyDown(editor.view.dom, { key: 'ArrowUp', altKey: true });
+    expect(order(editor)).toEqual(['paragraph', 'heading', 'fieldZone', 'approval', 'paragraph']);
+    fireEvent.keyDown(editor.view.dom, { key: 'ArrowDown', altKey: true });
+    expect(order(editor)).toEqual(['heading', 'paragraph', 'fieldZone', 'approval', 'paragraph']);
+
+    setBuilderLook(editor, { ...LOOK, editable: false });
+    fireEvent.keyDown(editor.view.dom, { key: 'ArrowDown', altKey: true });
+    expect(order(editor)).toEqual(['heading', 'paragraph', 'fieldZone', 'approval', 'paragraph']);
+  });
+
+  it('проміжок під вказівником: перед першим блоком, середина якого нижче', () => {
+    const rects = [
+      { top: 0, bottom: 100 },
+      { top: 120, bottom: 140 },
+    ];
+    expect([gapAt(rects, -5), gapAt(rects, 49), gapAt(rects, 51), gapAt(rects, 129), gapAt(rects, 131), gapAt(rects, 500)]).toEqual([0, 0, 1, 1, 2, 2]);
+  });
+
+  describe('«⠿»', () => {
+    /** Blocks one under another, 100 px each with 20 px between (jsdom has no layout). */
+    function laidOut() {
+      stubPointerEvents();
+      const opened = open(sheet());
+      setBuilderLook(opened.editor, LOOK);
+      const { view } = opened.editor;
+      const blocks = () => [...view.dom.children].filter((el) => el.classList.contains('paper-block'));
+      const place = () =>
+        blocks().forEach((el, i) => {
+          el.getBoundingClientRect = () => DOMRect.fromRect({ x: 0, y: i * 120, width: 500, height: 100 });
+        });
+      place();
+      const host = view.dom.parentElement!;
+      const handle = host.querySelector<HTMLButtonElement>('.paper-handle')!;
+      const line = host.querySelector<HTMLElement>('.paper-drop-line')!;
+      return { ...opened, host, handle, line, place };
+    }
+
+    it('з’являється біля блоку під вказівником; перетягування ставить блок у проміжок під лінією', () => {
+      const { editor, host, handle, line, place } = laidOut();
+      expect(handle).toHaveAttribute('aria-label', 'Перемістити блок');
+      expect(handle.hidden).toBe(true);
+      fireEvent.mouseMove(host, { clientY: 370 });
+      expect(handle.hidden).toBe(false);
+
+      fireEvent.pointerDown(handle, { pointerId: 1, button: 0, clientY: 370 });
+      fireEvent.pointerMove(handle, { pointerId: 1, clientY: 30 });
+      expect(line.hidden).toBe(false);
+      fireEvent.pointerUp(handle, { pointerId: 1, clientY: 30 });
+      expect(line.hidden).toBe(true);
+      expect(order(editor)).toEqual(['approval', 'heading', 'fieldZone', 'paragraph', 'paragraph']);
+
+      // The sheet changed: the handle waits for the pointer again; the heading down, before the last block.
+      expect(handle.hidden).toBe(true);
+      place();
+      fireEvent.mouseMove(host, { clientY: 130 });
+      fireEvent.pointerDown(handle, { pointerId: 2, button: 0 });
+      fireEvent.pointerMove(handle, { pointerId: 2, clientY: 430 });
+      fireEvent.pointerUp(handle, { pointerId: 2 });
+      expect(shape(editor)).toEqual([['approval'], ['fieldZone', 'goal', 'paragraph'], ['paragraph', 'Бали ', '{points}'], ['heading', 'Мета'], ['paragraph', 'Кінець']]);
+    });
+
+    it('клік без перетягування виділяє блок; Esc під час перетягування — нічого не рухається', () => {
+      const { editor, host, handle, line } = laidOut();
+      fireEvent.mouseMove(host, { clientY: 370 });
+      fireEvent.pointerDown(handle, { pointerId: 1, button: 0 });
+      fireEvent.pointerUp(handle, { pointerId: 1 });
+      expect(selectionOf(editor.state)).toMatchObject({ kind: 'block', index: 3, node: 'approval' });
+
+      fireEvent.pointerDown(handle, { pointerId: 2, button: 0 });
+      fireEvent.pointerMove(handle, { pointerId: 2, clientY: 10 });
+      fireEvent.keyDown(window, { key: 'Escape' });
+      expect(line.hidden).toBe(true);
+      fireEvent.pointerUp(handle, { pointerId: 2, clientY: 10 });
+      expect(order(editor)).toEqual(['heading', 'fieldZone', 'paragraph', 'approval', 'paragraph']);
+    });
+
+    it('на опублікованій версії «⠿» немає', () => {
+      const { editor, host, handle } = laidOut();
+      setBuilderLook(editor, { ...LOOK, editable: false });
+      fireEvent.mouseMove(host, { clientY: 10 });
+      expect(handle.hidden).toBe(true);
+    });
   });
 });

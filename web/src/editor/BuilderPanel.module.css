@@ -257,3 +257,7 @@
 .remove {
   justify-self: start;
 }
+.moveRow {
+  display: flex;
+  gap: 8px;
+}

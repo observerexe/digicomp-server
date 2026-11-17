@@ -177,6 +177,71 @@ img.ProseMirror-separator {
 .paper .paper-block + .paper-block {
   margin-top: 14px;
 }
+/* The frame keeps a block where the print puts it: «Затверджую» in the right half, a paragraph's indent. */
+.paper .paper-block.paper-approval {
+  margin-left: auto;
+}
+.paper .paper-block.in-1 {
+  margin-left: calc(5mm - 8px);
+}
+.paper .paper-block.in-2 {
+  margin-left: calc(10mm - 8px);
+}
+.paper .paper-block.in-3 {
+  margin-left: calc(15mm - 8px);
+}
+.paper .paper-block.in-4 {
+  margin-left: calc(20mm - 8px);
+}
+.paper .paper-block.in-5 {
+  margin-left: calc(25mm - 8px);
+}
+.paper .paper-block.in-6 {
+  margin-left: calc(30mm - 8px);
+}
+
+/* «⠿» of the block under the pointer and the line of the gap a dragged block goes into (builder.ts blockHandle). */
+.paper-host {
+  position: relative;
+}
+.paper-handle {
+  position: absolute;
+  z-index: 2;
+  width: 22px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--sheet-gray);
+  font-size: 16px;
+  line-height: 1;
+  cursor: grab;
+  touch-action: none;
+}
+.paper-handle:hover,
+.paper-handle.is-dragging {
+  background: color-mix(in srgb, var(--sheet-blue) 10%, var(--sheet-paper));
+  color: var(--sheet-blue);
+}
+.paper-handle.is-dragging {
+  cursor: grabbing;
+}
+.paper-drop-line {
+  position: absolute;
+  z-index: 2;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--sheet-blue);
+  pointer-events: none;
+}
+.paper-handle[hidden],
+.paper-drop-line[hidden] {
+  display: none;
+}
 .paper .paper-block:first-child {
   margin-top: 10px;
 }

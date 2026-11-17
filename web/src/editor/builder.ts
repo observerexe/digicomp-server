@@ -338,6 +338,195 @@ export function removeBlock(editor: Editor, index: number) {
   editor.commands.focus();
 }
 
+/** Where the selection is: the block of the top level holding it and how many blocks the sheet has. */
+export function blockPlace(state: EditorState): { index: number; count: number } | null {
+  const index = state.selection.$from.index(0);
+  return index < state.doc.childCount ? { index, count: state.doc.childCount } : null;
+}
+
+/** Where the block of the top level at `index` starts. */
+function blockStart(doc: PMNode, index: number) {
+  let at = 0;
+  for (let i = 0; i < index; i++) at += doc.child(i).nodeSize;
+  return at;
+}
+
+/**
+ * Moves the block of the top level at `index` into the gap before the block
+ * `before` (`count` — after the last), its fields and zones with it. The
+ * selection inside it moves along (so «Вгору» again moves the same block);
+ * from elsewhere — the moved block is selected.
+ */
+export function moveBlock(editor: Editor, index: number, before: number) {
+  const { state } = editor;
+  const { doc, selection: sel } = state;
+  if (index < 0 || index >= doc.childCount || before < 0 || before > doc.childCount || before === index || before === index + 1) return;
+  const node = doc.child(index);
+  const from = blockStart(doc, index);
+  const to = from + node.nodeSize;
+  const tr = state.tr.delete(from, to);
+  const at = tr.mapping.map(blockStart(doc, before));
+  tr.insert(at, node);
+  const shift = at - from;
+  if (sel.from >= from && sel.to <= to) {
+    tr.setSelection(sel instanceof NodeSelection ? NodeSelection.create(tr.doc, sel.from + shift) : TextSelection.create(tr.doc, sel.anchor + shift, sel.head + shift));
+  } else {
+    tr.setSelection(node.isAtom ? NodeSelection.create(tr.doc, at) : TextSelection.near(tr.doc.resolve(at + 1)));
+  }
+  editor.view.dispatch(tr.scrollIntoView());
+  editor.view.focus();
+}
+
+/** The top-level blocks' elements on the sheet, in order. */
+function blockElements(view: EditorView): HTMLElement[] {
+  const els: HTMLElement[] = [];
+  view.state.doc.forEach((_n, offset) => {
+    const el = view.nodeDOM(offset);
+    if (el instanceof HTMLElement) els.push(el);
+  });
+  return els;
+}
+
+/** The gap a pointer at `y` (on the screen) points to: before the first block whose middle is below it. */
+export function gapAt(rects: readonly { top: number; bottom: number }[], y: number): number {
+  const i = rects.findIndex((r) => y < (r.top + r.bottom) / 2);
+  return i === -1 ? rects.length : i;
+}
+
+/** The nearest element that scrolls (the desk under the sheet). */
+function scrollerOf(el: HTMLElement): HTMLElement | null {
+  for (let p = el.parentElement; p; p = p.parentElement) if (p.scrollHeight > p.clientHeight && /auto|scroll/.test(getComputedStyle(p).overflowY)) return p;
+  return null;
+}
+
+/**
+ * «⠿» to the left of the block under the pointer: dragging it moves the block
+ * (a line shows the gap it goes into; near the edge of the desk it scrolls;
+ * Esc — nothing moves), a click selects the block. Placed by offsets within
+ * the sheet's wrapper: the zoom of the sheet does not shift it.
+ */
+function blockHandle(view: EditorView, editor: Editor) {
+  const host = view.dom.parentElement;
+  if (!host) return { update: () => {}, destroy: () => {} };
+  host.classList.add('paper-host');
+  const handle = document.createElement('button');
+  handle.type = 'button';
+  handle.className = 'paper-handle';
+  handle.tabIndex = -1;
+  handle.textContent = '⠿';
+  handle.title = 'Перетягніть, щоб перемістити блок';
+  handle.setAttribute('aria-label', 'Перемістити блок');
+  handle.hidden = true;
+  const line = document.createElement('div');
+  line.className = 'paper-drop-line';
+  line.hidden = true;
+  host.append(handle, line);
+
+  const editable = () => view.editable && (lookKey.getState(view.state) ?? EMPTY).editable;
+  let index: number | null = null;
+  let drag: { pointer: number; before: number; moved: boolean; scroller: HTMLElement | null } | null = null;
+
+  const show = (i: number | null) => {
+    index = i;
+    const el = i === null ? undefined : blockElements(view)[i];
+    handle.hidden = !el || !editable();
+    if (!el || handle.hidden) return;
+    handle.style.top = `${el.offsetTop}px`;
+    handle.style.left = `${el.offsetLeft - 30}px`;
+  };
+  const showLine = (before: number) => {
+    const els = blockElements(view);
+    const el = els[before];
+    const last = els.at(-1);
+    const pad = parseFloat(getComputedStyle(view.dom).paddingLeft) || 0;
+    line.hidden = false;
+    line.style.left = `${view.dom.offsetLeft + pad - 8}px`;
+    line.style.width = `${view.dom.clientWidth - pad - (parseFloat(getComputedStyle(view.dom).paddingRight) || 0) + 16}px`;
+    line.style.top = `${el ? el.offsetTop - 9 : last ? last.offsetTop + last.offsetHeight + 7 : 0}px`;
+  };
+  const end = () => {
+    drag = null;
+    line.hidden = true;
+    handle.classList.remove('is-dragging');
+    window.removeEventListener('keydown', onKey, true);
+  };
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key !== 'Escape' || !drag) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (handle.hasPointerCapture?.(drag.pointer)) handle.releasePointerCapture(drag.pointer);
+    end();
+  };
+
+  const onHover = (e: MouseEvent) => {
+    if (drag || !editable()) return;
+    if (e.target === handle) return;
+    const rects = blockElements(view).map((el) => el.getBoundingClientRect());
+    const i = rects.findIndex((r) => e.clientY >= r.top - 8 && e.clientY <= r.bottom + 8);
+    if (i !== -1) show(i);
+  };
+  const onLeave = (e: MouseEvent) => {
+    if (!drag && !host.contains(e.relatedTarget as Node | null)) show(null);
+  };
+  const onDown = (e: PointerEvent) => {
+    if (index === null || e.button !== 0 || !editable()) return;
+    e.preventDefault();
+    handle.setPointerCapture?.(e.pointerId);
+    drag = { pointer: e.pointerId, before: index, moved: false, scroller: scrollerOf(host) };
+    handle.classList.add('is-dragging');
+    window.addEventListener('keydown', onKey, true);
+  };
+  const onMove = (e: PointerEvent) => {
+    if (!drag || e.pointerId !== drag.pointer) return;
+    drag.moved = true;
+    drag.before = gapAt(
+      blockElements(view).map((el) => el.getBoundingClientRect()),
+      e.clientY,
+    );
+    showLine(drag.before);
+    const box = drag.scroller?.getBoundingClientRect();
+    if (drag.scroller && box) {
+      if (e.clientY < box.top + 40) drag.scroller.scrollBy(0, -16);
+      else if (e.clientY > box.bottom - 40) drag.scroller.scrollBy(0, 16);
+    }
+  };
+  const onUp = (e: PointerEvent) => {
+    if (!drag || e.pointerId !== drag.pointer || index === null) return;
+    const { moved, before } = drag;
+    const from = index;
+    end();
+    if (moved) moveBlock(editor, from, before);
+    else {
+      // A click: the block is selected, its «Властивості» open.
+      const node = view.state.doc.child(from);
+      const at = blockStart(view.state.doc, from);
+      view.dispatch(view.state.tr.setSelection(node.isAtom ? NodeSelection.create(view.state.doc, at) : TextSelection.near(view.state.doc.resolve(at + 1))));
+      view.focus();
+    }
+  };
+
+  host.addEventListener('mousemove', onHover);
+  host.addEventListener('mouseleave', onLeave);
+  handle.addEventListener('pointerdown', onDown);
+  handle.addEventListener('pointermove', onMove);
+  handle.addEventListener('pointerup', onUp);
+  handle.addEventListener('pointercancel', end);
+  return {
+    // The sheet changed: the block under the handle may be another — it comes back on the next move of the pointer.
+    update: (_v: EditorView, prev: EditorState) => {
+      if (!drag && (prev.doc !== view.state.doc || !editable())) show(null);
+    },
+    destroy: () => {
+      end();
+      host.removeEventListener('mousemove', onHover);
+      host.removeEventListener('mouseleave', onLeave);
+      handle.remove();
+      line.remove();
+      host.classList.remove('paper-host');
+    },
+  };
+}
+
 /** The list after «/»: what is typed, where, what a choice does. */
 export type BlockMenuState = { query: string; rect: DOMRect | null; pick: (b: Block) => void };
 
@@ -367,12 +556,25 @@ function endHint(onEnd: () => void) {
 export function builderExtension(opts: BuilderOptions) {
   return Extension.create({
     name: 'templateBuilder',
+    addKeyboardShortcuts() {
+      // Alt+↑ / Alt+↓: the block with the cursor one place up or down.
+      const step = (by: -1 | 1) => () => {
+        const place = blockPlace(this.editor.state);
+        if (!place || !(lookKey.getState(this.editor.state) ?? EMPTY).editable) return false;
+        const before = by === -1 ? place.index - 1 : place.index + 2;
+        if (before < 0 || before > place.count) return true;
+        moveBlock(this.editor, place.index, before);
+        return true;
+      };
+      return { 'Alt-ArrowUp': step(-1), 'Alt-ArrowDown': step(1) };
+    },
     addProseMirrorPlugins() {
       let cache: { doc: PMNode; look: BuilderLook; sel: EditorState['selection']; set: DecorationSet } | null = null;
       const editor = this.editor;
       return [
         new Plugin<BuilderLook>({
           key: lookKey,
+          view: (view) => blockHandle(view, editor),
           state: {
             init: () => EMPTY,
             apply: (tr, prev) => (tr.getMeta(lookKey) as BuilderLook | undefined) ?? prev,

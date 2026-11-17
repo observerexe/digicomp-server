@@ -47,6 +47,10 @@ type Props = {
   /** Settings of a block of the top level (signatures, the footer). */
   onBlockAttrs: (index: number, attrs: Record<string, unknown>) => void;
   onSelectField: (key: string) => void;
+  /** The block of the top level the cursor is in, and how many there are (null — none). */
+  place: { index: number; count: number } | null;
+  /** «Вгору» / «Вниз»: the block at `index` into the gap before the block `before`. */
+  onMove: (index: number, before: number) => void;
 };
 
 const TAB_LABEL: Record<BuilderTab, string> = { blocks: 'Блоки', props: 'Властивості', template: 'Шаблон' };
@@ -143,8 +147,37 @@ function PaletteTab({ palette, unavailable, onPick }: { palette: Palette; unavai
 }
 
 function Properties(props: Props) {
+  if (!props.selected) return <p className="hint">Виберіть блок на аркуші.</p>;
+  return (
+    <>
+      <PropertiesOf {...props} />
+      {props.place && <MoveBlock place={props.place} onMove={props.onMove} />}
+    </>
+  );
+}
+
+/** «Вгору» / «Вниз» for the block the cursor is in (a field — its block); the cursor stays on the sheet. */
+function MoveBlock({ place, onMove }: { place: { index: number; count: number }; onMove: Props['onMove'] }) {
+  const { index, count } = place;
+  return (
+    <div className={s.prop} role="group" aria-label="Перемістити блок">
+      <span className={s.propLabel}>Перемістити блок</span>
+      <div className={s.moveRow}>
+        <button type="button" className="btn" disabled={index === 0} onMouseDown={keepFocus} onClick={() => onMove(index, index - 1)}>
+          Вгору
+        </button>
+        <button type="button" className="btn" disabled={index >= count - 1} onMouseDown={keepFocus} onClick={() => onMove(index, index + 2)}>
+          Вниз
+        </button>
+      </div>
+      <span className="hint">Або перетягніть «⠿» ліворуч від блока на аркуші; з клавіатури — Alt+↑ / Alt+↓.</span>
+    </div>
+  );
+}
+
+function PropertiesOf(props: Props) {
   const { selected, defs } = props;
-  if (!selected) return <p className="hint">Виберіть блок на аркуші.</p>;
+  if (!selected) return null;
   if (selected.kind === 'block' && selected.node === 'autoTable') {
     return <AutoTableForm {...props} index={selected.index} attrs={selected.attrs} />;
   }

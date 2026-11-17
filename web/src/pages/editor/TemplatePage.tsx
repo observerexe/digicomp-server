@@ -16,7 +16,9 @@ import type { Condition } from '../../../../shared/editor-schema/fields';
 import { useTemplateTargets } from '../../lib/paperTemplates';
 import { isAutoBinding, paletteOf } from '../../editor/blocks/schema';
 import {
+  blockPlace,
   builderExtension,
+  moveBlock,
   cursorAtEnd,
   placeBlock,
   removeBlock,
@@ -309,6 +311,7 @@ function TemplateBuilder({ template, version, restored, schema, onReload, onTemp
     },
   });
   const selected = useEditorState({ editor, selector: ({ editor: e }) => selectionOf(e.state) });
+  const place = useEditorState({ editor, selector: ({ editor: e }) => blockPlace(e.state), equalityFn: (a, b) => a?.index === b?.index && a?.count === b?.count });
   const images = useImages(readOnly ? null : editor);
 
   // Conditional blocks: the fields they may wait for, the choices of each; a new block waits for the first.
@@ -587,6 +590,8 @@ function TemplateBuilder({ template, version, restored, schema, onReload, onTemp
             choicesOf={choicesOf}
             onBlockAttrs={(index, attrs) => setBlockAttrs(editor, index, attrs)}
             onSelectField={selectField}
+            place={place}
+            onMove={(index, before) => moveBlock(editor, index, before)}
           />
         </div>
         {menu && <BlockMenu menu={menu} keys={menuKeys} palette={menuPalette} />}
