@@ -1,8 +1,9 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { Me, Paper, PaperField, TemplateItem } from '../../api/types';
 import { json, member, mockApi, moderator, renderApp } from '../../test/render';
+import { drawSignature, stubPointerEvents } from '../../test/signature';
 
 const writer: Me = { ...member, permissions: [...member.permissions, 'papers.read', 'papers.create', 'papers.edit'] };
 const staff: Me = { ...moderator, permissions: [...moderator.permissions, 'papers.read', 'papers.read_all', 'papers.create', 'papers.edit'] };
@@ -248,6 +249,40 @@ describe('Редактор: документ', () => {
     expect(screen.queryByRole('button', { name: 'Зафіксувати для підпису' })).not.toBeInTheDocument();
   });
 
+  it('«Зафіксувати», коли рядок чекає мене: вікно підпису з рядками; «Скасувати» — нічого не зроблено; «Підписати» — фіксація з малюнком', async () => {
+    stubPointerEvents();
+    const published = paper({ status: 'published', canEdit: false, canFreeze: true, number: 'ПР-2026-001', publishedAt: '2026-11-15T10:00:00Z' });
+    const frozen = { ...published, status: 'frozen' as const, canFreeze: false, revision: 3, snapshot: { n: 1, sha256: 'a'.repeat(64), createdAt: '2026-11-15T11:00:00Z', signed: null, signatures: [] } };
+    const wanted = { statusCode: 409, message: 'Paper signature required', errorCode: 'PAPER_SIGNATURE_REQUIRED', paperId: 'p1', number: 'ПР-2026-001', title: 'Протокол', lines: ['Склав'] };
+    const { calls } = mockApi(
+      base(writer, {
+        'GET /api/papers/p1': () => json(200, published),
+        'POST /api/papers/p1/freeze': async (req: Request) => ((await req.text()).includes('strokes') ? json(200, frozen) : json(409, wanted)),
+      }),
+    );
+    const freezes = () => calls.filter((c) => c.method === 'POST' && c.path === '/api/papers/p1/freeze');
+    renderApp('/editor/p1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Зафіксувати для підпису' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Зафіксувати' }));
+    let dialog = await screen.findByRole('dialog', { name: 'Підписати документ' });
+    expect(dialog).toHaveAccessibleDescription('«Склав» · № ПР-2026-001. Підпис не можна зняти.');
+    // The page does not show the server's answer: the window is the answer.
+    expect(screen.queryByText('Документ чекає вашого підпису: спершу підпишіть його.')).not.toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Скасувати' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Зафіксувати для підпису' })).toBeInTheDocument();
+    expect(freezes()).toHaveLength(1);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Зафіксувати для підпису' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Зафіксувати' }));
+    dialog = await screen.findByRole('dialog', { name: 'Підписати документ' });
+    drawSignature(dialog);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Підписати' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(JSON.parse(freezes().at(-1)!.body)).toEqual({ strokes: [[10, 10, 20, 20]] });
+    expect(await screen.findByText('Документ зафіксовано: друк і PDF — зі знімка, з QR-кодом перевірки.')).toBeInTheDocument();
+  });
+
   it('помилка фіксації показується текстом', async () => {
     mockApi(
       base(writer, {
@@ -293,14 +328,6 @@ describe('Редактор: документ', () => {
   });
 
   describe('графічний підпис', () => {
-    class FakePointerEvent extends MouseEvent {
-      pointerId: number;
-      pointerType = 'mouse';
-      constructor(type: string, init: PointerEventInit = {}) {
-        super(type, init);
-        this.pointerId = init.pointerId ?? 1;
-      }
-    }
     const signs = { type: 'signatures', attrs: { leftLabel: 'Склав', leftSigner: '@author', rightLabel: 'Погодив', rightSigner: '@signer' } };
     const lines = (signedByMe: boolean) => [
       { row: 0, label: 'Затверджую', person: { id: 'm1', name: 'Олег Петренко' }, signedAt: '2026-11-15T12:32:00Z', strokes: [[0, 0, 1500, 500]] },
@@ -334,7 +361,7 @@ describe('Редактор: документ', () => {
     });
 
     it('вікно підпису: свої рядки, малюнок → POST штрихів; підпис на аркуші, кнопки більше немає', async () => {
-      vi.stubGlobal('PointerEvent', FakePointerEvent);
+      stubPointerEvents();
       const { calls } = mockApi(
         base(writer, {
           'GET /api/papers/p1': () => json(200, frozen()),
@@ -345,11 +372,7 @@ describe('Редактор: документ', () => {
       await userEvent.click(await screen.findByRole('button', { name: 'Підписати' }));
       const dialog = screen.getByRole('dialog', { name: 'Підписати документ' });
       expect(dialog).toHaveAccessibleDescription('«Склав» · № ПР-2026-001. Підпис не можна зняти.');
-      const field = within(dialog).getByTestId('signature-field');
-      field.getBoundingClientRect = () => DOMRect.fromRect({ x: 0, y: 0, width: 300, height: 100 });
-      fireEvent.pointerDown(field, { clientX: 2, clientY: 2, button: 0 });
-      fireEvent.pointerMove(field, { clientX: 4, clientY: 4 });
-      fireEvent.pointerUp(field, {});
+      drawSignature(dialog);
       await userEvent.click(within(dialog).getByRole('button', { name: 'Підписати' }));
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
       expect(JSON.parse(calls.find((c) => c.path === '/api/papers/p1/signatures')!.body!)).toEqual({ strokes: [[10, 10, 20, 20]] });
@@ -369,7 +392,7 @@ describe('Редактор: документ', () => {
     });
 
     it('помилка сервера — у вікні, воно лишається відкритим', async () => {
-      vi.stubGlobal('PointerEvent', FakePointerEvent);
+      stubPointerEvents();
       mockApi(
         base(writer, {
           'GET /api/papers/p1': () => json(200, frozen()),
@@ -379,10 +402,7 @@ describe('Редактор: документ', () => {
       renderApp('/editor/p1');
       await userEvent.click(await screen.findByRole('button', { name: 'Підписати' }));
       const dialog = screen.getByRole('dialog');
-      const field = within(dialog).getByTestId('signature-field');
-      field.getBoundingClientRect = () => DOMRect.fromRect({ x: 0, y: 0, width: 300, height: 100 });
-      fireEvent.pointerDown(field, { clientX: 2, clientY: 2, button: 0 });
-      fireEvent.pointerUp(field, {});
+      drawSignature(dialog);
       await userEvent.click(within(dialog).getByRole('button', { name: 'Підписати' }));
       expect(await within(dialog).findByRole('alert')).toBeInTheDocument();
     });

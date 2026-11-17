@@ -668,7 +668,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** A draft becomes final: a record, a number (see the template). */
+        /**
+         * A draft becomes final: a record, a number (see the template). Frozen at
+         *     once (a discipline record) — signed by who publishes where a line awaits
+         *     them (`strokes`; without — PAPER_SIGNATURE_REQUIRED).
+         */
         post: operations["PaperworkController_publish"];
         delete?: never;
         options?: never;
@@ -705,6 +709,8 @@ export interface paths {
         /**
          * Freezes for print and signature: a snapshot of the sheet with its
          *     SHA-256; once the records are ready (a member — own free document).
+         *     Who a signature line awaits signs with it (`strokes`; without —
+         *     PAPER_SIGNATURE_REQUIRED).
          */
         post: operations["PaperworkController_freeze"];
         delete?: never;
@@ -1404,7 +1410,12 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Accept the task: points are split equally between assignees. */
+        /**
+         * Accept the task: points are split equally between assignees. Its
+         *     document freezes itself (see the template) — signed by who accepts where
+         *     a line awaits them (`strokes`; without — PAPER_SIGNATURE_REQUIRED, the
+         *     task stays «На перевірці»).
+         */
         post: operations["TasksController_accept"];
         delete?: never;
         options?: never;
@@ -3019,6 +3030,8 @@ export interface components {
             updatedAt: string;
         };
         PaperForRecordDto: {
+            /** @description As in SignPaperDto; left out — the freeze needs no signature of the reader. */
+            strokes?: number[][];
             /**
              * Format: uuid
              * @description A template that creates records of the record's type.
@@ -3036,6 +3049,10 @@ export interface components {
                 [key: string]: unknown;
             };
             title?: string;
+        };
+        FreezeSignatureDto: {
+            /** @description As in SignPaperDto; left out — the freeze needs no signature of the reader. */
+            strokes?: number[][];
         };
         CancelPaperDto: {
             /** @description Why: kept on the document and in the audit. */
@@ -5281,7 +5298,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["FreezeSignatureDto"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -5327,7 +5348,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["FreezeSignatureDto"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -6529,7 +6554,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["FreezeSignatureDto"];
+            };
+        };
         responses: {
             200: {
                 headers: {

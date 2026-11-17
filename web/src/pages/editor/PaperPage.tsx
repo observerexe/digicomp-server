@@ -15,6 +15,7 @@ import { setZoneText } from '../../editor/fields';
 import { MentionMenu } from '../../editor/MentionMenu';
 import { PaperForm } from '../../editor/PaperForm';
 import { SignaturePad } from '../../editor/SignaturePad';
+import { useSignWith } from '../../editor/useSignWith';
 import { PaperRecordsContext } from '../../editor/records';
 import { useFill, useFillSheet } from '../../editor/useFill';
 import type { FieldValue, FieldValues } from '../../../../shared/editor-schema/fields';
@@ -302,20 +303,25 @@ function PaperEditor({ paper, restored, changing, onChanging, onReload }: Editor
     qc.setQueryData(['papers', 'one', paper.id], p);
     void qc.invalidateQueries({ queryKey: ['papers', 'list'] });
   };
-  const publish = useMutation({
-    mutationFn: async () => {
-      if (!(await autosave.flush())) throw new Error('not saved');
-      return unwrap(api.POST('/api/papers/{id}/publish', { params: { path: { id: paper.id } } }));
-    },
-    onSuccess: (p) => {
-      autosave.cancel();
-      replace(p);
-    },
-  });
-  const freeze = useMutation({
-    mutationFn: () => unwrap(api.POST('/api/papers/{id}/freeze', { params: { path: { id: paper.id } } })),
-    onSuccess: replace,
-  });
+  // Publishing a document that freezes at once, and «Зафіксувати»: a line awaiting the reader — only with their signature.
+  const publish = useSignWith(
+    useMutation({
+      mutationFn: async ({ strokes }: { strokes?: Strokes }) => {
+        if (!(await autosave.flush())) throw new Error('not saved');
+        return unwrap(api.POST('/api/papers/{id}/publish', { params: { path: { id: paper.id } }, body: { strokes } }));
+      },
+      onSuccess: (p) => {
+        autosave.cancel();
+        replace(p);
+      },
+    }),
+  );
+  const freeze = useSignWith(
+    useMutation({
+      mutationFn: ({ strokes }: { strokes?: Strokes }) => unwrap(api.POST('/api/papers/{id}/freeze', { params: { path: { id: paper.id } }, body: { strokes } })),
+      onSuccess: replace,
+    }),
+  );
   // The signed scan: the form is open while `scan` is not null (the file chosen, if any).
   const [scan, setScan] = useState<File | null | undefined>(undefined);
   const sign = useMutation({
@@ -467,7 +473,7 @@ function PaperEditor({ paper, restored, changing, onChanging, onReload }: Editor
         </button>
       )}
       {paper.canPublish && (
-        <ConfirmButton label="Опублікувати" question={publishQuestion(paper)} confirmLabel="Опублікувати" primary disabled={publish.isPending} onConfirm={() => publish.mutate()} />
+        <ConfirmButton label="Опублікувати" question={publishQuestion(paper)} confirmLabel="Опублікувати" primary disabled={publish.isPending} onConfirm={() => publish.mutate({})} />
       )}
       {paper.canFreeze &&
         (paper.snapshot ? (
@@ -477,7 +483,7 @@ function PaperEditor({ paper, restored, changing, onChanging, onReload }: Editor
             question="Зафіксувати нову версію? Вона візьме дані запису, які є зараз; попередні версії лишаються."
             confirmLabel="Зафіксувати"
             disabled={freeze.isPending}
-            onConfirm={() => freeze.mutate()}
+            onConfirm={() => freeze.mutate({})}
           />
         ) : (
           <ConfirmButton
@@ -486,7 +492,7 @@ function PaperEditor({ paper, restored, changing, onChanging, onReload }: Editor
             confirmLabel="Зафіксувати"
             primary
             disabled={freeze.isPending}
-            onConfirm={() => freeze.mutate()}
+            onConfirm={() => freeze.mutate({})}
           />
         ))}
       {paper.canSignDrawn && wide && (
@@ -574,7 +580,7 @@ function PaperEditor({ paper, restored, changing, onChanging, onReload }: Editor
               ? errorOf(remove.error)
               : copy.isError
                 ? errorOf(copy.error)
-                : freeze.isError
+                : freeze.error
                   ? errorOf(freeze.error)
                   : saveError
                     ? errorOf(saveError)
@@ -695,6 +701,8 @@ function PaperEditor({ paper, restored, changing, onChanging, onReload }: Editor
         )}
       </div>
       {fill.menu && <MentionMenu menu={fill.menu} keys={fill.menuKeys} />}
+      {publish.pad}
+      {freeze.pad}
       {signing && paper.snapshot && (
         <SignaturePad
           lines={lines.filter((l) => l.person?.id === user?.id && !l.signedAt).map((l) => l.label)}

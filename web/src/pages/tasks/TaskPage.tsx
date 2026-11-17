@@ -10,6 +10,7 @@ import { ExtraFacts } from '../../components/ExtraFields';
 import { Icon } from '../../components/Icon';
 import { Related } from '../../components/Related';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
+import { useSignWith } from '../../editor/useSignWith';
 import { errorOf } from '../../errors/messages';
 import { useFieldDefs } from '../../lib/fields';
 import { formatDate, formatDateTime, formatSize, plural } from '../../lib/format';
@@ -64,6 +65,8 @@ export function TaskPage() {
 function TaskView({ task: t, me }: { task: TaskDetail; me: Me }) {
   const { can } = useAuth();
   const action = useTaskAction(me);
+  // Accepting with a document awaiting who accepts: only with their signature.
+  const signed = useSignWith(action);
   const [returning, setReturning] = useState(false);
   const [returnText, setReturnText] = useState('');
   const actions = actionsFor(t, me, can);
@@ -71,7 +74,7 @@ function TaskView({ task: t, me }: { task: TaskDetail; me: Me }) {
   const split = splitPoints(t.points, t.assignees.length);
   const defs = useFieldDefs('task');
 
-  const run = (kind: ActionKind, body?: string) => action.mutate({ task: t, kind, body });
+  const run = (kind: ActionKind, body?: string) => signed.mutate({ task: t, kind, body });
 
   return (
     <div className={s.detail}>
@@ -150,7 +153,7 @@ function TaskView({ task: t, me }: { task: TaskDetail; me: Me }) {
                 </div>
               </form>
             )}
-            <ErrorMessage text={action.isError ? errorOf(action.error) : null} />
+            <ErrorMessage text={signed.error ? errorOf(signed.error) : null} />
           </Card>
           <Comments task={t} />
         </div>
@@ -179,6 +182,7 @@ function TaskView({ task: t, me }: { task: TaskDetail; me: Me }) {
           <TaskPaper task={t} />
         </div>
       </div>
+      {signed.pad}
     </div>
   );
 }

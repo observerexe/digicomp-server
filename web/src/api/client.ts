@@ -8,6 +8,9 @@ import type { paths } from './schema';
  */
 export const CLIENT_HEADER = { 'X-DC-Client': 'web' } as const;
 
+/** What PAPER_SIGNATURE_REQUIRED asks to sign: the document and its lines awaiting the reader. */
+export type SignatureWanted = { paperId: string; number: string | null; title: string; lines: string[] };
+
 /** Error with the stable errorCode from the API. */
 export class ApiError extends Error {
   constructor(
@@ -20,6 +23,8 @@ export class ApiError extends Error {
     public binding?: string,
     /** «Повторювані рядки»: the row (from 0) of the field the error is about. */
     public row?: number,
+    /** PAPER_SIGNATURE_REQUIRED: the document and its lines awaiting the reader's signature. */
+    public signature?: SignatureWanted,
   ) {
     super(message ?? code);
     this.name = 'ApiError';
@@ -85,11 +90,24 @@ export async function unwrap<T>(call: Promise<{ data?: T; error?: unknown; respo
     throw new ApiError(0, 'NETWORK');
   }
   if (result.error !== undefined || !result.response.ok) {
-    const body = (result.error ?? {}) as { errorCode?: string; message?: unknown; field?: unknown; binding?: unknown; row?: unknown };
+    const body = (result.error ?? {}) as {
+      errorCode?: string;
+      message?: unknown;
+      field?: unknown;
+      binding?: unknown;
+      row?: unknown;
+      paperId?: unknown;
+      number?: unknown;
+      title?: unknown;
+      lines?: unknown;
+    };
     const msg = typeof body.message === 'string' ? body.message : undefined;
     const str = (v: unknown) => (typeof v === 'string' ? v : undefined);
     const row = Number.isInteger(body.row) ? (body.row as number) : undefined;
-    throw new ApiError(result.response.status, body.errorCode ?? 'ERROR', msg, str(body.field), str(body.binding), row);
+    const lines = Array.isArray(body.lines) ? body.lines.filter((l): l is string => typeof l === 'string') : null;
+    const signature =
+      typeof body.paperId === 'string' && lines ? { paperId: body.paperId, number: str(body.number) ?? null, title: str(body.title) ?? '', lines } : undefined;
+    throw new ApiError(result.response.status, body.errorCode ?? 'ERROR', msg, str(body.field), str(body.binding), row, signature);
   }
   return result.data as T;
 }

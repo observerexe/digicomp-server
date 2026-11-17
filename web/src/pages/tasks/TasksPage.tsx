@@ -6,6 +6,7 @@ import { ChoiceButton } from '../../components/ChoiceButton';
 import { ConfirmButton } from '../../components/ui';
 import { Chips } from '../../components/Filters';
 import { ErrorMessage, PageHeader } from '../../components/ui';
+import { useSignWith } from '../../editor/useSignWith';
 import { errorOf } from '../../errors/messages';
 import { useDictionary, usedItems } from '../../lib/dictionaries';
 import { choiceKeys, filterFields, matchesFilters, stripeField, useFieldDefs } from '../../lib/fields';
@@ -38,6 +39,8 @@ export function TasksPage() {
   const [filters, setFilters] = useState<Record<string, string | null>>({});
   const board = useBoard(mine, doneLimit);
   const action = useTaskAction(user);
+  // Accepting with a document awaiting who accepts: only with their signature.
+  const signed = useSignWith(action);
   const archiveDone = useArchiveDone();
   // «Нове ТЗ» opens a document of a template that creates tasks.
   const staff = can('tasks.create');
@@ -48,7 +51,7 @@ export function TasksPage() {
   const stripeDict = useDictionary(stripe?.dictionary).data;
 
   if (!user) return null;
-  const run = (task: Task, kind: ActionKind, body?: string) => action.mutate({ task, kind, body });
+  const run = (task: Task, kind: ActionKind, body?: string) => signed.mutate({ task, kind, body });
   const tasks = board.data?.tasks;
   const fields = filterFields(defs);
   const used = (key: string) => (tasks ?? []).flatMap((t) => choiceKeys(t.extra[key]));
@@ -93,7 +96,9 @@ export function TasksPage() {
               ))}
             </div>
           )}
-          <ErrorMessage text={[action, board, newTask, templates, archiveDone].map((q) => (q.isError ? errorOf(q.error) : null)).find(Boolean) ?? null} />
+          <ErrorMessage
+            text={[signed.error, ...[board, newTask, templates, archiveDone].map((q) => (q.isError ? q.error : null))].map((e) => (e ? errorOf(e) : null)).find(Boolean) ?? null}
+          />
           <Board
             columns={COLUMNS.map((c) => ({ key: c.status, title: c.title }))}
             items={shown}
@@ -147,6 +152,7 @@ export function TasksPage() {
           />
         </>
       )}
+      {signed.pad}
     </>
   );
 }

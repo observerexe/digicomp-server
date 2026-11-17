@@ -1,4 +1,5 @@
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { Strokes } from '../../../../shared/editor-schema/signature';
 import { useNavigate } from 'react-router';
 import { api, unwrap } from '../../api/client';
 import type { Me, Task, TaskStatus } from '../../api/types';
@@ -26,7 +27,8 @@ export function useBoard(mine: boolean, doneLimit: number) {
   });
 }
 
-type Vars = { task: Task; kind: ActionKind; body?: string };
+/** `strokes` — accepting: the signature of who accepts, for the document's lines awaiting them (see useSignWith). */
+type Vars = { task: Task; kind: ActionKind; body?: string; strokes?: Strokes };
 
 /**
  * A move on the board: the card moves at once (optimistic), the API decides;
@@ -35,7 +37,7 @@ type Vars = { task: Task; kind: ActionKind; body?: string };
 export function useTaskAction(me: Me | null) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ task, kind, body }: Vars) => {
+    mutationFn: ({ task, kind, body, strokes }: Vars) => {
       const path = { params: { path: { id: task.id } } };
       switch (kind) {
         case 'take':
@@ -49,7 +51,7 @@ export function useTaskAction(me: Me | null) {
         case 'submit':
           return unwrap(api.POST('/api/tasks/{id}/submit', path));
         case 'accept':
-          return unwrap(api.POST('/api/tasks/{id}/accept', path));
+          return unwrap(api.POST('/api/tasks/{id}/accept', { ...path, body: { strokes } }));
         case 'return':
           return unwrap(api.POST('/api/tasks/{id}/return', { ...path, body: { body: body ?? '' } }));
         case 'archive':

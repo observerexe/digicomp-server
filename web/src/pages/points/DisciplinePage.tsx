@@ -87,7 +87,8 @@ export function DisciplinePage() {
             </select>
           </div>
         </div>
-        <ErrorMessage text={[newPaper, forRecord, templates, revoke].map((q) => (q.isError ? errorOf(q.error) : null)).find(Boolean) ?? null} />
+        <ErrorMessage text={[newPaper.error, forRecord.error, templates.error, revoke.error].map((e) => (e ? errorOf(e) : null)).find(Boolean) ?? null} />
+        {forRecord.pad}
         {list.isPending ? (
           <Skeleton height={160} />
         ) : list.isError ? (

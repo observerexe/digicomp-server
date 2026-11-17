@@ -76,7 +76,8 @@ export function PointsPage() {
         <div className={s.filters}>
           <MemberSelect excludeSelf id="pt-user" label="Учасник" value={userId} onChange={(id) => setParams(id ? { user: id } : {}, { replace: true })} />
         </div>
-        <ErrorMessage text={[newPaper, forRecord, templates].map((q) => (q.isError ? errorOf(q.error) : null)).find(Boolean) ?? null} />
+        <ErrorMessage text={[newPaper.error, forRecord.error, templates.error].map((e) => (e ? errorOf(e) : null)).find(Boolean) ?? null} />
+        {forRecord.pad}
         {!userId ? (
           <p className="hint">Виберіть учасника, щоб побачити баланс і записи.</p>
         ) : history.isPending ? (

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import type { Me, Task, TaskDetail, TemplateItem } from '../../api/types';
 import { dictionary, fieldDef, json, member, mockApi, moderator, renderApp } from '../../test/render';
+import { drawSignature, stubPointerEvents } from '../../test/signature';
 import { task } from './logic.test';
 
 const staff: Me = { ...moderator, permissions: [...moderator.permissions, 'tasks.accept', 'tasks.create', 'tasks.manage'] };
@@ -126,6 +127,36 @@ describe('Дошка ТЗ', () => {
     await userEvent.click(submit);
     await waitFor(() => expect(calls.some((c) => c.path === '/api/tasks/t1/return')).toBe(true));
     expect(JSON.parse(calls.find((c) => c.path === '/api/tasks/t1/return')!.body)).toEqual({ body: 'Збільшити шрифт' });
+  });
+
+  it('«Прийняти», коли документ ТЗ чекає підпису того, хто приймає: без підпису не прийнято; вікно → «Підписати» — прийнято з малюнком', async () => {
+    stubPointerEvents();
+    const t = task({ id: 't1', title: 'Банер', status: 'review', assignees: [ref(iryna)], paper: { id: 'p1', number: 'ТЗ-2026-003' } });
+    const wanted = { statusCode: 409, message: 'Paper signature required', errorCode: 'PAPER_SIGNATURE_REQUIRED', paperId: 'p1', number: 'ТЗ-2026-003', title: 'Банер', lines: ['Роботу прийняв'] };
+    const { calls } = mockApi(
+      boardApi(staff, [t], {
+        'POST /api/tasks/t1/accept': async (req: Request) => {
+          if (!(await req.text()).includes('strokes')) return json(409, wanted);
+          t.status = 'done';
+          return json(200, t);
+        },
+      }),
+    );
+    const accepts = () => calls.filter((c) => c.path === '/api/tasks/t1/accept');
+    renderApp('/tasks');
+    const card = (await within(await screen.findByRole('region', { name: 'На перевірці' })).findByText('Банер')).closest('article')!;
+    await userEvent.click(within(card).getByRole('button', { name: 'Прийняти' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Підписати документ' });
+    expect(dialog).toHaveAccessibleDescription('«Роботу прийняв» · № ТЗ-2026-003. Підпис не можна зняти.');
+    // Not accepted yet: the card is back on review.
+    expect(within(column('На перевірці')).getByText('Банер')).toBeInTheDocument();
+    expect(screen.queryByText('Документ чекає вашого підпису: спершу підпишіть його.')).not.toBeInTheDocument();
+    drawSignature(dialog);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Підписати' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(accepts()).toHaveLength(2);
+    expect(JSON.parse(accepts()[1]!.body)).toEqual({ strokes: [[10, 10, 20, 20]] });
+    expect(await within(column('Виконано')).findByText('Банер')).toBeInTheDocument();
   });
 
   it('перетягування: дозволений перехід виконується, заборонений — ні', async () => {

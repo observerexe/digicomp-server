@@ -68,7 +68,8 @@ export function AuthorizationsSection(scope: Scope) {
             ))}
           </ul>
         )}
-        <ErrorMessage text={[revoke, newPaper, forRecord, templates].map((m) => (m.isError ? errorOf(m.error) : null)).find(Boolean) ?? null} />
+        <ErrorMessage text={[revoke.error, newPaper.error, forRecord.error, templates.error].map((e) => (e ? errorOf(e) : null)).find(Boolean) ?? null} />
+        {forRecord.pad}
         {canGrant && (
           <>
             <p className="hint">Допуск видають «Записом про інструктаж і допуск»; повторний інструктаж оновлює термін. Відкликати — «Скасувати документ» у записі.</p>
