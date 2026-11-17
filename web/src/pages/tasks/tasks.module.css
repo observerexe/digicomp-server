@@ -66,9 +66,6 @@
   --card-bg: color-mix(in srgb, var(--pal-solid) 18%, var(--pal-soft));
   border-color: color-mix(in srgb, var(--pal-solid) 55%, var(--c-border));
 }
-.cardReview {
-  border-color: var(--c-warning);
-}
 .cardNumber {
   color: var(--c-text2);
   font-size: 13px;

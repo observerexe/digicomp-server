@@ -60,7 +60,7 @@ export function TaskCard(props: {
 
   return (
     <article
-      className={`${s.card} ${t.status === 'review' ? s.cardReview : ''} ${props.stripe ? `${s.typed} pal-${props.stripe.color}` : ''}`}
+      className={`${s.card} ${props.stripe ? `${s.typed} pal-${props.stripe.color}` : ''}`}
       draggable={props.drag.draggable}
       onDragStart={props.drag.onDragStart}
       onDragEnd={props.drag.onDragEnd}
