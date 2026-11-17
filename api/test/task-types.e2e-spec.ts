@@ -12,6 +12,7 @@ import {
   taskTemplates,
   taskTypes,
   TestUser,
+  SIGNED,
 } from './helpers';
 
 // Типи ТЗ (6.3): довідник «Тип технічного завдання», обов'язкове поле «Тип»,
@@ -146,7 +147,9 @@ describe('Типи ТЗ (e2e)', () => {
       .send({ revision: draft.revision, values: { title: 'ТЗ', points: 10 } })
       .expect(200);
     await taskTypes(app);
-    const res = await as(app, mod).post(`/api/papers/${draft.id}/publish`);
+    const res = await as(app, mod)
+      .post(`/api/papers/${draft.id}/publish`)
+      .send(SIGNED);
     expect(res.status).toBe(409);
     expect(res.body.errorCode).toBe('TEMPLATE_NEEDS_UPDATE');
   });

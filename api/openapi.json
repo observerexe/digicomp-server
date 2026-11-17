@@ -1692,6 +1692,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FreezeSignatureDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -1704,7 +1714,7 @@
             }
           }
         },
-        "summary": "A draft becomes final: a record, a number (see the template).",
+        "summary": "A draft becomes final: a record, a number (see the template). Frozen at\nonce (a discipline record) — signed by who publishes where a line awaits\nthem (`strokes`; without — PAPER_SIGNATURE_REQUIRED).",
         "tags": [
           "Paperwork"
         ]
@@ -1764,6 +1774,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FreezeSignatureDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -1776,7 +1796,7 @@
             }
           }
         },
-        "summary": "Freezes for print and signature: a snapshot of the sheet with its\nSHA-256; once the records are ready (a member — own free document).",
+        "summary": "Freezes for print and signature: a snapshot of the sheet with its\nSHA-256; once the records are ready (a member — own free document).\nWho a signature line awaits signs with it (`strokes`; without —\nPAPER_SIGNATURE_REQUIRED).",
         "tags": [
           "Paperwork"
         ]
@@ -3661,6 +3681,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FreezeSignatureDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -3673,7 +3703,7 @@
             }
           }
         },
-        "summary": "Accept the task: points are split equally between assignees.",
+        "summary": "Accept the task: points are split equally between assignees. Its\ndocument freezes itself (see the template) — signed by who accepts where\na line awaits them (`strokes`; without — PAPER_SIGNATURE_REQUIRED, the\ntask stays «На перевірці»).",
         "tags": [
           "Tasks"
         ]
@@ -8692,6 +8722,16 @@
       "PaperForRecordDto": {
         "type": "object",
         "properties": {
+          "strokes": {
+            "type": "array",
+            "description": "As in SignPaperDto; left out — the freeze needs no signature of the reader.",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            }
+          },
           "templateId": {
             "type": "string",
             "description": "A template that creates records of the record's type.",
@@ -8727,6 +8767,21 @@
         "required": [
           "content"
         ]
+      },
+      "FreezeSignatureDto": {
+        "type": "object",
+        "properties": {
+          "strokes": {
+            "type": "array",
+            "description": "As in SignPaperDto; left out — the freeze needs no signature of the reader.",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            }
+          }
+        }
       },
       "CancelPaperDto": {
         "type": "object",

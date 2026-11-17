@@ -12,6 +12,7 @@ import {
   oldAward,
   resetDb,
   TestUser,
+  SIGNED,
 } from './helpers';
 
 // Дисципліна через документ (3.2): «Подання про стягнення» з умовним полем
@@ -102,7 +103,7 @@ describe('Дисципліна через документ (e2e)', () => {
   }
 
   const publish = (who: TestUser, id: string) =>
-    as(app, who).post(`/api/papers/${id}/publish`);
+    as(app, who).post(`/api/papers/${id}/publish`).send(SIGNED);
 
   /** A published «Подання» by `who`: the document. */
   async function issued(who: TestUser, values: Record<string, unknown>) {
@@ -128,9 +129,10 @@ describe('Дисципліна через документ (e2e)', () => {
         });
       const res = await publish(mod, d.id);
       expect(res.status).toBe(200);
-      // «Подання» freezes itself: the record is ready at once (4.1).
+      // «Подання» freezes itself: the record is ready at once (4.1); who
+      // publishes signs with it — here every line is theirs: «Підписано».
       expect(res.body).toMatchObject({
-        status: 'frozen',
+        status: 'signed',
         number: `ПС-${YEAR}-001`,
         targetType: 'discipline_record',
         canChange: false,
@@ -313,7 +315,11 @@ describe('Дисципліна через документ (e2e)', () => {
         });
       expect(filled.status).toBe(200);
       expect(
-        (await as(app, a).post(`/api/papers/${note.body.id}/publish`)).status,
+        (
+          await as(app, a)
+            .post(`/api/papers/${note.body.id}/publish`)
+            .send(SIGNED)
+        ).status,
       ).toBe(200);
 
       const me = await as(app, a).get('/api/discipline/me');

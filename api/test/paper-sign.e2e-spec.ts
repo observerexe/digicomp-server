@@ -14,6 +14,7 @@ import {
   resetDb,
   taskTemplates,
   TestUser,
+  SIGNED,
 } from './helpers';
 
 // Підпис (4.2а): скан зафіксованого документа стає версією в Архіві,
@@ -108,7 +109,10 @@ describe('Підпис документів (e2e)', () => {
         .expect(201)
     ).body as Paper;
     await as(app, u).post(`/api/papers/${p.id}/publish`).expect(200);
-    if (frozen) await as(app, u).post(`/api/papers/${p.id}/freeze`).expect(200);
+    // By the admin, whom no line awaits: every line still waits.
+    if (frozen) {
+      await as(app, admin).post(`/api/papers/${p.id}/freeze`).expect(200);
+    }
     return get(u, p.id);
   };
 
@@ -219,7 +223,10 @@ describe('Підпис документів (e2e)', () => {
       await as(app, member).post(`/api/tasks/${task}/take`).expect(200);
       await as(app, member).post(`/api/tasks/${task}/start`).expect(200);
       await as(app, member).post(`/api/tasks/${task}/submit`).expect(200);
-      await as(app, admin).post(`/api/tasks/${task}/accept`).expect(200);
+      await as(app, admin)
+        .post(`/api/tasks/${task}/accept`)
+        .send(SIGNED)
+        .expect(200);
       const p = await get(mod, (res.body as Paper).id);
       expect(p.status).toBe('frozen');
       await sign(mod, p.id).expect(200);
@@ -290,7 +297,10 @@ describe('Підпис документів (e2e)', () => {
       await as(app, member).post(`/api/tasks/${task}/take`).expect(200);
       await as(app, member).post(`/api/tasks/${task}/start`).expect(200);
       await as(app, member).post(`/api/tasks/${task}/submit`).expect(200);
-      await as(app, admin).post(`/api/tasks/${task}/accept`).expect(200);
+      await as(app, admin)
+        .post(`/api/tasks/${task}/accept`)
+        .send(SIGNED)
+        .expect(200);
       const t = await get(member, (res.body as Paper).id);
       expect(t).toMatchObject({ status: 'frozen', canSign: false });
       code(await sign(member, t.id), 403, 'NOT_OWNER');
@@ -412,9 +422,13 @@ describe('Підпис документів (e2e)', () => {
       await as(app, member).post(`/api/tasks/${task}/take`).expect(200);
       await as(app, member).post(`/api/tasks/${task}/start`).expect(200);
       await as(app, member).post(`/api/tasks/${task}/submit`).expect(200);
-      await as(app, admin).post(`/api/tasks/${task}/accept`).expect(200);
+      // Who accepts signs «Роботу прийняв» with it: not on their list.
+      await as(app, admin)
+        .post(`/api/tasks/${task}/accept`)
+        .send(SIGNED)
+        .expect(200);
       const id = (res.body as Paper).id;
-      expect(ids(await due(admin, 'sign'))).toEqual([id]);
+      expect(ids(await due(admin, 'sign'))).toEqual([]);
       expect(ids(await due(mod, 'sign'))).toEqual([id]);
       expect(ids(await due(member, 'sign'))).toEqual([]);
     });

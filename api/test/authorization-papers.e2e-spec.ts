@@ -13,6 +13,7 @@ import {
   oldAuthorization,
   resetDb,
   TestUser,
+  SIGNED,
 } from './helpers';
 
 // Допуск через документ (4.4): «Запис про інструктаж і допуск» видає допуск,
@@ -201,7 +202,7 @@ describe('Допуск через документ (e2e)', () => {
     const forRecord = (u: TestUser) =>
       as(app, u)
         .post('/api/papers/for-record')
-        .send({ templateId: template, targetId: old.id });
+        .send({ templateId: template, targetId: old.id, ...SIGNED });
     code(await forRecord(a), 404, 'TEMPLATE_NOT_FOUND');
     const p = await forRecord(mod);
     expect(p.status).toBe(201);

@@ -89,9 +89,10 @@ describe('Бали через відомість (e2e)', () => {
         {},
         { member: b.id, amount: 7, reason: 'прибрав склад' },
       ]);
-      // The sheet freezes itself: its awards are ready at once (4.1).
+      // The sheet freezes itself: its awards are ready at once (4.1); «Склав»
+      // signs it with the publishing — its only line: «Підписано».
       expect(p).toMatchObject({
-        status: 'frozen',
+        status: 'signed',
         number: `ВБ-${YEAR}-001`,
         targetType: 'points_entry',
         targetId: null,

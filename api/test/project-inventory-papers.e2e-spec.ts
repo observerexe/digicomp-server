@@ -14,6 +14,7 @@ import {
   makeUser,
   resetDb,
   TestUser,
+  SIGNED,
 } from './helpers';
 
 // Проєкти й склад (5.4): «Акт списання» — рядок = списання (рух складу з
@@ -101,7 +102,7 @@ describe('Проєкти й склад через документи (e2e)', () 
       .patch(`/api/papers/${p.body.id}`)
       .send({ revision: p.body.revision, values: { items: rows } });
     if (saved.status !== 200) return saved;
-    return as(app, who).post(`/api/papers/${p.body.id}/publish`);
+    return as(app, who).post(`/api/papers/${p.body.id}/publish`).send(SIGNED);
   }
 
   describe('«Акт списання»', () => {
@@ -112,8 +113,9 @@ describe('Проєкти й склад через документи (e2e)', () 
         { item: glue, quantity: 0.5, reason: 'засох' },
       ]);
       expect(res.status).toBe(200);
+      // Frozen at once and signed by who publishes — every line is theirs.
       expect(res.body).toMatchObject({
-        status: 'frozen',
+        status: 'signed',
         number: `АС-${YEAR}-001`,
         targetType: 'inventory_writeoff',
         targetId: null,
@@ -288,11 +290,16 @@ describe('Проєкти й склад через документи (e2e)', () 
       expect(materials.rows!.map((r) => r.slice(1))).toEqual([
         ['Дріт', '−2 шт', 'Олена Перша', 'на корпус'],
       ]);
-      await as(app, mod).post(`/api/papers/${p.id}/publish`).expect(200);
+      await as(app, mod)
+        .post(`/api/papers/${p.id}/publish`)
+        .send(SIGNED)
+        .expect(200);
       const frozen = await as(app, mod)
         .post(`/api/papers/${p.id}/freeze`)
+        .send(SIGNED)
         .expect(200);
-      expect(frozen.body.status).toBe('frozen');
+      // Signed with the freeze: its only line is of who froze it.
+      expect(frozen.body.status).toBe('signed');
       expect(frozen.body.number).toBe(`ЗП-${YEAR}-001`);
       // Taken after the freeze: the frozen report keeps what it showed.
       await as(app, member)

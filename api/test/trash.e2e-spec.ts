@@ -12,6 +12,7 @@ import {
   makeUser,
   resetDb,
   TestUser,
+  SIGNED,
 } from './helpers';
 
 // Кошик (6.6а): «Видалити» обладнання, позиції складу, файлу архіву, проєкту —
@@ -375,8 +376,14 @@ describe('Кошик (e2e)', () => {
           .send({ title: 'Протокол' })
           .expect(201)
       ).body as { id: string };
-      await as(app, member).post(`/api/papers/${p.id}/publish`).expect(200);
-      await as(app, member).post(`/api/papers/${p.id}/freeze`).expect(200);
+      await as(app, member)
+        .post(`/api/papers/${p.id}/publish`)
+        .send(SIGNED)
+        .expect(200);
+      await as(app, member)
+        .post(`/api/papers/${p.id}/freeze`)
+        .send(SIGNED)
+        .expect(200);
       await as(app, member)
         .post(`/api/papers/${p.id}/signed`)
         .attach('file', PDF, 'скан.pdf')
@@ -429,7 +436,10 @@ describe('Кошик (e2e)', () => {
           })
           .expect(201)
       ).body as { id: string };
-      await as(app, member).post(`/api/papers/${p.id}/publish`).expect(200);
+      await as(app, member)
+        .post(`/api/papers/${p.id}/publish`)
+        .send(SIGNED)
+        .expect(200);
 
       await as(app, mod).delete(`/api/projects/${id}`).expect(200);
       const list = await as(app, member).get('/api/projects').expect(200);

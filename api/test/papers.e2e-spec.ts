@@ -4,7 +4,14 @@ import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
 import { AuditLog } from '../src/audit/audit-log.entity';
 import { Role } from '../src/users/user.entity';
-import { as, createTestApp, makeUser, resetDb, TestUser } from './helpers';
+import {
+  as,
+  createTestApp,
+  makeUser,
+  resetDb,
+  TestUser,
+  SIGNED,
+} from './helpers';
 
 type Paper = {
   id: string;
@@ -461,7 +468,10 @@ describe('Документи редактора (e2e)', () => {
           '<div class="paper-signs"><div class="paper-signs-col"><p>Склав</p><p class="paper-sign"><span class="paper-sign-line"></span><span class="paper-sign-name">Андрій ШЕВЧУК</span></p></div></div></main>',
       );
       expect(draft.text).toContain('@bottom-center { content: "Ф-01";');
-      await as(app, author).post(`/api/papers/${p.id}/publish`).expect(200);
+      await as(app, author)
+        .post(`/api/papers/${p.id}/publish`)
+        .send(SIGNED)
+        .expect(200);
       const published = await as(app, author)
         .get(`/api/papers/${p.id}/print`)
         .expect(200);

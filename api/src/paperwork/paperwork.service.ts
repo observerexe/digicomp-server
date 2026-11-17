@@ -63,6 +63,7 @@ import type {
   ListPapersQuery,
   PaperForRecordDto,
   PrintPaperQuery,
+  FreezeSignatureDto,
   SignPaperDto,
   UpdatePaperDto,
 } from './dto';
@@ -106,6 +107,7 @@ import {
   signedNote,
   signedSheet,
   type SheetSignature,
+  type Strokes,
 } from '../../../shared/editor-schema/signature';
 import type {
   PaperDto,
@@ -141,6 +143,7 @@ export const PaperErrors = {
   NotFrozen: 'Paper is not frozen',
   ScanNotFound: 'Paper scan not found',
   SignedByYou: 'Paper is signed by you',
+  SignatureRequired: 'Paper signature required',
 } as const;
 
 /** Published, not cancelled: it shows its record as it is now. */
@@ -1146,9 +1149,14 @@ export class PaperworkService {
    * snapshot; the document keeps those values (bound fields stop following
    * the record) and is «Зафіксовано». Once only (PAPER_FROZEN) — but a
    * report: frozen or signed, it takes a new snapshot with its record as it
-   * is now and is «Зафіксовано» again.
+   * is now and is «Зафіксовано» again. Who the sheet names on a signature
+   * line signs with it (see snapshot).
    */
-  async freeze(id: string, actor: Actor): Promise<PaperDto> {
+  async freeze(
+    id: string,
+    dto: FreezeSignatureDto,
+    actor: Actor,
+  ): Promise<PaperDto> {
     return this.ds.transaction(async (m) => {
       const p = await this.accessible(m, id, actor, true);
       assertCan(actor, Action.PapersFreeze, freezeOwner(p));
@@ -1163,7 +1171,7 @@ export class PaperworkService {
       if (!(await this.ready(m, p))) {
         throw new ConflictException(PaperErrors.NotReady);
       }
-      await this.snapshot(m, p, form, actor, false);
+      await this.snapshot(m, p, form, actor, false, dto.strokes);
       return this.view(m, p, actor);
     });
   }
@@ -1171,13 +1179,16 @@ export class PaperworkService {
   /**
    * A module's record became ready (a task accepted): its documents whose
    * template freezes them themselves are frozen now, in the module's
-   * transaction, by who made it ready.
+   * transaction, by who made it ready — signed by them where a line awaits
+   * them (`strokes`; none — PAPER_SIGNATURE_REQUIRED, the module's change
+   * is rolled back with it).
    */
   async recordReady(
     type: RecordType,
     id: string,
     actor: Actor,
     m: EntityManager,
+    strokes?: Strokes,
   ): Promise<void> {
     const links = await m.findBy(RecordLink, {
       fromType: 'paper',
@@ -1190,7 +1201,9 @@ export class PaperworkService {
         where: { id: paperId },
         lock: { mode: 'pessimistic_write' },
       });
-      if (p) await this.autoFreeze(m, p, await this.formOf(m, p), actor);
+      if (p) {
+        await this.autoFreeze(m, p, await this.formOf(m, p), actor, strokes);
+      }
     }
   }
 
@@ -1200,20 +1213,25 @@ export class PaperworkService {
     p: Paper,
     form: Form | null,
     actor: Actor,
+    strokes?: Strokes,
   ) {
     if (
       form?.template.autoFreeze &&
       p.status === PaperStatus.Published &&
       (await this.ready(m, p))
     ) {
-      await this.snapshot(m, p, form, actor, true);
+      await this.snapshot(m, p, form, actor, true, strokes);
     }
   }
 
   /**
    * The snapshot: records are named in full (as staff see them) — the
    * sheet is the same for every reader. Links follow what it shows (the
-   * record's fields included: assignees of a task, for one).
+   * record's fields included: assignees of a task, for one). Who freezes it
+   * signs at once the lines awaiting them: their `strokes` go on those lines;
+   * none — PAPER_SIGNATURE_REQUIRED with the document (`paperId`, `number`,
+   * `title`) and the lines' labels (the window of the signature opens with
+   * them), nothing done.
    */
   private async snapshot(
     m: EntityManager,
@@ -1221,6 +1239,7 @@ export class PaperworkService {
     form: Form | null,
     actor: Actor,
     auto: boolean,
+    strokes?: Strokes,
   ) {
     p.author ??=
       (await m.getRepository(User).findOneBy({ id: p.authorId })) ?? undefined;
@@ -1234,13 +1253,26 @@ export class PaperworkService {
     );
     const html = sheetHtml(shown.content, fill, { paperId: p.id, n });
     const sha256 = sheetHash(html);
-    await m.getRepository(PaperSnapshot).insert({
+    const signers = await this.signersOf(p, shown, fill);
+    const mine = signers.flatMap((s, row) =>
+      s.userId === actor.id ? [row] : [],
+    );
+    if (mine.length && !strokes) {
+      throw new ConflictException({
+        message: PaperErrors.SignatureRequired,
+        paperId: p.id,
+        number: p.number,
+        title: p.title,
+        lines: mine.map((row) => signers[row]!.label),
+      });
+    }
+    const { identifiers } = await m.getRepository(PaperSnapshot).insert({
       paperId: p.id,
       n,
       html,
       sha256,
       resolvedValues: shown.values,
-      signers: await this.signersOf(p, shown, fill),
+      signers,
       createdById: actor.id,
     });
     const fresh = new Set(
@@ -1281,6 +1313,18 @@ export class PaperworkService {
       },
       m,
     );
+    if (mine.length) {
+      const snapshotId = (identifiers[0] as { id: string }).id;
+      await this.addSignatures(
+        m,
+        p,
+        { id: snapshotId, n, signers },
+        mine,
+        new Set(),
+        actor,
+        strokes!,
+      );
+    }
   }
 
   /**
@@ -1431,40 +1475,64 @@ export class PaperworkService {
       );
       const rows = mine.filter((row) => !done.has(row));
       if (!rows.length) throw new ConflictException(PaperErrors.SignedByYou);
-      await m.getRepository(PaperSignature).insert(
-        rows.map((row) => ({
-          snapshotId: snap.id,
-          row,
-          userId: actor.id,
-          strokes: dto.strokes,
-        })),
-      );
-      rows.forEach((row) => done.add(row));
-      const complete = signers.every(
-        (s, row) => s.userId === null || done.has(row),
-      );
-      if (complete) p.status = PaperStatus.Signed;
-      p.revision += 1;
-      await m.getRepository(Paper).save(p);
-      await this.audit.log(
-        {
-          actorId: actor.id,
-          action: 'paper.signature_added',
-          entity: 'paper',
-          entityId: p.id,
-          meta: {
-            title: p.title,
-            authorId: p.authorId,
-            number: p.number,
-            n: snap.n,
-            lines: rows.map((row) => signers[row]!.label),
-            complete,
-          },
-        },
+      await this.addSignatures(
         m,
+        p,
+        { id: snap.id, n: snap.n, signers },
+        rows,
+        done,
+        actor,
+        dto.strokes,
       );
       return this.view(m, p, actor);
     });
+  }
+
+  /**
+   * The reader's drawing on `rows` of a snapshot (`done` — rows signed
+   * already); every line naming someone signed — «Підписано».
+   */
+  private async addSignatures(
+    m: EntityManager,
+    p: Paper,
+    snap: { id: string; n: number; signers: SnapshotSigner[] },
+    rows: number[],
+    done: Set<number>,
+    actor: Actor,
+    strokes: Strokes,
+  ) {
+    await m.getRepository(PaperSignature).insert(
+      rows.map((row) => ({
+        snapshotId: snap.id,
+        row,
+        userId: actor.id,
+        strokes,
+      })),
+    );
+    rows.forEach((row) => done.add(row));
+    const complete = snap.signers.every(
+      (s, row) => s.userId === null || done.has(row),
+    );
+    if (complete) p.status = PaperStatus.Signed;
+    p.revision += 1;
+    await m.getRepository(Paper).save(p);
+    await this.audit.log(
+      {
+        actorId: actor.id,
+        action: 'paper.signature_added',
+        entity: 'paper',
+        entityId: p.id,
+        meta: {
+          title: p.title,
+          authorId: p.authorId,
+          number: p.number,
+          n: snap.n,
+          lines: rows.map((row) => snap.signers[row]!.label),
+          complete,
+        },
+      },
+      m,
+    );
   }
 
   /** The latest signed scan of a snapshot; null — none. */
@@ -1867,7 +1935,13 @@ export class PaperworkService {
         },
         m,
       );
-      await this.autoFreeze(m, p, { template, version, fields }, actor);
+      await this.autoFreeze(
+        m,
+        p,
+        { template, version, fields },
+        actor,
+        dto.strokes,
+      );
       return this.view(m, await this.accessible(m, p.id, actor), actor);
     });
   }
@@ -2151,7 +2225,11 @@ export class PaperworkService {
    * with the key of the template's field bound to it); a template with a
    * prefix gives the next number. All in one transaction.
    */
-  async publish(id: string, actor: Actor): Promise<PaperDto> {
+  async publish(
+    id: string,
+    dto: FreezeSignatureDto,
+    actor: Actor,
+  ): Promise<PaperDto> {
     return this.ds.transaction(async (m) => {
       const p = await this.accessible(m, id, actor, true);
       assertCan(actor, Action.PapersPublish, { ownerId: p.authorId });
@@ -2241,8 +2319,8 @@ export class PaperworkService {
         },
         m,
       );
-      // A record ready at once (a discipline record): frozen with it.
-      await this.autoFreeze(m, p, form, actor);
+      // A record ready at once (a discipline record): frozen with it — and signed by who publishes, where a line awaits them.
+      await this.autoFreeze(m, p, form, actor, dto.strokes);
       return this.view(m, p, actor);
     });
   }

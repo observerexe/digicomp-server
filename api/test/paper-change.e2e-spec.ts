@@ -3,7 +3,14 @@ import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
 import { AuditLog } from '../src/audit/audit-log.entity';
 import { Role } from '../src/users/user.entity';
-import { as, createTestApp, makeUser, resetDb, TestUser } from './helpers';
+import {
+  as,
+  createTestApp,
+  makeUser,
+  resetDb,
+  TestUser,
+  SIGNED,
+} from './helpers';
 
 // Авто-поля й зміна опублікованого документа (3.1в): авто-поля ніхто не
 // заповнює, після публікації вони показують ТЗ; поля «можна змінити» —
@@ -172,7 +179,10 @@ describe('Авто-поля й зміна опублікованого доку�
       values: { name: 'Логотип', points: 31, size: 2, note: 'а', fixed: 'б' },
       content: withZone(p.content, 'goal', 'Мета'),
     }).expect(200);
-    await as(app, mod).post(`/api/papers/${p.id}/publish`).expect(200);
+    await as(app, mod)
+      .post(`/api/papers/${p.id}/publish`)
+      .send(SIGNED)
+      .expect(200);
     return get(mod, p.id);
   };
 
@@ -392,7 +402,10 @@ describe('Авто-поля й зміна опублікованого доку�
           .expect(201)
       ).body as Paper;
       await patch(author, p, { values: { note: 'а', fixed: 'б' } }).expect(200);
-      await as(app, author).post(`/api/papers/${p.id}/publish`).expect(200);
+      await as(app, author)
+        .post(`/api/papers/${p.id}/publish`)
+        .send(SIGNED)
+        .expect(200);
       return get(author, p.id);
     };
 

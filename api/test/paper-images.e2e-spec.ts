@@ -15,6 +15,7 @@ import {
   PNG_1PX,
   resetDb,
   TestUser,
+  SIGNED,
 } from './helpers';
 
 // Зображення в документах (6.7а): файл у сховищі, у документі — лише id.
@@ -98,7 +99,7 @@ describe('Зображення в документах (e2e)', () => {
   };
   /** Published and visible to all. */
   const share = async (u: TestUser, id: string) => {
-    await as(app, u).post(`/api/papers/${id}/publish`).expect(200);
+    await as(app, u).post(`/api/papers/${id}/publish`).send(SIGNED).expect(200);
     const { revision } = await get(admin, id);
     await as(app, admin)
       .patch(`/api/papers/${id}`)
@@ -279,9 +280,18 @@ describe('Зображення в документах (e2e)', () => {
       ).body as Paper;
       expect((await uses(a)).map((u) => u.paperId)).toEqual([copy.id]);
 
-      await as(app, member).post(`/api/papers/${p.id}/freeze`).expect(409);
-      await as(app, member).post(`/api/papers/${p.id}/publish`).expect(200);
-      await as(app, member).post(`/api/papers/${p.id}/freeze`).expect(200);
+      await as(app, member)
+        .post(`/api/papers/${p.id}/freeze`)
+        .send(SIGNED)
+        .expect(409);
+      await as(app, member)
+        .post(`/api/papers/${p.id}/publish`)
+        .send(SIGNED)
+        .expect(200);
+      await as(app, member)
+        .post(`/api/papers/${p.id}/freeze`)
+        .send(SIGNED)
+        .expect(200);
       const holders = (await uses(b)).map((u) => u.paperId);
       expect(holders).toHaveLength(2);
       expect(holders).toEqual(expect.arrayContaining([p.id, copy.id]));
@@ -324,7 +334,10 @@ describe('Зображення в документах (e2e)', () => {
           .expect(201)
       ).body as Paper;
       expect((await save(member, p.id, zone(image(a)))).status).toBe(200);
-      await as(app, member).post(`/api/papers/${p.id}/publish`).expect(200);
+      await as(app, member)
+        .post(`/api/papers/${p.id}/publish`)
+        .send(SIGNED)
+        .expect(200);
       expect((await save(member, p.id, zone(image(b)))).status).toBe(200);
       expect((await uses(a)).map((u) => u.paperId)).toEqual([p.id]);
       expect((await uses(b)).map((u) => u.paperId)).toEqual([p.id]);

@@ -20,7 +20,9 @@ import {
 } from '../files/file-validation';
 import { StorageService } from '../files/storage.service';
 import { PointsEntry, PointsKind } from '../points/points-entry.entity';
+import type { FreezeSignatureDto } from '../paperwork/dto';
 import { PaperworkService } from '../paperwork/paperwork.service';
+import type { Strokes } from '../../../shared/editor-schema/signature';
 import { RecordFieldsService } from '../records/record-fields.service';
 import { User } from '../users/user.entity';
 import {
@@ -542,7 +544,7 @@ export class TasksService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** review -> done; points are split between assignees. */
-  accept(id: string, actor: Actor): Promise<TaskDto> {
+  accept(id: string, dto: FreezeSignatureDto, actor: Actor): Promise<TaskDto> {
     return this.move(
       id,
       actor,
@@ -572,6 +574,7 @@ export class TasksService implements OnModuleInit, OnModuleDestroy {
           })),
         };
       },
+      dto.strokes,
     );
   }
 
@@ -783,6 +786,8 @@ export class TasksService implements OnModuleInit, OnModuleDestroy {
       task: Task,
       assignees: TaskAssignee[],
     ) => Promise<Record<string, unknown> | void>,
+    /** Done: the drawing of who accepts, for the document's lines awaiting them. */
+    strokes?: Strokes,
   ) {
     return this.locked(id, async (m, task, assignees) => {
       this.assertParticipant(actor, action, assignees);
@@ -796,7 +801,7 @@ export class TasksService implements OnModuleInit, OnModuleDestroy {
       await this.log(m, actor, auditAction, id, { from, to, ...meta });
       // Done: its document may be frozen (if its template says so — itself).
       if (to === TaskStatus.Done) {
-        await this.papers.recordReady('task', id, actor, m);
+        await this.papers.recordReady('task', id, actor, m, strokes);
       }
     });
   }

@@ -122,6 +122,7 @@ const MESSAGE_CODES: Record<string, string> = {
   'Paper record is not ready': 'PAPER_TARGET_NOT_READY',
   'Paper is not frozen': 'PAPER_NOT_FROZEN',
   'Paper is signed by you': 'PAPER_SIGNED_BY_YOU',
+  'Paper signature required': 'PAPER_SIGNATURE_REQUIRED',
   'Template was changed by someone else': 'PAPER_CONFLICT',
   'Template version is published': 'TEMPLATE_VERSION_PUBLISHED',
   'Invalid template field': 'TEMPLATE_FIELD_INVALID',

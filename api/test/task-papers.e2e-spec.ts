@@ -12,6 +12,7 @@ import {
   resetDb,
   taskTemplates,
   TestUser,
+  SIGNED,
 } from './helpers';
 
 // ТЗ через документ (3.1г): шаблони «Технічне завдання» й «Коротке ТЗ» з
@@ -102,7 +103,7 @@ describe('ТЗ через документ (e2e)', () => {
   const forRecord = (u: TestUser, targetId: string, templateId?: string) =>
     as(app, u)
       .post('/api/papers/for-record')
-      .send({ templateId: templateId ?? templates.full, targetId });
+      .send({ templateId: templateId ?? templates.full, targetId, ...SIGNED });
 
   describe('шаблони з міграції', () => {
     it('обидва створюють ТЗ: префікс ТЗ, модератори, видимі всім, автофіксація', async () => {
@@ -203,7 +204,10 @@ describe('ТЗ через документ (e2e)', () => {
       })
       .expect(200);
     const published = (
-      await as(app, mod).post(`/api/papers/${draft.id}/publish`).expect(200)
+      await as(app, mod)
+        .post(`/api/papers/${draft.id}/publish`)
+        .send(SIGNED)
+        .expect(200)
     ).body as Paper;
     expect(published.number).toBe(`ТЗ-${YEAR}-001`);
     const url = `/api/tasks/${published.targetId}`;
@@ -221,7 +225,7 @@ describe('ТЗ через документ (e2e)', () => {
     }
     await as(app, member).post(`${url}/start`).expect(200);
     await as(app, member).post(`${url}/submit`).expect(200);
-    await as(app, admin).post(`${url}/accept`).expect(200);
+    await as(app, admin).post(`${url}/accept`).send(SIGNED).expect(200);
 
     const now = await get(member, draft.id);
     expect(now.values).toMatchObject({
@@ -281,7 +285,10 @@ describe('ТЗ через документ (e2e)', () => {
         })
         .expect(200);
       const published = (
-        await as(app, mod).post(`/api/papers/${draft.id}/publish`).expect(200)
+        await as(app, mod)
+          .post(`/api/papers/${draft.id}/publish`)
+          .send(SIGNED)
+          .expect(200)
       ).body as Paper & { title: string };
       expect(published.title).toBe('Афіша А3');
 
@@ -323,7 +330,10 @@ describe('ТЗ через документ (e2e)', () => {
         `UPDATE papers SET values = '{"title":"Плакат","points":3}' WHERE id = $1`,
         [old.id],
       );
-      await as(app, mod).post(`/api/papers/${old.id}/publish`).expect(200);
+      await as(app, mod)
+        .post(`/api/papers/${old.id}/publish`)
+        .send(SIGNED)
+        .expect(200);
       expect(await titleOf(old.id)).toBe('Плакат');
     });
 

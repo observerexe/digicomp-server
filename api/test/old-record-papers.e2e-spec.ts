@@ -14,6 +14,7 @@ import {
   publishSheet,
   resetDb,
   TestUser,
+  SIGNED,
 } from './helpers';
 
 // Старі записи й навігація (3.4): документ для стягнення й ручного
@@ -81,7 +82,9 @@ describe('Документи для старих записів (e2e)', () => {
   });
 
   const forRecord = (u: TestUser, templateId: string, targetId: string) =>
-    as(app, u).post('/api/papers/for-record').send({ templateId, targetId });
+    as(app, u)
+      .post('/api/papers/for-record')
+      .send({ templateId, targetId, ...SIGNED });
   const balance = async (u: TestUser) =>
     (await as(app, u).get('/api/points/me')).body.balance as number;
 
@@ -107,8 +110,9 @@ describe('Документи для старих записів (e2e)', () => {
       });
       const res = await forRecord(mod, issue, id);
       expect(res.status).toBe(201);
+      // Frozen at once, signed by who makes it — every line is theirs.
       expect(res.body).toMatchObject({
-        status: 'frozen',
+        status: 'signed',
         number: `ПС-${YEAR}-001`,
         targetType: 'discipline_record',
         targetId: id,
@@ -197,7 +201,7 @@ describe('Документи для старих записів (e2e)', () => {
       const res = await forRecord(mod, sheet, entry.id);
       expect(res.status).toBe(201);
       expect(res.body).toMatchObject({
-        status: 'frozen',
+        status: 'signed',
         number: `ВБ-${YEAR}-001`,
         targetType: 'points_entry',
         targetId: null,
@@ -296,7 +300,10 @@ describe('Документи для старих записів (e2e)', () => {
     it('status=draft — лише чернетки', async () => {
       const draft = await as(app, a).post('/api/papers').send({ title: 'Ч' });
       const done = await as(app, a).post('/api/papers').send({ title: 'О' });
-      await as(app, a).post(`/api/papers/${done.body.id}/publish`).expect(200);
+      await as(app, a)
+        .post(`/api/papers/${done.body.id}/publish`)
+        .send(SIGNED)
+        .expect(200);
       expect(ids(await list(a, { mine: 'true', status: 'draft' }))).toEqual([
         draft.body.id,
       ]);

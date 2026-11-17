@@ -18,6 +18,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
+  ApiBody,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiProduces,
@@ -36,6 +37,7 @@ import {
   CancelPaperDto,
   CopyPaperDto,
   CreatePaperDto,
+  FreezeSignatureDto,
   ListPapersQuery,
   PaperForRecordDto,
   PaperScanQuery,
@@ -102,13 +104,22 @@ export class PaperworkController {
     return this.papers.copy(id, dto, req.user);
   }
 
-  /** A draft becomes final: a record, a number (see the template). */
+  /**
+   * A draft becomes final: a record, a number (see the template). Frozen at
+   * once (a discipline record) — signed by who publishes where a line awaits
+   * them (`strokes`; without — PAPER_SIGNATURE_REQUIRED).
+   */
   @Can(Action.PapersPublish)
   @ApiOkResponse({ type: PaperDto })
+  @ApiBody({ type: FreezeSignatureDto, required: false })
   @Post(':id/publish')
   @HttpCode(200)
-  publish(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
-    return this.papers.publish(id, req.user);
+  publish(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: FreezeSignatureDto = {},
+    @Req() req: Req,
+  ) {
+    return this.papers.publish(id, dto, req.user);
   }
 
   /** With a reason; the record the document created is taken off too. */
@@ -127,13 +138,20 @@ export class PaperworkController {
   /**
    * Freezes for print and signature: a snapshot of the sheet with its
    * SHA-256; once the records are ready (a member — own free document).
+   * Who a signature line awaits signs with it (`strokes`; without —
+   * PAPER_SIGNATURE_REQUIRED).
    */
   @Can(Action.PapersFreeze)
   @ApiOkResponse({ type: PaperDto })
+  @ApiBody({ type: FreezeSignatureDto, required: false })
   @Post(':id/freeze')
   @HttpCode(200)
-  freeze(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
-    return this.papers.freeze(id, req.user);
+  freeze(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: FreezeSignatureDto = {},
+    @Req() req: Req,
+  ) {
+    return this.papers.freeze(id, dto, req.user);
   }
 
   /**

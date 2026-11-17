@@ -57,6 +57,19 @@ export async function resetDb(app: INestApplication) {
 }
 
 export const PASSWORD = 'test-password-123';
+
+/** A drawn signature (1500 × 500 field): two strokes. */
+export const STROKES = [
+  [10, 400, 200, 100, 400, 380, 700, 120],
+  [900, 250],
+];
+
+/**
+ * The body of accepting a task, publishing or freezing a document: who
+ * freezes it signs at once the lines awaiting them (none — the drawing is
+ * not used).
+ */
+export const SIGNED = { strokes: STROKES };
 let hash: string | undefined;
 
 export type TestUser = User & { token: string };
@@ -216,7 +229,7 @@ export async function publishTaskPaper(
     .patch(`/api/papers/${p.body.id}`)
     .send({ revision: p.body.revision, values });
   if (saved.status !== 200) return saved;
-  return as(app, by).post(`/api/papers/${p.body.id}/publish`);
+  return as(app, by).post(`/api/papers/${p.body.id}/publish`).send(SIGNED);
 }
 
 /** «Відомість балів» as the migration makes it (it needs an active admin). */
@@ -250,7 +263,7 @@ export async function publishSheet(
     .patch(`/api/papers/${p.body.id}`)
     .send({ revision: p.body.revision, values: { awards: rows } });
   if (saved.status !== 200) return saved;
-  return as(app, by).post(`/api/papers/${p.body.id}/publish`);
+  return as(app, by).post(`/api/papers/${p.body.id}/publish`).send(SIGNED);
 }
 
 /**
@@ -342,7 +355,7 @@ export async function grantByPaper(
       ),
     });
   if (saved.status !== 200) return saved;
-  return as(app, by).post(`/api/papers/${p.body.id}/publish`);
+  return as(app, by).post(`/api/papers/${p.body.id}/publish`).send(SIGNED);
 }
 
 /**

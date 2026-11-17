@@ -21,6 +21,7 @@ import {
   resetDb,
   taskTemplates,
   TestUser,
+  SIGNED,
 } from './helpers';
 
 // Матриця прав з docs/tech/ARCHITECTURE.md («Ролі та права») на реальних ендпоінтах.
@@ -581,7 +582,7 @@ describe('Матриця прав (e2e)', () => {
         .query(`UPDATE tasks SET status = $1 WHERE id = $2`, [status, task.id]);
       return as(app, who)
         .post('/api/papers/for-record')
-        .send({ templateId: full, targetId: task.id });
+        .send({ templateId: full, targetId: task.id, ...SIGNED });
     };
     it('admin так', async () => {
       allowed(await forRecord(admin));
@@ -635,7 +636,7 @@ describe('Матриця прав (e2e)', () => {
       return id;
     };
     const accept = (who: TestUser, id: string) =>
-      as(app, who).post(`/api/tasks/${id}/accept`);
+      as(app, who).post(`/api/tasks/${id}/accept`).send(SIGNED);
 
     it('admin так', async () => {
       allowed(await accept(admin, await inReview(member)));

@@ -4,22 +4,28 @@ import { DataSource } from 'typeorm';
 import { AuditLog } from '../src/audit/audit-log.entity';
 import { PaperSignature } from '../src/paperwork/paper-signature.entity';
 import { PaperSnapshot } from '../src/paperwork/paper-snapshot.entity';
+import { PointsEntry } from '../src/points/points-entry.entity';
 import { Role } from '../src/users/user.entity';
 import {
   as,
   category,
   createTestApp,
+  makeTask,
   makeUser,
   PNG_1PX,
   publishTaskPaper,
   resetDb,
   taskTemplates,
   TestUser,
+  SIGNED,
+  STROKES,
 } from './helpers';
 
 // Графічний підпис (6.5а): зафіксований знімок пам'ятає, кого чекає кожна
 // лінія підпису; людина малює підпис — він стає на всі її лінії; усі лінії
 // з людьми підписані — «Підписано». Знімок і його хеш не змінюються.
+// Хто фіксує документ і є на його лінії, підписує разом із фіксацією (6.7в):
+// без малюнка — PAPER_SIGNATURE_REQUIRED, нічого не зроблено.
 
 type Line = {
   row: number;
@@ -37,11 +43,6 @@ type Paper = {
   canSignDrawn: boolean;
   snapshot: { n: number; sha256: string; signatures: Line[] } | null;
 };
-
-const STROKES = [
-  [10, 400, 200, 100, 400, 380, 700, 120],
-  [900, 250],
-];
 
 const doc = (...content: unknown[]) => ({ type: 'doc', content });
 const para = (text: string) => ({
@@ -117,7 +118,7 @@ describe('Графічний підпис (e2e)', () => {
       }
     ).items.map((x) => x.id);
 
-  /** A free document of `u`, published (visible to all) and frozen if `frozen`. */
+  /** A free document of `u`, published; frozen if `frozen` — by the admin, whom no line awaits: every line still waits. */
   const freePaper = async (u: TestUser, content = SHEET, frozen = true) => {
     const p = (
       await as(app, u)
@@ -126,8 +127,15 @@ describe('Графічний підпис (e2e)', () => {
         .expect(201)
     ).body as Paper;
     await as(app, u).post(`/api/papers/${p.id}/publish`).expect(200);
-    if (frozen) await as(app, u).post(`/api/papers/${p.id}/freeze`).expect(200);
+    if (frozen) {
+      await as(app, admin).post(`/api/papers/${p.id}/freeze`).expect(200);
+    }
     return get(u, p.id);
+  };
+  const published = async (u: TestUser) => {
+    const p = await freePaper(u, SHEET, false);
+    await share(p.id);
+    return p;
   };
   const share = async (id: string) => {
     const { revision } = await get(admin, id);
@@ -353,6 +361,119 @@ describe('Графічний підпис (e2e)', () => {
     });
   });
 
+  describe('підпис разом із фіксацією', () => {
+    it('«Зафіксувати»: кого чекають лінії — лише з підписом; без — PAPER_SIGNATURE_REQUIRED з назвами ліній, нічого не зроблено', async () => {
+      const p = await published(member);
+      const res = await as(app, member).post(`/api/papers/${p.id}/freeze`);
+      code(res, 409, 'PAPER_SIGNATURE_REQUIRED');
+      expect(res.body).toMatchObject({
+        paperId: p.id,
+        number: null,
+        title: 'Протокол',
+        lines: ['Склав'],
+      });
+      const still = await get(member, p.id);
+      expect(still).toMatchObject({ status: 'published', snapshot: null });
+      expect(await ds.getRepository(PaperSnapshot).count()).toBe(0);
+      expect(await audit('paper.frozen')).toHaveLength(0);
+
+      const frozen = (
+        await as(app, member)
+          .post(`/api/papers/${p.id}/freeze`)
+          .send(SIGNED)
+          .expect(200)
+      ).body as Paper;
+      expect(frozen).toMatchObject({ status: 'frozen', canSignDrawn: false });
+      expect(
+        frozen.snapshot!.signatures.map((l) => [l.label, l.strokes]),
+      ).toEqual([
+        ['Затверджую', null],
+        ['Склав', STROKES],
+        ['Погодив', null],
+        ['Ознайомлений', null],
+      ]);
+      expect(await audit('paper.frozen')).toHaveLength(1);
+      expect((await audit('paper.signature_added'))[0]).toMatchObject({
+        actorId: member.id,
+        meta: expect.objectContaining({ lines: ['Склав'], complete: false }),
+      });
+      expect(await due(member)).toEqual([]);
+      expect(await due(mod)).toEqual([p.id]);
+    });
+
+    it('модератор на двох лініях: обидві — одним малюнком; кого лінії не чекають — без підпису', async () => {
+      const p = await published(member);
+      const res = await as(app, mod).post(`/api/papers/${p.id}/freeze`);
+      code(res, 409, 'PAPER_SIGNATURE_REQUIRED');
+      expect(res.body.lines).toEqual(['Затверджую', 'Погодив']);
+      const byMod = (
+        await as(app, mod)
+          .post(`/api/papers/${p.id}/freeze`)
+          .send(SIGNED)
+          .expect(200)
+      ).body as Paper;
+      expect(byMod.snapshot!.signatures.map((l) => !!l.signedAt)).toEqual([
+        true,
+        false,
+        true,
+        false,
+      ]);
+
+      const other = await published(member);
+      const byAdmin = (
+        await as(app, admin).post(`/api/papers/${other.id}/freeze`).expect(200)
+      ).body as Paper;
+      expect(byAdmin.status).toBe('frozen');
+      expect(byAdmin.snapshot!.signatures.every((l) => !l.signedAt)).toBe(true);
+    });
+
+    it('прийняти ТЗ без підпису не можна: 409, ТЗ лишається на перевірці, балів немає, документ не зафіксовано', async () => {
+      const { full } = await taskTemplates(app);
+      const res = await publishTaskPaper(app, mod, full);
+      const { id, targetId: task } = res.body as Paper;
+      await as(app, member).post(`/api/tasks/${task}/take`).expect(200);
+      await as(app, member).post(`/api/tasks/${task}/start`).expect(200);
+      await as(app, member).post(`/api/tasks/${task}/submit`).expect(200);
+
+      const refused = await as(app, admin).post(`/api/tasks/${task}/accept`);
+      code(refused, 409, 'PAPER_SIGNATURE_REQUIRED');
+      expect(refused.body).toMatchObject({
+        paperId: id,
+        number: expect.stringMatching(/^ТЗ-\d{4}-001$/),
+        lines: ['Роботу прийняв'],
+      });
+      const t = (await as(app, admin).get(`/api/tasks/${task}`).expect(200))
+        .body as { status: string; acceptedById: string | null };
+      expect(t).toMatchObject({ status: 'review', acceptedById: null });
+      expect(
+        await ds.getRepository(PointsEntry).countBy({ taskId: task! }),
+      ).toBe(0);
+      expect(await audit('task.accepted')).toHaveLength(0);
+      expect((await get(admin, id)).status).toBe('published');
+      code(
+        await as(app, admin)
+          .post(`/api/tasks/${task}/accept`)
+          .send({ strokes: [[2000, 0]] }),
+        400,
+        'VALIDATION_ERROR',
+      );
+
+      await as(app, admin)
+        .post(`/api/tasks/${task}/accept`)
+        .send(SIGNED)
+        .expect(200);
+      expect((await get(admin, id)).status).toBe('frozen');
+    });
+
+    it('ТЗ без документа приймається без підпису', async () => {
+      const task = await makeTask(app, mod);
+      await as(app, member).post(`/api/tasks/${task.id}/take`).expect(200);
+      await as(app, member).post(`/api/tasks/${task.id}/start`).expect(200);
+      await as(app, member).post(`/api/tasks/${task.id}/submit`).expect(200);
+      await as(app, admin).post(`/api/tasks/${task.id}/accept`).expect(200);
+    });
+  });
+
   describe('друк, DOCX, перевірка', () => {
     it('друк: малюнок на своїй лінії й «Підписано в DigiComp HUB»; DOCX — з іменем; перевірка — хто й коли', async () => {
       const p = await freePaper(member);
@@ -406,28 +527,34 @@ describe('Графічний підпис (e2e)', () => {
       expect(await due(member)).toEqual([p.id]);
     });
 
-    it('ТЗ: «Роботу прийняв» — той, хто прийняв; «Завдання видав» — автор', async () => {
+    it('ТЗ: «Роботу прийняв» — той, хто прийняв (підписує, приймаючи); «Завдання видав» — автор', async () => {
       const { full } = await taskTemplates(app);
       const res = await publishTaskPaper(app, mod, full);
       const { id, targetId: task } = res.body as Paper;
       await as(app, member).post(`/api/tasks/${task}/take`).expect(200);
       await as(app, member).post(`/api/tasks/${task}/start`).expect(200);
       await as(app, member).post(`/api/tasks/${task}/submit`).expect(200);
-      await as(app, admin).post(`/api/tasks/${task}/accept`).expect(200);
+      await as(app, admin)
+        .post(`/api/tasks/${task}/accept`)
+        .send(SIGNED)
+        .expect(200);
 
       const p = await get(admin, id);
       expect(p.status).toBe('frozen');
       expect(
-        p.snapshot!.signatures.map((l) => [l.label, l.person?.id ?? null]),
+        p.snapshot!.signatures.map((l) => [
+          l.label,
+          l.person?.id ?? null,
+          !!l.signedAt,
+        ]),
       ).toEqual([
-        ['Затверджую', mod.id],
-        ['Завдання видав', mod.id],
-        ['Роботу прийняв', admin.id],
+        ['Затверджую', mod.id, false],
+        ['Завдання видав', mod.id, false],
+        ['Роботу прийняв', admin.id, true],
       ]);
-      expect(p.canSignDrawn).toBe(true);
-      expect(await due(admin)).toEqual([id]);
-      await signDrawn(admin, id).expect(200);
+      expect(p.canSignDrawn).toBe(false);
       expect(await due(admin)).toEqual([]);
+      expect(await due(mod)).toEqual([id]);
       const done = (await signDrawn(mod, id).expect(200)).body as Paper;
       expect(done.status).toBe('signed');
     });
@@ -493,26 +620,40 @@ describe('Графічний підпис (e2e)', () => {
           .expect(201)
       ).body as Paper;
       await as(app, mod).post(`/api/papers/${p.id}/publish`).expect(200);
-      await as(app, mod).post(`/api/papers/${p.id}/freeze`).expect(200);
-      expect(
-        ((await signDrawn(mod, p.id).expect(200)).body as Paper).status,
-      ).toBe('signed');
-
-      const second = (
-        await as(app, mod).post(`/api/papers/${p.id}/freeze`).expect(200)
+      // «Склав» — автор: кожна фіксація — з його підписом.
+      const first = (
+        await as(app, mod)
+          .post(`/api/papers/${p.id}/freeze`)
+          .send(SIGNED)
+          .expect(200)
       ).body as Paper;
-      expect(second).toMatchObject({ status: 'frozen', canSignDrawn: true });
+      expect(first).toMatchObject({ status: 'signed', canSignDrawn: false });
+
+      code(
+        await as(app, mod).post(`/api/papers/${p.id}/freeze`),
+        409,
+        'PAPER_SIGNATURE_REQUIRED',
+      );
+      expect((await get(mod, p.id)).snapshot!.n).toBe(1);
+      const second = (
+        await as(app, mod)
+          .post(`/api/papers/${p.id}/freeze`)
+          .send(SIGNED)
+          .expect(200)
+      ).body as Paper;
+      expect(second).toMatchObject({ status: 'signed', canSignDrawn: false });
       expect(second.snapshot).toMatchObject({
         n: 2,
-        signatures: [{ row: 0, label: 'Склав', signedAt: null }],
+        signatures: [{ row: 0, label: 'Склав', signedAt: expect.any(String) }],
       });
+      expect(await ds.getRepository(PaperSignature).countBy({ row: 0 })).toBe(
+        2,
+      );
       const old = await as(app, mod).get(
         `/api/papers/${p.id}/print?snapshot=1`,
       );
       expect(old.text).toContain('<svg class="paper-signature"');
-      const now = await as(app, mod).get(`/api/papers/${p.id}/print`);
-      expect(now.text).not.toContain('<svg class="paper-signature"');
-      await signDrawn(mod, p.id).expect(200);
+      code(await signDrawn(mod, p.id), 409, 'PAPER_SIGNED_BY_YOU');
     });
   });
 });

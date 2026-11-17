@@ -17,6 +17,7 @@ import {
   makeUser,
   resetDb,
   TestUser,
+  SIGNED,
 } from './helpers';
 
 // Авто-таблиці (4.3б): рядки джерела для значення поля — живі для читача до
@@ -147,7 +148,10 @@ describe('Авто-таблиці (e2e)', () => {
         .patch(`/api/papers/${p.id}`)
         .send({ revision: p.revision, visibility: 'members' })
         .expect(200);
-      await as(app, mod).post(`/api/papers/${p.id}/publish`).expect(200);
+      await as(app, mod)
+        .post(`/api/papers/${p.id}/publish`)
+        .send(SIGNED)
+        .expect(200);
       return p.id;
     };
 
@@ -184,10 +188,14 @@ describe('Авто-таблиці (e2e)', () => {
 
     it('після фіксації — як бачив модератор, нові дані не потрапляють; нова версія звіту — свіжі', async () => {
       const id = await passport();
-      await as(app, mod).post(`/api/papers/${id}/freeze`).expect(200);
+      await as(app, mod)
+        .post(`/api/papers/${id}/freeze`)
+        .send(SIGNED)
+        .expect(200);
       await session(member2, '2026-10-03T08:00:00Z');
       const frozen = await get(member, id);
-      expect(frozen.status).toBe('frozen');
+      // Its only line is of who froze it: signed with the freeze.
+      expect(frozen.status).toBe('signed');
       expect(names(frozen.tables[SESSIONS])).toEqual([
         'Олена Перша',
         'Богдан Другий',
@@ -198,7 +206,10 @@ describe('Авто-таблиці (e2e)', () => {
       expect(print.text).toContain('Богдан Другий');
       expect(print.text).toContain('class="paper-table"');
 
-      await as(app, mod).post(`/api/papers/${id}/freeze`).expect(200);
+      await as(app, mod)
+        .post(`/api/papers/${id}/freeze`)
+        .send(SIGNED)
+        .expect(200);
       expect(names((await get(member, id)).tables[SESSIONS])).toHaveLength(3);
       const second = await as(app, mod)
         .get(`/api/papers/${id}/print?snapshot=2`)

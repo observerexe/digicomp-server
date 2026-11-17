@@ -70,8 +70,25 @@ export class CreatePaperDto {
   about?: PaperAboutDto;
 }
 
-/** A document for a record made without one: published at once. */
-export class PaperForRecordDto {
+/**
+ * Freezing by someone the sheet names on a signature line (accepting a task,
+ * publishing a document that freezes at once, its document for an old
+ * record, «Зафіксувати»): their drawn signature goes with it — without it
+ * PAPER_SIGNATURE_REQUIRED, nothing done.
+ */
+export class FreezeSignatureDto {
+  /** As in SignPaperDto; left out — the freeze needs no signature of the reader. */
+  @ApiPropertyOptional({
+    type: 'array',
+    items: { type: 'array', items: { type: 'integer' } },
+  })
+  @IsOptional()
+  @IsStrokes()
+  strokes?: Strokes;
+}
+
+/** A document for a record made without one: published at once (frozen at once — see FreezeSignatureDto). */
+export class PaperForRecordDto extends FreezeSignatureDto {
   /** A template that creates records of the record's type. */
   @IsUUID()
   templateId: string;

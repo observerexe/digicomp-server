@@ -3,7 +3,14 @@ import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
 import { RecordLink } from '../src/links/record-link.entity';
 import { Role } from '../src/users/user.entity';
-import { as, createTestApp, makeUser, resetDb, TestUser } from './helpers';
+import {
+  as,
+  createTestApp,
+  makeUser,
+  resetDb,
+  TestUser,
+  SIGNED,
+} from './helpers';
 
 // «Повторювані рядки» (3.3а): шаблон з блоком рядків, документ — рядки в
 // значеннях, публікація прибирає порожні рядки й вимагає обов'язкові клітинки,
@@ -201,6 +208,7 @@ describe('Повторювані рядки (e2e)', () => {
     await save(empty, { entries: [{}] }).expect(200);
     const none = await as(app, member)
       .post(`/api/papers/${empty.id}/publish`)
+      .send(SIGNED)
       .expect(400);
     expect(none.body).toMatchObject({
       errorCode: 'PAPER_REQUIRED_MISSING',
@@ -214,6 +222,7 @@ describe('Повторювані рядки (e2e)', () => {
     }).expect(200);
     const cell = await as(app, member)
       .post(`/api/papers/${pp.id}/publish`)
+      .send(SIGNED)
       .expect(400);
     expect(cell.body).toMatchObject({
       errorCode: 'PAPER_REQUIRED_MISSING',
@@ -225,7 +234,10 @@ describe('Повторювані рядки (e2e)', () => {
     await save(now, {
       entries: [{}, { member: mod.id, points: 3 }, {}, { member: member.id }],
     }).expect(200);
-    await as(app, member).post(`/api/papers/${pp.id}/publish`).expect(200);
+    await as(app, member)
+      .post(`/api/papers/${pp.id}/publish`)
+      .send(SIGNED)
+      .expect(200);
     const done = await get(pp.id);
     expect(done.status).toBe('published');
     expect(done.values).toEqual({

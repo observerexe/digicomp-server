@@ -11,6 +11,7 @@ import {
   resetDb,
   taskTemplates,
   TestUser,
+  SIGNED,
 } from './helpers';
 
 // Архів як єдиний пошук (4.2б): файли й зафіксовані документи редактора
@@ -115,6 +116,7 @@ describe('Архів (e2e)', () => {
     ).body as { id: string; revision: number };
     const pub = await as(app, u)
       .post(`/api/papers/${p.id}/publish`)
+      .send(SIGNED)
       .expect(200);
     if (members) {
       await as(app, mod)
@@ -122,7 +124,11 @@ describe('Архів (e2e)', () => {
         .send({ revision: pub.body.revision, visibility: 'members' })
         .expect(200);
     }
-    if (frozen) await as(app, u).post(`/api/papers/${p.id}/freeze`).expect(200);
+    if (frozen)
+      await as(app, u)
+        .post(`/api/papers/${p.id}/freeze`)
+        .send(SIGNED)
+        .expect(200);
     return p.id;
   };
 
@@ -182,7 +188,10 @@ describe('Архів (e2e)', () => {
       await as(app, member).post(`/api/tasks/${task}/take`).expect(200);
       await as(app, member).post(`/api/tasks/${task}/start`).expect(200);
       await as(app, member).post(`/api/tasks/${task}/submit`).expect(200);
-      await as(app, admin).post(`/api/tasks/${task}/accept`).expect(200);
+      await as(app, admin)
+        .post(`/api/tasks/${task}/accept`)
+        .send(SIGNED)
+        .expect(200);
 
       const { items } = await list(member);
       expect(items).toHaveLength(1);

@@ -11,6 +11,7 @@ import {
   PNG_1PX,
   resetDb,
   TestUser,
+  SIGNED,
 } from './helpers';
 
 // Звіти (4.3а): звіт бере запис зі свого поля `ref:<тип>`, прив'язані поля
@@ -284,7 +285,10 @@ describe('Звіти (e2e)', () => {
 
     it('опублікований — живий: запис змінився, звіт показує нове; запис не прив’язується як створений', async () => {
       const p = await newReport(member, await passport());
-      await as(app, member).post(`/api/papers/${p.id}/publish`).expect(200);
+      await as(app, member)
+        .post(`/api/papers/${p.id}/publish`)
+        .send(SIGNED)
+        .expect(200);
       await as(app, admin)
         .patch(`/api/places/${placeId}`)
         .send({ title: 'Фрезер ЧПК', description: 'Новий опис' })
@@ -310,31 +314,45 @@ describe('Звіти (e2e)', () => {
     it('запису вже немає — публікація PAPER_FIELD_INVALID з полем запису', async () => {
       const p = await newReport(member, await passport());
       await ds.query('DELETE FROM places WHERE id = $1', [placeId]);
-      const res = await as(app, member).post(`/api/papers/${p.id}/publish`);
+      const res = await as(app, member)
+        .post(`/api/papers/${p.id}/publish`)
+        .send(SIGNED);
       code(res, 400, 'PAPER_FIELD_INVALID');
       expect(res.body.field).toBe('place');
     });
 
     it('права — як у вільного: учасник фіксує свій звіт, чужий — ні', async () => {
       const p = await newReport(member, await passport());
-      await as(app, member).post(`/api/papers/${p.id}/publish`).expect(200);
+      await as(app, member)
+        .post(`/api/papers/${p.id}/publish`)
+        .send(SIGNED)
+        .expect(200);
       expect((await get(member2, p.id)).canFreeze).toBe(false);
       code(
-        await as(app, member2).post(`/api/papers/${p.id}/freeze`),
+        await as(app, member2).post(`/api/papers/${p.id}/freeze`).send(SIGNED),
         403,
         'NOT_OWNER',
       );
       expect((await get(member, p.id)).canFreeze).toBe(true);
-      await as(app, member).post(`/api/papers/${p.id}/freeze`).expect(200);
+      await as(app, member)
+        .post(`/api/papers/${p.id}/freeze`)
+        .send(SIGNED)
+        .expect(200);
     });
   });
 
   describe('повторна фіксація', () => {
     it('кожна фіксація — новий знімок зі свіжими даними; підписаний стає «Зафіксовано»', async () => {
       const p = await newReport(mod, await passport());
-      await as(app, mod).post(`/api/papers/${p.id}/publish`).expect(200);
+      await as(app, mod)
+        .post(`/api/papers/${p.id}/publish`)
+        .send(SIGNED)
+        .expect(200);
       const first = (
-        await as(app, mod).post(`/api/papers/${p.id}/freeze`).expect(200)
+        await as(app, mod)
+          .post(`/api/papers/${p.id}/freeze`)
+          .send(SIGNED)
+          .expect(200)
       ).body as Paper;
       expect(first).toMatchObject({
         status: 'frozen',
@@ -353,7 +371,10 @@ describe('Звіти (e2e)', () => {
         .attach('file', PNG_1PX, 'scan.png')
         .expect(200);
       const second = (
-        await as(app, mod).post(`/api/papers/${p.id}/freeze`).expect(200)
+        await as(app, mod)
+          .post(`/api/papers/${p.id}/freeze`)
+          .send(SIGNED)
+          .expect(200)
       ).body as Paper;
       expect(second).toMatchObject({
         status: 'frozen',
@@ -376,11 +397,17 @@ describe('Звіти (e2e)', () => {
           .send({ title: 'Нотатка', content: doc({ type: 'paragraph' }) })
           .expect(201)
       ).body as Paper;
-      await as(app, member).post(`/api/papers/${p.id}/publish`).expect(200);
-      await as(app, member).post(`/api/papers/${p.id}/freeze`).expect(200);
+      await as(app, member)
+        .post(`/api/papers/${p.id}/publish`)
+        .send(SIGNED)
+        .expect(200);
+      await as(app, member)
+        .post(`/api/papers/${p.id}/freeze`)
+        .send(SIGNED)
+        .expect(200);
       expect((await get(member, p.id)).canFreeze).toBe(false);
       code(
-        await as(app, member).post(`/api/papers/${p.id}/freeze`),
+        await as(app, member).post(`/api/papers/${p.id}/freeze`).send(SIGNED),
         409,
         'PAPER_FROZEN',
       );

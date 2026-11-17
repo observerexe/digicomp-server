@@ -28,6 +28,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { Action } from '../auth/policy';
+import { FreezeSignatureDto } from '../paperwork/dto';
 import { Can, JwtAuthGuard, PolicyGuard } from '../auth/roles';
 import { contentDisposition } from '../files/content-disposition';
 import type { UploadedFileLike } from '../files/file-validation';
@@ -165,13 +166,23 @@ export class TasksController {
     return this.tasks.returnForRework(id, dto, req.user);
   }
 
-  /** Accept the task: points are split equally between assignees. */
+  /**
+   * Accept the task: points are split equally between assignees. Its
+   * document freezes itself (see the template) — signed by who accepts where
+   * a line awaits them (`strokes`; without — PAPER_SIGNATURE_REQUIRED, the
+   * task stays «На перевірці»).
+   */
   @Can(Action.TasksAccept)
   @ApiOkResponse({ type: TaskDto })
+  @ApiBody({ type: FreezeSignatureDto, required: false })
   @Post(':id/accept')
   @HttpCode(200)
-  accept(@Param('id', ParseUUIDPipe) id: string, @Req() req: Req) {
-    return this.tasks.accept(id, req.user);
+  accept(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: FreezeSignatureDto = {},
+    @Req() req: Req,
+  ) {
+    return this.tasks.accept(id, dto, req.user);
   }
 
   @Can(Action.TasksComment)

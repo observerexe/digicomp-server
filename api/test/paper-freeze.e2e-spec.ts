@@ -15,6 +15,7 @@ import {
   resetDb,
   taskTemplates,
   TestUser,
+  SIGNED,
 } from './helpers';
 
 // Фіксація (4.1): знімок аркуша з SHA-256, автофіксація за шаблоном,
@@ -87,7 +88,7 @@ describe('Фіксація документів (e2e)', () => {
   const get = async (u: TestUser, id: string) =>
     (await as(app, u).get(`/api/papers/${id}`).expect(200)).body as Paper;
   const freeze = (u: TestUser, id: string) =>
-    as(app, u).post(`/api/papers/${id}/freeze`);
+    as(app, u).post(`/api/papers/${id}/freeze`).send(SIGNED);
   const print = (u: TestUser, id: string, query = '') =>
     as(app, u).get(`/api/papers/${id}/print${query}`);
   const verify = (u: TestUser, sha: string) =>
@@ -111,7 +112,10 @@ describe('Фіксація документів (e2e)', () => {
         .send({ title: 'Протокол', content: doc(text) })
         .expect(201)
     ).body as Paper;
-    await as(app, u).post(`/api/papers/${p.id}/publish`).expect(200);
+    await as(app, u)
+      .post(`/api/papers/${p.id}/publish`)
+      .send(SIGNED)
+      .expect(200);
     return get(u, p.id);
   };
 
@@ -207,7 +211,10 @@ describe('Фіксація документів (e2e)', () => {
     it('автофіксація: прийняли ТЗ — документ зафіксовано з виконавцями; аудит auto від того, хто прийняв', async () => {
       const { paper, task } = await submittedTask(member);
       expect((await get(mod, paper.id)).status).toBe('published');
-      await as(app, admin).post(`/api/tasks/${task}/accept`).expect(200);
+      await as(app, admin)
+        .post(`/api/tasks/${task}/accept`)
+        .send(SIGNED)
+        .expect(200);
 
       const p = await get(member, paper.id);
       expect(p).toMatchObject({ status: 'frozen', snapshot: { n: 1 } });
@@ -242,7 +249,10 @@ describe('Фіксація документів (e2e)', () => {
       const due = () => as(app, mod).get('/api/papers?due=freeze').expect(200);
       expect((await due()).body.items).toEqual([]);
 
-      await as(app, mod).post(`/api/tasks/${task}/accept`).expect(200);
+      await as(app, mod)
+        .post(`/api/tasks/${task}/accept`)
+        .send(SIGNED)
+        .expect(200);
       const p = await get(mod, paper.id);
       expect(p).toMatchObject({ status: 'published', canFreeze: true });
       const free = await freePaper(member2);
@@ -279,9 +289,12 @@ describe('Фіксація документів (e2e)', () => {
           content: withZone(d.content as Node, 'reason', 'запізнення'),
         });
       expect(filled.status).toBe(200);
-      const res = await as(app, mod).post(`/api/papers/${d.id}/publish`);
+      const res = await as(app, mod)
+        .post(`/api/papers/${d.id}/publish`)
+        .send(SIGNED);
       expect(res.status).toBe(200);
-      expect(res.body).toMatchObject({ status: 'frozen', snapshot: { n: 1 } });
+      // Signed by who publishes with the freeze — every line is theirs.
+      expect(res.body).toMatchObject({ status: 'signed', snapshot: { n: 1 } });
     });
   });
 

@@ -11,6 +11,7 @@ import {
   resetDb,
   TestUser,
   withTasks,
+  SIGNED,
 } from './helpers';
 
 // Публікація й скасування документів (3.1а): обов'язкові поля, номери,
@@ -186,7 +187,7 @@ describe('Публікація документів (e2e)', () => {
   const get = async (u: TestUser, id: string) =>
     (await as(app, u).get(`/api/papers/${id}`).expect(200)).body as Paper;
   const publish = (u: TestUser, id: string) =>
-    as(app, u).post(`/api/papers/${id}/publish`);
+    as(app, u).post(`/api/papers/${id}/publish`).send(SIGNED);
   const cancel = (u: TestUser, id: string, reason = 'Не потрібно') =>
     as(app, u).post(`/api/papers/${id}/cancel`).send({ reason });
   const audit = (action: string) =>
@@ -570,8 +571,9 @@ describe('Публікація документів (e2e)', () => {
       ).body as Record<string, unknown>;
       expect(submitted.submittedAt).not.toBeNull();
       expect(submitted.acceptedById).toBeNull();
-      const accepted = (await as(app, mod).post(`${url}/accept`).expect(200))
-        .body as Record<string, unknown>;
+      const accepted = (
+        await as(app, mod).post(`${url}/accept`).send(SIGNED).expect(200)
+      ).body as Record<string, unknown>;
       expect(accepted).toMatchObject({ status: 'done', acceptedById: mod.id });
       expect(accepted.completedAt).not.toBeNull();
     });
