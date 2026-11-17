@@ -18,6 +18,7 @@ export function userRights(me: Me, t: Target) {
     name: has('users.edit_name'),
     email: has('users.edit_email'),
     bio: has('users.moderate_content'),
+    color: has('users.edit_color'),
     avatar: has('users.moderate_content'),
     roleInfo: has('users.edit_role_info') && overMember,
     // Self-block and own role change are hidden even for the admin: one wrong

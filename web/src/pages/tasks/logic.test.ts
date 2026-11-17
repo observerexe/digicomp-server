@@ -27,7 +27,7 @@ export const task = (over: Partial<Task> = {}): Task => ({
 
 const staff: Me = { ...moderator, permissions: [...moderator.permissions, 'tasks.accept', 'tasks.create', 'tasks.manage'] };
 const canOf = (me: Me) => (a: string) => me.permissions.includes(a);
-const as = (u: Me) => ({ id: u.id, name: u.name, avatarUrl: null, takenAt: '2026-11-02T10:00:00Z' });
+const as = (u: Me) => ({ id: u.id, name: u.name, avatarUrl: null, color: 'blue' as const, takenAt: '2026-11-02T10:00:00Z' });
 
 describe('Дії над ТЗ', () => {
   it('учасник: взяти, приєднатися, ліміт', () => {

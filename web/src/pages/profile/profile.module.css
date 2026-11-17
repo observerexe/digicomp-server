@@ -276,3 +276,12 @@
   margin-top: 2px;
   flex: none;
 }
+
+/* How the chosen colour looks: the avatar and the plate. */
+.colorPreview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--c-border);
+  font-weight: 500;
+}

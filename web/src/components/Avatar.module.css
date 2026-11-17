@@ -9,6 +9,15 @@
   font-weight: 700;
   object-fit: cover;
 }
+/* The account's colour (with pal-<colour>): initials in its shade, a photo in a ring of it. */
+span.colored {
+  background: var(--pal-soft);
+  color: var(--pal-text);
+}
+img.colored {
+  outline: 2px solid var(--pal-solid);
+  outline-offset: 1px;
+}
 .s32 {
   width: 32px;
   height: 32px;

@@ -14,7 +14,7 @@ const paper = (over: Partial<Paper> = {}): Paper => ({
   title: 'Протокол зборів',
   status: 'draft',
   visibility: 'author',
-  author: { id: 'u1', name: 'Марта Коваль', avatarUrl: null },
+  author: { id: 'u1', name: 'Марта Коваль', avatarUrl: null, color: 'blue' },
   revision: 1,
   createdAt: '2026-11-14T10:00:00Z',
   updatedAt: '2026-11-14T10:00:00Z',
@@ -64,7 +64,7 @@ describe('Редактор: список', () => {
           const mine = new URL(r.url).searchParams.get('mine');
           mineParams.push(mine);
           const items = mine
-            ? [item(paper({ author: { id: 'm1', name: 'Олег Петренко', avatarUrl: null } }))]
+            ? [item(paper({ author: { id: 'm1', name: 'Олег Петренко', avatarUrl: null, color: 'blue' } }))]
             : [item(paper()), item(paper({ id: 'p2', title: 'Наказ', status: 'published' }))];
           return json(200, { items, total: items.length, page: 1, limit: 100 });
         },

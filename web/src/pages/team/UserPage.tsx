@@ -3,6 +3,7 @@ import { Link, Navigate, useParams } from 'react-router';
 import { api, ApiError, unwrap } from '../../api/client';
 import { useAuth } from '../../auth/AuthProvider';
 import { Avatar } from '../../components/Avatar';
+import { tint } from '../../lib/palette';
 import { Icon } from '../../components/Icon';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
@@ -53,8 +54,8 @@ export function UserPage() {
     <>
       {back}
       <Card>
-        <div className={s.profile}>
-          <Avatar name={u.name} url={u.avatarUrl} size={96} />
+        <div className={`${s.profile} ${tint(u.color, true)}`}>
+          <Avatar name={u.name} url={u.avatarUrl} color={u.color} size={96} />
           <div className={s.profileText}>
             <h1 className={s.profileName}>{u.name}</h1>
             <p className={s.meta}>{[u.position, u.specialty].filter(Boolean).join(' · ')}</p>

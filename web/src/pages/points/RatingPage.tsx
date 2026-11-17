@@ -5,6 +5,7 @@ import { api, unwrap } from '../../api/client';
 import type { LeaderboardRow } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
 import { Avatar } from '../../components/Avatar';
+import { tint } from '../../lib/palette';
 import { ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { currentMonthName, plural } from '../../lib/format';
@@ -50,9 +51,9 @@ export function RatingPage() {
           <ol className={s.podium} aria-label="Топ-3">
             {top.map((r) => (
               <li key={r.id} className={`${s.place} ${s[`place${r.rank}`] ?? ''}`}>
-                <Link to={href(r)} className={s.placeLink}>
+                <Link to={href(r)} className={`${s.placeLink} ${tint(r.color, true)}`}>
                   <span className={s.medal}>{r.rank}</span>
-                  <Avatar name={r.name} url={r.avatarUrl} size={r.rank === 1 ? 96 : 56} />
+                  <Avatar name={r.name} url={r.avatarUrl} color={r.color} size={r.rank === 1 ? 96 : 56} />
                   <span className={s.placeName}>{r.name}</span>
                   <span className={s.placePoints}>{pts(r.total)}</span>
                 </Link>
@@ -62,9 +63,9 @@ export function RatingPage() {
           <ol className={s.table} aria-label="Рейтинг">
             {rest.map((r) => (
               <li key={r.id} className={r.id === user?.id ? s.mine : undefined}>
-                <Link to={href(r)} className={s.row}>
+                <Link to={href(r)} className={`${s.row} ${tint(r.color)}`}>
                   <span className={s.rank}>{r.rank}</span>
-                  <Avatar name={r.name} url={r.avatarUrl} size={40} />
+                  <Avatar name={r.name} url={r.avatarUrl} color={r.color} size={40} />
                   <span className={s.who}>
                     {r.id === user?.id ? `${r.name} (ви)` : r.name}
                     {r.position && <span className={s.sub}>{r.position}</span>}

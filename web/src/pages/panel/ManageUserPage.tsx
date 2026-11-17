@@ -2,9 +2,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router';
 import { api, ApiError, unwrap } from '../../api/client';
-import type { Me, Role, UserDetail } from '../../api/types';
+import type { Me, PaletteColor, Role, UserDetail } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
 import { Avatar } from '../../components/Avatar';
+import { tint } from '../../lib/palette';
 import { Icon } from '../../components/Icon';
 import { Card, ConfirmButton, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
@@ -13,6 +14,7 @@ import { ROLE_LABEL } from '../../lib/labels';
 import { AuthorizationsSection } from '../lab/AuthorizationsSection';
 import { MIN_PASSWORD, PasswordField, PasswordOnce } from './PasswordField';
 import { userRights } from './userRights';
+import { ColorPicker } from '../../components/Palette';
 import s from './panel.module.css';
 
 export const userKey = (id: string) => ['users', 'one', id] as const;
@@ -64,8 +66,8 @@ function Manage({ u, me }: { u: UserDetail; me: Me }) {
   const active = u.active !== false;
   return (
     <>
-      <div className={s.person}>
-        <Avatar name={u.name} url={u.avatarUrl} size={56} />
+      <div className={`${s.person} ${tint(u.color, true)}`}>
+        <Avatar name={u.name} url={u.avatarUrl} color={u.color} size={56} />
         <div className={s.rowMain}>
           <h1 className={s.personName}>{u.name}</h1>
           <span className={s.rowTitle}>
@@ -97,7 +99,7 @@ function Manage({ u, me }: { u: UserDetail; me: Me }) {
       </div>
       {r.self && <p className="hint">Це ваш акаунт. Ім’я, біо, пароль і 2FA змінюються в профілі; роль і блокування себе тут недоступні.</p>}
       <div className={s.stack}>
-        {!r.self && (r.name || r.email || r.bio || r.roleInfo) && <ProfileForm u={u} rights={r} />}
+        {!r.self && (r.name || r.email || r.bio || r.color || r.roleInfo) && <ProfileForm u={u} rights={r} />}
         {!r.self && (r.roles.length > 0 || r.block) && <AccessCard u={u} rights={r} />}
         {(r.resetPassword || r.resetTwoFactor || (r.avatar && !r.self && u.avatarUrl)) && <SecurityCard u={u} rights={r} />}
         {!r.self && !r.roleInfo && !r.block && r.roles.length === 0 && (
@@ -114,7 +116,7 @@ type Rights = ReturnType<typeof userRights>;
 function useUserUpdate(u: UserDetail, onSuccess?: () => void) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { name?: string; email?: string; bio?: string; position?: string; specialty?: string; role?: Role; active?: boolean }) =>
+    mutationFn: (body: { name?: string; email?: string; bio?: string; position?: string; specialty?: string; color?: PaletteColor; role?: Role; active?: boolean }) =>
       unwrap(api.PATCH('/api/users/{id}', { params: { path: { id: u.id } }, body })),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['users'] });
@@ -126,12 +128,14 @@ function useUserUpdate(u: UserDetail, onSuccess?: () => void) {
 function ProfileForm({ u, rights }: { u: UserDetail; rights: Rights }) {
   const initial = { name: u.name, email: u.email ?? '', bio: u.bio, position: u.position, specialty: u.specialty };
   const [f, setF] = useState(initial);
+  const [color, setColor] = useState<PaletteColor>(u.color);
   const [saved, setSaved] = useState(false);
   const save = useUserUpdate(u, () => setSaved(true));
   // Only changed fields are sent: an unchanged field never hits a permission check.
-  const changed = Object.fromEntries(
-    (Object.keys(f) as (keyof typeof f)[]).filter((k) => f[k].trim() !== initial[k]).map((k) => [k, f[k].trim()]),
-  );
+  const changed = {
+    ...Object.fromEntries((Object.keys(f) as (keyof typeof f)[]).filter((k) => f[k].trim() !== initial[k]).map((k) => [k, f[k].trim()])),
+    ...(color !== u.color ? { color } : {}),
+  };
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => {
     setSaved(false);
     setF((v) => ({ ...v, [k]: e.target.value }));
@@ -181,6 +185,17 @@ function ProfileForm({ u, rights }: { u: UserDetail; rights: Rights }) {
             <textarea id="mu-bio" maxLength={1000} value={f.bio} onChange={set('bio')} />
             <span className="hint">Адміністратор прибирає недоречне біо. Звичайно біо пише сам учасник.</span>
           </div>
+        )}
+        {rights.color && (
+          <ColorPicker
+            name="mu-color"
+            legend="Колір акаунта"
+            value={color}
+            onChange={(c) => {
+              setSaved(false);
+              setColor(c);
+            }}
+          />
         )}
         <ErrorMessage text={invalid ?? (save.isError ? errorOf(save.error) : null)} />
         {saved && !save.isPending && <p role="status" className="hint">Збережено.</p>}

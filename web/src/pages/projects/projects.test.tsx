@@ -6,7 +6,7 @@ import { json, member, mockApi, moderator, renderApp } from '../../test/render';
 import { historyText } from './ProjectPage';
 
 const staff: Me = { ...moderator, permissions: [...moderator.permissions, 'projects.create', 'projects.manage'] };
-const mem = (u: { id: string; name: string }) => ({ id: u.id, name: u.name, position: '', avatarUrl: null });
+const mem = (u: { id: string; name: string }) => ({ id: u.id, name: u.name, position: '', avatarUrl: null, color: 'blue' as const });
 const project = (over: Partial<ProjectListItem> = {}): ProjectListItem => ({
   id: 'p1', title: 'Фестиваль', description: '', stage: 'planning', startDate: null, deadline: null, progress: 40,
   accomplishments: '', sources: [], createdById: null, createdAt: '', updatedAt: '', members: [], ...over,

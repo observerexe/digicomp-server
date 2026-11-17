@@ -5,6 +5,7 @@ import { api, ApiError, unwrap } from '../../api/client';
 import type { Me, TaskDetail } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
 import { Avatar } from '../../components/Avatar';
+import { tint } from '../../lib/palette';
 import { ChoiceButton } from '../../components/ChoiceButton';
 import { ExtraFacts } from '../../components/ExtraFields';
 import { Icon } from '../../components/Icon';
@@ -165,8 +166,8 @@ function TaskView({ task: t, me }: { task: TaskDetail; me: Me }) {
             ) : (
               <ol className={s.assignees}>
                 {t.assignees.map((a, i) => (
-                  <li key={a.id}>
-                    <Avatar name={a.name} url={a.avatarUrl} size={32} />
+                  <li key={a.id} className={tint(a.color, true)}>
+                    <Avatar name={a.name} url={a.avatarUrl} color={a.color} size={32} />
                     <span className={s.grow}>
                       {a.id === me.id ? 'Ви' : a.name}
                       <span className={s.sub}>взяв(-ла) {formatDate(a.takenAt)}</span>
@@ -320,8 +321,8 @@ function Comments({ task: t }: { task: TaskDetail }) {
       ) : (
         <ul className={s.comments} aria-label="Коментарі">
           {t.comments.map((c) => (
-            <li key={c.id} className={c.kind === 'return' ? s.commentReturn : s.comment}>
-              <Avatar name={c.author.name} url={c.author.avatarUrl} size={32} />
+            <li key={c.id} className={c.kind === 'return' ? s.commentReturn : `${s.comment} ${tint(c.author.color)}`}>
+              <Avatar name={c.author.name} url={c.author.avatarUrl} color={c.author.color} size={32} />
               <div className={s.grow}>
                 <span className={s.commentHead}>
                   <b>{c.author.name ?? 'Учасник'}</b> · {formatDateTime(c.createdAt)}

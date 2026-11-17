@@ -12,7 +12,7 @@ const fault = (over: Partial<Fault>): Fault => ({
   status: 'open',
   resolution: '',
   place: { id: 'p1', code: 'CNC-1', title: 'Фрезер', status: 'active' },
-  reporter: { id: 'u1', name: 'Марта', avatarUrl: null },
+  reporter: { id: 'u1', name: 'Марта', avatarUrl: null, color: 'blue' },
   closedBy: null,
   closedAt: null,
   photosCount: 0,

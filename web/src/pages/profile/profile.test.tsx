@@ -240,6 +240,22 @@ describe('Біо й аватар', () => {
     expect(JSON.parse(patch.body)).toEqual({ bio: 'Знімаю репортажі.' });
   });
 
+  it('колір акаунта: вибір видно одразу на плашці й аватарі; іде лише колір', async () => {
+    const { calls } = mockApi({
+      ...profileApi(member),
+      'PATCH /api/users/me': async (req) => json(200, { ...member, ...(await req.json()) }),
+    });
+    renderApp('/profile/edit');
+    const group = await screen.findByRole('group', { name: 'Колір акаунта' });
+    expect(within(group).getByLabelText('Синій')).toBeChecked();
+    await userEvent.click(within(group).getByLabelText('Фіолетовий'));
+    const preview = within(screen.getByRole('main')).getByText(member.name).closest('.person-tint');
+    expect(preview).toHaveClass('pal-purple');
+    await userEvent.click(screen.getByRole('button', { name: 'Зберегти' }));
+    await screen.findByRole('heading', { name: 'Профіль' });
+    expect(JSON.parse(calls.find((c) => c.method === 'PATCH')!.body)).toEqual({ color: 'purple' });
+  });
+
   it('moderator змінює посаду, але не ім’я', async () => {
     const { calls } = mockApi({
       ...profileApi(moderator),

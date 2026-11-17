@@ -8,11 +8,11 @@ import { canRevokeEntry } from './PointsPage';
 
 const staff: Me = { ...moderator, permissions: [...moderator.permissions, 'points.award', 'discipline.issue'] };
 const admin: Me = { ...staff, id: 'a1', role: 'admin' };
-const row = (id: string, name: string, total: number, rank: number) => ({ id, name, avatarUrl: null, position: '', total, rank });
+const row = (id: string, name: string, total: number, rank: number) => ({ id, name, avatarUrl: null, color: 'blue', position: '', total, rank });
 const people = [
-  { id: member.id, name: member.name, role: 'member', position: '', specialty: '', bio: '', avatarUrl: null },
-  { id: staff.id, name: staff.name, role: 'moderator', position: '', specialty: '', bio: '', avatarUrl: null },
-  { id: 'u3', name: 'Ірина Бойко', role: 'member', position: '', specialty: '', bio: '', avatarUrl: null },
+  { id: member.id, name: member.name, role: 'member', position: '', specialty: '', bio: '', avatarUrl: null, color: 'blue' },
+  { id: staff.id, name: staff.name, role: 'moderator', position: '', specialty: '', bio: '', avatarUrl: null, color: 'blue' },
+  { id: 'u3', name: 'Ірина Бойко', role: 'member', position: '', specialty: '', bio: '', avatarUrl: null, color: 'blue' },
 ];
 const base = (me: Me) => ({
   'GET /api/auth/me': () => json(200, me),
@@ -143,8 +143,8 @@ describe('Дисципліна (модератор)', () => {
     type: 'warning',
     reason: 'Запізнення',
     amount: null,
-    user: { id: 'u3', name: 'Ірина Бойко', avatarUrl: null },
-    issuedBy: { id: staff.id, name: staff.name, avatarUrl: null },
+    user: { id: 'u3', name: 'Ірина Бойко', avatarUrl: null, color: 'blue' },
+    issuedBy: { id: staff.id, name: staff.name, avatarUrl: null, color: 'blue' },
     createdAt: '2026-11-01T10:00:00Z',
     revoked: false,
     revokedAt: null,
@@ -238,8 +238,8 @@ describe('Дисципліна (модератор)', () => {
 
   it('хто може зняти запис тут', () => {
     expect(canRevokeRecord(rec(), staff)).toBe(true);
-    expect(canRevokeRecord(rec({ issuedBy: { id: 'x', name: 'Х', avatarUrl: null } }), staff)).toBe(false);
-    expect(canRevokeRecord(rec({ issuedBy: { id: 'x', name: 'Х', avatarUrl: null } }), admin)).toBe(true);
+    expect(canRevokeRecord(rec({ issuedBy: { id: 'x', name: 'Х', avatarUrl: null, color: 'blue' } }), staff)).toBe(false);
+    expect(canRevokeRecord(rec({ issuedBy: { id: 'x', name: 'Х', avatarUrl: null, color: 'blue' } }), admin)).toBe(true);
     expect(canRevokeRecord(rec({ revoked: true }), admin)).toBe(false);
     expect(canRevokeRecord(rec({ paper: { id: 'p1', number: null } }), admin)).toBe(false);
   });

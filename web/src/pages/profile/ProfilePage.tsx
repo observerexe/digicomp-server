@@ -5,6 +5,7 @@ import { api, unwrap } from '../../api/client';
 import type { Me, PointsHistoryEntry } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
 import { Avatar } from '../../components/Avatar';
+import { tint } from '../../lib/palette';
 import { ChoiceButton } from '../../components/ChoiceButton';
 import { Icon } from '../../components/Icon';
 import { RecordPapers } from '../../components/RecordPapers';
@@ -45,8 +46,8 @@ export function ProfilePage() {
 function Header({ user }: { user: Me }) {
   return (
     <Card>
-      <div className={s.head}>
-        <Avatar name={user.name} url={user.avatarUrl} size={96} />
+      <div className={`${s.head} ${tint(user.color, true)}`}>
+        <Avatar name={user.name} url={user.avatarUrl} color={user.color} size={96} />
         <div className={s.headText}>
           <h2 className={s.name}>{user.name}</h2>
           <p className={s.meta}>{[user.position, user.specialty].filter(Boolean).join(' · ') || ROLE_LABEL[user.role]}</p>

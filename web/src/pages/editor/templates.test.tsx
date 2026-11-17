@@ -428,7 +428,7 @@ describe('Конструктор шаблону', () => {
         number: 1,
         revision: 3,
         publishedAt: '2026-11-14T10:00:00Z',
-        publishedBy: { id: 'm', name: 'Артур Машталер', avatarUrl: null },
+        publishedBy: { id: 'm', name: 'Артур Машталер', avatarUrl: null, color: 'blue' },
         updatedAt: '2026-11-14T10:00:00Z',
         documents: 12,
       },

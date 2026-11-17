@@ -14,7 +14,7 @@ export const member: Me = {
   position: 'Відеографиня',
   specialty: 'Медіа',
   bio: '',
-  avatarUrl: null,
+  avatarUrl: null, color: 'blue',
   active: true,
   twoFactorEnabled: false,
   permissions: ['tasks.take', 'places.read'],

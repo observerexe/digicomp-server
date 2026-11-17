@@ -2,11 +2,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { api, ApiError, unwrap } from '../../api/client';
-import type { Me } from '../../api/types';
+import type { Me, PaletteColor } from '../../api/types';
 import { ME_KEY, useAuth } from '../../auth/AuthProvider';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
 import { Card, ErrorMessage, PageHeader } from '../../components/ui';
+import { ColorPicker } from '../../components/Palette';
+import { tint } from '../../lib/palette';
 import { errorOf, errorText } from '../../errors/messages';
 import { resizeImage } from '../../lib/resizeImage';
 import s from './profile.module.css';
@@ -118,12 +120,14 @@ function FieldsCard({ user, canName, canRoleInfo }: { user: Me; canName: boolean
   const setMe = useSetMe();
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: user.name, position: user.position, specialty: user.specialty, bio: user.bio });
+  const [color, setColor] = useState<PaletteColor>(user.color);
 
   const save = useMutation({
     mutationFn: () => {
       // Only changed fields the role may edit (the API rejects the rest).
-      const body: Partial<typeof form> = {};
+      const body: Partial<typeof form> & { color?: PaletteColor } = {};
       if (form.bio !== user.bio) body.bio = form.bio;
+      if (color !== user.color) body.color = color;
       if (canRoleInfo && form.position.trim() !== user.position) body.position = form.position.trim();
       if (canRoleInfo && form.specialty.trim() !== user.specialty) body.specialty = form.specialty.trim();
       if (canName && form.name.trim() !== user.name) body.name = form.name.trim();
@@ -172,6 +176,12 @@ function FieldsCard({ user, canName, canRoleInfo }: { user: Me; canName: boolean
             {form.bio.length} / {BIO_MAX}
           </span>
         </div>
+        <div className={`${s.colorPreview} ${tint(color, true)}`}>
+          <Avatar name={user.name} url={user.avatarUrl} color={color} size={40} />
+          <span>{user.name}</span>
+        </div>
+        <ColorPicker name="p-color" legend="Колір акаунта" value={color} onChange={setColor} />
+        <span className="hint">Ним підсвічуються ваш аватар і ваша плашка всюди в застосунку: у «Команді», завданнях, коментарях, рейтингу.</span>
         <ErrorMessage text={save.isError ? errorOf(save.error) : null} />
         <div className={s.actions}>
           <button type="submit" className="btn btn-primary" disabled={save.isPending || (canName && !form.name.trim())}>

@@ -157,3 +157,13 @@ textarea {
     display: none !important;
   }
 }
+
+/* A person's plate in their account's shade (lib/palette.ts tint, with pal-<colour>). */
+.person-tint {
+  background: color-mix(in srgb, var(--pal-soft) 55%, var(--c-surface));
+  border-color: color-mix(in srgb, var(--pal-solid) 30%, var(--c-border));
+}
+.person-plate {
+  padding: 8px 12px;
+  border-radius: var(--radius-control);
+}

@@ -37,7 +37,7 @@ describe('Чернетка на пристрої: відкриття докум�
     title: 'Протокол зборів',
     status: 'draft',
     visibility: 'author',
-    author: { id: 'u1', name: 'Марта Коваль', avatarUrl: null },
+    author: { id: 'u1', name: 'Марта Коваль', avatarUrl: null, color: 'blue' },
     revision: 1,
     createdAt: '2026-11-14T10:00:00Z',
     updatedAt: '2026-11-14T10:00:00Z',

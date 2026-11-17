@@ -85,7 +85,7 @@ export function TaskCard(props: {
         <span className={s.faces}>
           {t.assignees.slice(0, MAX_FACES).map((a) => (
             <span key={a.id} title={a.name ?? ''}>
-              <Avatar name={a.name} url={a.avatarUrl} size={32} />
+              <Avatar name={a.name} url={a.avatarUrl} color={a.color} size={32} />
             </span>
           ))}
           {Array.from({ length: empty }, (_, i) => (

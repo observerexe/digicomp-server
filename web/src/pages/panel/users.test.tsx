@@ -5,7 +5,16 @@ import type { Me, TemplateItem, UserDetail } from '../../api/types';
 import { json, member, mockApi, moderator, renderApp } from '../../test/render';
 
 const STAFF = ['users.manage', 'users.read_extended', 'users.create', 'users.block', 'users.promote', 'users.edit_role_info', 'places.authorize', 'places.manage'];
-const ADMIN = ['users.grant_admin', 'users.reset_password', 'users.reset_two_factor', 'users.edit_name', 'users.edit_email', 'users.moderate_content', 'users.manage_moderator'];
+const ADMIN = [
+  'users.grant_admin',
+  'users.reset_password',
+  'users.reset_two_factor',
+  'users.edit_name',
+  'users.edit_email',
+  'users.moderate_content',
+  'users.manage_moderator',
+  'users.edit_color',
+];
 const mod: Me = { ...moderator, permissions: [...moderator.permissions, ...STAFF] };
 const admin: Me = { ...mod, id: 'a1', name: 'Ірина Адмін', role: 'admin', permissions: [...mod.permissions, ...ADMIN] };
 
@@ -17,6 +26,7 @@ const person = (over: Partial<UserDetail> = {}): UserDetail => ({
   specialty: 'Електроніка',
   bio: '',
   avatarUrl: null,
+  color: 'blue',
   email: 'andrii@test.ua',
   active: true,
   twoFactorEnabled: false,
@@ -129,6 +139,24 @@ describe('Панель: керування учасником', () => {
     expect(await screen.findByText(/Модератор не змінює дані інших модераторів/)).toBeInTheDocument();
     expect(screen.queryByLabelText('Посада')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Заблокувати' })).not.toBeInTheDocument();
+  });
+
+  it('колір акаунта: адмін змінює чужий (іде лише колір), модератор — не бачить', async () => {
+    const { calls } = usersApi(admin, person());
+    renderApp('/panel/users/u2');
+    const group = await screen.findByRole('group', { name: 'Колір акаунта' });
+    expect(within(group).getByLabelText('Синій')).toBeChecked();
+    await userEvent.click(within(group).getByLabelText('Помаранчевий'));
+    await userEvent.click(screen.getByRole('button', { name: 'Зберегти' }));
+    await screen.findByText('Збережено.');
+    expect(JSON.parse(calls.find((c) => c.method === 'PATCH')!.body)).toEqual({ color: 'orange' });
+  });
+
+  it('модератор чужого кольору не змінює', async () => {
+    usersApi(mod, person());
+    renderApp('/panel/users/u2');
+    await screen.findByLabelText('Посада');
+    expect(screen.queryByRole('group', { name: 'Колір акаунта' })).not.toBeInTheDocument();
   });
 
   it('адмін: ім’я, роль адміна, скидання пароля і 2FA', async () => {

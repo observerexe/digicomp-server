@@ -5,6 +5,7 @@ import { api, unwrap } from '../../api/client';
 import type { Role, UserListItem } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
 import { Avatar } from '../../components/Avatar';
+import { tint } from '../../lib/palette';
 import { Icon } from '../../components/Icon';
 import { Chips, norm, SearchField } from '../../components/Filters';
 import { ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
@@ -84,8 +85,8 @@ export function UsersPage() {
         <ul className={s.rows} aria-label="Учасники">
           {shown.map((u) => (
             <li key={u.id}>
-              <Link to={`/panel/users/${u.id}`} className={s.rowLink}>
-                <Avatar name={u.name} url={u.avatarUrl} size={40} />
+              <Link to={`/panel/users/${u.id}`} className={`${s.rowLink} ${tint(u.color)}`}>
+                <Avatar name={u.name} url={u.avatarUrl} color={u.color} size={40} />
                 <span className={s.rowMain}>
                   <span className={s.rowTitle}>
                     {u.name}

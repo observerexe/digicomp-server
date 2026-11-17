@@ -5,6 +5,7 @@ import { api, ApiError, unwrap } from '../../api/client';
 import type { ProjectDetail, ProjectHistory, ProjectStage } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
 import { Avatar } from '../../components/Avatar';
+import { tint } from '../../lib/palette';
 import { Icon } from '../../components/Icon';
 import { Related } from '../../components/Related';
 import { TrashButton } from '../../components/TrashButton';
@@ -181,8 +182,8 @@ function ProjectView({ p }: { p: ProjectDetail }) {
               <ul className={s.members}>
                 {p.members.map((m) => (
                   <li key={m.id}>
-                    <Link to={`/team/${m.id}`}>
-                      <Avatar name={m.name} url={m.avatarUrl} size={32} />
+                    <Link to={`/team/${m.id}`} className={tint(m.color, true)}>
+                      <Avatar name={m.name} url={m.avatarUrl} color={m.color} size={32} />
                       <span>
                         {m.name}
                         {m.position && <span className={s.sub}>{m.position}</span>}

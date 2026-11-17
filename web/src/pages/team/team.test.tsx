@@ -12,13 +12,14 @@ const card = (id: string, name: string, specialty: string, extra: Partial<UserLi
   specialty,
   bio: '',
   avatarUrl: null,
+  color: 'blue',
   ...extra,
 });
 
 const team = [
   card(member.id, member.name, 'Медіа'),
   card('u2', 'Олег Петренко', 'Інженерія', { role: 'moderator', position: 'Керівник', bio: 'Веду групу.' }),
-  card('u3', 'Ірина Бойко', 'Медіа', { position: 'Фотографиня' }),
+  card('u3', 'Ірина Бойко', 'Медіа', { position: 'Фотографиня', color: 'purple' }),
   card('u4', 'Андрій Шевчук', 'Інженерія', { position: 'Схемотехнік' }),
 ];
 
@@ -61,6 +62,16 @@ describe('Команда', () => {
     const list = await screen.findByRole('list', { name: 'Учасники' });
     expect(within(list).getByRole('link', { name: /Марта Коваль/ })).toHaveAttribute('href', '/profile');
     expect(within(list).getByRole('link', { name: /Ірина Бойко/ })).toHaveAttribute('href', '/team/u3');
+  });
+
+  it('плашка й аватар — у кольорі акаунта', async () => {
+    mockApi(base);
+    renderApp('/team');
+    const list = await screen.findByRole('list', { name: 'Учасники' });
+    const iryna = within(list).getByRole('link', { name: /Ірина Бойко/ });
+    expect(iryna).toHaveClass('person-tint', 'pal-purple');
+    expect(within(iryna).getByText('ІБ')).toHaveClass('pal-purple');
+    expect(within(list).getByRole('link', { name: /Олег Петренко/ })).toHaveClass('pal-blue');
   });
 
   it('чужий профіль: лише публічне й бали', async () => {

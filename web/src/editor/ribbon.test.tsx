@@ -16,7 +16,7 @@ const paper = (over: Partial<Paper> = {}): Paper => ({
   title: 'Протокол зборів',
   status: 'draft',
   visibility: 'author',
-  author: { id: writer.id, name: writer.name, avatarUrl: null },
+  author: { id: writer.id, name: writer.name, avatarUrl: null, color: 'blue' },
   revision: 1,
   createdAt: '2026-11-14T10:00:00Z',
   updatedAt: '2026-11-14T10:00:00Z',

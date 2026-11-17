@@ -2,6 +2,7 @@ import { NavLink, Outlet, Link } from 'react-router';
 import { useAuth } from '../auth/AuthProvider';
 import type { Role } from '../api/types';
 import { Avatar } from '../components/Avatar';
+import { tint } from '../lib/palette';
 import { Icon } from '../components/Icon';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { plural } from '../lib/format';
@@ -53,8 +54,8 @@ export function AppShell() {
           </nav>
         )}
         <div className={s.meRow}>
-          <Link to="/profile" className={s.me}>
-            <Avatar name={user?.name ?? ''} url={user?.avatarUrl} size={40} />
+          <Link to="/profile" className={`${s.me} ${tint(user?.color)}`}>
+            <Avatar name={user?.name ?? ''} url={user?.avatarUrl} color={user?.color} size={40} />
             <span className={s.meText}>
               <span>{user?.name}</span>
               <span className={s.muted}>{roleLabel(user?.role)}</span>

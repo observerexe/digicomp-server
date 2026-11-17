@@ -5,6 +5,7 @@ import { api, ApiError, unwrap } from '../../api/client';
 import type { Booking, Me, Place } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
 import { Avatar } from '../../components/Avatar';
+import { tint } from '../../lib/palette';
 import { Icon } from '../../components/Icon';
 import { QrCode } from '../../components/QrCode';
 import { Related } from '../../components/Related';
@@ -316,8 +317,8 @@ function RecentSessions({ code }: { code: string }) {
       ) : (
         <ul className={s.rows} aria-label="Останні сеанси">
           {q.data.map((r) => (
-            <li key={r.id} className={s.row}>
-              <Avatar name={r.user.name} url={r.user.avatarUrl} size={32} />
+            <li key={r.id} className={`${s.row} ${tint(r.user.color, true)}`}>
+              <Avatar name={r.user.name} url={r.user.avatarUrl} color={r.user.color} size={32} />
               <span className={s.rowMain}>
                 <span className={s.rowTitle}>{r.user.name ?? 'Учасник'}</span>
                 <span className={s.rowSub}>

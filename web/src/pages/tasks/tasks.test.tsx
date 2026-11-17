@@ -7,7 +7,7 @@ import { drawSignature, stubPointerEvents } from '../../test/signature';
 import { task } from './logic.test';
 
 const staff: Me = { ...moderator, permissions: [...moderator.permissions, 'tasks.accept', 'tasks.create', 'tasks.manage'] };
-const ref = (u: { id: string; name: string }, takenAt = '2026-11-02T10:00:00Z') => ({ id: u.id, name: u.name, avatarUrl: null, takenAt });
+const ref = (u: { id: string; name: string }, takenAt = '2026-11-02T10:00:00Z') => ({ id: u.id, name: u.name, avatarUrl: null, color: 'blue' as const, takenAt });
 const iryna = { id: 'u3', name: 'Ірина Бойко' };
 const andrii = { id: 'u4', name: 'Андрій Шевчук' };
 
@@ -221,7 +221,7 @@ describe('Дошка ТЗ', () => {
           'GET /api/records/task/field-defs': () => json(200, [fieldDef({ key: 'old', archived: true }), fieldDef(), level, tags]),
           ...dictionary('typ_tz', [
             { key: 'dyzain', title: 'Дизайн', color: 'purple' },
-            { key: 'video', title: 'Відео', color: 'blue' },
+            { key: 'video', title: 'Відео', color: 'blue' as const },
           ]),
           ...dictionary('level', [{ key: 'easy', title: 'Легке' }]),
           ...dictionary('tags', [
@@ -331,7 +331,7 @@ describe('Сторінка ТЗ', () => {
       id: 't1',
       status: 'in_progress',
       assignees: [ref(member), ref(iryna, '2026-11-03T10:00:00Z')],
-      comments: [{ id: 'c1', kind: 'return', body: 'Збільшити шрифт', author: { id: 'm1', name: 'Олег Петренко', avatarUrl: null }, createdAt: '2026-11-04T10:00:00Z' }],
+      comments: [{ id: 'c1', kind: 'return', body: 'Збільшити шрифт', author: { id: 'm1', name: 'Олег Петренко', avatarUrl: null, color: 'blue' as const }, createdAt: '2026-11-04T10:00:00Z' }],
     });
     const { calls } = mockApi({
       ...boardApi(member, []),

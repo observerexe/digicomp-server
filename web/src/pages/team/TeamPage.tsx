@@ -5,6 +5,7 @@ import { api, unwrap } from '../../api/client';
 import type { UserListItem } from '../../api/types';
 import { useAuth } from '../../auth/AuthProvider';
 import { Avatar } from '../../components/Avatar';
+import { tint } from '../../lib/palette';
 import { Chips, distinct, norm, SearchField } from '../../components/Filters';
 import { ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
@@ -54,8 +55,8 @@ export function TeamPage() {
         <ul className={s.grid} aria-label="Учасники">
           {shown.map((u) => (
             <li key={u.id}>
-              <Link to={u.id === user?.id ? '/profile' : `/team/${u.id}`} className={s.card}>
-                <Avatar name={u.name} url={u.avatarUrl} size={56} />
+              <Link to={u.id === user?.id ? '/profile' : `/team/${u.id}`} className={`${s.card} ${tint(u.color)}`}>
+                <Avatar name={u.name} url={u.avatarUrl} color={u.color} size={56} />
                 <span className={s.cardText}>
                   <span className={s.name}>
                     {u.name}

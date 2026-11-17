@@ -69,7 +69,7 @@ function ProjectCard({ project: p, drag }: { project: ProjectListItem; drag: Dra
         <span className={s.faces}>
           {p.members.slice(0, 5).map((m) => (
             <span key={m.id} title={m.name}>
-              <Avatar name={m.name} url={m.avatarUrl} size={32} />
+              <Avatar name={m.name} url={m.avatarUrl} color={m.color} size={32} />
             </span>
           ))}
         </span>

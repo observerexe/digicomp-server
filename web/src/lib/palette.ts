@@ -14,3 +14,9 @@ export const PALETTE: { name: PaletteColor; label: string }[] = [
   { name: 'blue', label: 'Синій' },
   { name: 'purple', label: 'Фіолетовий' },
 ];
+
+/**
+ * Classes of a person's plate (their card, row, comment, the head of their profile) in their account's shade;
+ * `plate` — the element has no frame of its own (a row in a list): padding and rounded corners too.
+ */
+export const tint = (color: PaletteColor | null | undefined, plate = false) => (color ? `person-tint pal-${color}${plate ? ' person-plate' : ''}` : '');

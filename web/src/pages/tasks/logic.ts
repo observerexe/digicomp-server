@@ -80,7 +80,7 @@ export function predict(t: Task, kind: ActionKind, me: Me, now = new Date()): Ta
       return {
         ...t,
         status: kind === 'takeStart' ? 'in_progress' : t.status,
-        assignees: [...t.assignees, { id: me.id, name: me.name, avatarUrl: me.avatarUrl, takenAt: iso }],
+        assignees: [...t.assignees, { id: me.id, name: me.name, avatarUrl: me.avatarUrl, color: me.color, takenAt: iso }],
       };
     case 'leave': {
       const assignees = t.assignees.filter((a) => a.id !== me.id);

@@ -8,10 +8,10 @@ export function DictChip({ title, color }: { title: string; color: PaletteColor 
 }
 
 /** One of the 8 palette colours: round swatches, a radio group underneath. */
-export function ColorPicker(props: { name: string; value: PaletteColor; onChange: (c: PaletteColor) => void }) {
+export function ColorPicker(props: { name: string; value: PaletteColor; onChange: (c: PaletteColor) => void; legend?: string }) {
   return (
     <fieldset className={s.picker}>
-      <legend>Колір</legend>
+      <legend>{props.legend ?? 'Колір'}</legend>
       <div className={s.swatches}>
         {PALETTE.map((c) => (
           <label key={c.name} className={`${s.swatch} pal-${c.name}`} title={c.label}>

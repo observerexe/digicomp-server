@@ -17,7 +17,7 @@ const fileItem = (over: Partial<ArchiveItem> = {}, file: Partial<NonNullable<Arc
 });
 const paperItem = (paper: Partial<NonNullable<ArchiveItem['paper']>> = {}): ArchiveItem => ({
   kind: 'paper', id: 'p1', title: 'Створення сайту', updatedAt: '2026-11-02T10:00:00Z', file: null,
-  paper: { number: 'ТЗ-2026-014', status: 'signed', template: 'Технічне завдання', author: { id: 'm1', name: 'Олена Коваль', avatarUrl: null }, ...paper },
+  paper: { number: 'ТЗ-2026-014', status: 'signed', template: 'Технічне завдання', author: { id: 'm1', name: 'Олена Коваль', avatarUrl: null, color: 'blue' }, ...paper },
 });
 const archive = (items: ArchiveItem[], over: { years?: number[]; categories?: string[]; total?: number } = {}) => ({
   items, total: over.total ?? items.length, page: 1, limit: 100, years: over.years ?? [2026, 2025], categories: over.categories ?? ['pasporty', 'instruktsii'],
