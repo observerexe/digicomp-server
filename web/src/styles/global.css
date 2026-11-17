@@ -75,6 +75,8 @@ textarea {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  /* A link as a button: wrapped text centred as a <button> has it */
+  text-align: center;
   text-decoration: none;
   transition: background var(--motion-fast), opacity var(--motion-fast);
 }

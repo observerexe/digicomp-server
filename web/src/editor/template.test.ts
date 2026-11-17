@@ -1,8 +1,7 @@
-import { Editor } from '@tiptap/core';
 import { describe, expect, it } from 'vitest';
+import { testEditor } from '../test/editor';
 import type { RecordSchema } from '../api/types';
 import { fieldBlockOf, type FieldBlock } from './blocks';
-import { paperExtensions } from './extensions';
 import { bindingOptions, defsOf, recordRowsOf, fieldsOf, fieldTag, keyProblem, keysOf, limitsText, newField, newKey, tableField, withType, type FieldDef } from './template';
 
 const NO_ROWS = new Map<string, string>();
@@ -49,7 +48,7 @@ describe('Поля шаблону в конструкторі', () => {
     const defs = defsOf([field({ key: 'points', type: 'int' }), field({ key: 'gone' })], body);
     expect(defs.get('goal')).toMatchObject({ type: 'richtext', label: 'goal' });
     expect(defs.get('lost')).toMatchObject({ type: 'text', label: 'lost' });
-    const editor = new Editor({ extensions: paperExtensions(), injectCSS: false, content: body });
+    const editor = testEditor({ content: body });
     expect(keysOf(editor.state.doc)).toEqual(['goal', 'points', 'lost']);
     expect(fieldsOf(defs, keysOf(editor.state.doc)).map((f) => f.key)).toEqual(['goal', 'points', 'lost']);
   });

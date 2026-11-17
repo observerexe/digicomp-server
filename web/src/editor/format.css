@@ -285,3 +285,18 @@ img.ProseMirror-separator {
   background: color-mix(in srgb, var(--sheet-yellow) 14%, var(--sheet-paper));
   color: var(--sheet-yellow);
 }
+
+/* A narrow sheet (the phone has no A4 width): «Затверджую» across the sheet, the signature columns one under
+   another, a name that does not fit goes under its line. The print keeps the A4 layout of paper.css. */
+@media (max-width: 899px) {
+  .paper .paper-approval {
+    width: auto;
+  }
+  .paper .paper-signs {
+    flex-direction: column;
+    gap: 12pt;
+  }
+  .paper .paper-sign {
+    flex-wrap: wrap;
+  }
+}

@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Editor, type JSONContent } from '@tiptap/core';
+import type { JSONContent } from '@tiptap/core';
 import type { EditorState } from '@tiptap/pm/state';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRef, type RefObject } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+import { testEditor } from '../test/editor';
 import type { RecordView } from '../lib/records';
 import { json, mockApi } from '../test/render';
 import { paperExtensions } from './extensions';
@@ -19,12 +20,11 @@ const OLHA: RecordView = { type: 'user', id: '33333333-3333-4333-8333-3333333333
 /** An editor with «@»; `allow` — where it may refer. */
 function open(content: JSONContent, allow: (state: EditorState) => boolean = () => true, template?: TemplateOptions) {
   const show = vi.fn<(m: MentionMenuState | null) => void>();
-  const editor = new Editor({
+  const editor = testEditor({
     extensions: paperExtensions({
       template,
       mention: { record: (type, id) => [TASK, IVAN].find((r) => r.type === type && r.id === id) ?? null, suggest: { allow, show, key: () => false } },
     }),
-    injectCSS: false,
     content,
   });
   return { editor, show };

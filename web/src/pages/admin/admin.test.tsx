@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { Me } from '../../api/types';
 import { json, mockApi, moderator, renderApp } from '../../test/render';
 import { POLL } from './AdminPage';
-import { containerTone, formatAgo, formatBytes, formatUptime, metaLines, type AuditEntry, type PanelJob, type PanelOverview } from './labels';
+import { AUDIT_ACTION, AUDIT_GROUPS, containerTone, entityLink, formatAgo, formatBytes, formatUptime, metaLines, type AuditAction, type AuditEntry, type PanelJob, type PanelOverview } from './labels';
 
 const admin: Me = {
   ...moderator,
@@ -234,6 +234,7 @@ describe('Журнал дій', () => {
   it('людські назви, «Сервер», посилання, фільтр і «Показати ще»', async () => {
     const page1 = Array.from({ length: 50 }, (_, i) => entry({ id: `e${i}` }));
     page1[0] = entry({ id: 'e0', action: 'session.auto_closed', actorId: null, actor: null, entity: 'session', meta: null });
+    page1[1] = entry({ id: 'e1', action: 'paper.signature_added', entity: 'paper', entityId: 'pp1', meta: { title: 'Акт', authorId: 'm1', number: null } });
     let before: string | null = null;
     mockApi({
       ...base(admin),
@@ -252,7 +253,10 @@ describe('Журнал дій', () => {
     expect(first).toHaveTextContent('Сеанс закрито автоматично');
     expect(first).toHaveTextContent('Сервер');
     expect(within(list).getAllByText('Видав допуск')[0]!.closest('li')).toHaveTextContent('userId: u2');
-    expect(within(list).getAllByRole('link', { name: 'Відкрити' })[0]).toHaveAttribute('href', '/lab/p1');
+    const signed = within(list).getByText('Підписав документ').closest('li')!;
+    expect(signed).toHaveTextContent(`authorId: ${moderator.name}`);
+    expect(within(signed).getByRole('link', { name: 'Відкрити' })).toHaveAttribute('href', '/editor/pp1');
+    expect(within(list).getAllByRole('link', { name: 'Відкрити' })[1]).toHaveAttribute('href', '/lab/p1');
 
     await userEvent.click(screen.getByRole('button', { name: 'Показати ще' }));
     expect(await within(list).findByText('Скинув пароль')).toBeInTheDocument();
@@ -289,6 +293,24 @@ describe('Форматування панелі', () => {
     expect(containerTone({ state: 'running', health: 'starting' })).toBe('warn');
     expect(containerTone({ state: 'running', health: null })).toBe('ok');
     expect(containerTone({ state: 'missing', health: null })).toBe('bad');
+  });
+  it('кожна дія з бекенду має назву й групу у фільтрі «Що»', () => {
+    // The type of AUDIT_ACTION already needs every AuditAction of the OpenAPI.
+    for (const [action, text] of Object.entries(AUDIT_ACTION) as [AuditAction, string][]) {
+      expect(text.trim(), action).not.toBe('');
+      expect(AUDIT_GROUPS.some((g) => action.startsWith(g.value)), action).toBe(true);
+    }
+    expect(entityLink('paper_template', 't1')).toBe('/editor/templates/t1');
+  });
+  it('аудит: люди в деталях — іменами, решта як є', () => {
+    const people = new Map([['u1', 'Марта'], ['u2', 'Іван']]);
+    expect(metaLines({ userId: 'u1', memberIds: ['u1', 'u2'], placeId: 'p1', gone: 'u9' }, 'booking', people)).toEqual([
+      'userId: Марта',
+      'memberIds: Марта, Іван',
+      'placeId: p1',
+      'gone: u9',
+    ]);
+    expect(metaLines({ changes: { signerId: { to: 'u2', from: null } } }, 'org_settings', people)).toEqual(['changes: {"signerId":{"to":"Іван","from":null}}']);
   });
   it('аудит: статуси технічного завдання назвами, давнє «У черзі» теж', () => {
     expect(metaLines({ from: 'queued', to: 'in_progress' }, 'task')).toEqual(['from: У черзі', 'to: В роботі']);

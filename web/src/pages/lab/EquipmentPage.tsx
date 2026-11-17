@@ -102,12 +102,6 @@ export function EquipmentPage() {
       </p>
       {p.description && <p className={s.description}>{p.description}</p>}
       <div className={s.actions}>
-        <a href="#bookings" className="btn">
-          Забронювати
-        </a>
-        <a href="#faults" className="btn">
-          Несправність
-        </a>
         <button type="button" className="btn btn-ghost" aria-expanded={showQr} onClick={() => setShowQr((v) => !v)}>
           QR-код
         </button>

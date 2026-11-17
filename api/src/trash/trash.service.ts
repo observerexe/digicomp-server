@@ -1,3 +1,4 @@
+import type { AuditAction } from '../audit/actions';
 import {
   BadRequestException,
   ConflictException,
@@ -252,7 +253,7 @@ export class TrashService implements OnApplicationBootstrap, OnModuleDestroy {
   private log(
     m: EntityManager,
     actorId: string | null,
-    action: string,
+    action: AuditAction,
     type: TrashType,
     row: TrashRow,
     meta: Record<string, unknown>,

@@ -1,7 +1,8 @@
-import { Editor, type JSONContent } from '@tiptap/core';
+import type { Editor, JSONContent } from '@tiptap/core';
 import { Fragment } from '@tiptap/pm/model';
 import { NodeSelection, TextSelection } from '@tiptap/pm/state';
 import { describe, expect, it, vi } from 'vitest';
+import { testEditor } from '../test/editor';
 import { BLOCKS } from './blocks';
 import {
   badFields,
@@ -43,9 +44,8 @@ function open(content: JSONContent, known = ['points', 'member', 'goal']) {
   const onPlace = vi.fn();
   const onEnd = vi.fn();
   const show = vi.fn<(m: BlockMenuState | null) => void>();
-  const editor = new Editor({
+  const editor = testEditor({
     extensions: [...paperExtensions(), builderExtension({ known: () => new Set(known), onPlace, onEnd, menu: { show, key: () => false } })],
-    injectCSS: false,
     content,
   });
   return { editor, onPlace, onEnd, show };

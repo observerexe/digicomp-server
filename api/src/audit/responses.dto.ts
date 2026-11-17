@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { AUDIT_ACTIONS, type AuditAction } from './actions';
 
 export class AuditActorDto {
   id: string;
@@ -15,7 +16,9 @@ export class AuditEntryDto {
   @ApiProperty({ type: AuditActorDto, nullable: true })
   actor: AuditActorDto | null;
 
-  action: string;
+  @ApiProperty({ enum: AUDIT_ACTIONS, enumName: 'AuditAction' })
+  action: AuditAction;
+
   entity: string;
 
   @ApiProperty({ type: String, nullable: true })

@@ -1,6 +1,7 @@
-import { Editor, type JSONContent } from '@tiptap/core';
+import type { JSONContent } from '@tiptap/core';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { testEditor } from '../test/editor';
 import type { PaperField, PaperTemplateRef } from '../api/types';
 import { conditionsIn, isOff } from './conditional';
 import { paperExtensions } from './extensions';
@@ -31,9 +32,8 @@ const body: JSONContent = {
 };
 
 function open() {
-  return new Editor({
+  return testEditor({
     extensions: paperExtensions({ template: { plain: new Set(), locked: new Set(), fillable: new Set(['type', 'amount', 'reason']), onFieldClick: vi.fn() } }),
-    injectCSS: false,
     content: body,
   });
 }

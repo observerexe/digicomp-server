@@ -1,8 +1,8 @@
-import { Editor, type JSONContent } from '@tiptap/core';
+import type { JSONContent } from '@tiptap/core';
 import { NodeSelection } from '@tiptap/pm/state';
 import { describe, expect, it } from 'vitest';
+import { testEditor } from '../test/editor';
 import { blockTag, removeField, renameField, selectionOf, setBlockAttrs } from './builder';
-import { paperExtensions } from './extensions';
 import { PENDING, setSheetInfo, type SheetInfo } from './structure';
 import { keysOf } from './template';
 import { peopleOf } from './useSheet';
@@ -29,7 +29,7 @@ const INFO: SheetInfo = {
 };
 
 function open(content: JSONContent) {
-  return new Editor({ extensions: paperExtensions(), injectCSS: false, content });
+  return testEditor({ content });
 }
 
 describe('Структура аркуша (structure.ts)', () => {
@@ -42,7 +42,6 @@ describe('Структура аркуша (structure.ts)', () => {
     expect([...root.querySelectorAll('.paper-signs-col')].map((c) => c.textContent)).toEqual(['ВидавАндрій ШЕВЧУК', 'ПрийнявМарія ЛИСЕНКО']);
     setSheetInfo(e, { ...INFO, paper: { ...INFO.paper, institution: '', groupName: '' } });
     expect(root.querySelector('.paper-org')!.textContent).toBe('Шапка: заповніть «Реквізити» на панелі керування');
-    e.destroy();
   });
 
   it('графічні підписи — поверх своїх ліній у порядку аркуша (як у друці), під ними — примітка', () => {
@@ -60,7 +59,6 @@ describe('Структура аркуша (structure.ts)', () => {
     setSheetInfo(e, { ...INFO, signatures: [at(1, 'x')] });
     expect(root.querySelector('.paper-signs svg')).toBeNull();
     expect(root.querySelector('.paper-approval svg')).not.toBeNull();
-    e.destroy();
   });
 
   it('стоїть лише на верхньому рівні: зі списку вставка розриває список', () => {
@@ -78,7 +76,6 @@ describe('Структура аркуша (structure.ts)', () => {
     );
     e.chain().setTextSelection(6).insertContent({ type: 'orgHeader' }).run();
     expect(e.getJSON().content!.map((n) => n.type)).toEqual(['bulletList', 'orgHeader', 'bulletList', 'paragraph']);
-    e.destroy();
   });
 
   it('авто-значення: до публікації — сірі, потім — текст; у конструкторі — назви', () => {
@@ -95,7 +92,6 @@ describe('Структура аркуша (structure.ts)', () => {
     setSheetInfo(e, { ...INFO, builder: true });
     expect(shown().map(([text]) => text)).toEqual(['{Номер}', '{Дата}', '{Автор}']);
     expect(e.view.dom.querySelector('.paper-footer')!.textContent).toBe('Колонтитул: Ф-01');
-    e.destroy();
   });
 
   it('імена з полів учасника — «Ім’я ПРІЗВИЩЕ»; не вибрано — null', () => {
@@ -117,7 +113,6 @@ describe('Конструктор: блоки структури', () => {
     expect(sel).toMatchObject({ kind: 'block', index: 1, node: 'signatures', attrs: { leftLabel: 'Склав', leftSigner: '@author' } });
     setBlockAttrs(e, 1, { rightLabel: 'Прийняв', rightSigner: '@signer' });
     expect(e.state.doc.child(1).attrs).toEqual({ leftLabel: 'Склав', leftSigner: '@author', rightLabel: 'Прийняв', rightSigner: '@signer' });
-    e.destroy();
   });
 
   it('учасник, що підписує, — поле шаблону; перейменування й видалення поля змінюють і підписи', () => {
@@ -131,7 +126,6 @@ describe('Конструктор: блоки структури', () => {
     removeField(e, 'head');
     expect(e.state.doc.child(1).attrs.leftSigner).toBeNull();
     expect(keysOf(e.state.doc)).toEqual([]);
-    e.destroy();
   });
 });
 
@@ -153,7 +147,6 @@ describe('Авто-таблиця на аркуші', () => {
     expect(root.querySelector('.paper-table')!.textContent).toBe('УчасникПочаток');
     setSheetInfo(e, INFO);
     expect(root.querySelector('.paper-table')!.textContent).toBe('Авто-таблиця: джерело недоступне');
-    e.destroy();
   });
 
   it('у конструкторі: мітка — джерело й поле; поле таблиці — поле версії; перейменування й прибирання поля — і таблиці', () => {
@@ -166,13 +159,11 @@ describe('Авто-таблиця на аркуші', () => {
     removeField(e, 'eq');
     // The field's paragraph and the table go; the sheet keeps an empty paragraph.
     expect(e.getJSON().content!.map((n) => n.type)).toEqual(['paragraph']);
-    e.destroy();
   });
 
   it('стоїть лише на верхньому рівні', () => {
     const e = open(doc(p(t('Текст'))));
     e.chain().focus('end').insertContent(table).run();
     expect(e.getJSON().content!.map((n) => n.type)).toEqual(['paragraph', 'autoTable', 'paragraph']);
-    e.destroy();
   });
 });

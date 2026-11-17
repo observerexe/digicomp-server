@@ -1,8 +1,9 @@
-import { Editor, getSchema } from '@tiptap/core';
+import { getSchema } from '@tiptap/core';
 import type { ContentMatch, NodeType } from '@tiptap/pm/model';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { testEditor } from '../test/editor';
 import { checkContent, formatClasses, MARKS, NODES } from '../../../shared/editor-schema';
 import { paperExtensions } from './extensions';
 
@@ -48,7 +49,7 @@ describe('Схема редактора = спільний опис (shared/edit
 });
 
 describe('Форматування класами', () => {
-  const editor = () => new Editor({ extensions: paperExtensions(), injectCSS: false, content: '<p>Текст документа</p>' });
+  const editor = () => testEditor({ content: '<p>Текст документа</p>' });
 
   it('документ з усім форматуванням проходить перевірку сервера, у HTML немає style', () => {
     const e = editor();
@@ -63,7 +64,6 @@ describe('Форматування класами', () => {
     expect(html).toContain('class="ta-center in-2"');
     expect(html).toMatch(/<span class="fs-18 tc-blue ff-sans">/);
     expect(html).toContain('class="page-break"');
-    e.destroy();
   });
 
   it('скасування форматування прибирає позначку textStyle', () => {
@@ -71,7 +71,6 @@ describe('Форматування класами', () => {
     e.chain().selectAll().setFontSize(18).run();
     e.chain().selectAll().setFontSize(null).run();
     expect(JSON.stringify(e.getJSON())).not.toContain('textStyle');
-    e.destroy();
   });
 
   it('відступ не виходить за межі 0…6', () => {
@@ -80,13 +79,10 @@ describe('Форматування класами', () => {
     expect(e.getJSON().content?.[0]?.attrs?.indent).toBe(0);
     for (let i = 0; i < 10; i++) e.chain().selectAll().indent().run();
     expect(e.getJSON().content?.[0]?.attrs?.indent).toBe(6);
-    e.destroy();
   });
 
   it('вставлений HTML з класами читається назад, стилі відкидаються', () => {
-    const e = new Editor({
-      extensions: paperExtensions(),
-      injectCSS: false,
+    const e = testEditor({
       content: '<p class="ta-right in-1"><span class="fs-12 tc-red">а</span><span style="color:red">б</span></p>',
     });
     const json = e.getJSON();
@@ -94,7 +90,6 @@ describe('Форматування класами', () => {
     expect(json.content?.[0]?.content?.[0]?.marks).toEqual([{ type: 'textStyle', attrs: { size: 12, color: 'red', font: null } }]);
     expect(json.content?.[0]?.content?.[1]?.marks).toBeUndefined();
     expect(checkContent(json)).toBe(true);
-    e.destroy();
   });
 
   it('у paper.css є правило на кожен клас з опису', () => {

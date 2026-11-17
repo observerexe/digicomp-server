@@ -1,3 +1,4 @@
+import type { AuditAction } from '../audit/actions';
 import {
   BadRequestException,
   ConflictException,
@@ -408,7 +409,7 @@ export class RecordFieldsService {
   private log(
     m: EntityManager,
     actor: Actor,
-    action: string,
+    action: AuditAction,
     f: RecordFieldDef,
     meta: Record<string, unknown>,
   ) {

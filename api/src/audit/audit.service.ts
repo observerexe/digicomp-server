@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { User } from '../users/user.entity';
+import type { AuditAction } from './actions';
 import { AuditLog } from './audit-log.entity';
 import type { ListAuditQuery } from './dto';
 import type { AuditEntryDto } from './responses.dto';
@@ -13,7 +14,7 @@ export class AuditService {
   log(
     entry: {
       actorId?: string;
-      action: string;
+      action: AuditAction;
       entity: string;
       entityId?: string;
       meta?: Record<string, unknown>;
@@ -75,7 +76,8 @@ export class AuditService {
         id: a.id,
         actorId: a.actorId,
         actor: r?.u_id ? { id: r.u_id, name: r.u_name ?? '' } : null,
-        action: a.action,
+        // Written only by log() and migrations: all of them are in AUDIT_ACTIONS.
+        action: a.action as AuditAction,
         entity: a.entity,
         entityId: a.entityId,
         meta: a.meta,

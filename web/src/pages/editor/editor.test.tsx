@@ -457,16 +457,16 @@ describe('Редактор: новий документ із шаблону', ()
       }),
     );
     const { router } = renderApp('/editor');
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Новий документ' })).toHaveAttribute('aria-haspopup', 'true'));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Новий документ' })).toHaveAttribute('aria-haspopup', 'menu'));
     await userEvent.click(screen.getByRole('button', { name: 'Новий документ' }));
-    const menu = screen.getByRole('list', { name: 'Новий документ' });
+    const menu = screen.getByRole('menu', { name: 'Новий документ' });
     expect(
       within(menu)
-        .getAllByRole('button')
+        .getAllByRole('menuitem')
         .map((b) => b.textContent),
     ).toEqual(['Порожній документ', 'Заява', 'АктШаблон потребує оновлення']);
-    expect(within(menu).getByRole('button', { name: /Акт/ })).toBeDisabled();
-    await userEvent.click(within(menu).getByRole('button', { name: 'Заява' }));
+    expect(within(menu).getByRole('menuitem', { name: /Акт/ })).toBeDisabled();
+    await userEvent.click(within(menu).getByRole('menuitem', { name: 'Заява' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/editor/n1'));
     expect(JSON.parse(calls.find((c) => c.method === 'POST')!.body)).toEqual({ templateId: 't1' });
   });

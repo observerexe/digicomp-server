@@ -1,6 +1,7 @@
-import { Editor, type JSONContent } from '@tiptap/core';
+import type { Editor, JSONContent } from '@tiptap/core';
 import { DOMParser as PMDOMParser } from '@tiptap/pm/model';
 import { describe, expect, it, vi } from 'vitest';
+import { testEditor } from '../test/editor';
 import { checkContent } from '../../../shared/editor-schema';
 import { matchesBody } from '../../../shared/editor-schema/fields';
 import { paperExtensions } from './extensions';
@@ -24,9 +25,8 @@ const body: JSONContent = {
 };
 
 function open(onFieldClick = vi.fn()) {
-  const editor = new Editor({
+  const editor = testEditor({
     extensions: paperExtensions({ template: { plain: new Set(['goal']), locked: new Set(['verdict']), fillable: new Set(['name', 'notes', 'goal']), onFieldClick } }),
-    injectCSS: false,
     content: body,
   });
   return { editor, onFieldClick };
@@ -202,9 +202,8 @@ describe('Посилання «@»', () => {
   const mentionDoc = (id: string): JSONContent => ({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'mention', attrs: { type: 'task', id } }] }] });
 
   it('на аркуші — назва запису з посиланням; невидимий — «запис недоступний»', () => {
-    const editor = new Editor({
+    const editor = testEditor({
       extensions: paperExtensions({ mention: { record: (type, id) => (type === RECORD.type && id === RECORD.id ? RECORD : null) } }),
-      injectCSS: false,
       content: mentionDoc(RECORD.id),
     });
     const a = editor.view.dom.querySelector('a.paper-ref')!;

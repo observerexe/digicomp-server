@@ -461,9 +461,21 @@ describe('ТЗ через документ', () => {
       'POST /api/papers': () => json(201, { id: 'n1' }),
     });
     const { router } = renderApp('/tasks');
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Нове технічне завдання' })).toHaveAttribute('aria-haspopup', 'true'));
-    await userEvent.click(screen.getByRole('button', { name: 'Нове технічне завдання' }));
-    await userEvent.click(within(screen.getByRole('list', { name: 'Нове технічне завдання' })).getByRole('button', { name: 'Коротке ТЗ' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Нове технічне завдання' })).toHaveAttribute('aria-haspopup', 'menu'));
+    const button = screen.getByRole('button', { name: 'Нове технічне завдання' });
+    await userEvent.click(button);
+    // A menu: the focus on its first item, ↓ to the next, Escape back to the button.
+    const items = within(screen.getByRole('menu', { name: 'Нове технічне завдання' })).getAllByRole('menuitem');
+    expect(items[0]).toHaveFocus();
+    await userEvent.keyboard('{ArrowDown}');
+    expect(items[1]).toHaveFocus();
+    await userEvent.keyboard('{ArrowDown}');
+    expect(items[0]).toHaveFocus();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(button).toHaveFocus();
+    await userEvent.click(button);
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Коротке ТЗ' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/editor/n1'));
     expect(JSON.parse(calls.find((c) => c.method === 'POST')!.body)).toEqual({ templateId: 'short' });
   });

@@ -1,8 +1,9 @@
-import { Editor, type JSONContent } from '@tiptap/core';
+import type { JSONContent } from '@tiptap/core';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+import { testEditor } from '../test/editor';
 import type { PaperField, PaperTemplateRef } from '../api/types';
 import type { FieldValue, FieldValues } from '../../../shared/editor-schema/fields';
 import { BLOCKS } from './blocks';
@@ -54,9 +55,8 @@ const rowsField = pf({
 const template: PaperTemplateRef = { id: 't', title: 'Відомість', kind: 'free', target: null, version: 1, fields: [pf({ key: 'title', label: 'Назва' }), rowsField] };
 
 function openDocument(onFieldClick = vi.fn()) {
-  return new Editor({
+  return testEditor({
     extensions: paperExtensions({ template: { plain: new Set(), locked: new Set(), fillable: new Set(['title', 'rows1']), onFieldClick } }),
-    injectCSS: false,
     content: sheet,
   });
 }
@@ -157,7 +157,7 @@ describe('Повторювані рядки: документ', () => {
 
 describe('Повторювані рядки: конструктор', () => {
   const rowsBlock = BLOCKS.find((b) => b.key === 'rows')!;
-  const openBuilder = (content: JSONContent) => new Editor({ extensions: paperExtensions(), injectCSS: false, content });
+  const openBuilder = (content: JSONContent) => testEditor({ content });
 
   it('блок вставляє таблицю: шапка «№ | Стовпець», нижній рядок з «№ рядка»', () => {
     const { content, inline } = blockContent(rowsBlock, 'rows1');

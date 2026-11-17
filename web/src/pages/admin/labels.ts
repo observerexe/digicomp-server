@@ -7,6 +7,7 @@ export type PanelJob = S['PanelJobDto'];
 export type PanelAction = S['PanelAction'];
 export type Container = S['ContainerDto'];
 export type AuditEntry = S['AuditEntryDto'];
+export type AuditAction = S['AuditAction'];
 
 /** Disks up to terabytes: the panel shows server volumes, not files. */
 export function formatBytes(bytes: number): string {
@@ -92,15 +93,20 @@ export const AUDIT_GROUPS: { value: string; label: string }[] = [
   { value: 'booking.', label: 'Бронювання' },
   { value: 'fault.', label: 'Несправності' },
   { value: 'inventory.', label: 'Склад' },
-  { value: 'document.', label: 'Документи' },
+  { value: 'document.', label: 'Архів' },
+  { value: 'paper.', label: 'Документи редактора' },
+  { value: 'paper_template.', label: 'Шаблони документів' },
+  { value: 'record_field.', label: 'Налаштування полів' },
+  { value: 'org_settings.', label: 'Реквізити' },
+  { value: 'trash.', label: 'Кошик' },
   { value: 'smart.', label: 'Розумна лабораторія' },
   { value: 'dictionary.', label: 'Довідники' },
   { value: 'link.', label: 'Зв’язки' },
   { value: 'panel.', label: 'Розширена панель' },
 ];
 
-/** Human text for each audit action; an unknown one is shown as is. */
-export const AUDIT_ACTION: Record<string, string> = {
+/** Human text for each audit action (the type makes a new action from the server need its text). */
+export const AUDIT_ACTION: Record<AuditAction, string> = {
   'auth.2fa_login': 'Вхід із кодом 2FA',
   'user.created': 'Створив учасника',
   'user.updated': 'Змінив дані учасника',
@@ -159,6 +165,24 @@ export const AUDIT_ACTION: Record<string, string> = {
   'document.version_added': 'Додав версію документа',
   'document.archived': 'Архівував документ',
   'document.unarchived': 'Повернув документ з архіву',
+  'paper.created': 'Створив документ у редакторі',
+  'paper.updated': 'Змінив документ у редакторі',
+  'paper.published': 'Опублікував документ',
+  'paper.frozen': 'Зафіксував документ',
+  'paper.signature_added': 'Підписав документ',
+  'paper.signed': 'Додав підписаний скан документа',
+  'paper.cancelled': 'Скасував документ',
+  'paper.deleted': 'Видалив чернетку документа',
+  'paper_template.created': 'Створив шаблон',
+  'paper_template.updated': 'Змінив шаблон',
+  'paper_template.published': 'Опублікував версію шаблону',
+  'paper_template.draft_discarded': 'Скасував чернетку шаблону',
+  'paper_template.deleted': 'Видалив шаблон',
+  'record_field.created': 'Додав поле',
+  'record_field.updated': 'Змінив поле',
+  'record_field.reordered': 'Змінив порядок полів',
+  'record_field.deleted': 'Видалив поле',
+  'org_settings.updated': 'Змінив реквізити',
   'trash.deleted': 'Видалив у кошик',
   'trash.restored': 'Відновив із кошика',
   'trash.purged': 'Видалив назавжди',
@@ -189,20 +213,24 @@ export function entityLink(entity: string, id: string | null): string | null {
     place: '/lab/',
     document: '/docs/',
     inventory_item: '/inventory/',
+    paper: '/editor/',
+    paper_template: '/editor/templates/',
   };
   return base[entity] ? base[entity] + id : null;
 }
 
-/** meta as short «key: value» lines; nested values as compact JSON. */
 /** Task statuses in the audit, with the old «У черзі» of earlier entries. */
 const AUDIT_TASK_STATUS: Record<string, string> = { ...TASK_STATUS_LABEL, queued: 'У черзі' };
 
-/** «key: value» lines; a task's `from` / `to` — status names. */
-export function metaLines(meta: Record<string, unknown> | null, entity?: string): string[] {
+/** «key: value» lines; a task's `from` / `to` — status names; ids of people (`authorId`, `userId`…) — their names. */
+export function metaLines(meta: Record<string, unknown> | null, entity?: string, people?: ReadonlyMap<string, string>): string[] {
   if (!meta) return [];
+  const person = (v: unknown) => (typeof v === 'string' ? people?.get(v) : undefined);
   return Object.entries(meta).map(([k, v]) => {
     const status = entity === 'task' && (k === 'from' || k === 'to') && typeof v === 'string' ? AUDIT_TASK_STATUS[v] : undefined;
-    const text = status ?? (typeof v === 'string' ? v : JSON.stringify(v));
+    const names = Array.isArray(v) && v.length && v.every((x) => person(x)) ? v.map((x) => person(x)!).join(', ') : undefined;
+    // Nested (`changes: { signerId: { to } }`): people by name too.
+    const text = status ?? person(v) ?? names ?? (typeof v === 'string' ? v : JSON.stringify(v, (_, x: unknown) => person(x) ?? x));
     return `${k}: ${text.length > 200 ? `${text.slice(0, 200)}…` : text}`;
   });
 }

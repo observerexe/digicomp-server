@@ -213,12 +213,15 @@ describe('Сторінка обладнання: сеанс', () => {
     expect(JSON.parse(calls.find((c) => c.method === 'PATCH')!.body)).toEqual({ reason: 'Забув завершити' });
   });
 
-  it('останні сеанси видно', async () => {
+  it('останні сеанси видно; «Забронювати» й «Несправність» — лише в картках', async () => {
     mockApi(labApi(member).handlers);
     renderApp('/lab/CNC-1');
     const recent = await screen.findByRole('list', { name: 'Останні сеанси' });
     expect(within(recent).getByText('Андрій Шевчук')).toBeInTheDocument();
     expect(within(recent).getByText('1:46')).toBeInTheDocument();
+    // Booking and a fault report — only in their cards, not again under the title.
+    expect(screen.queryByRole('link', { name: 'Забронювати' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Несправність' })).not.toBeInTheDocument();
   });
 
   it('«Пов’язане» на обладнанні: документи архіву за кодом обладнання', async () => {

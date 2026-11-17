@@ -1,3 +1,4 @@
+import type { AuditAction } from '../audit/actions';
 import {
   ConflictException,
   ForbiddenException,
@@ -776,7 +777,7 @@ export class TasksService implements OnModuleInit, OnModuleDestroy {
     action: Action,
     from: TaskStatus,
     to: TaskStatus,
-    auditAction: string,
+    auditAction: AuditAction,
     extra?: (
       m: EntityManager,
       task: Task,
@@ -850,7 +851,7 @@ export class TasksService implements OnModuleInit, OnModuleDestroy {
   private log(
     m: EntityManager,
     actor: Actor,
-    action: string,
+    action: AuditAction,
     taskId: string,
     meta: Record<string, unknown>,
   ) {

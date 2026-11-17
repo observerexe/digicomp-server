@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { api, unwrap } from '../../api/client';
 import { Icon } from '../../components/Icon';
@@ -36,6 +36,7 @@ export function AuditPage() {
     getNextPageParam: (last) => (last.length === AUDIT_PAGE ? last[last.length - 1]!.id : undefined),
   });
   const entries = q.data?.pages.flat() ?? [];
+  const names = useMemo(() => new Map((people.data?.items ?? []).map((u) => [u.id, u.name])), [people.data]);
 
   return (
     <>
@@ -78,7 +79,7 @@ export function AuditPage() {
         <Card>
           <ul className={s.rows} aria-label="Записи журналу">
             {entries.map((e) => (
-              <Entry key={e.id} e={e} />
+              <Entry key={e.id} e={e} people={names} />
             ))}
           </ul>
           {q.hasNextPage && (
@@ -94,9 +95,9 @@ export function AuditPage() {
   );
 }
 
-function Entry({ e }: { e: AuditEntry }) {
+function Entry({ e, people }: { e: AuditEntry; people: ReadonlyMap<string, string> }) {
   const link = entityLink(e.entity, e.entityId);
-  const lines = metaLines(e.meta, e.entity);
+  const lines = metaLines(e.meta, e.entity, people);
   return (
     <li className={s.entry}>
       <span className={s.entryHead}>

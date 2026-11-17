@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useEffect, useId, useRef, type KeyboardEvent } from 'react';
 import { useDropdown } from '../lib/useDropdown';
 import { Icon } from './Icon';
 import s from './ChoiceButton.module.css';
@@ -27,7 +27,12 @@ export function ChoiceButton(props: {
 }) {
   const d = useDropdown();
   const id = useId();
+  const menu = useRef<HTMLUListElement>(null);
   const { choices } = props;
+  // A menu takes the focus to its first item; the arrows move it, Escape returns it to the button (useDropdown).
+  useEffect(() => {
+    if (d.open) items(menu.current)[0]?.focus();
+  }, [d.open]);
   const className = props.className ?? 'btn btn-primary';
   if (choices.length <= 1) {
     const only = choices[0];
@@ -45,16 +50,17 @@ export function ChoiceButton(props: {
   }
   return (
     <div className={s.root} ref={d.root} onKeyDown={d.onKeyDown}>
-      <button type="button" className={className} aria-haspopup="true" aria-expanded={d.open} aria-controls={id} disabled={props.disabled} onClick={() => d.setOpen(!d.open)}>
+      <button type="button" className={className} aria-haspopup="menu" aria-expanded={d.open} aria-controls={id} disabled={props.disabled} onClick={() => d.setOpen(!d.open)}>
         {props.label}
         <Icon name="down" size={18} />
       </button>
       {d.open && (
-        <ul id={id} className={s.menu} aria-label={props.label}>
+        <ul id={id} ref={menu} className={s.menu} role="menu" aria-label={props.label} onKeyDown={moveFocus}>
           {choices.map((c) => (
-            <li key={c.id ?? ''}>
+            <li key={c.id ?? ''} role="none">
               <button
                 type="button"
+                role="menuitem"
                 disabled={!!c.disabledNote}
                 onClick={() => {
                   d.setOpen(false);
@@ -70,4 +76,16 @@ export function ChoiceButton(props: {
       )}
     </div>
   );
+}
+
+const items = (menu: HTMLElement | null) => [...(menu?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)') ?? [])];
+
+/** ↑ / ↓ (round), Home / End over the items that can be chosen. */
+function moveFocus(e: KeyboardEvent<HTMLUListElement>) {
+  const all = items(e.currentTarget);
+  const at = all.indexOf(document.activeElement as HTMLButtonElement);
+  const to = { ArrowDown: at + 1, ArrowUp: at - 1, Home: 0, End: all.length - 1 }[e.key];
+  if (to === undefined || !all.length) return;
+  e.preventDefault();
+  all[(to + all.length) % all.length]!.focus();
 }

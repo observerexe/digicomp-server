@@ -2367,16 +2367,18 @@ export interface components {
             id: string;
             name: string;
         };
+        /** @enum {string} */
+        AuditAction: "auth.2fa_login" | "user.created" | "user.updated" | "user.profile_updated" | "user.password_changed" | "user.password_reset" | "user.avatar_changed" | "user.avatar_removed" | "user.2fa_enabled" | "user.2fa_disabled" | "user.2fa_reset" | "user.2fa_recovery_regenerated" | "user.guest_converted" | "authorization.granted" | "authorization.revoked" | "points.awarded" | "points.revoked" | "discipline.issued" | "discipline.revoked" | "task.created" | "task.updated" | "task.deleted" | "task.taken" | "task.left" | "task.started" | "task.submitted" | "task.returned" | "task.accepted" | "task.archived" | "task.unarchived" | "task.file_added" | "task.file_removed" | "project.created" | "project.updated" | "project.archived" | "project.stage_migrated" | "project.file_added" | "project.file_removed" | "place.created" | "place.updated" | "session.started" | "session.ended" | "session.auto_closed" | "booking.created" | "booking.cancelled" | "fault.created" | "fault.photo_added" | "fault.in_progress" | "fault.maintenance" | "fault.closed" | "inventory.item_created" | "inventory.item_updated" | "inventory.movement" | "document.created" | "document.updated" | "document.version_added" | "document.archived" | "document.unarchived" | "paper.created" | "paper.updated" | "paper.published" | "paper.frozen" | "paper.signature_added" | "paper.signed" | "paper.cancelled" | "paper.deleted" | "paper_template.created" | "paper_template.updated" | "paper_template.published" | "paper_template.draft_discarded" | "paper_template.deleted" | "record_field.created" | "record_field.updated" | "record_field.reordered" | "record_field.deleted" | "org_settings.updated" | "trash.deleted" | "trash.restored" | "trash.purged" | "smart.light_set" | "smart.scene_activated" | "smart.entity_added" | "smart.entity_updated" | "smart.entity_removed" | "dictionary.created" | "dictionary.updated" | "dictionary.deleted" | "dictionary.item_created" | "dictionary.item_updated" | "dictionary.items_reordered" | "dictionary.item_deleted" | "link.created" | "link.removed" | "panel.action";
         AuditEntryDto: {
             /** @description null — the server itself (auto-close of sessions and the like). */
             actorId: string | null;
             actor: components["schemas"]["AuditActorDto"] | null;
+            action: components["schemas"]["AuditAction"];
             entityId: string | null;
             meta: {
                 [key: string]: unknown;
             } | null;
             id: string;
-            action: string;
             entity: string;
             /** Format: date-time */
             createdAt: string;

@@ -1,3 +1,4 @@
+import type { AuditAction } from '../audit/actions';
 import {
   BadRequestException,
   ConflictException,
@@ -690,7 +691,7 @@ export class TemplatesService {
   private log(
     m: EntityManager,
     actor: Actor,
-    action: string,
+    action: AuditAction,
     t: PaperTemplate,
     meta: Record<string, unknown>,
   ) {

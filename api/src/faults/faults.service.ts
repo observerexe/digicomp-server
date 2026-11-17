@@ -1,3 +1,4 @@
+import type { AuditAction } from '../audit/actions';
 import {
   BadRequestException,
   ConflictException,
@@ -314,7 +315,7 @@ export class FaultsService {
   private log(
     m: EntityManager,
     actor: Actor,
-    action: string,
+    action: AuditAction,
     id: string,
     meta: Record<string, unknown>,
   ) {
