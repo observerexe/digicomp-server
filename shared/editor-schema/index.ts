@@ -47,6 +47,18 @@ export const MAX_INDENT = 6;
 
 export const HEADING_LEVELS = [1, 2, 3] as const;
 
+/** «Зображення»: width, % of the text's; without align — centred; alt — one line. */
+export const IMAGE_WIDTHS = [25, 50, 75, 100] as const;
+export const IMAGE_ALIGNS = ['left', 'right'] as const;
+export const IMAGE_ALT_MAX = 200;
+/** Where the app serves an image of documents (the API checks who sees it). */
+export const imageUrl = (id: string) => `/api/paper-images/${id}`;
+
+/** Classes of an image's figure: its width (not 100) and side (not centred). */
+export function imageClass(width: number, align: string | null): string {
+  return ['paper-image', width === 100 ? null : `img-w-${width}`, align ? `img-${align}` : null].filter(Boolean).join(' ');
+}
+
 export type FontSize = (typeof FONT_SIZES)[number];
 export type TextColor = (typeof COLORS)[number];
 export type FontName = (typeof FONTS)[number];
@@ -99,7 +111,7 @@ export type NodeRule = {
   children?: readonly string[];
 };
 
-const BLOCKS = ['paragraph', 'heading', 'bulletList', 'orderedList', 'table', 'pageBreak', 'fieldZone'] as const;
+const BLOCKS = ['paragraph', 'heading', 'bulletList', 'orderedList', 'table', 'pageBreak', 'image', 'fieldZone'] as const;
 /** Structure of the sheet: only on its top level (not in a list, a table or a zone). */
 export const STRUCTURE = ['orgHeader', 'approval', 'signatures', 'pageFooter'] as const;
 /** «Умовний блок»: also only on the top level, never one in another. */
@@ -174,6 +186,15 @@ export const NODES: Record<string, NodeRule> = {
   tableCell: { attrs: CELL, children: BLOCKS },
   tableHeader: { attrs: CELL, children: BLOCKS },
   pageBreak: { attrs: {} },
+  /** «Зображення»: a file of paper_images by its id (the API serves it, see imageUrl). */
+  image: {
+    attrs: {
+      id: recordId,
+      width: { default: 100, valid: oneOf(IMAGE_WIDTHS, false) },
+      align: { default: null, valid: oneOf(IMAGE_ALIGNS) },
+      alt: { default: '', valid: lineOf(IMAGE_ALT_MAX) },
+    },
+  },
   /** A template field: its value lives in the document's `values`, not here. */
   field: { attrs: { key: fieldKey } },
   /** A free zone (`richtext` field): text the author writes on the sheet itself. */
@@ -303,6 +324,8 @@ export function checkContent(v: unknown): v is PaperContent {
     // A reference carries both; so does an auto table.
     if (n.type === 'mention' && !(isPlainObject(n.attrs) && own(n.attrs, 'type') && own(n.attrs, 'id'))) return false;
     if (n.type === AUTO_TABLE && !(isPlainObject(n.attrs) && own(n.attrs, 'source') && own(n.attrs, 'field'))) return false;
+    // An image is its file.
+    if (n.type === 'image' && !(isPlainObject(n.attrs) && own(n.attrs, 'id'))) return false;
     if (n.marks !== undefined) {
       const inline = (INLINE as readonly string[]).includes(n.type);
       if (!inline || !Array.isArray(n.marks) || !n.marks.every(validMark)) return false;
@@ -318,4 +341,15 @@ export function checkContent(v: unknown): v is PaperContent {
     return !!children && Array.isArray(n.content) && n.content.every((c) => walk(c, depth + 1, children, repeat));
   };
   return walk(v, 0, ['doc']);
+}
+
+/** Ids of the images of a document (or a template's body), each once, in order. */
+export function imagesOf(doc: PaperNode): string[] {
+  const out = new Set<string>();
+  const walk = (n: PaperNode) => {
+    if (n.type === 'image' && typeof n.attrs?.id === 'string' && RECORD_ID.test(n.attrs.id)) out.add(n.attrs.id);
+    n.content?.forEach(walk);
+  };
+  walk(doc);
+  return [...out];
 }

@@ -689,6 +689,48 @@ const ROWS: Record<string, Case[]> = {
       Deny.NotSigner,
     ],
   ],
+  // Хто бачить документ чи шаблон із зображенням (`shared`) — з бази,
+  // test/paper-images.e2e-spec.ts.
+  'Зображення в документі: завантажити й бачити': [
+    ['admin: завантажити', admin, Action.PaperImagesUpload, undefined, true],
+    ['moderator: завантажити', mod, Action.PaperImagesUpload, undefined, true],
+    ['member: завантажити', member, Action.PaperImagesUpload, undefined, true],
+    [
+      'member: своє',
+      member,
+      Action.PaperImagesRead,
+      { ownerId: member.id },
+      true,
+    ],
+    [
+      'member: з документа, який бачить',
+      member,
+      Action.PaperImagesRead,
+      { ownerId: 'u2', shared: true },
+      true,
+    ],
+    [
+      'member: чуже, ніде не бачить',
+      member,
+      Action.PaperImagesRead,
+      { ownerId: 'u2', shared: false },
+      Deny.NotOwner,
+    ],
+    [
+      'moderator: чуже, ніде не бачить',
+      mod,
+      Action.PaperImagesRead,
+      { ownerId: 'u2' },
+      Deny.NotOwner,
+    ],
+    [
+      'admin: з документа',
+      admin,
+      Action.PaperImagesRead,
+      { ownerId: 'u2', shared: true },
+      true,
+    ],
+  ],
   // Учасник бачить лише опубліковані шаблони, відкриті для всіх, —
   // test/paper-templates.e2e-spec.ts.
   'Шаблон документа: створити, змінити, опублікувати версію (перегляд — усі)': [

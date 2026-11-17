@@ -71,6 +71,8 @@ export const AUDIT_ACTIONS = [
   'paper.signed',
   'paper.cancelled',
   'paper.deleted',
+  'paper.image_uploaded',
+  'paper.images_purged',
   'paper_template.created',
   'paper_template.updated',
   'paper_template.published',

@@ -116,8 +116,9 @@ export class TemplatesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Param('v', ParseIntPipe) v: number,
     @Body() dto: UpdateTemplateVersionDto,
+    @Req() req: Req,
   ) {
-    return this.templates.saveDraft(id, v, dto);
+    return this.templates.saveDraft(id, v, dto, req.user);
   }
 
   /** Fields as a document fills them: to try the template in the constructor. Nothing is saved. */

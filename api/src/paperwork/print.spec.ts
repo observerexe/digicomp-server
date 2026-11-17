@@ -149,11 +149,12 @@ describe('Сторінка друку документа', () => {
   const hashOf = (style: string) =>
     createHash('sha256').update(style).digest('base64');
 
-  it('стиль сторінки дозволено хешем у CSP', () => {
+  it('стиль сторінки дозволено хешем у CSP; шрифти й зображення — лише свої', () => {
     const { html, csp } = page();
     expect(csp).toContain(`style-src 'sha256-${hashOf(styleOf(html))}'`);
     expect(csp).toContain("default-src 'none'");
     expect(csp).toContain("font-src 'self'");
+    expect(csp).toContain("img-src 'self';");
     expect(csp).not.toContain('script-src');
   });
 

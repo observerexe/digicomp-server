@@ -79,6 +79,7 @@ const MESSAGE_CODES: Record<string, string> = {
   'File type is not allowed': 'FILE_TYPE_NOT_ALLOWED',
   'File content does not match its type': 'FILE_CONTENT_MISMATCH',
   'File too large': 'FILE_TOO_LARGE',
+  'Image is too large': 'IMAGE_TOO_LARGE',
   'Insufficient stock': 'INSUFFICIENT_STOCK',
   'Item code already used': 'ITEM_CODE_TAKEN',
   'Audit cursor not found': 'AUDIT_CURSOR_NOT_FOUND',

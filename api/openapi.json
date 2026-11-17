@@ -2099,6 +2099,52 @@
         ]
       }
     },
+    "/api/paper-images": {
+      "post": {
+        "operationId": "PaperImagesController_upload",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperImageDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "A PNG or JPEG (checked by content) up to 5 MB and 2000 px a side. It\ngoes into a document by its id; none holds it a day later — deleted.",
+        "tags": [
+          "PaperImages"
+        ]
+      }
+    },
+    "/api/paper-images/{id}": {
+      "get": {
+        "operationId": "PaperImagesController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "The image: its uploader, or who sees a document or template holding it; never changes.",
+        "tags": [
+          "PaperImages"
+        ]
+      }
+    },
     "/api/dictionaries": {
       "get": {
         "operationId": "DictionariesController_list",
@@ -6579,6 +6625,8 @@
           "paper.signed",
           "paper.cancelled",
           "paper.deleted",
+          "paper.image_uploaded",
+          "paper.images_purged",
           "paper_template.created",
           "paper_template.updated",
           "paper_template.published",
@@ -8852,6 +8900,26 @@
         },
         "required": [
           "revision"
+        ]
+      },
+      "PaperImageDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "width": {
+            "type": "number",
+            "description": "Pixels."
+          },
+          "height": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "width",
+          "height"
         ]
       },
       "PaletteColor": {

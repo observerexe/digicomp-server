@@ -4,12 +4,16 @@ import { AuditModule } from '../audit/audit.module';
 import { DictionariesModule } from '../dictionaries/dictionaries.module';
 import { DictionaryUsageRegistry } from '../dictionaries/dictionary-usage';
 import { DocumentsModule } from '../documents/documents.module';
+import { FilesModule } from '../files/files.module';
 import { LinkRegistry } from '../links/link-registry';
 import { LinksModule } from '../links/links.module';
 import { OrgModule } from '../org/org.module';
 import { RecordsModule } from '../records/records.module';
 import { PaperAdapterRegistry } from './adapters';
 import { PaperCounter } from './paper-counter.entity';
+import { PaperImage, PaperImageUse } from './paper-image.entity';
+import { PaperImagesController } from './paper-images.controller';
+import { PaperImagesService } from './paper-images.service';
 import { PaperSignature } from './paper-signature.entity';
 import { PaperSnapshot } from './paper-snapshot.entity';
 import { Paper } from './paper.entity';
@@ -27,6 +31,8 @@ import { TemplatesService } from './templates.service';
     TypeOrmModule.forFeature([
       Paper,
       PaperCounter,
+      PaperImage,
+      PaperImageUse,
       PaperSnapshot,
       PaperSignature,
       PaperTemplate,
@@ -35,14 +41,20 @@ import { TemplatesService } from './templates.service';
     AuditModule,
     DictionariesModule,
     DocumentsModule,
+    FilesModule,
     LinksModule,
     OrgModule,
     RecordsModule,
   ],
   // Templates first: `/papers/templates` must not reach `/papers/:id`.
-  controllers: [TemplatesController, PaperworkController],
+  controllers: [
+    TemplatesController,
+    PaperworkController,
+    PaperImagesController,
+  ],
   providers: [
     PaperworkService,
+    PaperImagesService,
     TemplatesService,
     PaperAdapterRegistry,
     PaperTableRegistry,

@@ -57,6 +57,7 @@ import type {
   TemplateVersionItemDto,
   TemplateVersionRowDto,
 } from './templates.responses.dto';
+import { PaperImagesService } from './paper-images.service';
 
 /** Messages mapped to stable errorCode in common/http-exception.filter.ts. */
 export const TemplateErrors = {
@@ -171,6 +172,7 @@ export class TemplatesService {
     private links: LinkRegistry,
     private adapters: PaperAdapterRegistry,
     private tables: PaperTableRegistry,
+    private images: PaperImagesService,
   ) {}
 
   targets(): TemplateTargetsDto {
@@ -376,6 +378,7 @@ export class TemplatesService {
           publishedById: null,
         }),
       );
+      await this.images.syncVersion(m, v.id, v.body);
       // Drafts are not audited (like drafts of documents): publishing is.
       return versionView(v);
     });
@@ -389,6 +392,7 @@ export class TemplatesService {
     id: string,
     n: number,
     dto: UpdateTemplateVersionDto,
+    actor: Actor,
   ): Promise<TemplateVersionItemDto> {
     return this.ds.transaction(async (m) => {
       const t = await this.load(m, id, true);
@@ -404,9 +408,16 @@ export class TemplatesService {
         if (dup) throw fieldInvalid({ field: dup });
         v.fields = fields;
       }
-      if (dto.body !== undefined) v.body = dto.body;
+      if (dto.body !== undefined) {
+        await this.images.checkNew(m, dto.body, v.body, actor);
+        v.body = dto.body;
+      }
       v.revision += 1;
-      return versionItem(await m.save(v));
+      const saved = await m.save(v);
+      if (dto.body !== undefined) {
+        await this.images.syncVersion(m, v.id, v.body);
+      }
+      return versionItem(saved);
     });
   }
 

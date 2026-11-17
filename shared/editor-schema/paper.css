@@ -131,6 +131,26 @@
   background: var(--sheet-paper);
 }
 
+/* «Зображення»: centred by default, a width of the text's, never split over pages. */
+.paper .paper-image {
+  margin: 6pt 0;
+  text-align: center;
+  text-indent: 0;
+  line-height: 0;
+  break-inside: avoid;
+}
+.paper .paper-image img {
+  display: inline-block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+}
+.paper .paper-image.img-w-25 img { width: 25%; }
+.paper .paper-image.img-w-50 img { width: 50%; }
+.paper .paper-image.img-w-75 img { width: 75%; }
+.paper .paper-image.img-left { text-align: left; }
+.paper .paper-image.img-right { text-align: right; }
+
 /* Template fields. In the print: the value as text; an empty field — a line to fill in by hand. */
 .paper .paper-field-blank {
   display: inline-block;

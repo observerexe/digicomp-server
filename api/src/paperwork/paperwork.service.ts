@@ -125,6 +125,7 @@ import {
 import { PaperTableRegistry, tableKey, type AutoTables } from './tables';
 import { reportRecordKey } from './template-fields';
 import { TemplateErrors, TemplatesService } from './templates.service';
+import { PaperImagesService } from './paper-images.service';
 
 const UNTITLED = 'Без назви';
 
@@ -503,6 +504,7 @@ export class PaperworkService {
     private adapters: PaperAdapterRegistry,
     private documents: DocumentsService,
     private tables: PaperTableRegistry,
+    private images: PaperImagesService,
   ) {}
 
   /** Records the document (as it shows them) refers to that the actor sees. */
@@ -1133,6 +1135,7 @@ export class PaperworkService {
       footer: s.footer,
       seal: s.seal,
       mark: s.mark,
+      images: await this.images.files(s.sheet),
     });
     return { file, name: docxFileName(s.paper.title, s.paper.number) };
   }
@@ -1260,6 +1263,7 @@ export class PaperworkService {
       fresh,
       actor.id,
     );
+    await this.images.syncPaper(m, p, p.content);
     await this.audit.log(
       {
         actorId: actor.id,
@@ -1661,6 +1665,7 @@ export class PaperworkService {
         actor,
         m,
       );
+      await this.images.checkNew(m, content, from ? content : null, actor);
       return this.insert(m, actor, {
         title:
           dto.title?.trim() ||
@@ -1719,6 +1724,8 @@ export class PaperworkService {
         actor,
         m,
       );
+      // Images too: those of the original stay, as in any save of it.
+      await this.images.checkNew(m, dto.content, source.content, actor);
       const fresh = new Set(
         (
           await seenRefs(
@@ -1840,6 +1847,7 @@ export class PaperworkService {
         fresh,
         actor.id,
       );
+      await this.images.syncPaper(m, p, filled.content);
       await this.audit.log(
         {
           actorId: actor.id,
@@ -1898,6 +1906,7 @@ export class PaperworkService {
       p.fresh,
       actor.id,
     );
+    await this.images.syncPaper(m, saved, p.content);
     await this.audit.log(
       {
         actorId: actor.id,
@@ -1969,6 +1978,9 @@ export class PaperworkService {
       const fresh = filling
         ? await checkNewRefs(this.links, form?.fields ?? [], next, p, actor, m)
         : null;
+      if (dto.content !== undefined) {
+        await this.images.checkNew(m, dto.content, p.content, actor);
+      }
 
       const changes: Record<string, { from: unknown; to: unknown }> = {};
       const title = dto.title?.trim();
@@ -2001,6 +2013,7 @@ export class PaperworkService {
           fresh,
           actor.id,
         );
+        await this.images.syncPaper(m, p, next.content);
       }
       if (changes.visibility || p.authorId !== actor.id) {
         await this.audit.log(
@@ -2095,6 +2108,7 @@ export class PaperworkService {
       actor,
       m,
     );
+    await this.images.checkNew(m, stored.content, p.content, actor);
     p.title = followedTitle(p.title, form, shown, next);
     p.values = stored.values;
     p.content = stored.content;
@@ -2109,6 +2123,7 @@ export class PaperworkService {
       fresh,
       actor.id,
     );
+    await this.images.syncPaper(m, p, stored.content);
     await this.audit.log(
       {
         actorId: actor.id,

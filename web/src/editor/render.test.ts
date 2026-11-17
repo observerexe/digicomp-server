@@ -67,6 +67,14 @@ const CASES: [string, PaperContent][] = [
   ],
   ['розрив сторінки', doc(p([text('до')]), { type: 'pageBreak' }, p([text('після')]))],
   [
+    'зображення',
+    doc(
+      { type: 'image', attrs: { id: '0b8f1c2e-3d4a-4b5c-8d6e-7f8091a2b3c4' } },
+      { type: 'image', attrs: { id: '1c9f2d3e-4e5b-4c6d-9e7f-8091a2b3c4d5', width: 50, align: 'right', alt: 'Схема "А" & <Б>' } },
+      { type: 'bulletList', content: [li(p([text('пункт')]), { type: 'image', attrs: { id: '2d0a3e4f-5f6c-4d7e-8f90-91a2b3c4d5e6', width: 25, align: 'left' } })] },
+    ),
+  ],
+  [
     'поля й зона шаблону',
     doc(p([text('Ім’я: '), { type: 'field', attrs: { key: 'name' } }, text(', бали: '), { type: 'field', attrs: { key: 'points_2' }, marks: [bold] }]), {
       type: 'fieldZone',

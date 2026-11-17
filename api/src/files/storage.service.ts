@@ -34,6 +34,10 @@ export class StorageService {
     }
   }
 
+  read(rel: string) {
+    return fs.readFile(this.safe(rel));
+  }
+
   stream(rel: string) {
     return createReadStream(this.safe(rel));
   }

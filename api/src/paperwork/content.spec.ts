@@ -6,6 +6,7 @@ import {
   FONT_SIZES,
   FONTS,
   formatClasses,
+  imagesOf,
   MAX_INDENT,
   NODES,
 } from '../../../shared/editor-schema';
@@ -28,6 +29,49 @@ const table = (c: object) =>
   doc({ type: 'table', content: [{ type: 'tableRow', content: [c] }] });
 
 describe('Вміст документа (спільний опис редактора)', () => {
+  it('зображення: файл обов’язковий, ширина з набору, бік, опис в один рядок; і в списку, таблиці, зоні', () => {
+    const id = '0b8f1c2e-3d4a-4b5c-8d6e-7f8091a2b3c4';
+    const img = (attrs: object) => ({ type: 'image', attrs });
+    expect(checkContent(doc(img({ id })))).toBe(true);
+    expect(
+      checkContent(doc(img({ id, width: 50, align: 'right', alt: 'Схема' }))),
+    ).toBe(true);
+    expect(
+      checkContent(
+        doc({
+          type: 'bulletList',
+          content: [{ type: 'listItem', content: [p(), img({ id })] }],
+        }),
+      ),
+    ).toBe(true);
+    expect(checkContent(table({ ...cell(), content: [img({ id })] }))).toBe(
+      true,
+    );
+    expect(checkContent(doc({ type: 'image' }))).toBe(false);
+    expect(checkContent(doc(img({ id: 'x' })))).toBe(false);
+    expect(checkContent(doc(img({ id, width: 60 })))).toBe(false);
+    expect(checkContent(doc(img({ id, align: 'center' })))).toBe(false);
+    expect(checkContent(doc(img({ id, alt: 'два\nрядки' })))).toBe(false);
+    expect(checkContent(doc(img({ id, alt: 'x'.repeat(201) })))).toBe(false);
+    expect(checkContent(doc(img({ id, src: 'https://x' })))).toBe(false);
+    // Не всередині абзацу.
+    expect(checkContent(doc(p(img({ id }))))).toBe(false);
+  });
+
+  it('imagesOf: кожне зображення раз, з усієї глибини', () => {
+    const a = '0b8f1c2e-3d4a-4b5c-8d6e-7f8091a2b3c4';
+    const b = '1c9f2d3e-4e5b-4c6d-9e7f-8091a2b3c4d5';
+    const content = doc(
+      { type: 'image', attrs: { id: a } },
+      {
+        type: 'fieldZone',
+        attrs: { key: 'goal' },
+        content: [{ type: 'image', attrs: { id: b } }],
+      },
+      { type: 'image', attrs: { id: a } },
+    );
+    expect(imagesOf(content as never)).toEqual([a, b]);
+  });
   it('порожній документ і звичайний текст — так', () => {
     expect(checkContent(EMPTY_CONTENT)).toBe(true);
     expect(checkContent({ type: 'doc' })).toBe(true);

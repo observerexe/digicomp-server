@@ -342,6 +342,42 @@ describe('DOCX: вміст', () => {
     });
     expect(texts(x['word/document.xml']!)).toEqual(['а б в', 'г']);
   });
+
+  it('зображення: окремим абзацом, частка ширини тексту, пропорції файлу, бік і опис; без файлу — «[зображення]»', async () => {
+    const a = '0b8f1c2e-3d4a-4b5c-8d6e-7f8091a2b3c4';
+    const b = '1c9f2d3e-4e5b-4c6d-9e7f-8091a2b3c4d5';
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+      'base64',
+    );
+    const x = await parts({
+      title: 'Т',
+      sheet: sheetHtml(
+        doc(
+          {
+            type: 'image',
+            attrs: { id: a, width: 50, align: 'right', alt: 'Схема' },
+          },
+          { type: 'image', attrs: { id: b } },
+        ),
+        fill(),
+      ),
+      footer: '',
+      images: new Map([
+        [a, { type: 'png' as const, data: png, width: 400, height: 200 }],
+      ]),
+    });
+    const xml = x['word/document.xml']!;
+    // 170 мм тексту = 643 px; половина — 322 × 161 px (EMU: × 9525).
+    expect(xml).toContain('cx="3067050" cy="1533525"');
+    expect(xml).toContain('descr="Схема"');
+    expect(xml).toMatch(/<w:jc w:val="right"\/>[\s\S]*<w:drawing>/);
+    expect(Object.keys(x).some((k) => /^word\/media\/.+\.png$/.test(k))).toBe(
+      true,
+    );
+    // Абзац зображення без тексту, потім той, де файлу немає.
+    expect(texts(xml)).toEqual(['', '[зображення]']);
+  });
 });
 
 describe('DOCX: копія й позначка', () => {

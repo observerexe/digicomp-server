@@ -7,7 +7,7 @@
  * attributes as format classes or checked numbers, escaped text.
  */
 import { conditionOf, RECORD_MISSING, repeatParts } from './fields';
-import { formatClass, MARKS, NODES, SIGNER_AUTHOR, SIGNER_ORG, tableKey, type AutoTableData, type PaperAttrs, type PaperMark, type PaperNode } from './index';
+import { formatClass, imageClass, imageUrl, MARKS, NODES, SIGNER_AUTHOR, SIGNER_ORG, tableKey, type AutoTableData, type PaperAttrs, type PaperMark, type PaperNode } from './index';
 
 const TEXT_ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\u00a0': '&nbsp;' };
 
@@ -15,9 +15,9 @@ function escapeText(s: string): string {
   return s.replace(/[&<>\u00a0]/g, (c) => TEXT_ESCAPES[c]!);
 }
 
-/** An attribute's value, as the DOM serializes it. */
+/** An attribute's value, as the DOM serializes it (the HTML standard of 2025: `<` and `>` too). */
 function escapeAttr(s: string): string {
-  return s.replace(/[&"\u00a0]/g, (c) => TEXT_ESCAPES[c]!);
+  return s.replace(/[&"<>\u00a0]/g, (c) => TEXT_ESCAPES[c]!);
 }
 
 /** Attribute value: valid by the description, otherwise its default. */
@@ -450,8 +450,17 @@ export function tableOf(tables: Record<string, AutoTableData>, n: PaperNode): Au
   return (source && field && tables[tableKey(source, field)]) || null;
 }
 
+/** «Зображення»: a figure of its width and side; nothing without a file. */
+function renderImage(n: PaperNode): string {
+  const id = nodeAttr(n, 'id') as string | null;
+  if (!id) return '';
+  const cls = imageClass(nodeAttr(n, 'width') as number, nodeAttr(n, 'align') as string | null);
+  return `<figure class="${cls}"><img src="${imageUrl(id)}" alt="${escapeAttr(nodeAttr(n, 'alt') as string)}"></figure>`;
+}
+
 function renderNode(n: PaperNode, fill: FieldFill | undefined): string {
   if (n.type === 'pageBreak') return '<div class="page-break"></div>';
+  if (n.type === 'image') return renderImage(n);
   if (n.type === 'autoTable') return renderAutoTable(n, fill);
   if (n.type === 'conditional') return renderConditional(n, fill);
   if (n.type === 'repeat') return renderRepeat(n, fill);

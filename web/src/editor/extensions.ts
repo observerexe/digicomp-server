@@ -18,6 +18,7 @@ import {
 } from '../../../shared/editor-schema';
 import { Conditional } from './conditional';
 import { Field, FieldZone, templateExtension, type TemplateOptions } from './fields';
+import { Image } from './image';
 import { Mention, type MentionOptions } from './mention';
 import { Repeat, RowNumber } from './repeat';
 import { Approval, AutoTable, OrgHeader, PageFooter, PaperAuthor, PaperDate, PaperNumber, SheetLook, Signatures } from './structure';
@@ -214,6 +215,7 @@ export function paperExtensions(opts: { template?: TemplateOptions; mention?: Pa
     ClassTextStyle,
     Format,
     PageBreak,
+    Image,
     PlainTable,
     TableRow,
     withoutAlign(TableCell),

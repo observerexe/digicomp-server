@@ -173,6 +173,8 @@ export const AUDIT_ACTION: Record<AuditAction, string> = {
   'paper.signed': 'Додав підписаний скан документа',
   'paper.cancelled': 'Скасував документ',
   'paper.deleted': 'Видалив чернетку документа',
+  'paper.image_uploaded': 'Завантажив зображення в документ',
+  'paper.images_purged': 'Прибрав невикористані зображення документів',
   'paper_template.created': 'Створив шаблон',
   'paper_template.updated': 'Змінив шаблон',
   'paper_template.published': 'Опублікував версію шаблону',

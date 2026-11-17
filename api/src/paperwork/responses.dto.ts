@@ -385,3 +385,11 @@ export class PaperListDto {
   page: number;
   limit: number;
 }
+
+/** An uploaded «Зображення»: the id goes into the document (`image` node). */
+export class PaperImageDto {
+  id: string;
+  /** Pixels. */
+  width: number;
+  height: number;
+}

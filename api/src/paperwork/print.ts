@@ -74,7 +74,7 @@ body { margin: 0; padding: 16px 0 32px; }
 }
 
 /**
- * No scripts, nothing from elsewhere; fonts from the app itself. The only
+ * No scripts, nothing from elsewhere; fonts and images from the app itself. The only
  * inline content allowed is the page's own style (by its hash).
  */
 export function printCsp(style: string) {
@@ -83,6 +83,8 @@ export function printCsp(style: string) {
     "default-src 'none'",
     `style-src '${hash}'`,
     "font-src 'self'",
+    // «Зображення» of the document: the API's own, for who sees it.
+    "img-src 'self'",
     "base-uri 'none'",
     "form-action 'none'",
     "frame-ancestors 'none'",

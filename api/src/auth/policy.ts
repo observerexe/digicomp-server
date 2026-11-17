@@ -129,6 +129,8 @@ export enum Action {
   PapersFreeze = 'papers.freeze',
   PapersSign = 'papers.sign',
   PapersSignDrawn = 'papers.sign_drawn',
+  PaperImagesUpload = 'paper_images.upload',
+  PaperImagesRead = 'paper_images.read',
   PaperTemplatesRead = 'paper_templates.read',
   PaperTemplatesManage = 'paper_templates.manage',
 
@@ -260,6 +262,10 @@ export const ROLES: Record<Action, readonly Role[]> = {
   [Action.PapersSign]: ALL,
   // Sign a frozen document by drawing: only the person its line awaits.
   [Action.PapersSignDrawn]: ALL,
+  // «Зображення» in a document or a template: anyone who writes documents.
+  [Action.PaperImagesUpload]: ALL,
+  // Further check: who uploaded it, or sees a document or a template holding it.
+  [Action.PaperImagesRead]: ALL,
   // Members see only published templates open to all (service).
   [Action.PaperTemplatesRead]: ALL,
   [Action.PaperTemplatesManage]: STAFF,
@@ -381,6 +387,10 @@ const REFINE: Partial<Record<Action, Refine>> = {
   // One's own signature: nobody signs for another, an admin neither.
   [Action.PapersSignDrawn]: (_actor, { signer }) =>
     signer ? true : Deny.NotSigner,
+  // An image: its uploader, or who sees a document or a template holding it
+  // (`shared`; staff see every document, so every image a document holds).
+  [Action.PaperImagesRead]: (actor, { ownerId, shared }) =>
+    shared || (ownerId != null && ownerId === actor.id) ? true : Deny.NotOwner,
 };
 
 export function roleAllowed(role: string, action: Action): boolean {

@@ -6,6 +6,7 @@ import {
   Footer,
   Header,
   HeadingLevel,
+  ImageRun,
   LevelFormat,
   LineRuleType,
   Packer,
@@ -28,6 +29,7 @@ import {
   SHEET_COLORS,
   type TextColor,
 } from '../../../shared/editor-schema';
+import type { ImageFile } from './paper-images.service';
 import type { Seal } from './print';
 
 /**
@@ -236,6 +238,7 @@ function blankRun(lengthMm: number, s: RunStyle) {
 
 const BLOCK_TAGS = new Set([
   'p',
+  'figure',
   'h1',
   'h2',
   'h3',
@@ -250,7 +253,13 @@ const BLOCK_TAGS = new Set([
 ]);
 const isBlock = (n: HtmlNode) => typeof n !== 'string' && BLOCK_TAGS.has(n.tag);
 
+/** Pixels at 96 to the inch (ImageRun's measure) across the text. */
+const TEXT_PX = Math.round((TEXT_WIDTH / 1440) * 96);
+
 class Writer {
+  /** Files of the sheet's images by id (see PaperImagesService.files). */
+  constructor(private readonly images: ReadonlyMap<string, ImageFile>) {}
+
   /** Lists: ordered ones by their start, bullets — `ul`. */
   private readonly starts = new Set<number>();
   private instance = 0;
@@ -331,6 +340,7 @@ class Writer {
       this.breakBefore = true;
       return [];
     }
+    if (el.cls.has('paper-image')) return [this.image(el, ctx)];
     if (el.cls.has('paper-org')) return this.org(el, ctx);
     if (el.cls.has('paper-approval')) {
       return this.blocks(el.children, {
@@ -447,6 +457,51 @@ class Writer {
       );
     }
     return this.paragraph(el.children, { ...ctx, run }, {}, c);
+  }
+
+  /**
+   * «Зображення»: a paragraph of its own, as wide as its class says (of the
+   * text's), on its side; a lost file — «[зображення]».
+   */
+  private image(el: El, ctx: Ctx): Paragraph {
+    const img = el.children.find(
+      (n): n is El => typeof n !== 'string' && n.tag === 'img',
+    );
+    const id = /\/api\/paper-images\/([0-9a-f-]{36})$/.exec(
+      img?.attrs.src ?? '',
+    )?.[1];
+    const file = id ? this.images.get(id) : undefined;
+    const alt = img?.attrs.alt ?? '';
+    const align = el.cls.has('img-left')
+      ? AlignmentType.LEFT
+      : el.cls.has('img-right')
+        ? AlignmentType.RIGHT
+        : AlignmentType.CENTER;
+    const options = {
+      ...this.para({ ...ctx, firstLine: false }, align),
+      keepLines: true,
+      spacing: { before: pt(6), after: pt(6) },
+    };
+    if (!file) {
+      return new Paragraph({
+        ...options,
+        children: [textRun('[зображення]', { ...ctx.run, color: GRAY })],
+      });
+    }
+    const share = [25, 50, 75].find((w) => el.cls.has(`img-w-${w}`)) ?? 100;
+    const width = Math.max(1, Math.round((TEXT_PX * share) / 100));
+    const height = Math.max(1, Math.round((width * file.height) / file.width));
+    return new Paragraph({
+      ...options,
+      children: [
+        new ImageRun({
+          type: file.type,
+          data: file.data,
+          transformation: { width, height },
+          altText: { name: alt || 'Зображення', description: alt },
+        }),
+      ],
+    });
   }
 
   private heading(el: El, ctx: Ctx): Paragraph {
@@ -795,8 +850,10 @@ export async function paperDocx(paper: {
   seal?: Seal | null;
   /** «Чернетка», «Скасовано»…: at the top of every page; none — a clean copy. */
   mark?: string | null;
+  /** Files of the sheet's images; one missing is «[зображення]». */
+  images?: ReadonlyMap<string, ImageFile>;
 }): Promise<Buffer> {
-  const writer = new Writer();
+  const writer = new Writer(paper.images ?? new Map());
   const root = parseSheet(paper.sheet);
   const ctx: Ctx = {
     run: { size: DEFAULT_FONT_SIZE },

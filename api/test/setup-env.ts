@@ -31,4 +31,5 @@ delete process.env.HA_TOKEN;
 process.env.SESSION_AUTO_CLOSE_DISABLED = 'true';
 process.env.TASK_AUTO_ARCHIVE_DISABLED = 'true';
 process.env.TRASH_AUTO_PURGE_DISABLED = 'true';
+process.env.PAPER_IMAGES_AUTO_PURGE_DISABLED = 'true';
 process.env.TOTP_KEY ??= Buffer.alloc(32, 7).toString('base64');
