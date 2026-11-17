@@ -245,6 +245,44 @@ describe('Сторінка обладнання: сеанс', () => {
     renderApp('/lab/NOPE');
     expect(await screen.findByRole('heading', { name: 'Обладнання не знайдено' })).toBeInTheDocument();
   });
+
+  it('видалене обладнання за QR — «Обладнання видалено»', async () => {
+    mockApi({ ...labApi(member).handlers, 'GET /api/places/OLD-1': () => json(404, { errorCode: 'PLACE_DELETED' }) });
+    renderApp('/lab/OLD-1');
+    expect(await screen.findByRole('heading', { name: 'Обладнання видалено' })).toBeInTheDocument();
+    expect(screen.getByText(/відновить його з кошика/)).toBeInTheDocument();
+  });
+});
+
+describe('Видалити обладнання', () => {
+  it('модератор: питання, потім у кошик і до списку', async () => {
+    const { calls } = mockApi({ ...labApi(staff).handlers, [`DELETE /api/places/${place().id}`]: () => json(200, { ok: true }) });
+    const { router } = renderApp('/lab/CNC-1');
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Видалити' }));
+    const ask = screen.getByRole('group', { name: /Видалити «Фрезер ЧПК» у кошик\? Майбутні бронювання скасуються/ });
+    expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
+    await user.click(within(ask).getByRole('button', { name: 'Видалити' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/lab'));
+    expect(calls.filter((c) => c.method === 'DELETE').map((c) => c.path)).toEqual([`/api/places/${place().id}`]);
+  });
+
+  it('зайняте — текст за кодом, сторінка лишається', async () => {
+    mockApi({ ...labApi(staff).handlers, [`DELETE /api/places/${place().id}`]: () => json(409, { errorCode: 'PLACE_IN_USE' }) });
+    const { router } = renderApp('/lab/CNC-1');
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Видалити' }));
+    await user.click(within(screen.getByRole('group', { name: /у кошик/ })).getByRole('button', { name: 'Видалити' }));
+    expect(await screen.findByText('Обладнання зараз зайняте.')).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/lab/CNC-1');
+  });
+
+  it('учасник «Видалити» не бачить', async () => {
+    mockApi(labApi(member).handlers);
+    renderApp('/lab/CNC-1');
+    await screen.findByRole('heading', { name: 'Фрезер ЧПК' });
+    expect(screen.queryByRole('button', { name: 'Видалити' })).not.toBeInTheDocument();
+  });
 });
 
 describe('Бронювання', () => {

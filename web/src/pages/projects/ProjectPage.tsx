@@ -7,6 +7,7 @@ import { useAuth } from '../../auth/AuthProvider';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
 import { Related } from '../../components/Related';
+import { TrashButton } from '../../components/TrashButton';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { formatDate, formatDateTime, formatSize } from '../../lib/format';
@@ -42,7 +43,7 @@ export function ProjectPage() {
       <>
         {back}
         <PageHeader title={gone ? 'Проєкт не знайдено' : 'Не вдалося відкрити проєкт'} />
-        <ErrorMessage text={gone ? 'Можливо, його перенесли в архів.' : errorOf(q.error)} />
+        <ErrorMessage text={gone ? 'Можливо, його перенесли в архів або видалили.' : errorOf(q.error)} />
       </>
     );
   }
@@ -214,6 +215,15 @@ function ProjectView({ p }: { p: ProjectDetail }) {
                       Ні
                     </button>
                   </>
+                )}
+                {can('projects.manage') && !confirmArchive && (
+                  <TrashButton
+                    question={`Видалити «${p.title}» у кошик?`}
+                    remove={() => unwrap(api.DELETE('/api/projects/{id}', { params: { path: { id: p.id } } }))}
+                    own={projectKey(p.id)}
+                    lists={['projects']}
+                    to="/projects"
+                  />
                 )}
               </div>
               <ErrorMessage text={archive.isError ? errorOf(archive.error) : null} />

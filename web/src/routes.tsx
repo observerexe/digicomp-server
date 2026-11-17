@@ -13,6 +13,7 @@ import { ManageUserPage } from './pages/panel/ManageUserPage';
 import { NewUserPage } from './pages/panel/NewUserPage';
 import { OrgPage } from './pages/panel/OrgPage';
 import { PanelPage } from './pages/panel/PanelPage';
+import { TrashPage } from './pages/panel/TrashPage';
 import { AdminPage } from './pages/admin/AdminPage';
 import { AuditPage } from './pages/admin/AuditPage';
 import { UsersPage } from './pages/panel/UsersPage';
@@ -263,6 +264,14 @@ export const routes: RouteObject[] = [
         element: (
           <RequirePermission action="records.fields_manage" fallback={<ForbiddenPage />}>
             <FieldsPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'panel/trash',
+        element: (
+          <RequirePermission action="trash.manage" fallback={<ForbiddenPage />}>
+            <TrashPage />
           </RequirePermission>
         ),
       },

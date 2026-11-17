@@ -7,6 +7,7 @@ import { useAuth } from '../../auth/AuthProvider';
 import { DropZone } from '../../components/DropZone';
 import { Icon } from '../../components/Icon';
 import { Related } from '../../components/Related';
+import { TrashButton } from '../../components/TrashButton';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { CATEGORY, itemTitle, useDictionary } from '../../lib/dictionaries';
@@ -50,7 +51,7 @@ export function DocPage() {
       <>
         {back}
         <PageHeader title={gone ? 'Документ не знайдено' : 'Не вдалося відкрити'} />
-        <ErrorMessage text={gone ? 'Можливо, його перенесли в архів або він лише для модераторів.' : errorOf(q.error)} />
+        <ErrorMessage text={gone ? 'Можливо, його перенесли в архів чи видалили або він лише для модераторів.' : errorOf(q.error)} />
       </>
     );
   }
@@ -82,6 +83,18 @@ function Preview({ doc }: { doc: Doc }) {
     return <pre className={s.text}>{text.data}</pre>;
   }
   return <p className="hint">Перегляд для {fileKind(doc.fileName) || 'цього типу'} у застосунку недоступний — завантажте файл.</p>;
+}
+
+function DocTrashButton({ doc }: { doc: Doc }) {
+  return (
+    <TrashButton
+      question={`Видалити «${doc.title}» у кошик?`}
+      remove={() => unwrap(api.DELETE('/api/documents/{id}', { params: { path: { id: doc.id } } }))}
+      own={docKey(doc.id)}
+      lists={['documents']}
+      to="/docs"
+    />
+  );
 }
 
 function DocView({ doc }: { doc: Doc }) {
@@ -207,6 +220,7 @@ function DocView({ doc }: { doc: Doc }) {
                     </button>
                   </>
                 )}
+                {!confirm && <DocTrashButton doc={doc} />}
               </div>
               <ErrorMessage text={archive.isError ? errorOf(archive.error) : null} />
             </Card>
@@ -217,6 +231,7 @@ function DocView({ doc }: { doc: Doc }) {
                 <button type="button" className="btn" disabled={unarchive.isPending} onClick={() => unarchive.mutate()}>
                   Повернути з архіву
                 </button>
+                <DocTrashButton doc={doc} />
               </div>
               <ErrorMessage text={unarchive.isError ? errorOf(unarchive.error) : null} />
             </Card>

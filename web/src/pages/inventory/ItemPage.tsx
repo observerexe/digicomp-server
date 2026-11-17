@@ -8,6 +8,7 @@ import { ChoiceButton } from '../../components/ChoiceButton';
 import { Icon } from '../../components/Icon';
 import { RecordPapers } from '../../components/RecordPapers';
 import { Related } from '../../components/Related';
+import { TrashButton } from '../../components/TrashButton';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { CATEGORY, itemTitle, useDictionary } from '../../lib/dictionaries';
@@ -43,7 +44,18 @@ export function ItemPage() {
     );
   }
   if (q.isError) {
-    const gone = q.error instanceof ApiError && q.error.status === 404;
+    const err = q.error instanceof ApiError ? q.error : null;
+    // A sticker of a deleted item still leads here.
+    if (err?.code === 'ITEM_DELETED') {
+      return (
+        <>
+          {back}
+          <PageHeader title="Позицію видалено" />
+          <p className="hint">Наліпку можна зняти. Якщо позицію видалили помилково, модератор відновить її з кошика.</p>
+        </>
+      );
+    }
+    const gone = err?.status === 404;
     return (
       <>
         {back}
@@ -238,6 +250,13 @@ function ItemView({ item }: { item: InventoryItem }) {
               <Link to={`/inventory/${encodeURIComponent(item.code)}/edit`} className="btn">
                 Редагувати позицію
               </Link>
+              <TrashButton
+                question={`Видалити «${item.title}» у кошик?${item.quantity > 0 ? ` Залишок ${qty(item.quantity, item.unit)} спишеться.` : ''}`}
+                remove={() => unwrap(api.DELETE('/api/inventory/items/{id}', { params: { path: { id: item.id } } }))}
+                own={itemKey(item.code)}
+                lists={['inventory']}
+                to="/inventory"
+              />
             </>
           )}
         </div>

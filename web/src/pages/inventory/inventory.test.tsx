@@ -111,11 +111,36 @@ describe('Склад', () => {
     expect(JSON.parse(calls.find((c) => c.path === '/api/papers' && c.method === 'POST')!.body)).toEqual({ templateId: 'as', about: { type: 'inventory_item', id: 'i1' } });
   });
 
+  it('модератор видаляє позицію: залишок спишеться — сказано в питанні', async () => {
+    const { calls } = mockApi(base(staff, { 'DELETE /api/inventory/items/i1': () => json(200, { ok: true }) }));
+    const { router } = renderApp('/inventory/PLY-3');
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Видалити' }));
+    const ask = screen.getByRole('group', { name: 'Видалити «Фанера 3 мм» у кошик? Залишок 5 шт спишеться.' });
+    await user.click(within(ask).getByRole('button', { name: 'Видалити' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/inventory'));
+    expect(calls.some((c) => c.method === 'DELETE' && c.path === '/api/inventory/items/i1')).toBe(true);
+  });
+
+  it('без залишку — питання без списання', async () => {
+    mockApi(base(staff, { 'GET /api/inventory/items/PLY-3': () => json(200, item({ quantity: 0 })) }));
+    renderApp('/inventory/PLY-3');
+    await userEvent.click(await screen.findByRole('button', { name: 'Видалити' }));
+    expect(screen.getByRole('group', { name: 'Видалити «Фанера 3 мм» у кошик?' })).toBeInTheDocument();
+  });
+
+  it('видалена позиція за QR — «Позицію видалено»', async () => {
+    mockApi(base(member, { 'GET /api/inventory/items/OLD-1': () => json(404, { errorCode: 'ITEM_DELETED' }) }));
+    renderApp('/inventory/OLD-1');
+    expect(await screen.findByRole('heading', { name: 'Позицію видалено' })).toBeInTheDocument();
+  });
+
   it('учасник не бачить «Списати за актом»', async () => {
     mockApi(base(member));
     renderApp('/inventory/PLY-3');
     await screen.findByLabelText('Для чого');
     expect(screen.queryByRole('button', { name: 'Списати за актом' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Видалити' })).not.toBeInTheDocument();
   });
 
   it('нова позиція: лише модератор; код перевіряється', async () => {

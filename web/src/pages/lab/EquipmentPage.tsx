@@ -8,6 +8,7 @@ import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../components/Icon';
 import { QrCode } from '../../components/QrCode';
 import { Related } from '../../components/Related';
+import { TrashButton } from '../../components/TrashButton';
 import { Card, ErrorMessage, PageHeader, Skeleton } from '../../components/ui';
 import { errorOf } from '../../errors/messages';
 import { CATEGORY, itemTitle, useDictionary } from '../../lib/dictionaries';
@@ -68,7 +69,18 @@ export function EquipmentPage() {
     );
   }
   if (place.isError) {
-    const gone = place.error instanceof ApiError && place.error.status === 404;
+    const err = place.error instanceof ApiError ? place.error : null;
+    // A sticker of deleted equipment still leads here.
+    if (err?.code === 'PLACE_DELETED') {
+      return (
+        <>
+          {back}
+          <PageHeader title="Обладнання видалено" />
+          <p className="hint">Наліпку можна зняти. Якщо обладнання видалили помилково, модератор відновить його з кошика.</p>
+        </>
+      );
+    }
+    const gone = err?.status === 404;
     return (
       <>
         {back}
@@ -122,6 +134,17 @@ export function EquipmentPage() {
           {can('places.authorize') && p.needsAuthorization && <AuthorizationsSection place={p} />}
           <RecentSessions code={p.code} />
           <Related type="place" id={p.id} />
+          {can('places.manage') && (
+            <div className={s.actions}>
+              <TrashButton
+                question={`Видалити «${p.title}» у кошик? Майбутні бронювання скасуються.`}
+                remove={() => unwrap(api.DELETE('/api/places/{id}', { params: { path: { id: p.id } } }))}
+                own={keys.place(code)}
+                lists={['places']}
+                to="/lab"
+              />
+            </div>
+          )}
         </div>
       </div>
     </>

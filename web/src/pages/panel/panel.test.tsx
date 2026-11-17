@@ -24,6 +24,7 @@ describe('Панель керування', () => {
     expect(within(sections).getByRole('link', { name: /Довідники/ })).toHaveAttribute('href', '/panel/dictionaries');
     expect(within(sections).getByRole('link', { name: /Реквізити/ })).toHaveAttribute('href', '/panel/org');
     expect(within(sections).queryByRole('link', { name: /Журнал/ })).not.toBeInTheDocument();
+    expect(within(sections).queryByRole('link', { name: /Кошик/ })).not.toBeInTheDocument();
     expect(within(sections).queryByRole('link', { name: /Налаштування полів/ })).not.toBeInTheDocument();
     expect(await screen.findByLabelText('2 технічні завдання на перевірці')).toBeInTheDocument();
   });

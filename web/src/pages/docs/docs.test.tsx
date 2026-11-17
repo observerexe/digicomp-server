@@ -103,6 +103,42 @@ describe('Архів', () => {
     expect(screen.queryByRole('button', { name: 'В архів' })).not.toBeInTheDocument();
   });
 
+  it('модератор видаляє файл у кошик: спершу питання, потім до Архіву', async () => {
+    const { calls } = mockApi(
+      base(staff, {
+        'GET /api/documents/d1': () => json(200, doc()),
+        'DELETE /api/documents/d1': () => json(200, { ok: true }),
+      }),
+    );
+    const { router } = renderApp('/docs/d1');
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Видалити' }));
+    await user.click(within(screen.getByRole('group', { name: 'Видалити «Паспорт фрезера» у кошик?' })).getByRole('button', { name: 'Видалити' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/docs'));
+    expect(calls.some((c) => c.method === 'DELETE' && c.path === '/api/documents/d1')).toBe(true);
+  });
+
+  it('підписаний скан не видаляється — текст за кодом; архівний файл теж можна видалити', async () => {
+    mockApi(
+      base(staff, {
+        'GET /api/documents/d1': () => json(200, doc({ archived: true })),
+        'DELETE /api/documents/d1': () => json(409, { errorCode: 'DOCUMENT_SIGNED_SCAN' }),
+      }),
+    );
+    renderApp('/docs/d1');
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Видалити' }));
+    await user.click(within(screen.getByRole('group', { name: /у кошик/ })).getByRole('button', { name: 'Видалити' }));
+    expect(await screen.findByText(/Це підписаний скан документа редактора/)).toBeInTheDocument();
+  });
+
+  it('учасник не бачить «Видалити»', async () => {
+    mockApi(base(member, { 'GET /api/documents/d1': () => json(200, doc()) }));
+    renderApp('/docs/d1');
+    await screen.findByRole('heading', { name: 'Паспорт фрезера' });
+    expect(screen.queryByRole('button', { name: 'Видалити' })).not.toBeInTheDocument();
+  });
+
   it('порожньо: без фільтрів — «нічого немає», з пошуком — «нічого не знайдено»', async () => {
     mockApi(base(member, { 'GET /api/archive': () => json(200, archive([], { years: [], categories: [] })) }));
     renderApp('/docs');

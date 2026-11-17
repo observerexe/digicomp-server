@@ -97,6 +97,29 @@ describe('Сторінка проєкту', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/projects'));
   });
 
+  it('модератор видаляє проєкт у кошик', async () => {
+    const { calls } = mockApi(
+      api(staff, [], {
+        'GET /api/projects/p1': () => json(200, detail({ canEdit: true })),
+        'GET /api/projects/p1/history': () => json(200, []),
+        'DELETE /api/projects/p1': () => json(200, { ok: true }),
+      }),
+    );
+    const { router } = renderApp('/projects/p1');
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Видалити' }));
+    await user.click(within(screen.getByRole('group', { name: 'Видалити «Фестиваль» у кошик?' })).getByRole('button', { name: 'Видалити' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/projects'));
+    expect(calls.some((c) => c.method === 'DELETE' && c.path === '/api/projects/p1')).toBe(true);
+  });
+
+  it('учасник проєкту редагує, але не видаляє', async () => {
+    mockApi(api(member, [], { 'GET /api/projects/p1': () => json(200, detail({ canEdit: true })), 'GET /api/projects/p1/history': () => json(200, []) }));
+    renderApp('/projects/p1');
+    expect(await screen.findByRole('link', { name: 'Редагувати' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Видалити' })).not.toBeInTheDocument();
+  });
+
   it('без права редагування — без керування', async () => {
     mockApi(api(member, [], { 'GET /api/projects/p1': () => json(200, detail()), 'GET /api/projects/p1/history': () => json(200, []) }));
     renderApp('/projects/p1');

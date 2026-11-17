@@ -185,3 +185,20 @@ li:first-child > .rowLink {
   flex: 1;
   min-width: 0;
 }
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--c-border);
+}
+li:first-child > .row {
+  border-top: 0;
+}
+.row > .rowMain {
+  flex: 1 1 260px;
+}
+.row > [role='alert'] {
+  flex-basis: 100%;
+}
