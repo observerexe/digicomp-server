@@ -240,6 +240,102 @@ describe('ТЗ через документ (e2e)', () => {
     expect(printed.text).toContain('Монтаж стенду');
   });
 
+  describe('назва документа — за назвою ТЗ', () => {
+    const titleOf = async (id: string) =>
+      (
+        (await as(app, admin).get(`/api/papers/${id}`).expect(200)).body as {
+          title: string;
+        }
+      ).title;
+
+    it('чернетка, публікація, зміна через документ; перейменований вручну — лишається', async () => {
+      const draft = (
+        await as(app, mod)
+          .post('/api/papers')
+          .send({ templateId: templates.short })
+          .expect(201)
+      ).body as Paper;
+      expect(await titleOf(draft.id)).toBe('Коротке ТЗ');
+      const saved = (
+        await as(app, mod)
+          .patch(`/api/papers/${draft.id}`)
+          .send({
+            revision: draft.revision,
+            values: { title: 'Афіша', points: 5 },
+          })
+          .expect(200)
+      ).body as Paper;
+      expect(await titleOf(draft.id)).toBe('Афіша');
+      // Порожня назва ТЗ — назва шаблону.
+      await as(app, mod)
+        .patch(`/api/papers/${draft.id}`)
+        .send({ revision: saved.revision, values: { points: 5 } })
+        .expect(200);
+      expect(await titleOf(draft.id)).toBe('Коротке ТЗ');
+      const p = (await get(mod, draft.id)) as Paper;
+      await as(app, mod)
+        .patch(`/api/papers/${draft.id}`)
+        .send({
+          revision: p.revision,
+          values: { title: 'Афіша А3', points: 5 },
+        })
+        .expect(200);
+      const published = (
+        await as(app, mod).post(`/api/papers/${draft.id}/publish`).expect(200)
+      ).body as Paper & { title: string };
+      expect(published.title).toBe('Афіша А3');
+
+      // Зміна назви ТЗ через документ — і назва документа.
+      await as(app, mod)
+        .patch(`/api/papers/${draft.id}`)
+        .send({
+          revision: published.revision,
+          values: { ...published.values, title: 'Афіша до свята' },
+        })
+        .expect(200);
+      expect(await titleOf(draft.id)).toBe('Афіша до свята');
+    });
+
+    it('назва, яку дала людина, не змінюється полем; стара чернетка з назвою шаблону — при публікації', async () => {
+      const renamed = (
+        await as(app, mod)
+          .post('/api/papers')
+          .send({ templateId: templates.short, title: 'Моя назва' })
+          .expect(201)
+      ).body as Paper;
+      await as(app, mod)
+        .patch(`/api/papers/${renamed.id}`)
+        .send({
+          revision: renamed.revision,
+          values: { title: 'Афіша', points: 5 },
+        })
+        .expect(200);
+      expect(await titleOf(renamed.id)).toBe('Моя назва');
+
+      // Чернетка, збережена до цього правила: назва шаблону, поле заповнене.
+      const old = (
+        await as(app, mod)
+          .post('/api/papers')
+          .send({ templateId: templates.short })
+          .expect(201)
+      ).body as Paper;
+      await ds.query(
+        `UPDATE papers SET values = '{"title":"Плакат","points":3}' WHERE id = $1`,
+        [old.id],
+      );
+      await as(app, mod).post(`/api/papers/${old.id}/publish`).expect(200);
+      expect(await titleOf(old.id)).toBe('Плакат');
+    });
+
+    it('документ для старого ТЗ — з назвою ТЗ', async () => {
+      const task = await makeTask(app, admin, { title: 'Стенд', points: 3 });
+      const p = (await forRecord(mod, task.id).expect(201)).body as {
+        title: string;
+      };
+      expect(p.title).toBe('Стенд');
+    });
+  });
+
   describe('документ для старого ТЗ (for-record)', () => {
     it('з поточних значень ТЗ, одразу опублікований, з номером і зв’язком; аудит', async () => {
       const task = await makeTask(app, admin, {

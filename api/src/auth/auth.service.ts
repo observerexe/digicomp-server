@@ -6,6 +6,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as argon2 from 'argon2';
+import { randomBytes } from 'node:crypto';
 import { DataSource, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { seedTemplates } from '../paperwork/seed-templates';
@@ -68,7 +69,10 @@ export class AuthService {
     const user = await this.users.findOne({
       where: { email: dto.email.toLowerCase() },
     });
-    const ok = user && (await argon2.verify(user.passwordHash, dto.password));
+    // No such user — a hash is checked all the same: the answer takes as
+    // long, and the time does not tell whether the email is known.
+    const hash = user?.passwordHash ?? (await this.unknownUserHash());
+    const ok = await argon2.verify(hash, dto.password);
     if (!user || !ok || !user.active)
       throw new UnauthorizedException('Invalid credentials');
     if (user.totpEnabledAt) {
@@ -79,6 +83,14 @@ export class AuthService {
       };
     }
     return this.issueTokens(user, false);
+  }
+
+  private unknownHash: Promise<string> | null = null;
+
+  /** A hash of a random password, made once: checked for an unknown email. */
+  private unknownUserHash() {
+    this.unknownHash ??= argon2.hash(randomBytes(32).toString('hex'));
+    return this.unknownHash;
   }
 
   /** Second step of a 2FA login. */

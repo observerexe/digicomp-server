@@ -43,7 +43,7 @@ export class User {
   @Column({ type: 'boolean', default: true })
   active: boolean;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 
   // --- Two-factor authentication (TOTP). Never returned by the API. ---

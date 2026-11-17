@@ -69,7 +69,12 @@ import type {
 import { PaperSignature } from './paper-signature.entity';
 import { PaperSnapshot, type SnapshotSigner } from './paper-snapshot.entity';
 import { Paper, PaperStatus, PaperVisibility } from './paper.entity';
-import { seenThroughTarget, whereSeen } from './paper.links';
+import {
+  awaitsMeSql,
+  namedSignerSql,
+  seenThroughTarget,
+  whereSeen,
+} from './paper.links';
 import {
   checkNewRefs,
   fillableType,
@@ -191,19 +196,6 @@ function sealOf(snap: PaperSnapshot): Seal {
     url: verifyUrl(snap.sha256),
   };
 }
-
-/**
- * The reader (`:me`) is awaited on a line of the document's latest snapshot
- * and has not signed it yet (paper_snapshots.signers; rows from 0).
- */
-const awaitsMeSql = `EXISTS (
-  SELECT 1 FROM paper_snapshots s
-   CROSS JOIN LATERAL jsonb_array_elements(s.signers) WITH ORDINALITY AS l(line, i)
-   WHERE s.paper_id = p.id
-     AND s.n = (SELECT MAX(x.n) FROM paper_snapshots x WHERE x.paper_id = p.id)
-     AND l.line ->> 'userId' = CAST(:me AS text)
-     AND NOT EXISTS (SELECT 1 FROM paper_signatures g
-                      WHERE g.snapshot_id = s.id AND g.row = l.i - 1))`;
 
 /** Text and values as the document shows them (bound fields — from the record). */
 type Shown = { content: PaperContent; values: FieldValues };
@@ -444,6 +436,36 @@ function rowOf(rows: PaperField, record: RecordValues): FieldRow {
   return row;
 }
 
+/** The key every record schema names its record by (see `*.schema.ts`). */
+const RECORD_TITLE = 'title';
+
+type Filled = { values: FieldValues; content: PaperContent };
+
+/**
+ * The title of a document of a template that creates a record follows the
+ * record's name (the field bound to `title`) while nobody renamed it: it is
+ * the template's title or what that field said `before`. A title someone
+ * set stays. A template of rows names many records: nothing to follow.
+ */
+function followedTitle(
+  title: string,
+  form: Form | null,
+  before: Filled | null,
+  after: Filled,
+): string {
+  if (form?.template.kind !== TemplateKind.Creates) return title;
+  if (recordRows(form.fields)) return title;
+  const f = form.fields.find((x) => x.binding === RECORD_TITLE && !x.auto);
+  if (!f) return title;
+  const nameIn = (s: Filled) => {
+    const v = recordValues([f], s)[RECORD_TITLE];
+    return typeof v === 'string' ? v.trim().slice(0, 200) : '';
+  };
+  const was = before ? nameIn(before) : '';
+  if (title !== form.template.title && (!was || title !== was)) return title;
+  return nameIn(after) || form.template.title;
+}
+
 /** The records of a document in the audit: one — its id, of rows — their ids. */
 function targetMeta(p: Paper, ids: string[]) {
   return p.targetId ? { targetId: p.targetId } : { targetIds: ids };
@@ -612,25 +634,33 @@ export class PaperworkService {
     return p;
   }
 
-  /** The actor sees the document (its own, shared, or through its record). */
+  /**
+   * The actor sees the document: its own, shared, through its record or
+   * naming them on a line to sign.
+   */
   private async sees(m: EntityManager, p: Paper, actor: Actor) {
     return can(actor, Action.PapersRead, {
       ownerId: p.authorId,
-      shared: isShared(p) || (await this.seenThroughRecord(m, p, actor)),
+      shared: isShared(p) || (await this.seenBeyondOwn(m, p, actor)),
     });
   }
 
-  /** A published document the actor sees through the record it created. */
-  private async seenThroughRecord(m: EntityManager, p: Paper, actor: Actor) {
-    if (p.status === PaperStatus.Draft || !p.targetType) return false;
+  /**
+   * A published document the actor sees through the record it created or
+   * as a person a line of its latest snapshot names.
+   */
+  private async seenBeyondOwn(m: EntityManager, p: Paper, actor: Actor) {
+    if (p.status === PaperStatus.Draft) return false;
     if (can(actor, Action.PapersReadAll)) return true;
-    const seen = seenThroughTarget(this.adapters, actor);
-    if (!seen) return false;
+    const seen = p.targetType ? seenThroughTarget(this.adapters, actor) : null;
     return m
       .getRepository(Paper)
       .createQueryBuilder('p')
       .where('p.id = :id', { id: p.id })
-      .andWhere(`(${seen.sql})`, seen.params)
+      .andWhere(`(${namedSignerSql}${seen ? ` OR ${seen.sql}` : ''})`, {
+        me: actor.id,
+        ...seen?.params,
+      })
       .getExists();
   }
 
@@ -1632,7 +1662,14 @@ export class PaperworkService {
         m,
       );
       return this.insert(m, actor, {
-        title: dto.title?.trim() || from?.template.title || UNTITLED,
+        title:
+          dto.title?.trim() ||
+          (form
+            ? followedTitle(form.template.title, form, null, {
+                content,
+                values,
+              })
+            : UNTITLED),
         content,
         values,
         from,
@@ -1760,7 +1797,12 @@ export class PaperworkService {
       const repo = m.getRepository(Paper);
       const p = await repo.save(
         repo.create({
-          title: template.title,
+          title: followedTitle(
+            template.title,
+            { template, version, fields },
+            null,
+            filled,
+          ),
           content: filled.content,
           values: filled.values,
           templateVersionId: version.id,
@@ -1938,6 +1980,9 @@ export class PaperworkService {
         changes.visibility = { from: p.visibility, to: dto.visibility };
         p.visibility = dto.visibility;
       }
+      if (title === undefined && filling) {
+        p.title = followedTitle(p.title, form, p, next);
+      }
       // Content and values are not compared: jsonb does not keep key order.
       if (dto.content !== undefined) p.content = dto.content;
       if (values !== undefined) p.values = values;
@@ -2050,6 +2095,7 @@ export class PaperworkService {
       actor,
       m,
     );
+    p.title = followedTitle(p.title, form, shown, next);
     p.values = stored.values;
     p.content = stored.content;
     p.revision += 1;
@@ -2117,6 +2163,7 @@ export class PaperworkService {
         }
         if (form.template.kind === TemplateKind.Creates) {
           await this.templates.assertCurrent(form.template, form.version);
+          p.title = followedTitle(p.title, form, p, p);
           const type = form.template.target!;
           const adapter = this.adapters.get(type);
           if (!adapter)

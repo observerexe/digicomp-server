@@ -35,7 +35,8 @@ export function csrfGuard(req: Request, res: Response, next: NextFunction) {
   if (SAFE.has(req.method)) return next();
   const usesCookie =
     !!readCookie(req, AT_COOKIE) || !!readCookie(req, RT_COOKIE);
-  const hasBearer = typeof req.headers.authorization === 'string';
+  // Only a Bearer token is not taken from the cookie (see JwtStrategy).
+  const hasBearer = /^bearer\s+\S/i.test(req.headers.authorization ?? '');
   if (!usesCookie || hasBearer) return next();
 
   const deny = (message: string) =>

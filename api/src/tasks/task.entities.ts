@@ -45,7 +45,7 @@ export class Task {
   @Column({ name: 'max_assignees', type: 'int', default: 1 })
   maxAssignees: number;
 
-  @Column({ name: 'due_date', type: 'timestamp', nullable: true })
+  @Column({ name: 'due_date', type: 'timestamptz', nullable: true })
   dueDate: Date | null;
 
   @Column({ name: 'created_by_id', type: 'uuid' })
@@ -58,7 +58,7 @@ export class Task {
   @OneToMany(() => TaskAssignee, (a) => a.task)
   assignees: TaskAssignee[];
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
@@ -69,7 +69,7 @@ export class Task {
   submittedAt: Date | null;
 
   /** Set when the task is accepted (review -> done): that is when it was completed. */
-  @Column({ name: 'completed_at', type: 'timestamp', nullable: true })
+  @Column({ name: 'completed_at', type: 'timestamptz', nullable: true })
   completedAt: Date | null;
 
   /** Who accepted the task; null — not accepted yet, or the user is gone. */

@@ -67,6 +67,6 @@ export class PointsEntry {
   @Column({ name: 'reverses_id', type: 'uuid', nullable: true, unique: true })
   reversesId: string | null;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 }

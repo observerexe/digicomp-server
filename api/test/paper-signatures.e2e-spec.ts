@@ -304,6 +304,31 @@ describe('Графічний підпис (e2e)', () => {
       expect(res.status).toBe(404);
     });
 
+    it('документ «лише автор» бачить і підписує учасник, якого чекає лінія; після підпису теж бачить', async () => {
+      await as(app, admin)
+        .patch('/api/org-settings')
+        .send({ signerId: member.id })
+        .expect(200);
+      const p = await freePaper(mod);
+      code(
+        await as(app, member2).get(`/api/papers/${p.id}`),
+        404,
+        'PAPER_NOT_FOUND',
+      );
+      expect((await get(member, p.id)).canSignDrawn).toBe(true);
+      expect(await due(member)).toEqual([p.id]);
+      const list = (await as(app, member).get('/api/papers').expect(200))
+        .body as { items: { id: string }[] };
+      expect(list.items.map((x) => x.id)).toEqual([p.id]);
+      await signDrawn(member, p.id).expect(200);
+      expect(await due(member)).toEqual([]);
+      expect(
+        (await get(member, p.id)).snapshot!.signatures[0].signedAt,
+      ).not.toBeNull();
+      code(await signDrawn(member2, p.id), 404, 'PAPER_NOT_FOUND');
+      expect(await due(member2)).toEqual([]);
+    });
+
     it('після скану підписати графічно можна; стан лишається «Підписано»', async () => {
       const p = await freePaper(member);
       await as(app, member)

@@ -36,6 +36,14 @@ describe('csrfGuard', () => {
     expect(next).toHaveBeenCalled();
   });
 
+  it('інший заголовок Authorization (не Bearer) з cookie — як cookie-запит', () => {
+    for (const authorization of ['Basic eDp5', 'Bearer', '']) {
+      const { res, next } = run('POST', { ...COOKIE, authorization });
+      expect(next).not.toHaveBeenCalled();
+      expect(res.body).toMatchObject({ errorCode: 'CSRF' });
+    }
+  });
+
   it('відхиляє cookie-запит без заголовка X-DC-Client', () => {
     const { res, next } = run('POST', COOKIE);
     expect(next).not.toHaveBeenCalled();

@@ -279,8 +279,8 @@ export class PointsService {
          WHERE p.reverses_id IS NULL
            AND NOT EXISTS (SELECT 1 FROM points_ledger r WHERE r.reverses_id = p.id)
            AND ($1::boolean = false
-                OR (p.created_at::timestamptz >= month.f AT TIME ZONE $2
-                    AND p.created_at::timestamptz < (month.f + interval '1 month') AT TIME ZONE $2))
+                OR (p.created_at >= month.f AT TIME ZONE $2
+                    AND p.created_at < (month.f + interval '1 month') AT TIME ZONE $2))
        )
        SELECT u.id, u.name, u.avatar_url AS "avatarUrl", u.position,
               COALESCE(SUM(e.amount), 0)::int AS total,

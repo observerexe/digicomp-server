@@ -30,10 +30,31 @@ export function seenThroughTarget(
   return parts.length ? { sql: parts.join(' OR '), params } : null;
 }
 
+/** Lines of the latest snapshot of a document (alias `p`) that name `:me`. */
+const myLatestLines = `paper_snapshots s
+   CROSS JOIN LATERAL jsonb_array_elements(s.signers) WITH ORDINALITY AS l(line, i)
+   WHERE s.paper_id = p.id
+     AND s.n = (SELECT MAX(x.n) FROM paper_snapshots x WHERE x.paper_id = p.id)
+     AND l.line ->> 'userId' = CAST(:me AS text)`;
+
+/**
+ * The reader (`:me`) is named on a line of the document's latest snapshot
+ * (paper_snapshots.signers), signed or not: they see the document.
+ */
+export const namedSignerSql = `EXISTS (SELECT 1 FROM ${myLatestLines})`;
+
+/**
+ * The reader (`:me`) is awaited on a line of the document's latest snapshot
+ * and has not signed it yet (rows from 0).
+ */
+export const awaitsMeSql = `EXISTS (SELECT 1 FROM ${myLatestLines}
+     AND NOT EXISTS (SELECT 1 FROM paper_signatures g
+                      WHERE g.snapshot_id = s.id AND g.row = l.i - 1))`;
+
 /**
  * Only documents the actor sees — the rule of PapersRead in policy.ts:
- * staff — all; others — their own, or published and visible to all or
- * seen through their record.
+ * staff — all; others — their own, or published and visible to all, seen
+ * through their record, or naming them on a line to sign.
  */
 export function whereSeen(
   qb: SelectQueryBuilder<Paper>,
@@ -43,7 +64,7 @@ export function whereSeen(
   if (can(actor, Action.PapersReadAll)) return qb;
   const target = seenThroughTarget(adapters, actor);
   return qb.andWhere(
-    `(p.authorId = :me OR (p.status <> :draft AND (p.visibility = :members${
+    `(p.authorId = :me OR (p.status <> :draft AND (p.visibility = :members OR ${namedSignerSql}${
       target ? ` OR ${target.sql}` : ''
     })))`,
     {
