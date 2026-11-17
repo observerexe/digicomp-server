@@ -1,10 +1,9 @@
-import { useState } from 'react';
 import { Link } from 'react-router';
 import { useAuth } from '../auth/AuthProvider';
 import { Icon } from '../components/Icon';
 import { Card, PageHeader } from '../components/ui';
 import { MORE, STAFF, visible } from '../layout/nav';
-import { applyTheme, storedTheme, type ThemeChoice } from '../theme/theme';
+import { applyTheme, useTheme, type ThemeChoice } from '../theme/theme';
 import s from './MorePage.module.css';
 
 const THEMES: { value: ThemeChoice; label: string }[] = [
@@ -14,7 +13,7 @@ const THEMES: { value: ThemeChoice; label: string }[] = [
 ];
 
 export function ThemeSwitch() {
-  const [theme, setTheme] = useState<ThemeChoice>(storedTheme);
+  const theme = useTheme().choice;
   return (
     <fieldset className={s.themes}>
       <legend className={s.legend}>Тема</legend>
@@ -25,10 +24,7 @@ export function ThemeSwitch() {
             name="theme"
             value={t.value}
             checked={theme === t.value}
-            onChange={() => {
-              applyTheme(t.value);
-              setTheme(t.value);
-            }}
+            onChange={() => applyTheme(t.value)}
           />
           {t.label}
         </label>

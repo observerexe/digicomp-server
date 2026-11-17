@@ -82,8 +82,15 @@
   background: var(--c-primary-soft);
   color: var(--c-primary-text);
 }
-.me {
+.meRow {
   margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.me {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -122,9 +129,18 @@
   padding-top: max(8px, env(safe-area-inset-top));
   background: var(--c-bg);
 }
+.topActions {
+  display: flex;
+  align-items: center;
+}
 .iconButton {
+  flex: none;
   width: var(--size-touch-min);
   height: var(--size-touch-min);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
   border-radius: var(--radius-control);
   display: flex;
   align-items: center;

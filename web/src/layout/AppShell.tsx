@@ -3,6 +3,7 @@ import { useAuth } from '../auth/AuthProvider';
 import type { Role } from '../api/types';
 import { Avatar } from '../components/Avatar';
 import { Icon } from '../components/Icon';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { plural } from '../lib/format';
 import { ROLE_LABEL } from '../lib/labels';
 import { OfflineBanner } from '../components/OfflineBanner';
@@ -51,13 +52,16 @@ export function AppShell() {
             ))}
           </nav>
         )}
-        <Link to="/profile" className={s.me}>
-          <Avatar name={user?.name ?? ''} url={user?.avatarUrl} size={40} />
-          <span className={s.meText}>
-            <span>{user?.name}</span>
-            <span className={s.muted}>{roleLabel(user?.role)}</span>
-          </span>
-        </Link>
+        <div className={s.meRow}>
+          <Link to="/profile" className={s.me}>
+            <Avatar name={user?.name ?? ''} url={user?.avatarUrl} size={40} />
+            <span className={s.meText}>
+              <span>{user?.name}</span>
+              <span className={s.muted}>{roleLabel(user?.role)}</span>
+            </span>
+          </Link>
+          <ThemeToggle className={s.iconButton} />
+        </div>
       </aside>
 
       <div className={s.content}>
@@ -66,9 +70,12 @@ export function AppShell() {
             <img src="/icons/icon.svg" alt="" width={28} height={28} />
             DigiComp HUB
           </Link>
-          <NavLink to="/more" className={s.iconButton} aria-label="Ще">
-            <Icon name="menu" />
-          </NavLink>
+          <span className={s.topActions}>
+            <ThemeToggle className={s.iconButton} />
+            <NavLink to="/more" className={s.iconButton} aria-label="Ще">
+              <Icon name="menu" />
+            </NavLink>
+          </span>
         </header>
         <div className="no-print">
           <OfflineBanner />

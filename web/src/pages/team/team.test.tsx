@@ -74,7 +74,7 @@ describe('Команда', () => {
     expect(screen.getByText(/бал за весь час/)).toHaveTextContent('21 бал за весь час');
     // No private sections and no management buttons.
     expect(screen.queryByText(/Попередження/)).not.toBeInTheDocument();
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(within(screen.getByRole('main')).queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('учасника немає: зрозумілий текст', async () => {

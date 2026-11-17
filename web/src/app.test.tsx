@@ -147,6 +147,19 @@ describe('Тема і вихід', () => {
     expect(localStorage.getItem('dc-theme')).toBeNull();
   });
 
+  it('☀ / ☾ біля профілю: світла ↔ темна одним кліком; перемикач у «Ще» показує те саме', async () => {
+    mockApi({ 'GET /api/auth/me': () => json(200, member) });
+    renderApp('/more');
+    const [toggle] = await screen.findAllByRole('button', { name: 'Увімкнути темну тему' });
+    await userEvent.click(toggle!);
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(screen.getByLabelText('Темна')).toBeChecked();
+    await userEvent.click(screen.getAllByRole('button', { name: 'Увімкнути світлу тему' })[0]!);
+    expect(document.documentElement.dataset.theme).toBe('light');
+    expect(localStorage.getItem('dc-theme')).toBe('light');
+    expect(screen.getByLabelText('Світла')).toBeChecked();
+  });
+
   it('вихід очищує дані й веде на вхід', async () => {
     let session = true;
     const { calls } = mockApi({

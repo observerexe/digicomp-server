@@ -41,15 +41,16 @@
 .more {
   margin-top: 12px;
 }
-/* Card */
+/* Card; `--card-bg` — its background (the ring of the faces takes it too). */
 .card {
+  --card-bg: var(--c-surface);
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding: 14px;
   border-radius: var(--radius-card);
   border: 1px solid var(--c-border);
-  background: var(--c-surface);
+  background: var(--card-bg);
   transition: opacity var(--motion-fast);
   min-width: 0;
 }
@@ -59,12 +60,18 @@
 .card[aria-busy='true'] {
   opacity: 0.7;
 }
+/* Colour of the first «Вибір з довідника» field (the task's type): the whole card in its shade, a stripe on the left;
+   a label on the card says the same in words (its chip — the full shade, so it stands out on the card). */
+.stripe {
+  --card-bg: color-mix(in srgb, var(--pal-soft) 55%, var(--c-surface));
+  border-color: color-mix(in srgb, var(--pal-solid) 30%, var(--c-border));
+  border-left: 4px solid var(--pal-solid);
+}
 .cardReview {
   border-color: var(--c-warning);
 }
-/* Colour of the first «Вибір з довідника» field; a label on the card says the same in words. */
-.stripe {
-  border-left: 4px solid var(--pal-solid);
+.stripe.cardReview {
+  border-left-color: var(--pal-solid);
 }
 .cardNumber {
   color: var(--c-text2);
@@ -124,7 +131,7 @@
 .faces > * {
   margin-left: -3px;
   border-radius: 50%;
-  box-shadow: 0 0 0 2px var(--c-surface);
+  box-shadow: 0 0 0 2px var(--card-bg);
   display: inline-flex;
 }
 .faces > :first-child {
