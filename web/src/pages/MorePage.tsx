@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 import { useAuth } from '../auth/AuthProvider';
 import { Icon } from '../components/Icon';
 import { Card, PageHeader } from '../components/ui';
-import { MORE, STAFF, visible } from '../layout/nav';
+import { GUEST, isGuest, MORE, STAFF, visible } from '../layout/nav';
 import { applyTheme, useTheme, type ThemeChoice } from '../theme/theme';
 import s from './MorePage.module.css';
 
@@ -35,8 +35,8 @@ export function ThemeSwitch() {
 
 /** «Ще» on a phone: sections that are not in the bottom bar, theme, exit. */
 export function MorePage() {
-  const { can, logout } = useAuth();
-  const links = [...MORE, ...visible(STAFF, can), { to: '/about', label: 'Про застосунок', icon: 'info' as const }];
+  const { can, logout, user } = useAuth();
+  const links = [...(isGuest(user?.role) ? GUEST.slice(0, 4) : MORE), ...visible(STAFF, can), { to: '/about', label: 'Про застосунок', icon: 'info' as const }];
   return (
     <>
       <PageHeader title="Ще" />

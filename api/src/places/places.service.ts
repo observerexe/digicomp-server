@@ -12,7 +12,7 @@ import {
   assertDictionaryItem,
   itemTitleLike,
 } from '../dictionaries/dictionary-usage';
-import { User } from '../users/user.entity';
+import { Role, User } from '../users/user.entity';
 import {
   CreatePlaceDto,
   GrantAuthorizationDto,
@@ -204,7 +204,9 @@ export class PlacesService {
   ): Promise<PlaceAuthorization> {
     assertCan(actor, Action.PlacesAuthorize);
     const user = await m.findOneBy(User, { id: dto.userId });
-    if (!user || !user.active) throw fieldInvalid('userId');
+    if (!user || !user.active || user.role === Role.Guest) {
+      throw fieldInvalid('userId');
+    }
     const place = await m.findOneBy(Place, {
       id: dto.placeId,
       deletedAt: IsNull(),

@@ -40,6 +40,21 @@ export const STAFF: NavItem[] = [
 
 export const SIDEBAR: NavItem[] = [...TABS.slice(0, 3), ...MORE, TABS[3]!];
 
+/**
+ * A guest (not the team): only these, in the sidebar and as the bottom bar
+ * (no QR). Tasks and projects open as an overview.
+ */
+export const GUEST: NavItem[] = [
+  { to: '/fun', label: 'Розваги', icon: 'dice' },
+  { to: '/tasks', label: 'Технічні завдання', short: 'Завдання', icon: 'board' },
+  { to: '/projects', label: 'Проєкти', icon: 'folder' },
+  { to: '/rating', label: 'Рейтинг', icon: 'star' },
+  { to: '/profile', label: 'Профіль', icon: 'user' },
+];
+
+/** A guest sees another layout (the API decides what they may do). */
+export const isGuest = (role: string | undefined) => role === 'guest';
+
 export function visible(items: NavItem[], can: (a: string) => boolean) {
   return items.filter((i) => !i.permission || can(i.permission));
 }

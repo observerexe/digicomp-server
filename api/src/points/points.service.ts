@@ -7,7 +7,7 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { Action, Actor, assertCan } from '../auth/policy';
-import { User } from '../users/user.entity';
+import { Role, User } from '../users/user.entity';
 import { AwardPointsDto, LeaderboardQuery, RevokeDto } from './dto';
 import { PointsEntry, PointsKind } from './points-entry.entity';
 import type {
@@ -287,7 +287,7 @@ export class PointsService {
               RANK() OVER (ORDER BY COALESCE(SUM(e.amount), 0) DESC)::int AS rank
        FROM users u
        LEFT JOIN effective e ON e.user_id = u.id
-       WHERE u.active
+       WHERE u.active AND u.role <> 'guest'
        GROUP BY u.id
        ORDER BY total DESC, u.name ASC`,
       [day !== undefined, POINTS_TIMEZONE, day ?? null],
@@ -296,7 +296,7 @@ export class PointsService {
 
   async findMember(m: EntityManager, id: string, activeOnly = true) {
     const u = await m.findOneBy(User, { id });
-    if (!u || (activeOnly && !u.active)) {
+    if (!u || (activeOnly && !u.active) || u.role === Role.Guest) {
       throw new NotFoundException(PointsErrors.UnknownMember);
     }
     return u;

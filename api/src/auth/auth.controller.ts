@@ -29,6 +29,7 @@ import {
 } from './cookies';
 import {
   CreateUserDto,
+  NewUserDto,
   LoginDto,
   OptionalRefreshDto,
   TwoFactorCodeDto,
@@ -207,7 +208,8 @@ export class AuthController {
   @Can(Action.UsersCreate)
   @ApiCreatedResponse({ type: MeDto })
   @Post('users')
-  createUser(@Body() dto: CreateUserDto, @Req() req: { user: { id: string } }) {
-    return this.auth.create(dto, Role.Member, req.user.id);
+  createUser(@Body() dto: NewUserDto, @Req() req: { user: { id: string } }) {
+    const role = dto.role === 'guest' ? Role.Guest : Role.Member;
+    return this.auth.create(dto, role, req.user.id);
   }
 }

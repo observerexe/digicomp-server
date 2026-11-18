@@ -19,10 +19,10 @@ const USERS_PAGE = 100;
 
 /** Every user, page by page: the API gives at most 100 at once. */
 export async function fetchStaffUsers() {
-  const first = await unwrap(api.GET('/api/users', { params: { query: { limit: String(USERS_PAGE) } } }));
+  const first = await unwrap(api.GET('/api/users', { params: { query: { limit: String(USERS_PAGE), guests: 'true' } } }));
   const items = [...first.items];
   for (let page = 2; items.length < first.total && page <= 50; page++) {
-    const next = await unwrap(api.GET('/api/users', { params: { query: { limit: String(USERS_PAGE), page: String(page) } } }));
+    const next = await unwrap(api.GET('/api/users', { params: { query: { limit: String(USERS_PAGE), page: String(page), guests: 'true' } } }));
     if (!next.items.length) break;
     items.push(...next.items);
   }

@@ -1,5 +1,7 @@
+import { ApiProperty } from '@nestjs/swagger';
 import {
   IsEmail,
+  IsIn,
   IsOptional,
   IsString,
   Matches,
@@ -39,6 +41,18 @@ export class CreateUserDto {
   @IsString()
   @MaxLength(200)
   specialty?: string;
+}
+
+/** A new account made by staff: a member of the team or a guest. */
+export class NewUserDto extends CreateUserDto {
+  @IsOptional()
+  @ApiProperty({
+    enum: ['member', 'guest'],
+    required: false,
+    default: 'member',
+  })
+  @IsIn(['member', 'guest'])
+  role?: 'member' | 'guest';
 }
 
 export class RefreshDto {

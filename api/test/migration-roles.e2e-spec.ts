@@ -90,7 +90,13 @@ describe('Міграція ролей (e2e)', () => {
 
     await ds.runMigrations({ transaction: 'all' });
 
-    expect(await enumValues()).toEqual(['admin', 'moderator', 'member']);
+    // GuestRole brings the value back; the former guests stay blocked members.
+    expect(await enumValues()).toEqual([
+      'admin',
+      'moderator',
+      'member',
+      'guest',
+    ]);
     expect(await userRow('admin@t')).toMatchObject({
       role: 'admin',
       active: true,
@@ -147,5 +153,23 @@ describe('Міграція ролей (e2e)', () => {
     });
     await ds.runMigrations({ transaction: 'all' });
     expect(await userRow('coord@t')).toMatchObject({ role: 'moderator' });
+  });
+
+  it('GuestRole: up додає guest; down робить гостей заблокованими member (в аудиті)', async () => {
+    await resetDb(app);
+    const id = await insertUser('new-guest@t', 'guest');
+    await undoThrough('GuestRole1835000000000');
+    expect(await enumValues()).toEqual(['admin', 'moderator', 'member']);
+    expect(await userRow('new-guest@t')).toMatchObject({
+      role: 'member',
+      active: false,
+    });
+    const [log] = await ds.query<{ meta: unknown }[]>(
+      `SELECT meta FROM audit_log WHERE action = 'user.guest_converted' AND entity_id = $1`,
+      [id],
+    );
+    expect(log.meta).toMatchObject({ from: 'guest', to: 'member' });
+    await ds.runMigrations({ transaction: 'all' });
+    expect(await enumValues()).toContain('guest');
   });
 });

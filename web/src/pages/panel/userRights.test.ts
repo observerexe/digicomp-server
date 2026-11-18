@@ -14,7 +14,13 @@ describe('userRights — матриця прав панелі', () => {
   it('модератор над member: посада, блокування, підвищення; без імені, біо, пароля, 2FA', () => {
     const r = userRights(mod, member);
     expect(r).toMatchObject({ roleInfo: true, block: true, name: false, email: false, bio: false, avatar: false, resetPassword: false, resetTwoFactor: false });
-    expect(r.roles).toEqual(['member', 'moderator']);
+    expect(r.roles).toEqual(['guest', 'member', 'moderator']);
+  });
+
+  it('модератор над гостем: блокування, лише в учасники (не одразу в модератори)', () => {
+    const r = userRights(mod, { id: 'g1', role: 'guest' });
+    expect(r).toMatchObject({ block: true, roleInfo: true });
+    expect(r.roles).toEqual(['guest', 'member']);
   });
 
   it('модератор над модератором і адміном: нічого', () => {
@@ -33,7 +39,7 @@ describe('userRights — матриця прав панелі', () => {
     for (const t of [member, otherMod, otherAdmin]) {
       const r = userRights(admin, t);
       expect(r).toMatchObject({ roleInfo: true, block: true, name: true, email: true, bio: true, resetPassword: true, resetTwoFactor: true });
-      expect(r.roles).toEqual(['member', 'moderator', 'admin']);
+      expect(r.roles).toEqual(['guest', 'member', 'moderator', 'admin']);
     }
     expect(userRights(admin, admin)).toMatchObject({ block: false, roles: [], resetPassword: false });
   });

@@ -9,7 +9,7 @@ import { errorOf } from '../../errors/messages';
 import { MIN_PASSWORD, PasswordField, PasswordOnce } from './PasswordField';
 import s from './panel.module.css';
 
-const EMPTY = { name: '', email: '', password: '', position: '', specialty: '' };
+const EMPTY = { name: '', email: '', password: '', position: '', specialty: '', role: 'member' as 'member' | 'guest' };
 
 /** /panel/users/new: a member with a password (invitations are deferred, docs/tech/ARCHITECTURE.md). */
 export function NewUserPage() {
@@ -26,6 +26,7 @@ export function NewUserPage() {
             password: f.password,
             position: f.position.trim() || undefined,
             specialty: f.specialty.trim() || undefined,
+            role: f.role,
           },
         }),
       ),
@@ -93,7 +94,18 @@ export function NewUserPage() {
               </div>
             </div>
             <PasswordField id="nu-password" label="Пароль" value={f.password} onChange={(password) => setF((v) => ({ ...v, password }))} />
-            <p className="hint">Новий акаунт отримує роль «Учасник». Підвищити до модератора можна на його сторінці.</p>
+            <fieldset className={s.roles}>
+              <legend>Роль</legend>
+              <label>
+                <input type="radio" name="nu-role" checked={f.role === 'member'} onChange={() => setF((v) => ({ ...v, role: 'member' }))} />
+                Учасник команди
+              </label>
+              <label>
+                <input type="radio" name="nu-role" checked={f.role === 'guest'} onChange={() => setF((v) => ({ ...v, role: 'guest' }))} />
+                Гість — лише Розваги, рейтинг і огляд технічних завдань і проєктів
+              </label>
+            </fieldset>
+            <p className="hint">Підвищити до модератора можна на сторінці учасника; гостя — спершу перевести в учасники.</p>
             <ErrorMessage text={invalid && (f.name || f.email) ? invalid : create.isError ? errorOf(create.error) : null} />
             <span className={s.actions}>
               <button type="submit" className="btn btn-primary" disabled={!!invalid || create.isPending}>

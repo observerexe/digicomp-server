@@ -36,8 +36,8 @@ export class PointsController {
     return this.points.history(req.user.id);
   }
 
-  /** `period=month|all` (default all). Blocked members are not listed. */
-  @Can(Action.PointsRead)
+  /** `period=month|all` (default all). Blocked members and guests are not listed. */
+  @Can(Action.RatingRead)
   @ApiOkResponse({ type: [LeaderboardRowDto] })
   @Get('leaderboard')
   leaderboard(@Query() q: LeaderboardQuery) {

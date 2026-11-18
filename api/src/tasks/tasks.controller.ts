@@ -7,6 +7,7 @@ import {
   TaskDetailDto,
   TaskDto,
   TaskFileDto,
+  TaskOverviewDto,
 } from './responses.dto';
 import {
   Body,
@@ -54,6 +55,14 @@ export class TasksController {
   @Get()
   list(@Query() q: ListTasksQuery, @Req() req: Req) {
     return this.tasks.list(q, req.user);
+  }
+
+  /** The board as a guest sees it: where each task is and who does it. */
+  @Can(Action.TasksOverview)
+  @ApiOkResponse({ type: [TaskOverviewDto] })
+  @Get('overview')
+  overview(@Req() req: Req) {
+    return this.tasks.overview(req.user);
   }
 
   /** The archive: search, year of acceptance, choice fields, pages. */

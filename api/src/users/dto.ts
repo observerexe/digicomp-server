@@ -27,6 +27,11 @@ export class ListUsersQuery {
   @IsIn(['true', 'false'])
   active?: string;
 
+  /** Staff: guests too (without it the list is the team). */
+  @IsOptional()
+  @IsIn(['true'])
+  guests?: string;
+
   @IsOptional()
   @IsNumberString({ no_symbols: true })
   @MaxLength(6)

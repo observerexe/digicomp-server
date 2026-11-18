@@ -18,10 +18,12 @@ import {
 const admin: Actor = { id: 'a1', role: Role.Admin };
 const mod: Actor = { id: 'm1', role: Role.Moderator };
 const member: Actor = { id: 'u1', role: Role.Member };
+const guest: Actor = { id: 'g1', role: Role.Guest };
 
 const tMember = { target: { id: 'u2', role: Role.Member } };
 const tModerator = { target: { id: 'm2', role: Role.Moderator } };
 const tAdmin = { target: { id: 'a2', role: Role.Admin } };
+const tGuest = { target: { id: 'g2', role: Role.Guest } };
 const self = (a: Actor) => ({ target: { id: a.id, role: a.role } });
 
 type Case = [
@@ -123,6 +125,34 @@ const ROWS: Record<string, Case[]> = {
     ['moderator: admin', mod, Action.UsersBlock, tAdmin, Deny.TargetRole],
     ['moderator: себе', mod, Action.UsersBlock, self(mod), Deny.Self],
     ['member', member, Action.UsersBlock, tMember, Deny.Forbidden],
+  ],
+  'Гість ↔ учасник, заблокувати гостя': [
+    ['admin: гостя', admin, Action.UsersPromote, tGuest, true],
+    ['moderator: гостя', mod, Action.UsersPromote, tGuest, true],
+    ['moderator: заблокувати гостя', mod, Action.UsersBlock, tGuest, true],
+    ['member', member, Action.UsersPromote, tGuest, Deny.Forbidden],
+    ['гість', guest, Action.UsersBlock, tMember, Deny.Forbidden],
+  ],
+  'Гість: розваги, рейтинг, огляд ТЗ і проєктів, свій профіль': [
+    ['гість: бункер', guest, Action.BunkerPlay, undefined, true],
+    ['гість: рейтинг', guest, Action.RatingRead, undefined, true],
+    ['гість: огляд ТЗ', guest, Action.TasksOverview, undefined, true],
+    ['гість: огляд проєктів', guest, Action.ProjectsOverview, undefined, true],
+    ['гість: пароль', guest, Action.ProfileChangePassword, undefined, true],
+    ['гість: картка ТЗ', guest, Action.TasksRead, undefined, Deny.Forbidden],
+    [
+      'гість: картка проєкту',
+      guest,
+      Action.ProjectsRead,
+      undefined,
+      Deny.Forbidden,
+    ],
+    ['гість: команда', guest, Action.UsersRead, undefined, Deny.Forbidden],
+    ['гість: свої бали', guest, Action.PointsRead, undefined, Deny.Forbidden],
+    ['учасник: рейтинг', member, Action.RatingRead, undefined, true],
+  ],
+  'Модерація карт гостя': [
+    ['moderator', mod, Action.BunkerModerate, tGuest, true],
   ],
   'Підвищити member до moderator': [
     ['admin', admin, Action.UsersPromote, tMember, true],
@@ -948,12 +978,28 @@ describe('Матриця прав (docs/tech/ARCHITECTURE.md)', () => {
     }
   });
 
-  it('невідома роль (колишній guest) не має жодних прав', () => {
-    const guest = { id: 'g1', role: 'guest' };
-    expect(permissionsFor('guest')).toEqual([]);
+  it('невідома роль не має жодних прав', () => {
+    const stranger = { id: 's1', role: 'visitor' };
+    expect(permissionsFor('visitor')).toEqual([]);
     for (const action of Object.values(Action)) {
-      expect(check(guest, action)).toBe(Deny.Forbidden);
+      expect(check(stranger, action)).toBe(Deny.Forbidden);
     }
+  });
+
+  it('гість має рівно перелічені дії: нова дія йому не відкривається сама', () => {
+    expect(permissionsFor(Role.Guest).sort()).toEqual(
+      [
+        Action.ProfileEditOwnBio,
+        Action.ProfileEditOwnAvatar,
+        Action.ProfileEditOwnColor,
+        Action.ProfileChangePassword,
+        Action.ProfileTwoFactor,
+        Action.BunkerPlay,
+        Action.TasksOverview,
+        Action.ProjectsOverview,
+        Action.RatingRead,
+      ].sort(),
+    );
   });
 
   it('assertCan кидає 403 зі стабільним errorCode', () => {

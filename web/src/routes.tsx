@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
-import type { RouteObject } from 'react-router';
-import { RequireAuth, RequirePermission } from './auth/RequireAuth';
+import { Navigate, type RouteObject } from 'react-router';
+import { RequireAuth, RequirePermission, TeamOnly } from './auth/RequireAuth';
 import { AppShell } from './layout/AppShell';
 import { AboutPage } from './pages/AboutPage';
 import { LoginPage } from './pages/LoginPage';
@@ -33,6 +33,8 @@ import { DisciplinePage } from './pages/points/DisciplinePage';
 import { PointsPage } from './pages/points/PointsPage';
 import { RatingPage } from './pages/points/RatingPage';
 import { TaskPage } from './pages/tasks/TaskPage';
+import { TasksOverviewPage } from './pages/tasks/TasksOverviewPage';
+import { ProjectsOverviewPage } from './pages/projects/ProjectsOverviewPage';
 import { TasksPage } from './pages/tasks/TasksPage';
 import { BunkerPage } from './pages/fun/bunker/BunkerPage';
 import { RoomPage } from './pages/fun/bunker/RoomPage';
@@ -77,9 +79,11 @@ export const routes: RouteObject[] = [
     path: '/editor/:id',
     element: (
       <RequireAuth>
-        <Suspense fallback={<PaperLoading />}>
-          <PaperPage />
-        </Suspense>
+        <TeamOnly fallback={<ForbiddenPage />}>
+          <Suspense fallback={<PaperLoading />}>
+            <PaperPage />
+          </Suspense>
+        </TeamOnly>
       </RequireAuth>
     ),
   },
@@ -102,11 +106,12 @@ export const routes: RouteObject[] = [
       </RequireAuth>
     ),
     children: [
-      { index: true, element: <HomePage /> },
-      { path: 'tasks', element: <TasksPage /> },
-      { path: 'tasks/:id', element: <TaskPage /> },
-      { path: 'lab', element: <LabPage /> },
-      { path: 'lab/journal', element: <JournalPage /> },
+      // A guest's home is «Розваги».
+      { index: true, element: <TeamOnly fallback={<Navigate to="/fun" replace />}><HomePage /></TeamOnly> },
+      { path: 'tasks', element: <TeamOnly fallback={<TasksOverviewPage />}><TasksPage /></TeamOnly> },
+      { path: 'tasks/:id', element: <TeamOnly fallback={<ForbiddenPage />}><TaskPage /></TeamOnly> },
+      { path: 'lab', element: <TeamOnly fallback={<ForbiddenPage />}><LabPage /></TeamOnly> },
+      { path: 'lab/journal', element: <TeamOnly fallback={<ForbiddenPage />}><JournalPage /></TeamOnly> },
       {
         path: 'lab/stickers',
         element: (
@@ -131,9 +136,9 @@ export const routes: RouteObject[] = [
           </RequirePermission>
         ),
       },
-      { path: 'lab/:code', element: <EquipmentPage /> },
-      { path: 'scan', element: <ScanPage /> },
-      { path: 'smart', element: <SmartPage /> },
+      { path: 'lab/:code', element: <TeamOnly fallback={<ForbiddenPage />}><EquipmentPage /></TeamOnly> },
+      { path: 'scan', element: <TeamOnly fallback={<ForbiddenPage />}><ScanPage /></TeamOnly> },
+      { path: 'smart', element: <TeamOnly fallback={<ForbiddenPage />}><SmartPage /></TeamOnly> },
       {
         path: 'smart/devices',
         element: (
@@ -142,7 +147,7 @@ export const routes: RouteObject[] = [
           </RequirePermission>
         ),
       },
-      { path: 'projects', element: <ProjectsPage /> },
+      { path: 'projects', element: <TeamOnly fallback={<ProjectsOverviewPage />}><ProjectsPage /></TeamOnly> },
       {
         path: 'projects/new',
         element: (
@@ -151,9 +156,9 @@ export const routes: RouteObject[] = [
           </RequirePermission>
         ),
       },
-      { path: 'projects/:id/edit', element: <ProjectFormPage /> },
-      { path: 'projects/:id', element: <ProjectPage /> },
-      { path: 'inventory', element: <InventoryPage /> },
+      { path: 'projects/:id/edit', element: <TeamOnly fallback={<ForbiddenPage />}><ProjectFormPage /></TeamOnly> },
+      { path: 'projects/:id', element: <TeamOnly fallback={<ForbiddenPage />}><ProjectPage /></TeamOnly> },
+      { path: 'inventory', element: <TeamOnly fallback={<ForbiddenPage />}><InventoryPage /></TeamOnly> },
       {
         path: 'inventory/new',
         element: (
@@ -170,8 +175,8 @@ export const routes: RouteObject[] = [
           </RequirePermission>
         ),
       },
-      { path: 'inventory/:code', element: <ItemPage /> },
-      { path: 'docs', element: <DocsPage /> },
+      { path: 'inventory/:code', element: <TeamOnly fallback={<ForbiddenPage />}><ItemPage /></TeamOnly> },
+      { path: 'docs', element: <TeamOnly fallback={<ForbiddenPage />}><DocsPage /></TeamOnly> },
       {
         path: 'docs/new',
         element: (
@@ -188,10 +193,10 @@ export const routes: RouteObject[] = [
           </RequirePermission>
         ),
       },
-      { path: 'docs/:id', element: <DocPage /> },
-      { path: 'editor', element: <PapersPage /> },
+      { path: 'docs/:id', element: <TeamOnly fallback={<ForbiddenPage />}><DocPage /></TeamOnly> },
+      { path: 'editor', element: <TeamOnly fallback={<ForbiddenPage />}><PapersPage /></TeamOnly> },
       // The QR of a printed (frozen) document leads here.
-      { path: 'papers/verify/:sha', element: <VerifyPage /> },
+      { path: 'papers/verify/:sha', element: <TeamOnly fallback={<ForbiddenPage />}><VerifyPage /></TeamOnly> },
       { path: 'rating', element: <RatingPage /> },
       {
         path: 'fun',
@@ -229,8 +234,8 @@ export const routes: RouteObject[] = [
       { path: 'profile/edit', element: <EditProfilePage /> },
       { path: 'profile/password', element: <PasswordPage /> },
       { path: 'profile/2fa', element: <TwoFactorPage /> },
-      { path: 'team', element: <TeamPage /> },
-      { path: 'team/:id', element: <UserPage /> },
+      { path: 'team', element: <TeamOnly fallback={<ForbiddenPage />}><TeamPage /></TeamOnly> },
+      { path: 'team/:id', element: <TeamOnly fallback={<ForbiddenPage />}><UserPage /></TeamOnly> },
       { path: 'more', element: <MorePage /> },
       { path: 'about', element: <AboutPage /> },
       {

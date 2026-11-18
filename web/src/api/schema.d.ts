@@ -437,7 +437,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** `period=month|all` (default all). Blocked members are not listed. */
+        /** `period=month|all` (default all). Blocked members and guests are not listed. */
         get: operations["PointsController_leaderboard"];
         put?: never;
         post?: never;
@@ -1215,6 +1215,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/tasks/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The board as a guest sees it: where each task is and who does it. */
+        get: operations["TasksController_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/tasks/archive": {
         parameters: {
             query?: never;
@@ -1984,6 +2001,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The list as a guest sees it: stage, progress, who is in it. */
+        get: operations["ProjectsController_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{id}": {
         parameters: {
             query?: never;
@@ -2588,7 +2622,7 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {string} */
-        Role: "admin" | "moderator" | "member";
+        Role: "admin" | "moderator" | "member" | "guest";
         /** @enum {string} */
         PaletteColor: "gray" | "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple";
         UserListItemDto: {
@@ -2673,7 +2707,7 @@ export interface components {
             /** Format: email */
             email?: string;
             /** @enum {string} */
-            role?: "admin" | "moderator" | "member";
+            role?: "admin" | "moderator" | "member" | "guest";
             active?: boolean;
         };
         UserExtendedDto: {
@@ -2804,6 +2838,19 @@ export interface components {
         };
         OptionalRefreshDto: {
             refreshToken?: string;
+        };
+        NewUserDto: {
+            /**
+             * @default member
+             * @enum {string}
+             */
+            role: "member" | "guest";
+            /** Format: email */
+            email: string;
+            name: string;
+            password: string;
+            position?: string;
+            specialty?: string;
         };
         /** @enum {string} */
         PointsKind: "task" | "manual" | "fine" | "reversal";
@@ -3719,6 +3766,21 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        TaskOverviewTypeDto: {
+            color: components["schemas"]["PaletteColor"];
+            title: string;
+        };
+        TaskOverviewDto: {
+            status: components["schemas"]["TaskStatus"];
+            /** Format: date-time */
+            dueDate: string | null;
+            type: components["schemas"]["TaskOverviewTypeDto"] | null;
+            assignees: components["schemas"]["UserRefDto"][];
+            id: string;
+            title: string;
+            points: number;
+            maxAssignees: number;
+        };
         TaskArchiveDto: {
             items: components["schemas"]["TaskDto"][];
             /** @description Years of acceptance among archived tasks, newest first. */
@@ -4208,6 +4270,19 @@ export interface components {
             total: number;
             page: number;
             limit: number;
+        };
+        ProjectOverviewDto: {
+            stage: components["schemas"]["ProjectStage"];
+            /**
+             * Format: date
+             * @description YYYY-MM-DD
+             */
+            deadline: string | null;
+            members: components["schemas"]["ProjectMemberDto"][];
+            id: string;
+            title: string;
+            /** @description 0–100 */
+            progress: number;
         };
         ProjectFileDto: {
             id: string;
@@ -4846,8 +4921,10 @@ export interface operations {
         parameters: {
             query?: {
                 search?: string;
-                role?: "admin" | "moderator" | "member";
+                role?: "admin" | "moderator" | "member" | "guest";
                 active?: "true" | "false";
+                /** @description Staff: guests too (without it the list is the team). */
+                guests?: "true";
                 page?: string;
                 limit?: string;
             };
@@ -4876,7 +4953,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateUserDto"];
+                "application/json": components["schemas"]["NewUserDto"];
             };
         };
         responses: {
@@ -6911,6 +6988,25 @@ export interface operations {
             };
         };
     };
+    TasksController_overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskOverviewDto"][];
+                };
+            };
+        };
+    };
     TasksController_listArchive: {
         parameters: {
             query?: {
@@ -8139,6 +8235,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectDetailDto"];
+                };
+            };
+        };
+    };
+    ProjectsController_overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectOverviewDto"][];
                 };
             };
         };

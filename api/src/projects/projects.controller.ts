@@ -5,6 +5,7 @@ import {
   ProjectFileDto,
   ProjectHistoryDto,
   ProjectListDto,
+  ProjectOverviewDto,
 } from './responses.dto';
 import {
   Body,
@@ -49,6 +50,14 @@ export class ProjectsController {
   @Get()
   list(@Query() q: ListProjectsQuery) {
     return this.projects.list(q);
+  }
+
+  /** The list as a guest sees it: stage, progress, who is in it. */
+  @Can(Action.ProjectsOverview)
+  @ApiOkResponse({ type: [ProjectOverviewDto] })
+  @Get('overview')
+  overview() {
+    return this.projects.overview();
   }
 
   @ApiOkResponse({ type: ProjectDetailDto })

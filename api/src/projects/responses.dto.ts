@@ -98,3 +98,25 @@ export class ProjectHistoryDto {
 
   createdAt: Date;
 }
+
+/**
+ * A project in the list as a guest sees it (`projects.overview`): its stage,
+ * progress and who is in it — no description, files or history.
+ */
+export class ProjectOverviewDto {
+  id: string;
+  title: string;
+
+  @ApiProperty({ enum: ProjectStage, enumName: 'ProjectStage' })
+  stage: ProjectStage;
+
+  /** 0–100 */
+  progress: number;
+
+  /** YYYY-MM-DD */
+  @ApiProperty({ type: String, format: 'date', nullable: true })
+  deadline: string | null;
+
+  @ApiProperty({ type: [ProjectMemberDto] })
+  members: ProjectMemberDto[];
+}

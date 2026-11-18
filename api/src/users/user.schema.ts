@@ -37,6 +37,7 @@ export const USER_SCHEMA: RecordSchemaDef = {
         admin: 'Адміністратор',
         moderator: 'Модератор',
         member: 'Учасник',
+        guest: 'Гість',
       }),
     },
     {

@@ -24,6 +24,11 @@ import type { FreezeSignatureDto } from '../paperwork/dto';
 import { PaperworkService } from '../paperwork/paperwork.service';
 import type { Strokes } from '../../../shared/editor-schema/signature';
 import { RecordFieldsService } from '../records/record-fields.service';
+import { RecordFieldDef } from '../records/record-field-def.entity';
+import {
+  Dictionary,
+  DictionaryItem,
+} from '../dictionaries/dictionary.entities';
 import { User } from '../users/user.entity';
 import {
   CancelTaskDto,
@@ -57,6 +62,7 @@ import type {
   TaskDetailDto,
   TaskDto,
   TaskFileDto,
+  TaskOverviewDto,
 } from './responses.dto';
 
 /** Messages mapped to stable errorCode in common/http-exception.filter.ts. */
@@ -213,6 +219,45 @@ export class TasksService implements OnModuleInit, OnModuleDestroy {
       );
     }
     return taskViews(this.ds.manager, await qb.getMany());
+  }
+
+  /**
+   * The board as a guest sees it: where each task is and who does it. The
+   * «Тип» (the task field `type` and its dictionary) comes as its title and
+   * colour, since a guest does not read dictionaries.
+   */
+  async overview(actor: Actor): Promise<Plain<TaskOverviewDto>[]> {
+    const tasks = await this.list({}, actor);
+    const m = this.ds.manager;
+    const def = await m.findOneBy(RecordFieldDef, {
+      recordType: 'task',
+      key: 'type',
+    });
+    const items = def?.dictionary
+      ? await m
+          .createQueryBuilder(DictionaryItem, 'i')
+          .innerJoin(Dictionary, 'd', 'd.id = i.dictionaryId')
+          .where('d.key = :key', { key: def.dictionary })
+          .getMany()
+      : [];
+    return tasks.map((t) => {
+      const item = items.find((i) => i.key === t.extra[def?.key ?? '']);
+      return {
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        points: t.points,
+        maxAssignees: t.maxAssignees,
+        dueDate: t.dueDate,
+        type: item ? { title: item.title, color: item.color } : null,
+        assignees: t.assignees.map((a) => ({
+          id: a.id,
+          name: a.name,
+          avatarUrl: a.avatarUrl,
+          color: a.color,
+        })),
+      };
+    });
   }
 
   /**

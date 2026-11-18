@@ -203,8 +203,17 @@
 ### Учасники
 
 - `PATCH /api/users/me`: `bio`, `color` — усі; `position`, `specialty` — admin і moderator; `name` — лише admin. Надіслане без змін поле помилки не дає.
-- `PATCH /api/users/:id`: ім'я, email, біо, `color` — admin (і модератору); посада, спеціальність, `active` — admin і moderator (moderator лише для `member`);
-  `member → moderator` — admin і moderator, `moderator → member` і будь-що з `admin` — лише admin.
+- `PATCH /api/users/:id`: ім'я, email, біо, `color` — admin (і модератору); посада, спеціальність, `active` — admin і moderator (moderator лише для `member` і `guest`);
+  `member → moderator`, `guest ↔ member` — admin і moderator, `moderator → member`, `guest ↔ moderator` і будь-що з `admin` — лише admin.
+- `POST /api/users { email, name, password, position?, specialty?, role? }` (admin, moderator): `role` — `member` (за замовчуванням) або `guest`.
+- `GET /api/users` — команда: гостей у списку немає; admin і moderator бачать їх з `guests=true` або `role=guest`. Чужу картку гостя
+  (`GET /api/users/:id`) учасник не бачить (404).
+- **Гість** (`role: guest`) має лише перелічені в [ARCHITECTURE.md](ARCHITECTURE.md) дії; решта маршрутів — 403 `FORBIDDEN`.
+  `GET /api/tasks/overview` — ТЗ дошки (`id`, `title`, `status`, `points`, `maxAssignees`, `dueDate`, `type` — назва й колір «Типу»,
+  `assignees`); `GET /api/projects/overview` — проєкти не в архіві (`id`, `title`, `stage`, `progress`, `deadline`, `members`).
+  `GET /api/points/leaderboard` (`rating.read`) гостей не містить. Гостя не можна вибрати учасником проєкту (`UNKNOWN_MEMBER`),
+  у відомість чи подання (`UNKNOWN_MEMBER`), у допуск (`PAPER_FIELD_INVALID`) чи підписантом (`ORG_SIGNER_INVALID`);
+  пошук людини для поля документа (`GET /api/links/candidates`) гостей не пропонує.
 - Списки показують усім публічну картку; admin і moderator бачать ще `email`, `active`, `twoFactorEnabled`, `createdAt`.
 - Нова адреса аватара містить `?v=<час>`, тож браузер не показує старий з кешу.
 - **Колір акаунта** `color` — назва з палітри (`PaletteColor`, як у пунктів довідників; інша — 400 `VALIDATION_ERROR`). Новий акаунт

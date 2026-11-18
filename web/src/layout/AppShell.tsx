@@ -10,7 +10,7 @@ import { ROLE_LABEL } from '../lib/labels';
 import { OfflineBanner } from '../components/OfflineBanner';
 import { ActiveSessionBar } from '../pages/lab/ActiveSessionBar';
 import { useReviewCount } from '../pages/panel/PanelPage';
-import { SIDEBAR, STAFF, TABS, visible } from './nav';
+import { GUEST, isGuest, SIDEBAR, STAFF, TABS, visible } from './nav';
 import s from './AppShell.module.css';
 
 /** Sidebar on a computer, bottom bar with the QR button on a phone. */
@@ -18,6 +18,8 @@ export function AppShell() {
   const { user, can } = useAuth();
   const staff = visible(STAFF, can);
   const review = useReviewCount(can('tasks.accept'));
+  const guest = isGuest(user?.role);
+  const side = guest ? GUEST : SIDEBAR;
 
   return (
     <div className={s.shell}>
@@ -30,7 +32,7 @@ export function AppShell() {
           <span>DigiComp HUB</span>
         </Link>
         <nav aria-label="Основна навігація" className={s.sideNav}>
-          {SIDEBAR.map((i) => (
+          {side.map((i) => (
             <NavLink key={i.to} to={i.to} end={i.to === '/'} className={s.sideLink}>
               <Icon name={i.icon} size={20} />
               {i.label}
@@ -80,13 +82,23 @@ export function AppShell() {
         </header>
         <div className="no-print">
           <OfflineBanner />
-          <ActiveSessionBar />
+          {!guest && <ActiveSessionBar />}
         </div>
         <main id="main" className={s.main} tabIndex={-1}>
           <Outlet />
         </main>
       </div>
 
+      {guest ? (
+        <nav aria-label="Основна навігація" className={`${s.tabbar} no-print`}>
+          {GUEST.map((i) => (
+            <NavLink key={i.to} to={i.to} className={s.tab}>
+              <Icon name={i.icon} />
+              {i.short ?? i.label}
+            </NavLink>
+          ))}
+        </nav>
+      ) : (
       <nav aria-label="Основна навігація" className={`${s.tabbar} no-print`}>
         {TABS.slice(0, 2).map((i) => (
           <NavLink key={i.to} to={i.to} end={i.to === '/'} className={s.tab}>
@@ -104,6 +116,7 @@ export function AppShell() {
           </NavLink>
         ))}
       </nav>
+      )}
     </div>
   );
 }

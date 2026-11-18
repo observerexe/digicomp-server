@@ -73,6 +73,11 @@ function fieldForbidden(field: string) {
 function roleChangeAction(from: Role, to: Role): Action {
   if (from === Role.Admin || to === Role.Admin) return Action.UsersGrantAdmin;
   if (from === Role.Member && to === Role.Moderator) return Action.UsersPromote;
+  // A guest joins the team or a member becomes a guest: over a member or a guest.
+  const pair = [from, to];
+  if (pair.includes(Role.Guest) && pair.includes(Role.Member)) {
+    return Action.UsersPromote;
+  }
   return Action.UsersManageModerator;
 }
 
@@ -103,6 +108,10 @@ export class UsersService {
       qb.andWhere('u.active = :active', { active: q.active === 'true' });
     }
     if (q.role) qb.andWhere('u.role = :role', { role: q.role });
+    // Guests are not the team: only staff see them, and only when they ask.
+    if (!(extended && (q.guests === 'true' || q.role === Role.Guest))) {
+      qb.andWhere('u.role <> :guest', { guest: Role.Guest });
+    }
     if (q.search) {
       const cond = [
         'u.name ILIKE :s',
@@ -130,7 +139,7 @@ export class UsersService {
   async get(id: string, actor: Actor): Promise<UserDetailDto> {
     const extended = can(actor, Action.UsersReadExtended);
     const u = await this.repo.findOneBy({ id });
-    if (!u || (!extended && !u.active)) {
+    if (!u || (!extended && (!u.active || u.role === Role.Guest))) {
       throw new NotFoundException('User not found');
     }
     // Public profile shows the member's points (docs/tech/ARCHITECTURE.md, «Профіль»).

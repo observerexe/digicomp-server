@@ -10,6 +10,8 @@ export enum Role {
   Admin = 'admin',
   Moderator = 'moderator',
   Member = 'member',
+  /** A guest: Розваги, the rating, an overview of tasks and projects; not part of the team. */
+  Guest = 'guest',
 }
 
 @Entity('users')

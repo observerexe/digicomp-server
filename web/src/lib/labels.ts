@@ -4,6 +4,7 @@ export const ROLE_LABEL: Record<Role, string> = {
   admin: 'Адміністратор',
   moderator: 'Модератор',
   member: 'Учасник',
+  guest: 'Гість',
 };
 
 export const TASK_STATUS_LABEL: Record<TaskStatus, string> = {

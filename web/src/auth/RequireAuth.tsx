@@ -24,6 +24,12 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 }
 
 /** Hides a screen the role cannot open (the API checks anyway). */
+/** The team's pages: a guest gets `fallback` (the API refuses them anyway). */
+export function TeamOnly({ children, fallback }: { children: ReactNode; fallback: ReactNode }) {
+  const { user } = useAuth();
+  return <>{user?.role === 'guest' ? fallback : children}</>;
+}
+
 export function RequirePermission({ action, children, fallback }: { action: string; children: ReactNode; fallback: ReactNode }) {
   const { can } = useAuth();
   return <>{can(action) ? children : fallback}</>;

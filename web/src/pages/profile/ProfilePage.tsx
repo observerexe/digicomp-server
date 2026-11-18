@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { isGuest } from '../../layout/nav';
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { api, unwrap } from '../../api/client';
@@ -21,17 +22,19 @@ const HISTORY_PREVIEW = 5;
 export function ProfilePage() {
   const { user, logout } = useAuth();
   if (!user) return null;
+  const team = !isGuest(user.role);
   return (
     <>
       <PageHeader title="Профіль" />
       <div className={s.layout}>
         <div className={s.column}>
           <Header user={user} />
-          <PointsCard userId={user.id} />
-          <DisciplineCard />
+          {/* A guest is not the team: no points, discipline or «Моє». */}
+          {team && <PointsCard userId={user.id} />}
+          {team && <DisciplineCard />}
         </div>
         <div className={s.column}>
-          <MineCard user={user} />
+          {team && <MineCard user={user} />}
           <SecurityCard user={user} />
           <button type="button" className={`btn btn-ghost ${s.logout}`} onClick={() => void logout({ next: '/' })}>
             <Icon name="logout" size={20} />

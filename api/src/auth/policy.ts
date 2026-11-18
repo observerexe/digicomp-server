@@ -155,6 +155,12 @@ export enum Action {
   SmartControl = 'smart.control',
   SmartAllowlist = 'smart.allowlist',
 
+  // A guest's overview: the task board and the project list without their
+  // cards (titles, statuses, who); the rating
+  TasksOverview = 'tasks.overview',
+  ProjectsOverview = 'projects.overview',
+  RatingRead = 'rating.read',
+
   // «Розваги» → «Бункер»: play, own cards and packs; moderate others' ones
   BunkerPlay = 'bunker.play',
   BunkerModerate = 'bunker.moderate',
@@ -163,7 +169,10 @@ export enum Action {
 const A = Role.Admin;
 const M = Role.Moderator;
 const U = Role.Member;
+const G = Role.Guest;
+/** The team. A guest gets only what is given to EVERYONE or to G by name. */
 const ALL = [A, M, U];
+const EVERYONE = [A, M, U, G];
 const STAFF = [A, M];
 const ADMIN = [A];
 
@@ -190,13 +199,13 @@ export const ROLES: Record<Action, readonly Role[]> = {
   [Action.UsersPromote]: STAFF,
   [Action.UsersEditRoleInfo]: STAFF,
 
-  [Action.ProfileEditOwnBio]: ALL,
-  [Action.ProfileEditOwnAvatar]: ALL,
+  [Action.ProfileEditOwnBio]: EVERYONE,
+  [Action.ProfileEditOwnAvatar]: EVERYONE,
   [Action.ProfileEditOwnRoleInfo]: STAFF,
   [Action.ProfileEditOwnName]: ADMIN,
-  [Action.ProfileEditOwnColor]: ALL,
-  [Action.ProfileChangePassword]: ALL,
-  [Action.ProfileTwoFactor]: ALL,
+  [Action.ProfileEditOwnColor]: EVERYONE,
+  [Action.ProfileChangePassword]: EVERYONE,
+  [Action.ProfileTwoFactor]: EVERYONE,
 
   [Action.PointsRead]: ALL,
   [Action.PointsAward]: STAFF,
@@ -296,9 +305,13 @@ export const ROLES: Record<Action, readonly Role[]> = {
   [Action.SmartControl]: STAFF,
   [Action.SmartAllowlist]: ADMIN,
 
+  [Action.TasksOverview]: EVERYONE,
+  [Action.ProjectsOverview]: EVERYONE,
+  [Action.RatingRead]: EVERYONE,
+
   // Rooms, the game, own cards and packs. The host's powers in a room are a
   // rule of the game (bunker/engine.ts), not a role.
-  [Action.BunkerPlay]: ALL,
+  [Action.BunkerPlay]: EVERYONE,
   // Change or delete another's card or pack, close another's room.
   [Action.BunkerModerate]: STAFF,
 };
@@ -317,12 +330,12 @@ export type DenyCode = (typeof Deny)[keyof typeof Deny];
 
 type Refine = (actor: Actor, ctx: PolicyContext) => true | DenyCode;
 
-/** Moderator acts only on members, never on self, moderators or admins. */
+/** Moderator acts only on members and guests, never on self, moderators or admins. */
 const moderatorOverMember: Refine = (actor, { target }) => {
   if (actor.role === A) return true;
   if (!target) return Deny.Forbidden;
   if (target.id === actor.id) return Deny.Self;
-  return target.role === U ? true : Deny.TargetRole;
+  return target.role === U || target.role === G ? true : Deny.TargetRole;
 };
 
 /** Points and discipline: a moderator may target anyone except themselves. */
@@ -356,11 +369,13 @@ const ownRecordForNonAdmin: Refine = (actor, { ownerId }) =>
 
 /**
  * Moderation of content (cards, packs, rooms) made by `target`: a moderator —
- * of members and of nobody (author gone); the admin — of anyone.
+ * of members, guests and of nobody (author gone); the admin — of anyone.
  */
 const contentOfMember: Refine = (actor, { target }) => {
   if (actor.role === A) return true;
-  return !target || target.role === U ? true : Deny.TargetRole;
+  return !target || target.role === U || target.role === G
+    ? true
+    : Deny.TargetRole;
 };
 
 /** Layer 2: context rules. Missing entry = no extra rule. */

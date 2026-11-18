@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
-import { User } from '../users/user.entity';
+import { Role, User } from '../users/user.entity';
 import type { UpdateOrgSettingsDto } from './dto';
 import { OrgSettings } from './org-settings.entity';
 import type { OrgSettingsDto } from './responses.dto';
@@ -68,7 +68,7 @@ export class OrgService {
       if (dto.signerId !== undefined && dto.signerId !== s.signerId) {
         if (dto.signerId !== null) {
           const u = await m.getRepository(User).findOneBy({ id: dto.signerId });
-          if (!u?.active) {
+          if (!u?.active || u.role === Role.Guest) {
             throw new BadRequestException('Signer is unknown or blocked');
           }
         }

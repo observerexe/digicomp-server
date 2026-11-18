@@ -95,7 +95,7 @@ describe('Панель: учасники', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(pwd);
     expect(screen.getByRole('link', { name: 'До учасника' })).toHaveAttribute('href', '/panel/users/u7');
     const body = JSON.parse(calls.find((c) => c.method === 'POST')!.body) as Record<string, unknown>;
-    expect(body).toEqual({ name: 'Ліна Нова', email: 'lina@test.ua', password: pwd });
+    expect(body).toEqual({ name: 'Ліна Нова', email: 'lina@test.ua', password: pwd, role: 'member' });
   });
 });
 
@@ -107,7 +107,7 @@ describe('Панель: керування учасником', () => {
     expect(screen.queryByLabelText('Ім’я')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Біо')).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Безпека' })).not.toBeInTheDocument();
-    expect([...(screen.getByLabelText('Роль') as HTMLSelectElement).options].map((o) => o.value)).toEqual(['member', 'moderator']);
+    expect([...(screen.getByLabelText('Роль') as HTMLSelectElement).options].map((o) => o.value)).toEqual(['guest', 'member', 'moderator']);
 
     // Only the changed field is sent.
     await userEvent.clear(screen.getByLabelText('Посада'));

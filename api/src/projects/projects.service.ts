@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { createHash, randomUUID } from 'crypto';
-import { DataSource, EntityManager, In, Repository } from 'typeorm';
+import { DataSource, EntityManager, In, Not, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { Action, can } from '../auth/policy';
 import {
@@ -15,7 +15,7 @@ import {
   validateUpload,
 } from '../files/file-validation';
 import { StorageService } from '../files/storage.service';
-import { User } from '../users/user.entity';
+import { Role, User } from '../users/user.entity';
 import { CreateProjectDto, ListProjectsQuery, UpdateProjectDto } from './dto';
 import {
   Project,
@@ -30,6 +30,7 @@ import type {
   ProjectFileDto,
   ProjectHistoryDto,
   ProjectListDto,
+  ProjectOverviewDto,
 } from './responses.dto';
 import { escapeLike } from '../common/like';
 
@@ -130,6 +131,19 @@ export class ProjectsService {
         .map((m) => memberView(m.user)),
     }));
     return { items, total, page, limit };
+  }
+
+  /** The list as a guest sees it: all projects in progress, no descriptions. */
+  async overview(): Promise<Plain<ProjectOverviewDto>[]> {
+    const { items } = await this.list({ limit: '100' });
+    return items.map((p) => ({
+      id: p.id,
+      title: p.title,
+      stage: p.stage,
+      progress: p.progress,
+      deadline: p.deadline,
+      members: p.members,
+    }));
   }
 
   async get(id: string, actor: Actor): Promise<ProjectDetailDto> {
@@ -396,7 +410,7 @@ export class ProjectsService {
     const unique = [...new Set(ids ?? [])];
     if (!unique.length) return unique;
     const found = await this.users.find({
-      where: { id: In(unique), active: true },
+      where: { id: In(unique), active: true, role: Not(Role.Guest) },
     });
     if (found.length !== unique.length) {
       throw new BadRequestException('Unknown or inactive member');

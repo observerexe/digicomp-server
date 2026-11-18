@@ -332,10 +332,10 @@ describe('Матриця прав (e2e)', () => {
           .send({ role: 'moderator' }),
       );
     });
-    it('роль guest більше не приймається', async () => {
+    it('невідома роль не приймається', async () => {
       const res = await as(app, admin)
         .patch(`/api/users/${member2.id}`)
-        .send({ role: 'guest' });
+        .send({ role: 'visitor' });
       expect(res.status).toBe(400);
     });
   });

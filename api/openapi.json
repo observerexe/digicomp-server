@@ -51,7 +51,8 @@
               "enum": [
                 "admin",
                 "moderator",
-                "member"
+                "member",
+                "guest"
               ]
             }
           },
@@ -64,6 +65,18 @@
               "enum": [
                 "true",
                 "false"
+              ]
+            }
+          },
+          {
+            "name": "guests",
+            "required": false,
+            "in": "query",
+            "description": "Staff: guests too (without it the list is the team).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true"
               ]
             }
           },
@@ -110,7 +123,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateUserDto"
+                "$ref": "#/components/schemas/NewUserDto"
               }
             }
           }
@@ -989,7 +1002,7 @@
             }
           }
         },
-        "summary": "`period=month|all` (default all). Blocked members are not listed.",
+        "summary": "`period=month|all` (default all). Blocked members and guests are not listed.",
         "tags": [
           "Points"
         ]
@@ -3266,6 +3279,31 @@
         ]
       }
     },
+    "/api/tasks/overview": {
+      "get": {
+        "operationId": "TasksController_overview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaskOverviewDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "The board as a guest sees it: where each task is and who does it.",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
     "/api/tasks/archive": {
       "get": {
         "operationId": "TasksController_listArchive",
@@ -5382,6 +5420,31 @@
         ]
       }
     },
+    "/api/projects/overview": {
+      "get": {
+        "operationId": "ProjectsController_overview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectOverviewDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "The list as a guest sees it: stage, progress, who is in it.",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
     "/api/projects/{id}": {
       "get": {
         "operationId": "ProjectsController_get",
@@ -7044,7 +7107,8 @@
         "enum": [
           "admin",
           "moderator",
-          "member"
+          "member",
+          "guest"
         ]
       },
       "PaletteColor": {
@@ -7392,7 +7456,8 @@
             "enum": [
               "admin",
               "moderator",
-              "member"
+              "member",
+              "guest"
             ]
           },
           "active": {
@@ -7974,6 +8039,46 @@
             "maxLength": 200
           }
         }
+      },
+      "NewUserDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "enum": [
+              "member",
+              "guest"
+            ],
+            "type": "string",
+            "default": "member"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "position": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "specialty": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "email",
+          "name",
+          "password"
+        ]
       },
       "PointsKind": {
         "type": "string",
@@ -10949,6 +11054,79 @@
           "updatedAt"
         ]
       },
+      "TaskOverviewTypeDto": {
+        "type": "object",
+        "properties": {
+          "color": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaletteColor"
+              }
+            ]
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "color",
+          "title"
+        ]
+      },
+      "TaskOverviewDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TaskStatus"
+              }
+            ]
+          },
+          "dueDate": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TaskOverviewTypeDto"
+              }
+            ]
+          },
+          "assignees": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserRefDto"
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "points": {
+            "type": "number"
+          },
+          "maxAssignees": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "status",
+          "dueDate",
+          "type",
+          "assignees",
+          "id",
+          "title",
+          "points",
+          "maxAssignees"
+        ]
+      },
       "TaskArchiveDto": {
         "type": "object",
         "properties": {
@@ -12725,6 +12903,48 @@
           "total",
           "page",
           "limit"
+        ]
+      },
+      "ProjectOverviewDto": {
+        "type": "object",
+        "properties": {
+          "stage": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProjectStage"
+              }
+            ]
+          },
+          "deadline": {
+            "type": "string",
+            "nullable": true,
+            "description": "YYYY-MM-DD",
+            "format": "date"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectMemberDto"
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "progress": {
+            "type": "number",
+            "description": "0–100"
+          }
+        },
+        "required": [
+          "stage",
+          "deadline",
+          "members",
+          "id",
+          "title",
+          "progress"
         ]
       },
       "ProjectFileDto": {

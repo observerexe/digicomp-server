@@ -1,8 +1,8 @@
-import { ILike, In } from 'typeorm';
+import { ILike, In, Not } from 'typeorm';
 import { Action, can } from '../auth/policy';
 import { containsLike } from '../common/like';
 import type { LinkableType } from '../links/link-registry';
-import { User } from './user.entity';
+import { Role, User } from './user.entity';
 
 /**
  * Members: referred to from documents (fields `ref:user`, «@»). Same
@@ -16,7 +16,7 @@ export const USER_LINKS: LinkableType = {
     const extended = can(actor, Action.UsersReadExtended);
     const rows = await m.findBy(User, {
       id: In(ids),
-      ...(extended ? {} : { active: true }),
+      ...(extended ? {} : { active: true, role: Not(Role.Guest) }),
     });
     return new Map(
       rows.map((u) => [u.id, { title: u.name, archived: !u.active }]),
@@ -24,7 +24,11 @@ export const USER_LINKS: LinkableType = {
   },
   async search(q, limit, _actor, m) {
     const rows = await m.find(User, {
-      where: { name: ILike(containsLike(q)), active: true },
+      where: {
+        name: ILike(containsLike(q)),
+        active: true,
+        role: Not(Role.Guest),
+      },
       order: { name: 'ASC', id: 'ASC' },
       take: limit,
     });

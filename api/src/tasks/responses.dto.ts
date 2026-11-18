@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRefDto } from '../common/responses.dto';
+import { PALETTE, type PaletteColor } from '../dictionaries/palette';
 import { RecordPaperDto } from '../paperwork/responses.dto';
 import { TaskCommentKind, TaskStatus } from './task.entities';
 
@@ -108,4 +109,36 @@ export class TaskDetailDto extends TaskDto {
   /** GET /tasks/:id/files/:fileId/download */
   @ApiProperty({ type: [TaskFileDto] })
   files: TaskFileDto[];
+}
+
+/** The kind of a task as a guest sees it: the title and colour of its «Тип». */
+export class TaskOverviewTypeDto {
+  title: string;
+
+  @ApiProperty({ enum: PALETTE, enumName: 'PaletteColor' })
+  color: PaletteColor;
+}
+
+/**
+ * A task on the board as a guest sees it (`tasks.overview`): where it is and
+ * who does it — no description, files, comments or documents.
+ */
+export class TaskOverviewDto {
+  id: string;
+  title: string;
+
+  @ApiProperty({ enum: TaskStatus, enumName: 'TaskStatus' })
+  status: TaskStatus;
+
+  points: number;
+  maxAssignees: number;
+
+  @ApiProperty({ type: Date, nullable: true })
+  dueDate: Date | null;
+
+  @ApiProperty({ type: TaskOverviewTypeDto, nullable: true })
+  type: TaskOverviewTypeDto | null;
+
+  @ApiProperty({ type: [UserRefDto] })
+  assignees: UserRefDto[];
 }
