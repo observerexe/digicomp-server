@@ -14,6 +14,7 @@ import { AuthModule } from './auth/auth.module';
 import { DictionariesModule } from './dictionaries/dictionaries.module';
 import { DocsModule } from './docs/docs.module';
 import { BookingsModule } from './bookings/bookings.module';
+import { BunkerModule } from './bunker/bunker.module';
 import { DisciplineModule } from './discipline/discipline.module';
 import { DocumentsModule } from './documents/documents.module';
 import { FaultsModule } from './faults/faults.module';
@@ -63,6 +64,7 @@ import { UsersModule } from './users/users.module';
     ArchiveModule,
     DocsModule,
     AdminPanelModule,
+    BunkerModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService, { provide: APP_GUARD, useClass: AppThrottlerGuard }],

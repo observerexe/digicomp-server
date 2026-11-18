@@ -2310,6 +2310,279 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/bunker/cards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BunkerController_listCards"];
+        put?: never;
+        post: operations["BunkerController_createCard"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bunker/cards/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["BunkerController_deleteCard"];
+        options?: never;
+        head?: never;
+        patch: operations["BunkerController_updateCard"];
+        trace?: never;
+    };
+    "/api/bunker/packs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BunkerController_listPacks"];
+        put?: never;
+        post: operations["BunkerController_createPack"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bunker/packs/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BunkerController_importPack"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bunker/packs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BunkerController_getPack"];
+        put?: never;
+        post?: never;
+        delete: operations["BunkerController_deletePack"];
+        options?: never;
+        head?: never;
+        patch: operations["BunkerController_updatePack"];
+        trace?: never;
+    };
+    "/api/bunker/packs/{id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BunkerController_exportPack"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bunker/packs/{id}/cards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BunkerController_addCards"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bunker/packs/{id}/cards/{cardId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["BunkerController_removeCard"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bunker/rooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BunkerRoomsController_list"];
+        put?: never;
+        post: operations["BunkerRoomsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bunker/rooms/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BunkerRoomsController_get"];
+        put?: never;
+        post?: never;
+        /** Closes the room: its host or moderation. */
+        delete: operations["BunkerRoomsController_close"];
+        options?: never;
+        head?: never;
+        patch: operations["BunkerRoomsController_update"];
+        trace?: never;
+    };
+    "/api/bunker/rooms/{id}/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BunkerRoomsController_join"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bunker/rooms/{id}/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BunkerRoomsController_leave"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bunker/rooms/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BunkerRoomsController_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bunker/rooms/{id}/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BunkerRoomsController_restart"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bunker/rooms/{id}/host": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BunkerRoomsController_passHost"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bunker/rooms/{id}/members/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["BunkerRoomsController_removeMember"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bunker/rooms/{id}/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BunkerRoomsController_act"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2426,7 +2699,7 @@ export interface components {
             name: string;
         };
         /** @enum {string} */
-        AuditAction: "auth.2fa_login" | "user.created" | "user.updated" | "user.profile_updated" | "user.password_changed" | "user.password_reset" | "user.avatar_changed" | "user.avatar_removed" | "user.2fa_enabled" | "user.2fa_disabled" | "user.2fa_reset" | "user.2fa_recovery_regenerated" | "user.guest_converted" | "authorization.granted" | "authorization.revoked" | "points.awarded" | "points.revoked" | "discipline.issued" | "discipline.revoked" | "task.created" | "task.updated" | "task.deleted" | "task.taken" | "task.left" | "task.started" | "task.submitted" | "task.returned" | "task.accepted" | "task.archived" | "task.unarchived" | "task.file_added" | "task.file_removed" | "project.created" | "project.updated" | "project.archived" | "project.stage_migrated" | "project.file_added" | "project.file_removed" | "place.created" | "place.updated" | "session.started" | "session.ended" | "session.auto_closed" | "booking.created" | "booking.cancelled" | "fault.created" | "fault.photo_added" | "fault.in_progress" | "fault.maintenance" | "fault.closed" | "inventory.item_created" | "inventory.item_updated" | "inventory.movement" | "document.created" | "document.updated" | "document.version_added" | "document.archived" | "document.unarchived" | "paper.created" | "paper.updated" | "paper.published" | "paper.frozen" | "paper.signature_added" | "paper.signed" | "paper.cancelled" | "paper.deleted" | "paper.image_uploaded" | "paper.images_purged" | "paper_template.created" | "paper_template.updated" | "paper_template.published" | "paper_template.draft_discarded" | "paper_template.deleted" | "record_field.created" | "record_field.updated" | "record_field.reordered" | "record_field.deleted" | "org_settings.updated" | "trash.deleted" | "trash.restored" | "trash.purged" | "smart.light_set" | "smart.scene_activated" | "smart.entity_added" | "smart.entity_updated" | "smart.entity_removed" | "dictionary.created" | "dictionary.updated" | "dictionary.deleted" | "dictionary.item_created" | "dictionary.item_updated" | "dictionary.items_reordered" | "dictionary.item_deleted" | "link.created" | "link.removed" | "panel.action";
+        AuditAction: "auth.2fa_login" | "user.created" | "user.updated" | "user.profile_updated" | "user.password_changed" | "user.password_reset" | "user.avatar_changed" | "user.avatar_removed" | "user.2fa_enabled" | "user.2fa_disabled" | "user.2fa_reset" | "user.2fa_recovery_regenerated" | "user.guest_converted" | "authorization.granted" | "authorization.revoked" | "points.awarded" | "points.revoked" | "discipline.issued" | "discipline.revoked" | "task.created" | "task.updated" | "task.deleted" | "task.taken" | "task.left" | "task.started" | "task.submitted" | "task.returned" | "task.accepted" | "task.archived" | "task.unarchived" | "task.file_added" | "task.file_removed" | "project.created" | "project.updated" | "project.archived" | "project.stage_migrated" | "project.file_added" | "project.file_removed" | "place.created" | "place.updated" | "session.started" | "session.ended" | "session.auto_closed" | "booking.created" | "booking.cancelled" | "fault.created" | "fault.photo_added" | "fault.in_progress" | "fault.maintenance" | "fault.closed" | "inventory.item_created" | "inventory.item_updated" | "inventory.movement" | "document.created" | "document.updated" | "document.version_added" | "document.archived" | "document.unarchived" | "paper.created" | "paper.updated" | "paper.published" | "paper.frozen" | "paper.signature_added" | "paper.signed" | "paper.cancelled" | "paper.deleted" | "paper.image_uploaded" | "paper.images_purged" | "paper_template.created" | "paper_template.updated" | "paper_template.published" | "paper_template.draft_discarded" | "paper_template.deleted" | "record_field.created" | "record_field.updated" | "record_field.reordered" | "record_field.deleted" | "org_settings.updated" | "trash.deleted" | "trash.restored" | "trash.purged" | "smart.light_set" | "smart.scene_activated" | "smart.entity_added" | "smart.entity_updated" | "smart.entity_removed" | "dictionary.created" | "dictionary.updated" | "dictionary.deleted" | "dictionary.item_created" | "dictionary.item_updated" | "dictionary.items_reordered" | "dictionary.item_deleted" | "link.created" | "link.removed" | "panel.action" | "bunker.card_created" | "bunker.card_updated" | "bunker.card_deleted" | "bunker.pack_created" | "bunker.pack_updated" | "bunker.pack_deleted" | "bunker.room_created" | "bunker.room_closed" | "bunker.player_removed";
         AuditEntryDto: {
             /** @description null — the server itself (auto-close of sessions and the like). */
             actorId: string | null;
@@ -4194,6 +4467,337 @@ export interface components {
              * @enum {string}
              */
             target: "api" | "ha";
+        };
+        /** @enum {string} */
+        BunkerCardKind: "catastrophe" | "bunker" | "threat" | "profession" | "biology" | "health" | "hobby" | "phobia" | "character" | "baggage" | "fact" | "special";
+        /**
+         * @description Special cards only.
+         * @enum {string}
+         */
+        BunkerEffect: "none" | "swap" | "replace" | "reveal_other" | "double_vote" | "immunity" | "cancel_vote";
+        /**
+         * @description The kind of personal card swap, replace and reveal_other act on.
+         * @enum {string}
+         */
+        BunkerPersonalKind: "profession" | "biology" | "health" | "hobby" | "phobia" | "character" | "baggage" | "fact";
+        BunkerCardDto: {
+            kind: components["schemas"]["BunkerCardKind"];
+            /** @description Special cards only. */
+            effect: components["schemas"]["BunkerEffect"] | null;
+            /** @description The kind of personal card swap, replace and reveal_other act on. */
+            effectKind: components["schemas"]["BunkerPersonalKind"] | null;
+            /** @description null — a card of the built-in pack. */
+            author: components["schemas"]["UserRefDto"] | null;
+            id: string;
+            /** @description Catastrophe and threat only; '' for the rest. */
+            title: string;
+            text: string;
+            builtin: boolean;
+            /** @description The reader may change or delete it (own, or moderation). */
+            canEdit: boolean;
+            /** @description Packs that hold the card. */
+            packCount: number;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        BunkerCardListDto: {
+            items: components["schemas"]["BunkerCardDto"][];
+            total: number;
+            page: number;
+            limit: number;
+        };
+        CreateCardDto: {
+            kind: components["schemas"]["BunkerCardKind"];
+            /** @description Special cards: what the card does. */
+            effect?: components["schemas"]["BunkerEffect"] | null;
+            /** @description swap, replace, reveal_other: the kind of personal card. */
+            effectKind?: components["schemas"]["BunkerPersonalKind"] | null;
+            /**
+             * Format: uuid
+             * @description Add the new card to this pack at once (it must be the reader's to change).
+             */
+            packId?: string;
+            /** @description Catastrophe and threat: required; other kinds: none. */
+            title?: string;
+            /** @description Up to 140 characters (catastrophe and threat — 400). */
+            text: string;
+        };
+        UpdateCardDto: {
+            kind?: components["schemas"]["BunkerCardKind"];
+            effect?: components["schemas"]["BunkerEffect"] | null;
+            effectKind?: components["schemas"]["BunkerPersonalKind"] | null;
+            title?: string;
+            text?: string;
+        };
+        BunkerKindCountDto: {
+            kind: components["schemas"]["BunkerCardKind"];
+            count: number;
+        };
+        BunkerPackDto: {
+            author: components["schemas"]["UserRefDto"] | null;
+            /** @description Cards of each kind (every kind, zeros too). */
+            counts: components["schemas"]["BunkerKindCountDto"][];
+            id: string;
+            name: string;
+            description: string;
+            /** @description The pack that comes with the app: read only, can be copied. */
+            builtin: boolean;
+            canEdit: boolean;
+            cardCount: number;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        BunkerPackListDto: {
+            items: components["schemas"]["BunkerPackDto"][];
+        };
+        CreatePackDto: {
+            name: string;
+            description?: string;
+            /**
+             * Format: uuid
+             * @description «Копія»: the new pack holds the same cards as this one.
+             */
+            copyOf?: string;
+        };
+        BunkerPackDetailDto: {
+            author: components["schemas"]["UserRefDto"] | null;
+            /** @description Cards of each kind (every kind, zeros too). */
+            counts: components["schemas"]["BunkerKindCountDto"][];
+            cards: components["schemas"]["BunkerCardDto"][];
+            id: string;
+            name: string;
+            description: string;
+            /** @description The pack that comes with the app: read only, can be copied. */
+            builtin: boolean;
+            canEdit: boolean;
+            cardCount: number;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        CardFieldsDto: {
+            kind: components["schemas"]["BunkerCardKind"];
+            /** @description Special cards: what the card does. */
+            effect?: components["schemas"]["BunkerEffect"] | null;
+            /** @description swap, replace, reveal_other: the kind of personal card. */
+            effectKind?: components["schemas"]["BunkerPersonalKind"] | null;
+            /** @description Catastrophe and threat: required; other kinds: none. */
+            title?: string;
+            /** @description Up to 140 characters (catastrophe and threat — 400). */
+            text: string;
+        };
+        ImportPackDto: {
+            /** @enum {string} */
+            format: "digicomp-bunker-pack";
+            cards: components["schemas"]["CardFieldsDto"][];
+            name: string;
+            description?: string;
+        };
+        BunkerPackFileCardDto: {
+            kind: components["schemas"]["BunkerCardKind"];
+            effect: components["schemas"]["BunkerEffect"] | null;
+            effectKind: components["schemas"]["BunkerPersonalKind"] | null;
+            title: string;
+            text: string;
+        };
+        BunkerPackFileDto: {
+            /** @enum {string} */
+            format: "digicomp-bunker-pack";
+            cards: components["schemas"]["BunkerPackFileCardDto"][];
+            name: string;
+            description: string;
+        };
+        UpdatePackDto: {
+            name?: string;
+            description?: string;
+        };
+        PackCardsDto: {
+            cardIds: string[];
+        };
+        /** @enum {string} */
+        BunkerRoomStatus: "lobby" | "playing" | "finished";
+        BunkerPackRefDto: {
+            id: string;
+            name: string;
+        };
+        BunkerRoomListItemDto: {
+            status: components["schemas"]["BunkerRoomStatus"];
+            members: components["schemas"]["UserRefDto"][];
+            packs: components["schemas"]["BunkerPackRefDto"][];
+            /** @description Playing: the round; otherwise null. */
+            round: number | null;
+            /** @description Playing: still in the game. */
+            alive: number | null;
+            id: string;
+            name: string;
+            host: components["schemas"]["UserRefDto"];
+            maxPlayers: number;
+        };
+        BunkerRoomListDto: {
+            items: components["schemas"]["BunkerRoomListItemDto"][];
+            /** @description The room the reader is in. */
+            myRoomId: string | null;
+        };
+        CreateRoomDto: {
+            /**
+             * @description 30, 60 or 120; null — no timer.
+             * @enum {number|null}
+             */
+            turnSeconds: 30 | 60 | 120 | null;
+            name: string;
+            /** @description Packs to deal from; what they lack comes from the built-in one. */
+            packIds: string[];
+            maxPlayers: number;
+            hostPlays: boolean;
+        };
+        BunkerMemberDto: {
+            userId: string;
+            /** @description The page of the room asked for news in the last 30 seconds. */
+            online: boolean;
+        };
+        /** @enum {string} */
+        BunkerPhase: "turns" | "discussion" | "voting" | "finished";
+        BunkerFeatureDto: {
+            /** @description null — opens in `round`. */
+            text: string | null;
+            round: number;
+        };
+        BunkerTableCardDto: {
+            title: string;
+            text: string;
+        };
+        BunkerSeenCardDto: {
+            kind: components["schemas"]["BunkerPersonalKind"];
+            /** @description null — closed. */
+            text: string | null;
+        };
+        BunkerSpecialDto: {
+            effect: components["schemas"]["BunkerEffect"];
+            effectKind: components["schemas"]["BunkerPersonalKind"] | null;
+            text: string;
+        };
+        BunkerPlayerDto: {
+            /** @description Round the player left the game in; null — still in. */
+            out: number | null;
+            cards: components["schemas"]["BunkerSeenCardDto"][];
+            /** @description Shown to all once used, and at the end of the game. */
+            special: components["schemas"]["BunkerSpecialDto"] | null;
+            userId: string;
+            /** @description Left the room or was removed (not voted out). */
+            left: boolean;
+            specialUsed: boolean;
+        };
+        BunkerMyCardDto: {
+            kind: components["schemas"]["BunkerPersonalKind"];
+            text: string;
+            revealed: boolean;
+        };
+        BunkerMeDto: {
+            cards: components["schemas"]["BunkerMyCardDto"][];
+            special: components["schemas"]["BunkerSpecialDto"];
+            specialUsed: boolean;
+        };
+        BunkerTurnDto: {
+            deadline: string | null;
+            userId: string;
+            /** @description The speaker has revealed this turn's card. */
+            revealed: boolean;
+        };
+        BunkerVoteDto: {
+            myVote: string | null;
+            candidates: string[];
+            /** @description Who has voted (not for whom: the vote is secret). */
+            voted: string[];
+            /** @description A re-vote between the tied. */
+            runoff: boolean;
+            /** @description The reader's vote counts twice. */
+            double: boolean;
+        };
+        /** @enum {string} */
+        BunkerLogType: "round" | "reveal" | "timeout" | "skip" | "vote" | "tie" | "out" | "lot" | "special" | "left" | "removed" | "finished";
+        BunkerTallyDto: {
+            userId: string;
+            votes: number;
+        };
+        BunkerLogDto: {
+            type: components["schemas"]["BunkerLogType"];
+            userId?: string;
+            targetId?: string;
+            kind?: components["schemas"]["BunkerPersonalKind"];
+            text?: string;
+            effect?: components["schemas"]["BunkerEffect"];
+            tally?: components["schemas"]["BunkerTallyDto"][];
+            at: string;
+            round: number;
+        };
+        BunkerGameDto: {
+            phase: components["schemas"]["BunkerPhase"];
+            bunker: components["schemas"]["BunkerFeatureDto"][];
+            /** @description Opens at the end of the game. */
+            threat: components["schemas"]["BunkerTableCardDto"] | null;
+            players: components["schemas"]["BunkerPlayerDto"][];
+            /** @description The reader's own cards; null — not playing (the host who only leads). */
+            me: components["schemas"]["BunkerMeDto"] | null;
+            turn: components["schemas"]["BunkerTurnDto"] | null;
+            vote: components["schemas"]["BunkerVoteDto"] | null;
+            log: components["schemas"]["BunkerLogDto"][];
+            round: number;
+            /** @description Places in the bunker. */
+            capacity: number;
+            /** @description Eliminations left in each round (index 0 — round 1). */
+            schedule: number[];
+            stayMonths: number;
+            catastrophe: components["schemas"]["BunkerTableCardDto"];
+            /** @description Still to speak this round, the speaker first. */
+            queue: string[];
+            /** @description Protected from votes this round. */
+            immune: string[];
+        };
+        BunkerRoomSettingsDto: {
+            /** @description Seconds for a turn; null — no timer. */
+            turnSeconds: number | null;
+            /** @description Packs the cards are dealt from; what they lack comes from the built-in one. */
+            packIds: string[];
+            maxPlayers: number;
+            /** @description The host plays too (false — only leads the game). */
+            hostPlays: boolean;
+        };
+        BunkerRoomDto: {
+            status: components["schemas"]["BunkerRoomStatus"];
+            packs: components["schemas"]["BunkerPackRefDto"][];
+            /** @description In the room now, in the order they joined. */
+            members: components["schemas"]["BunkerMemberDto"][];
+            /** @description Everyone the room names: members and players who left. */
+            users: components["schemas"]["UserRefDto"][];
+            game: components["schemas"]["BunkerGameDto"] | null;
+            id: string;
+            name: string;
+            hostId: string;
+            settings: components["schemas"]["BunkerRoomSettingsDto"];
+            /** @description Server time: the turn timer counts from it. */
+            now: string;
+        };
+        UpdateRoomDto: {
+            /** @enum {number|null} */
+            turnSeconds?: 30 | 60 | 120 | null;
+            name?: string;
+            packIds?: string[];
+            maxPlayers?: number;
+            hostPlays?: boolean;
+        };
+        PassHostDto: {
+            /** Format: uuid */
+            userId: string;
+        };
+        /** @enum {string} */
+        BunkerActionType: "reveal" | "end_turn" | "skip_turn" | "start_vote" | "vote" | "close_vote" | "next_round" | "special";
+        RoomActionDto: {
+            type: components["schemas"]["BunkerActionType"];
+            kind?: components["schemas"]["BunkerPersonalKind"];
+            /**
+             * Format: uuid
+             * @description The player voted against, or the one a special card acts on.
+             */
+            targetId?: string;
         };
     };
     responses: never;
@@ -8057,6 +8661,568 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PanelJobDto"];
+                };
+            };
+        };
+    };
+    BunkerController_listCards: {
+        parameters: {
+            query?: {
+                kind?: components["schemas"]["BunkerCardKind"];
+                search?: string;
+                /** @description Only the reader's cards. */
+                mine?: "true";
+                /** @description Leave out the cards of this pack. */
+                notInPack?: string;
+                page?: string;
+                limit?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BunkerCardListDto"];
+                };
+            };
+        };
+    };
+    BunkerController_createCard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCardDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BunkerCardDto"];
+                };
+            };
+        };
+    };
+    BunkerController_deleteCard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    BunkerController_updateCard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCardDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BunkerCardDto"];
+                };
+            };
+        };
+    };
+    BunkerController_listPacks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BunkerPackListDto"];
+                };
+            };
+        };
+    };
+    BunkerController_createPack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePackDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BunkerPackDetailDto"];
+                };
+            };
+        };
+    };
+    BunkerController_importPack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportPackDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BunkerPackDetailDto"];
+                };
+            };
+        };
+    };
+    BunkerController_getPack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BunkerPackDetailDto"];
+                };
+            };
+        };
+    };
+    BunkerController_deletePack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    BunkerController_updatePack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePackDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BunkerPackDetailDto"];
+                };
+            };
+        };
+    };
+    BunkerController_exportPack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BunkerPackFileDto"];
+                };
+            };
+        };
+    };
+    BunkerController_addCards: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PackCardsDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BunkerPackDetailDto"];
+                };
+            };
+        };
+    };
+    BunkerController_removeCard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                cardId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BunkerPackDetailDto"];
+                };
+            };
+        };
+    };
+    BunkerRoomsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BunkerRoomListDto"];
+                };
+            };
+        };
+    };
+    BunkerRoomsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRoomDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BunkerRoomDto"];
+                };
+            };
+        };
+    };
+    BunkerRoomsController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BunkerRoomDto"];
+                };
+            };
+        };
+    };
+    BunkerRoomsController_close: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    BunkerRoomsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateRoomDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BunkerRoomDto"];
+                };
+            };
+        };
+    };
+    BunkerRoomsController_join: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BunkerRoomDto"];
+                };
+            };
+        };
+    };
+    BunkerRoomsController_leave: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkDto"];
+                };
+            };
+        };
+    };
+    BunkerRoomsController_start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BunkerRoomDto"];
+                };
+            };
+        };
+    };
+    BunkerRoomsController_restart: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BunkerRoomDto"];
+                };
+            };
+        };
+    };
+    BunkerRoomsController_passHost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PassHostDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BunkerRoomDto"];
+                };
+            };
+        };
+    };
+    BunkerRoomsController_removeMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BunkerRoomDto"];
+                };
+            };
+        };
+    };
+    BunkerRoomsController_act: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoomActionDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BunkerRoomDto"];
                 };
             };
         };

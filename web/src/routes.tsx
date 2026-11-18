@@ -34,6 +34,9 @@ import { PointsPage } from './pages/points/PointsPage';
 import { RatingPage } from './pages/points/RatingPage';
 import { TaskPage } from './pages/tasks/TaskPage';
 import { TasksPage } from './pages/tasks/TasksPage';
+import { BunkerPage } from './pages/fun/bunker/BunkerPage';
+import { RoomPage } from './pages/fun/bunker/RoomPage';
+import { FunPage } from './pages/fun/FunPage';
 import { EquipmentPage } from './pages/lab/EquipmentPage';
 import { JournalPage } from './pages/lab/JournalPage';
 import { LabPage } from './pages/lab/LabPage';
@@ -77,6 +80,17 @@ export const routes: RouteObject[] = [
         <Suspense fallback={<PaperLoading />}>
           <PaperPage />
         </Suspense>
+      </RequireAuth>
+    ),
+  },
+  // A room of «Бункер»: the whole window too.
+  {
+    path: '/fun/bunker/:id',
+    element: (
+      <RequireAuth>
+        <RequirePermission action="bunker.play" fallback={<ForbiddenPage />}>
+          <RoomPage />
+        </RequirePermission>
       </RequireAuth>
     ),
   },
@@ -179,6 +193,22 @@ export const routes: RouteObject[] = [
       // The QR of a printed (frozen) document leads here.
       { path: 'papers/verify/:sha', element: <VerifyPage /> },
       { path: 'rating', element: <RatingPage /> },
+      {
+        path: 'fun',
+        element: (
+          <RequirePermission action="bunker.play" fallback={<ForbiddenPage />}>
+            <FunPage />
+          </RequirePermission>
+        ),
+      },
+      {
+        path: 'fun/bunker',
+        element: (
+          <RequirePermission action="bunker.play" fallback={<ForbiddenPage />}>
+            <BunkerPage />
+          </RequirePermission>
+        ),
+      },
       {
         path: 'points',
         element: (

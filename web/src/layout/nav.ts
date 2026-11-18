@@ -27,6 +27,7 @@ export const MORE: NavItem[] = [
   { to: '/docs', label: 'Архів', icon: 'file' },
   { to: '/editor', label: 'Редактор', icon: 'pen', permission: 'papers.read' },
   { to: '/rating', label: 'Рейтинг', icon: 'star' },
+  { to: '/fun', label: 'Розваги', icon: 'dice', permission: 'bunker.play' },
 ];
 
 /** «Керування»: moderators and admins only. */

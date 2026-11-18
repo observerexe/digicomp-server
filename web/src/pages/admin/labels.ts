@@ -103,6 +103,7 @@ export const AUDIT_GROUPS: { value: string; label: string }[] = [
   { value: 'dictionary.', label: 'Довідники' },
   { value: 'link.', label: 'Зв’язки' },
   { value: 'panel.', label: 'Розширена панель' },
+  { value: 'bunker.', label: 'Бункер' },
 ];
 
 /** Human text for each audit action (the type makes a new action from the server need its text). */
@@ -203,6 +204,15 @@ export const AUDIT_ACTION: Record<AuditAction, string> = {
   'link.created': 'Пов’язав записи',
   'link.removed': 'Прибрав зв’язок',
   'panel.action': 'Дія розширеної панелі',
+  'bunker.card_created': 'Створив карту Бункера',
+  'bunker.card_updated': 'Змінив карту Бункера',
+  'bunker.card_deleted': 'Видалив карту Бункера',
+  'bunker.pack_created': 'Створив пак Бункера',
+  'bunker.pack_updated': 'Змінив пак Бункера',
+  'bunker.pack_deleted': 'Видалив пак Бункера',
+  'bunker.room_created': 'Створив кімнату Бункера',
+  'bunker.room_closed': 'Закрив кімнату Бункера',
+  'bunker.player_removed': 'Прибрав гравця з кімнати Бункера',
 };
 
 /** Where an audit object opens in the app (null — nowhere to go). */

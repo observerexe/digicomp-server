@@ -154,6 +154,10 @@ export enum Action {
   SmartRead = 'smart.read',
   SmartControl = 'smart.control',
   SmartAllowlist = 'smart.allowlist',
+
+  // «Розваги» → «Бункер»: play, own cards and packs; moderate others' ones
+  BunkerPlay = 'bunker.play',
+  BunkerModerate = 'bunker.moderate',
 }
 
 const A = Role.Admin;
@@ -291,6 +295,12 @@ export const ROLES: Record<Action, readonly Role[]> = {
   [Action.SmartRead]: ALL,
   [Action.SmartControl]: STAFF,
   [Action.SmartAllowlist]: ADMIN,
+
+  // Rooms, the game, own cards and packs. The host's powers in a room are a
+  // rule of the game (bunker/engine.ts), not a role.
+  [Action.BunkerPlay]: ALL,
+  // Change or delete another's card or pack, close another's room.
+  [Action.BunkerModerate]: STAFF,
 };
 
 /** Error codes returned when a refined rule denies the action. */
@@ -344,6 +354,15 @@ const ownRecordForNonAdmin: Refine = (actor, { ownerId }) =>
     ? true
     : Deny.NotOwner;
 
+/**
+ * Moderation of content (cards, packs, rooms) made by `target`: a moderator —
+ * of members and of nobody (author gone); the admin — of anyone.
+ */
+const contentOfMember: Refine = (actor, { target }) => {
+  if (actor.role === A) return true;
+  return !target || target.role === U ? true : Deny.TargetRole;
+};
+
 /** Layer 2: context rules. Missing entry = no extra rule. */
 const REFINE: Partial<Record<Action, Refine>> = {
   [Action.UsersBlock]: moderatorOverMember,
@@ -396,6 +415,8 @@ const REFINE: Partial<Record<Action, Refine>> = {
   // (`shared`; staff see every document, so every image a document holds).
   [Action.PaperImagesRead]: (actor, { ownerId, shared }) =>
     shared || (ownerId != null && ownerId === actor.id) ? true : Deny.NotOwner,
+
+  [Action.BunkerModerate]: contentOfMember,
 };
 
 export function roleAllowed(role: string, action: Action): boolean {

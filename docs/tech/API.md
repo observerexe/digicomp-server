@@ -49,7 +49,8 @@
 `AUTHORIZATION_NOT_FOUND`, `POINTS_ENTRY_NOT_FOUND`, `DISCIPLINE_RECORD_NOT_FOUND`, `SMART_DEVICE_NOT_FOUND`, `AUDIT_CURSOR_NOT_FOUND`,
 `DICTIONARY_NOT_FOUND`, `DICTIONARY_ITEM_NOT_FOUND`, `RECORD_TYPE_NOT_FOUND`, `FIELD_DEF_NOT_FOUND`, `LINK_NOT_FOUND`,
 `RECORD_NOT_FOUND` (запису немає або людина його не бачить), `PAPER_NOT_FOUND` (документа редактора немає або людина його не бачить),
-`TEMPLATE_NOT_FOUND` (шаблону немає або учасник його не бачить), `TEMPLATE_VERSION_NOT_FOUND`.
+`TEMPLATE_NOT_FOUND` (шаблону немає або учасник його не бачить), `TEMPLATE_VERSION_NOT_FOUND`,
+`BUNKER_ROOM_NOT_FOUND` (кімнату закрито), `BUNKER_CARD_NOT_FOUND`, `BUNKER_PACK_NOT_FOUND`, `BUNKER_MEMBER_NOT_FOUND`.
 
 | Код | Статус | Коли |
 |---|---|---|
@@ -178,6 +179,22 @@
 | **Розширена панель** | | |
 | `AGENT_UNAVAILABLE` | 503 | Агент на сервері не відповідає |
 | `AGENT_BUSY` | 409 | Уже виконується інша дія |
+| **Бункер** | | |
+| `BUNKER_NOT_IN_ROOM` | 403 | Людини немає в кімнаті (дивитися й діяти можуть лише ті, хто в ній) |
+| `BUNKER_ALREADY_IN_ROOM` | 409 | Людина вже в іншій кімнаті, де гра не закінчилась |
+| `BUNKER_ROOM_FULL`, `BUNKER_STARTED` | 409 | Приєднатися не можна: місць немає або гра вже почалася |
+| `BUNKER_NOT_STARTED`, `BUNKER_NOT_OVER` | 409 | Хід у лобі; «Зіграти ще раз», поки гра триває |
+| `BUNKER_TOO_FEW_PLAYERS`, `BUNKER_TOO_MANY_PLAYERS` | 409 | Почати гру менше ніж з 4 гравцями; гравців більше, ніж `maxPlayers` |
+| `BUNKER_NOT_ENOUGH_CARDS` | 409 | Карт виду `kind` бракує навіть разом із Базовим паком |
+| `BUNKER_NOT_HOST` | 403 | Дія ведучого (почати, пропустити хід, голосування, налаштування, вилучити, передати роль) |
+| `BUNKER_NOT_PLAYER`, `BUNKER_ELIMINATED` | 403 | Хід або голос від того, хто не грає (ведучий, що лише веде) чи вже вибув |
+| `BUNKER_WRONG_PHASE` | 409 | Дія не для цього етапу гри (голос під час ходів, «скасувати голосування» в раунді 5…) |
+| `BUNKER_NOT_YOUR_TURN`, `BUNKER_ONE_CARD`, `BUNKER_ALREADY_REVEALED`, `BUNKER_REVEAL_FIRST` | 409 | Відкрити карту не у свій хід, другу за хід, уже відкриту; завершити хід, нічого не відкривши |
+| `BUNKER_BAD_TARGET` | 409 | Голос за себе чи не за кандидата; особлива умова на себе, вибулого або на вже відкриту карту |
+| `BUNKER_SPECIAL_USED`, `BUNKER_DECK_EMPTY` | 409 | Особливу умову вже використано; для «нової карти» колода цього виду порожня |
+| `BUNKER_VOTE_PENDING` | 409 | «Наступний раунд», поки цього раунду ще треба когось вигнати |
+| `BUNKER_BUILTIN` | 403 | Змінити чи видалити карту або пак Базового паку |
+| `BUNKER_CARD_INVALID` | 400 | Карта не відповідає виду (`field`: `text` — порожній чи задовгий, `title` — немає назви катастрофи чи загрози, `effect`, `effectKind`) |
 
 Новий код додається у трьох місцях: `api/src/common/http-exception.filter.ts`, `web/src/errors/messages.ts` і ця таблиця.
 
@@ -750,6 +767,36 @@
 - Довідник, з якого бере значення поле опублікованої версії, не видаляється (`DICTIONARY_IN_USE`).
 - Аудит (`entity: paper_template`): `paper_template.created`, `paper_template.updated` (`changes`), `paper_template.deleted`,
   `paper_template.published` (`version`), `paper_template.draft_discarded` (`version`). Збереження чернетки версії не пишеться.
+
+### Бункер
+
+Усе — з правом `bunker.play` (кожна роль). Правила гри — [ARCHITECTURE.md](ARCHITECTURE.md), «Прийняті рішення».
+
+- **Карти.** `GET /api/bunker/cards?kind=&search=&mine=true&notInPack=&page=&limit=` (до 100; спершу карти людей, новіші вище, потім
+  Базового паку). `POST /api/bunker/cards { kind, title?, text, effect?, effectKind?, packId? }` — `packId` одразу додає в свій пак.
+  Назва — лише в катастрофи й загрози (до 60), текст — до 140 (у них — до 400); `effect` — лише в особливої умови, `effectKind` —
+  лише для `swap`, `replace`, `reveal_other`. Зайву назву чи дію сервер відкидає, бракує потрібної — `BUNKER_CARD_INVALID`.
+  `PATCH`, `DELETE /api/bunker/cards/:id` — автор; чужу — `bunker.moderate` (модератор — карти `member`). Видалена карта
+  зникає з усіх паків (`packCount` у відповіді — у скількох вона). `canEdit` каже, чи може читач її змінити.
+- **Паки.** `GET /api/bunker/packs` (Базовий, свої, решта за назвою; `counts` — карт кожного виду), `GET /api/bunker/packs/:id` з картами.
+  `POST /api/bunker/packs { name, description?, copyOf? }` — `copyOf` робить копію з тими самими картами. `PATCH`, `DELETE` — як для
+  карт; видалення паку карт не видаляє. `POST /api/bunker/packs/:id/cards { cardIds }`, `DELETE /api/bunker/packs/:id/cards/:cardId`.
+  `GET /api/bunker/packs/:id/export` — файл `{ format: "digicomp-bunker-pack", name, description, cards }`; той самий
+  `POST /api/bunker/packs/import` робить новий пак із новими картами читача.
+- **Кімнати.** `GET /api/bunker/rooms` — ті, що збирають гравців і грають (завершена — лише її учасникам), `myRoomId`.
+  `POST /api/bunker/rooms { name, packIds, maxPlayers (4–16), turnSeconds (30 | 60 | 120 | null), hostPlays }` — творець стає ведучим.
+  Людина буває лише в одній кімнаті: з кімнати, де гра закінчилась, нова кімната чи вхід виводять самі.
+  `GET /api/bunker/rooms/:id` — кімната, як її бачить читач (лише тим, хто в ній); сторінка питає раз на 2 с, і це ж позначає
+  людину «у мережі» (`members[].online` — питала за останні 30 с). `now` — час сервера для таймера ходу.
+  `POST :id/join` (лише лобі), `:id/leave` (у грі — вибуває), `:id/start`, `:id/restart` (після фіналу — назад у лобі),
+  `:id/host { userId }`, `PATCH :id` (налаштування в лобі), `DELETE :id/members/:userId` (ведучий; в аудит `bunker.player_removed`),
+  `DELETE :id` — закрити: ведучий або `bunker.moderate` (модератор — кімнату, яку веде `member`).
+- **Гра.** `POST /api/bunker/rooms/:id/actions { type, kind?, targetId? }`: `reveal` (`kind`), `end_turn`, `vote` (`targetId`),
+  `special` (`targetId` для обміну й «відкрити чужу»); ведучий — `skip_turn`, `start_vote`, `close_vote`, `next_round`.
+  Відповідь — кімната. `game` ніколи не містить чужих закритих карт, чужих особливих умов до використання, колоди й бюлетенів:
+  у голосуванні видно лише, хто проголосував, підсумок — у хроніці (`log[].tally`). У фіналі відкрито все, разом із загрозою.
+- **Аудит:** `bunker.card_created|updated|deleted`, `bunker.pack_created|updated|deleted` (`authorId` — чий запис змінено),
+  `bunker.room_created`, `bunker.room_closed` (`reason: idle | empty` — сервер чи всі вийшли), `bunker.player_removed`.
 
 ### Розумна лабораторія
 

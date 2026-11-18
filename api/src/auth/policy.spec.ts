@@ -911,6 +911,26 @@ const ROWS: Record<string, Case[]> = {
       Deny.Forbidden,
     ],
   ],
+  'Бункер: грати, свої карти й паки': [
+    ['admin', admin, Action.BunkerPlay, undefined, true],
+    ['moderator', mod, Action.BunkerPlay, undefined, true],
+    ['member', member, Action.BunkerPlay, undefined, true],
+  ],
+  'Бункер: змінити чи видалити чужі карту, пак; закрити чужу кімнату': [
+    ['admin: модератора', admin, Action.BunkerModerate, tModerator, true],
+    ['admin: адміна', admin, Action.BunkerModerate, tAdmin, true],
+    ['moderator: учасника', mod, Action.BunkerModerate, tMember, true],
+    ['moderator: автора вже немає', mod, Action.BunkerModerate, {}, true],
+    [
+      'moderator: модератора',
+      mod,
+      Action.BunkerModerate,
+      tModerator,
+      Deny.TargetRole,
+    ],
+    ['moderator: адміна', mod, Action.BunkerModerate, tAdmin, Deny.TargetRole],
+    ['member', member, Action.BunkerModerate, tMember, Deny.Forbidden],
+  ],
 };
 
 describe('Матриця прав (docs/tech/ARCHITECTURE.md)', () => {

@@ -48,6 +48,15 @@ const PATHS: Record<string, string> = {
   header: 'M4 4h16v6H4zM4 14h16M4 18h10',
   footer: 'M4 14h16v6H4zM4 6h16M4 10h10',
   branch: 'M6 3v12M6 15a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM18 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM18 9c0 5-6 4-11.2 6.6',
+  dice: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM8 8h.01M12 12h.01M16 16h.01',
+  bunker: 'M3 21h18M5 21V11l7-6 7 6v10M10 21v-5h4v5',
+  crown: 'M3 8l4 4 5-7 5 7 4-4-2 11H5z',
+  lock: 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4',
+  clock: 'M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM12 7v5l3 2',
+  close: 'M6 6l12 12M18 6 6 18',
+  plus: 'M12 5v14M5 12h14',
+  check: 'm5 12 5 5 9-10',
+  edit: 'M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z',
   more: 'M5 11a1 1 0 1 0 0 2 1 1 0 1 0 0-2zM12 11a1 1 0 1 0 0 2 1 1 0 1 0 0-2zM19 11a1 1 0 1 0 0 2 1 1 0 1 0 0-2z',
 };
 

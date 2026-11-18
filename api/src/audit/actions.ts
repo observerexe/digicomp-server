@@ -101,6 +101,15 @@ export const AUDIT_ACTIONS = [
   'link.created',
   'link.removed',
   'panel.action',
+  'bunker.card_created',
+  'bunker.card_updated',
+  'bunker.card_deleted',
+  'bunker.pack_created',
+  'bunker.pack_updated',
+  'bunker.pack_deleted',
+  'bunker.room_created',
+  'bunker.room_closed',
+  'bunker.player_removed',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

@@ -6169,6 +6169,852 @@
           "AdminPanel"
         ]
       }
+    },
+    "/api/bunker/cards": {
+      "get": {
+        "operationId": "BunkerController_listCards",
+        "parameters": [
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/BunkerCardKind"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "mine",
+            "required": false,
+            "in": "query",
+            "description": "Only the reader's cards.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true"
+              ]
+            }
+          },
+          {
+            "name": "notInPack",
+            "required": false,
+            "in": "query",
+            "description": "Leave out the cards of this pack.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 6,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 3,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BunkerCardListDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Bunker"
+        ]
+      },
+      "post": {
+        "operationId": "BunkerController_createCard",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCardDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BunkerCardDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Bunker"
+        ]
+      }
+    },
+    "/api/bunker/cards/{id}": {
+      "patch": {
+        "operationId": "BunkerController_updateCard",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCardDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BunkerCardDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Bunker"
+        ]
+      },
+      "delete": {
+        "operationId": "BunkerController_deleteCard",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Bunker"
+        ]
+      }
+    },
+    "/api/bunker/packs": {
+      "get": {
+        "operationId": "BunkerController_listPacks",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BunkerPackListDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Bunker"
+        ]
+      },
+      "post": {
+        "operationId": "BunkerController_createPack",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePackDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BunkerPackDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Bunker"
+        ]
+      }
+    },
+    "/api/bunker/packs/import": {
+      "post": {
+        "operationId": "BunkerController_importPack",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportPackDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BunkerPackDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Bunker"
+        ]
+      }
+    },
+    "/api/bunker/packs/{id}": {
+      "get": {
+        "operationId": "BunkerController_getPack",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BunkerPackDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Bunker"
+        ]
+      },
+      "patch": {
+        "operationId": "BunkerController_updatePack",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePackDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BunkerPackDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Bunker"
+        ]
+      },
+      "delete": {
+        "operationId": "BunkerController_deletePack",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Bunker"
+        ]
+      }
+    },
+    "/api/bunker/packs/{id}/export": {
+      "get": {
+        "operationId": "BunkerController_exportPack",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BunkerPackFileDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Bunker"
+        ]
+      }
+    },
+    "/api/bunker/packs/{id}/cards": {
+      "post": {
+        "operationId": "BunkerController_addCards",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PackCardsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BunkerPackDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Bunker"
+        ]
+      }
+    },
+    "/api/bunker/packs/{id}/cards/{cardId}": {
+      "delete": {
+        "operationId": "BunkerController_removeCard",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cardId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BunkerPackDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Bunker"
+        ]
+      }
+    },
+    "/api/bunker/rooms": {
+      "get": {
+        "operationId": "BunkerRoomsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BunkerRoomListDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BunkerRooms"
+        ]
+      },
+      "post": {
+        "operationId": "BunkerRoomsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRoomDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BunkerRoomDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BunkerRooms"
+        ]
+      }
+    },
+    "/api/bunker/rooms/{id}": {
+      "get": {
+        "operationId": "BunkerRoomsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BunkerRoomDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BunkerRooms"
+        ]
+      },
+      "patch": {
+        "operationId": "BunkerRoomsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRoomDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BunkerRoomDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BunkerRooms"
+        ]
+      },
+      "delete": {
+        "operationId": "BunkerRoomsController_close",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Closes the room: its host or moderation.",
+        "tags": [
+          "BunkerRooms"
+        ]
+      }
+    },
+    "/api/bunker/rooms/{id}/join": {
+      "post": {
+        "operationId": "BunkerRoomsController_join",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BunkerRoomDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BunkerRooms"
+        ]
+      }
+    },
+    "/api/bunker/rooms/{id}/leave": {
+      "post": {
+        "operationId": "BunkerRoomsController_leave",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BunkerRooms"
+        ]
+      }
+    },
+    "/api/bunker/rooms/{id}/start": {
+      "post": {
+        "operationId": "BunkerRoomsController_start",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BunkerRoomDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BunkerRooms"
+        ]
+      }
+    },
+    "/api/bunker/rooms/{id}/restart": {
+      "post": {
+        "operationId": "BunkerRoomsController_restart",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BunkerRoomDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BunkerRooms"
+        ]
+      }
+    },
+    "/api/bunker/rooms/{id}/host": {
+      "post": {
+        "operationId": "BunkerRoomsController_passHost",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PassHostDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BunkerRoomDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BunkerRooms"
+        ]
+      }
+    },
+    "/api/bunker/rooms/{id}/members/{userId}": {
+      "delete": {
+        "operationId": "BunkerRoomsController_removeMember",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BunkerRoomDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BunkerRooms"
+        ]
+      }
+    },
+    "/api/bunker/rooms/{id}/actions": {
+      "post": {
+        "operationId": "BunkerRoomsController_act",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoomActionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BunkerRoomDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BunkerRooms"
+        ]
+      }
     }
   },
   "info": {
@@ -6745,7 +7591,16 @@
           "dictionary.item_deleted",
           "link.created",
           "link.removed",
-          "panel.action"
+          "panel.action",
+          "bunker.card_created",
+          "bunker.card_updated",
+          "bunker.card_deleted",
+          "bunker.pack_created",
+          "bunker.pack_updated",
+          "bunker.pack_deleted",
+          "bunker.room_created",
+          "bunker.room_closed",
+          "bunker.player_removed"
         ]
       },
       "AuditEntryDto": {
@@ -12873,6 +13728,1376 @@
         },
         "required": [
           "target"
+        ]
+      },
+      "BunkerCardKind": {
+        "type": "string",
+        "enum": [
+          "catastrophe",
+          "bunker",
+          "threat",
+          "profession",
+          "biology",
+          "health",
+          "hobby",
+          "phobia",
+          "character",
+          "baggage",
+          "fact",
+          "special"
+        ]
+      },
+      "BunkerEffect": {
+        "type": "string",
+        "enum": [
+          "none",
+          "swap",
+          "replace",
+          "reveal_other",
+          "double_vote",
+          "immunity",
+          "cancel_vote"
+        ],
+        "description": "Special cards only."
+      },
+      "BunkerPersonalKind": {
+        "type": "string",
+        "enum": [
+          "profession",
+          "biology",
+          "health",
+          "hobby",
+          "phobia",
+          "character",
+          "baggage",
+          "fact"
+        ],
+        "description": "The kind of personal card swap, replace and reveal_other act on."
+      },
+      "BunkerCardDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerCardKind"
+              }
+            ]
+          },
+          "effect": {
+            "nullable": true,
+            "description": "Special cards only.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerEffect"
+              }
+            ]
+          },
+          "effectKind": {
+            "nullable": true,
+            "description": "The kind of personal card swap, replace and reveal_other act on.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerPersonalKind"
+              }
+            ]
+          },
+          "author": {
+            "nullable": true,
+            "description": "null — a card of the built-in pack.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserRefDto"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "description": "Catastrophe and threat only; '' for the rest."
+          },
+          "text": {
+            "type": "string"
+          },
+          "builtin": {
+            "type": "boolean"
+          },
+          "canEdit": {
+            "type": "boolean",
+            "description": "The reader may change or delete it (own, or moderation)."
+          },
+          "packCount": {
+            "type": "number",
+            "description": "Packs that hold the card."
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "effect",
+          "effectKind",
+          "author",
+          "id",
+          "title",
+          "text",
+          "builtin",
+          "canEdit",
+          "packCount",
+          "updatedAt"
+        ]
+      },
+      "BunkerCardListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BunkerCardDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "limit"
+        ]
+      },
+      "CreateCardDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerCardKind"
+              }
+            ]
+          },
+          "effect": {
+            "nullable": true,
+            "description": "Special cards: what the card does.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerEffect"
+              }
+            ]
+          },
+          "effectKind": {
+            "nullable": true,
+            "description": "swap, replace, reveal_other: the kind of personal card.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerPersonalKind"
+              }
+            ]
+          },
+          "packId": {
+            "type": "string",
+            "description": "Add the new card to this pack at once (it must be the reader's to change).",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "description": "Catastrophe and threat: required; other kinds: none.",
+            "maxLength": 60
+          },
+          "text": {
+            "type": "string",
+            "description": "Up to 140 characters (catastrophe and threat — 400).",
+            "minLength": 1,
+            "maxLength": 400
+          }
+        },
+        "required": [
+          "kind",
+          "text"
+        ]
+      },
+      "UpdateCardDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerCardKind"
+              }
+            ]
+          },
+          "effect": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerEffect"
+              }
+            ]
+          },
+          "effectKind": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerPersonalKind"
+              }
+            ]
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400
+          }
+        }
+      },
+      "BunkerKindCountDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerCardKind"
+              }
+            ]
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "count"
+        ]
+      },
+      "BunkerPackDto": {
+        "type": "object",
+        "properties": {
+          "author": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserRefDto"
+              }
+            ]
+          },
+          "counts": {
+            "description": "Cards of each kind (every kind, zeros too).",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BunkerKindCountDto"
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "builtin": {
+            "type": "boolean",
+            "description": "The pack that comes with the app: read only, can be copied."
+          },
+          "canEdit": {
+            "type": "boolean"
+          },
+          "cardCount": {
+            "type": "number"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "author",
+          "counts",
+          "id",
+          "name",
+          "description",
+          "builtin",
+          "canEdit",
+          "cardCount",
+          "updatedAt"
+        ]
+      },
+      "BunkerPackListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BunkerPackDto"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "CreatePackDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "copyOf": {
+            "type": "string",
+            "description": "«Копія»: the new pack holds the same cards as this one.",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "BunkerPackDetailDto": {
+        "type": "object",
+        "properties": {
+          "author": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserRefDto"
+              }
+            ]
+          },
+          "counts": {
+            "description": "Cards of each kind (every kind, zeros too).",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BunkerKindCountDto"
+            }
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BunkerCardDto"
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "builtin": {
+            "type": "boolean",
+            "description": "The pack that comes with the app: read only, can be copied."
+          },
+          "canEdit": {
+            "type": "boolean"
+          },
+          "cardCount": {
+            "type": "number"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "author",
+          "counts",
+          "cards",
+          "id",
+          "name",
+          "description",
+          "builtin",
+          "canEdit",
+          "cardCount",
+          "updatedAt"
+        ]
+      },
+      "CardFieldsDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerCardKind"
+              }
+            ]
+          },
+          "effect": {
+            "nullable": true,
+            "description": "Special cards: what the card does.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerEffect"
+              }
+            ]
+          },
+          "effectKind": {
+            "nullable": true,
+            "description": "swap, replace, reveal_other: the kind of personal card.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerPersonalKind"
+              }
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "Catastrophe and threat: required; other kinds: none.",
+            "maxLength": 60
+          },
+          "text": {
+            "type": "string",
+            "description": "Up to 140 characters (catastrophe and threat — 400).",
+            "minLength": 1,
+            "maxLength": 400
+          }
+        },
+        "required": [
+          "kind",
+          "text"
+        ]
+      },
+      "ImportPackDto": {
+        "type": "object",
+        "properties": {
+          "format": {
+            "enum": [
+              "digicomp-bunker-pack"
+            ],
+            "type": "string"
+          },
+          "cards": {
+            "maxItems": 1000,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CardFieldsDto"
+            }
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "format",
+          "cards",
+          "name"
+        ]
+      },
+      "BunkerPackFileCardDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerCardKind"
+              }
+            ]
+          },
+          "effect": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerEffect"
+              }
+            ]
+          },
+          "effectKind": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerPersonalKind"
+              }
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "effect",
+          "effectKind",
+          "title",
+          "text"
+        ]
+      },
+      "BunkerPackFileDto": {
+        "type": "object",
+        "properties": {
+          "format": {
+            "enum": [
+              "digicomp-bunker-pack"
+            ],
+            "type": "string"
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BunkerPackFileCardDto"
+            }
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "format",
+          "cards",
+          "name",
+          "description"
+        ]
+      },
+      "UpdatePackDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 300
+          }
+        }
+      },
+      "PackCardsDto": {
+        "type": "object",
+        "properties": {
+          "cardIds": {
+            "maxItems": 500,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "cardIds"
+        ]
+      },
+      "BunkerRoomStatus": {
+        "type": "string",
+        "enum": [
+          "lobby",
+          "playing",
+          "finished"
+        ]
+      },
+      "BunkerPackRefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "BunkerRoomListItemDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerRoomStatus"
+              }
+            ]
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserRefDto"
+            }
+          },
+          "packs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BunkerPackRefDto"
+            }
+          },
+          "round": {
+            "type": "number",
+            "nullable": true,
+            "description": "Playing: the round; otherwise null."
+          },
+          "alive": {
+            "type": "number",
+            "nullable": true,
+            "description": "Playing: still in the game."
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "host": {
+            "$ref": "#/components/schemas/UserRefDto"
+          },
+          "maxPlayers": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "status",
+          "members",
+          "packs",
+          "round",
+          "alive",
+          "id",
+          "name",
+          "host",
+          "maxPlayers"
+        ]
+      },
+      "BunkerRoomListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BunkerRoomListItemDto"
+            }
+          },
+          "myRoomId": {
+            "type": "string",
+            "nullable": true,
+            "description": "The room the reader is in."
+          }
+        },
+        "required": [
+          "items",
+          "myRoomId"
+        ]
+      },
+      "CreateRoomDto": {
+        "type": "object",
+        "properties": {
+          "turnSeconds": {
+            "type": "number",
+            "nullable": true,
+            "description": "30, 60 or 120; null — no timer.",
+            "enum": [
+              30,
+              60,
+              120
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "packIds": {
+            "description": "Packs to deal from; what they lack comes from the built-in one.",
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "maxPlayers": {
+            "type": "number",
+            "minimum": 4,
+            "maximum": 16
+          },
+          "hostPlays": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "turnSeconds",
+          "name",
+          "packIds",
+          "maxPlayers",
+          "hostPlays"
+        ]
+      },
+      "BunkerMemberDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "online": {
+            "type": "boolean",
+            "description": "The page of the room asked for news in the last 30 seconds."
+          }
+        },
+        "required": [
+          "userId",
+          "online"
+        ]
+      },
+      "BunkerPhase": {
+        "type": "string",
+        "enum": [
+          "turns",
+          "discussion",
+          "voting",
+          "finished"
+        ]
+      },
+      "BunkerFeatureDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "nullable": true,
+            "description": "null — opens in `round`."
+          },
+          "round": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "text",
+          "round"
+        ]
+      },
+      "BunkerTableCardDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "text"
+        ]
+      },
+      "BunkerSeenCardDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerPersonalKind"
+              }
+            ]
+          },
+          "text": {
+            "type": "string",
+            "nullable": true,
+            "description": "null — closed."
+          }
+        },
+        "required": [
+          "kind",
+          "text"
+        ]
+      },
+      "BunkerSpecialDto": {
+        "type": "object",
+        "properties": {
+          "effect": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerEffect"
+              }
+            ]
+          },
+          "effectKind": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerPersonalKind"
+              }
+            ]
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "effect",
+          "effectKind",
+          "text"
+        ]
+      },
+      "BunkerPlayerDto": {
+        "type": "object",
+        "properties": {
+          "out": {
+            "type": "number",
+            "nullable": true,
+            "description": "Round the player left the game in; null — still in."
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BunkerSeenCardDto"
+            }
+          },
+          "special": {
+            "nullable": true,
+            "description": "Shown to all once used, and at the end of the game.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerSpecialDto"
+              }
+            ]
+          },
+          "userId": {
+            "type": "string"
+          },
+          "left": {
+            "type": "boolean",
+            "description": "Left the room or was removed (not voted out)."
+          },
+          "specialUsed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "out",
+          "cards",
+          "special",
+          "userId",
+          "left",
+          "specialUsed"
+        ]
+      },
+      "BunkerMyCardDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerPersonalKind"
+              }
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "revealed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "kind",
+          "text",
+          "revealed"
+        ]
+      },
+      "BunkerMeDto": {
+        "type": "object",
+        "properties": {
+          "cards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BunkerMyCardDto"
+            }
+          },
+          "special": {
+            "$ref": "#/components/schemas/BunkerSpecialDto"
+          },
+          "specialUsed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "cards",
+          "special",
+          "specialUsed"
+        ]
+      },
+      "BunkerTurnDto": {
+        "type": "object",
+        "properties": {
+          "deadline": {
+            "type": "string",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string"
+          },
+          "revealed": {
+            "type": "boolean",
+            "description": "The speaker has revealed this turn's card."
+          }
+        },
+        "required": [
+          "deadline",
+          "userId",
+          "revealed"
+        ]
+      },
+      "BunkerVoteDto": {
+        "type": "object",
+        "properties": {
+          "myVote": {
+            "type": "string",
+            "nullable": true
+          },
+          "candidates": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "voted": {
+            "description": "Who has voted (not for whom: the vote is secret).",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "runoff": {
+            "type": "boolean",
+            "description": "A re-vote between the tied."
+          },
+          "double": {
+            "type": "boolean",
+            "description": "The reader's vote counts twice."
+          }
+        },
+        "required": [
+          "myVote",
+          "candidates",
+          "voted",
+          "runoff",
+          "double"
+        ]
+      },
+      "BunkerLogType": {
+        "type": "string",
+        "enum": [
+          "round",
+          "reveal",
+          "timeout",
+          "skip",
+          "vote",
+          "tie",
+          "out",
+          "lot",
+          "special",
+          "left",
+          "removed",
+          "finished"
+        ]
+      },
+      "BunkerTallyDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "votes": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "userId",
+          "votes"
+        ]
+      },
+      "BunkerLogDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerLogType"
+              }
+            ]
+          },
+          "userId": {
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string"
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerPersonalKind"
+              }
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "effect": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerEffect"
+              }
+            ]
+          },
+          "tally": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BunkerTallyDto"
+            }
+          },
+          "at": {
+            "type": "string"
+          },
+          "round": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "type",
+          "at",
+          "round"
+        ]
+      },
+      "BunkerGameDto": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerPhase"
+              }
+            ]
+          },
+          "bunker": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BunkerFeatureDto"
+            }
+          },
+          "threat": {
+            "nullable": true,
+            "description": "Opens at the end of the game.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerTableCardDto"
+              }
+            ]
+          },
+          "players": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BunkerPlayerDto"
+            }
+          },
+          "me": {
+            "nullable": true,
+            "description": "The reader's own cards; null — not playing (the host who only leads).",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerMeDto"
+              }
+            ]
+          },
+          "turn": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerTurnDto"
+              }
+            ]
+          },
+          "vote": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerVoteDto"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BunkerLogDto"
+            }
+          },
+          "round": {
+            "type": "number"
+          },
+          "capacity": {
+            "type": "number",
+            "description": "Places in the bunker."
+          },
+          "schedule": {
+            "description": "Eliminations left in each round (index 0 — round 1).",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "stayMonths": {
+            "type": "number"
+          },
+          "catastrophe": {
+            "$ref": "#/components/schemas/BunkerTableCardDto"
+          },
+          "queue": {
+            "description": "Still to speak this round, the speaker first.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "immune": {
+            "description": "Protected from votes this round.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "phase",
+          "bunker",
+          "threat",
+          "players",
+          "me",
+          "turn",
+          "vote",
+          "log",
+          "round",
+          "capacity",
+          "schedule",
+          "stayMonths",
+          "catastrophe",
+          "queue",
+          "immune"
+        ]
+      },
+      "BunkerRoomSettingsDto": {
+        "type": "object",
+        "properties": {
+          "turnSeconds": {
+            "type": "number",
+            "nullable": true,
+            "description": "Seconds for a turn; null — no timer."
+          },
+          "packIds": {
+            "description": "Packs the cards are dealt from; what they lack comes from the built-in one.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "maxPlayers": {
+            "type": "number"
+          },
+          "hostPlays": {
+            "type": "boolean",
+            "description": "The host plays too (false — only leads the game)."
+          }
+        },
+        "required": [
+          "turnSeconds",
+          "packIds",
+          "maxPlayers",
+          "hostPlays"
+        ]
+      },
+      "BunkerRoomDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerRoomStatus"
+              }
+            ]
+          },
+          "packs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BunkerPackRefDto"
+            }
+          },
+          "members": {
+            "description": "In the room now, in the order they joined.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BunkerMemberDto"
+            }
+          },
+          "users": {
+            "description": "Everyone the room names: members and players who left.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserRefDto"
+            }
+          },
+          "game": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerGameDto"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "hostId": {
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/BunkerRoomSettingsDto"
+          },
+          "now": {
+            "type": "string",
+            "description": "Server time: the turn timer counts from it."
+          }
+        },
+        "required": [
+          "status",
+          "packs",
+          "members",
+          "users",
+          "game",
+          "id",
+          "name",
+          "hostId",
+          "settings",
+          "now"
+        ]
+      },
+      "UpdateRoomDto": {
+        "type": "object",
+        "properties": {
+          "turnSeconds": {
+            "type": "number",
+            "nullable": true,
+            "enum": [
+              30,
+              60,
+              120
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "packIds": {
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "maxPlayers": {
+            "type": "number",
+            "minimum": 4,
+            "maximum": 16
+          },
+          "hostPlays": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PassHostDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "userId"
+        ]
+      },
+      "BunkerActionType": {
+        "type": "string",
+        "enum": [
+          "reveal",
+          "end_turn",
+          "skip_turn",
+          "start_vote",
+          "vote",
+          "close_vote",
+          "next_round",
+          "special"
+        ]
+      },
+      "RoomActionDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerActionType"
+              }
+            ]
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BunkerPersonalKind"
+              }
+            ]
+          },
+          "targetId": {
+            "type": "string",
+            "description": "The player voted against, or the one a special card acts on.",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "type"
         ]
       }
     }
